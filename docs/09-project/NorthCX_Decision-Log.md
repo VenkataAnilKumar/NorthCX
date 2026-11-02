@@ -70,3 +70,4 @@
 | 9 | Contribution model: DCO vs CLA | Open | |
 | 67 | Tool results are screened (`output_guardrails`) before the model reads them; failures deny; an empty list leaves spec digests unchanged | Decided, built | Indirect-injection defence; phrase list narrow on purpose |
 | 68 | Monitoring is rule-based over traces for every turn (no model calls); findings are advisory and monitoring failures never affect conversations | Decided, built | |
+| 69 | Policy library is deterministic and ships with executable allow/block cases; every policy needs both outcomes covered | Decided, built | |

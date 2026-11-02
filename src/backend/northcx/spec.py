@@ -14,6 +14,7 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .agent import Agent, Tool
+from .policies import FACTORIES as POLICY_FACTORIES
 from .guardrails import Guardrail, InputGuardrail, OutputGuardrail, LLMPolicy, NoCardNumbers
 from .handoffs import ForcedTopic
 from .safety import PIIDetection, PromptInjection, ToolOutputInjection, ToolOutputPII
@@ -180,6 +181,8 @@ def default_registry() -> Registry:
     """A registry with NorthCX's built-in guardrails. Callers add their own tools."""
     r = Registry()
     r.guardrail("no_card_numbers", lambda cfg, ctx: NoCardNumbers())
+    for _name, _factory in POLICY_FACTORIES.items():
+        r.guardrail(_name, _factory)
 
     def llm_policy(cfg: dict[str, Any], ctx: BuildContext) -> Guardrail:
         if ctx.llm is None:
