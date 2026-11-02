@@ -12,9 +12,9 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 ## Layout
 | Path | Contents |
 |---|---|
-| `backend/` | Python product backend (FastAPI): runtime, guardrails, safety, stores, server, example agent, tests |
-| `web/` | Web platform (planned): Studio and insights, built from reference code |
-| `prototype/` | TypeScript reference implementation of the runtime semantics |
+| `src/backend/` | Python product backend (FastAPI): runtime, guardrails, safety, stores, server, example agent, tests |
+| `src/web/` | Web platform (planned): Studio and insights, built from reference code |
+| `src/prototype/` | TypeScript reference implementation of the runtime semantics |
 | `third_party/`, `NOTICE`, `THIRD_PARTY.md` | Provenance and licences of copied code |
 | `docs/` | Documentation; start at `docs/README.md` |
 
@@ -23,7 +23,7 @@ Early development. The Python backend reproduces the prototype's runtime, API an
 
 ## Quick start (backend)
 ```bash
-cd backend
+cd src/backend
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
 python -m pytest

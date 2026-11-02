@@ -4,8 +4,8 @@ Provenance of code copied or adapted from other projects. Policy: `docs/05-techn
 
 | Source | Source path | Upstream commit | Licence | NorthCX file | Local changes |
 |---|---|---|---|---|---|
-| agno-agi/agno | `libs/agno/agno/guardrails/pii.py` | b21807bb6d86d2a62efeb42d492c04e566ee7f90 | Apache-2.0 | `backend/northcx/safety/pii.py` | Rewritten to the async `InputGuardrail` interface and a result object instead of exceptions; credit cards use the Luhn check; phone pattern requires separators so plain order numbers are not flagged |
-| agno-agi/agno | `libs/agno/agno/guardrails/prompt_injection.py` | b21807bb6d86d2a62efeb42d492c04e566ee7f90 | Apache-2.0 | `backend/northcx/safety/prompt_injection.py` | Rewritten to the async `InputGuardrail` interface; pattern list unchanged |
+| agno-agi/agno | `libs/agno/agno/guardrails/pii.py` | b21807bb6d86d2a62efeb42d492c04e566ee7f90 | Apache-2.0 | `src/backend/northcx/safety/pii.py` | Rewritten to the async `InputGuardrail` interface and a result object instead of exceptions; credit cards use the Luhn check; phone pattern requires separators so plain order numbers are not flagged |
+| agno-agi/agno | `libs/agno/agno/guardrails/prompt_injection.py` | b21807bb6d86d2a62efeb42d492c04e566ee7f90 | Apache-2.0 | `src/backend/northcx/safety/prompt_injection.py` | Rewritten to the async `InputGuardrail` interface; pattern list unchanged |
 
 Unmodified originals for diffing are kept in `third_party/agno/original/` with the upstream `LICENSE` in `third_party/agno/LICENSE`.
 

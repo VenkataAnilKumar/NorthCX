@@ -20,12 +20,12 @@ Platform         Studio | Simulation & evals | Observability | Auth/RBAC
 ## Components
 | Component | Responsibility | Status |
 |---|---|---|
-| Runtime (prototype: `src/core/runtime.ts`; product: Python backend) | Step loop, tool execution, guardrail checks, handoff, approvals | Scaffolded |
+| Runtime (prototype: `src/prototype/src/core/runtime.ts`; product: Python backend) | Step loop, tool execution, guardrail checks, handoff, approvals | Scaffolded |
 | Guardrails (`guardrails.ts`) | Rule and LLM-based supervisors; fail closed | Scaffolded |
 | Tools (`agent.ts`) | Zod-validated tools with optional approval rule | Scaffolded |
 | Memory (`store.ts`) | Session history and customer facts; pluggable | In-memory only |
 | Traces (`trace.ts`) | Event log per run | In-memory / JSONL |
-| Server (`src/server`) | HTTP API, auth, widget | Built |
+| Server (`src/prototype/src/server`) | HTTP API, auth, widget | Built |
 | Approvals | Pending approvals and decisions | Built (in memory); resume Phase 2 |
 | Simulation | Scenario runner, simulated customers, judge, CI gate | Phase 2 |
 | Release service | Versions, environments, rollback, rollout | Phases 2-4 |

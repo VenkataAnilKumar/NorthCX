@@ -1,6 +1,6 @@
 # NorthCX Agent Runtime
 
-Status: Draft. Describes the runtime semantics, implemented and tested in the TypeScript prototype (`src/core/runtime.ts`, `tests/runtime.test.ts`). The Python backend must reproduce these semantics and tests.
+Status: Draft. Describes the runtime semantics, implemented and tested in the TypeScript prototype (`src/prototype/src/core/runtime.ts`, `src/prototype/tests/runtime.test.ts`). The Python backend must reproduce these semantics and tests.
 
 ## Concepts
 | Concept | Definition |

@@ -1,6 +1,6 @@
 # NorthCX Simulation and Evals
 
-Status: Draft. Not yet implemented (`src/sim` planned).
+Status: Draft. Not yet implemented (`src/backend/northcx/simulation` planned).
 
 ## Scenario format
 ```
