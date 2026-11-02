@@ -198,7 +198,13 @@ def load_spec(path: str | Path) -> AgentSpec:
 
 
 def load_specs(directory: str | Path) -> list[AgentSpec]:
-    specs = [load_spec(p) for p in sorted(Path(directory).glob("*.y*ml")) + sorted(Path(directory).glob("*.json"))]
+    d = Path(directory)
+    if not d.is_dir():
+        raise SpecError(f"Spec directory not found: {directory}")
+    files = sorted(d.glob("*.y*ml")) + sorted(d.glob("*.json"))
+    if not files:
+        raise SpecError(f"No agent spec files (*.yaml, *.yml, *.json) in {directory}")
+    specs = [load_spec(p) for p in files]
     ids = [s.id for s in specs]
     if len(set(ids)) != len(ids):
         raise SpecError("Duplicate agent ids in " + str(directory))

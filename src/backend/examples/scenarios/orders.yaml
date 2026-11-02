@@ -1,0 +1,38 @@
+name: order-lookup
+description: A customer asks where an order is; the agent checks before answering.
+agent: support
+model:
+  - tool_call: {name: lookup_order, input: {order_id: "1042"}}
+  - text: Order 1042 (Trail shoes) has been delivered.
+turns:
+  - say: where is order 1042?
+    expect:
+      status: completed
+      tools_called: [lookup_order]
+      reply_includes: [delivered]
+expect:
+  handoff: none
+  max_model_calls: 2
+---
+name: refund-under-limit-executes
+description: A small refund needs no approval.
+agent: support
+model:
+  - tool_call: {name: issue_refund, input: {order_id: "1042", amount: 60}}
+  - text: Done, I've refunded 60 for order 1042.
+turns:
+  - say: please refund order 1042, I want 60 back
+    expect: {status: completed, tools_called: [issue_refund]}
+expect:
+  handoff: none
+  approvals: []
+---
+name: refund-for-an-order-in-transit-is-explained
+description: The tool refuses; the agent explains instead of pretending it worked.
+agent: support
+model:
+  - tool_call: {name: issue_refund, input: {order_id: "3150", amount: 35}}
+  - text: I can't refund order 3150 yet because it is still in transit.
+turns:
+  - say: refund order 3150
+    expect: {status: completed, reply_includes: [in transit], reply_excludes: ["has been refunded"]}

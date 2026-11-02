@@ -28,6 +28,9 @@ Run against both in-memory and Postgres stores: exactly-once execution under con
 ## Handoff tests
 Package builder (transcript, action outcomes, summary), every escalation trigger, forced topics (model never called, word boundaries, platform notices exempt, multiple topics), spec validation of topics, handoffs surviving a restart in Postgres, resolve-once under concurrency in both stores, and the queue API. A mutation check (disabling topic matching, or removing platform-notice handling) makes tests fail.
 
+## Simulation tests
+The runner is itself tested: every check type fails when its expectation is wrong, scripts must match exactly, invariants catch broken histories, the judge fails closed, trials and the required/optional gate behave as documented, the command line returns the right exit codes, and the example suite passes. Weakening the example agent (no forced topics, no reply guardrail, no input guardrails, no approval rule) must make the suite fail.
+
 ## Rules
 - No network in unit tests.
 - Any production failure becomes a regression scenario.

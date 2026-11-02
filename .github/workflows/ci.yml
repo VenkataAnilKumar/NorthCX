@@ -24,6 +24,9 @@ jobs:
       - run: pip install -e "src/backend[dev]"
       - run: python -m pytest -q
         working-directory: src/backend
+      - name: Scenario simulations (required scenarios gate the build)
+        run: python -m northcx.simulation examples/scenarios --specs examples --registry examples.support_agent:registry --skip-judge
+        working-directory: src/backend
   web:
     runs-on: ubuntu-latest
     steps:

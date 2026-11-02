@@ -34,4 +34,7 @@
 | 31 | Every escalation creates a handoff with a typed trigger and a deterministic package | Decided, built | Model-written summaries later |
 | 32 | Forced topics are deterministic patterns in the agent spec and run before the model | Decided, built | False positives cost a human visit, which is the safe direction |
 | 33 | Handoff resolve is a once-only atomic transition | Decided, built | Same pattern as approvals |
+| 34 | Scenario files are strictly validated; scripted models must be fully used; invariants are checked in every scenario | Decided, built | A passing scenario cannot hide a drifting script or a broken history |
+| 35 | A judge check without a judge model fails (or is skipped explicitly with a note) | Decided, built | Never a silent pass |
+| 36 | Only `required` scenarios gate; live runs use trials and a pass rate | Decided, built | |
 | 9 | Contribution model: DCO vs CLA | Open | |

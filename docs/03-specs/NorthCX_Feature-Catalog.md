@@ -99,9 +99,9 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | ID | Feature | Pri | Phase | State |
 |---|---|---|---|---|
 | Q1 | Unit tests with a scripted model | P0 | 1 | Built |
-| Q2 | Scenario simulations with assertions | P0 | 2 | Planned |
-| Q3 | Judge-model scoring with calibration | P1 | 2 | Planned |
-| Q4 | CI gate on required scenarios | P0 | 2 | Planned |
+| Q2 | Scenario simulations with assertions | P0 | 2 | Built |
+| Q3 | Judge-model scoring with calibration | P1 | 2 | Judge and agreement check built; not yet calibrated with a real model |
+| Q4 | CI gate on required scenarios | P0 | 2 | CI step built; promotion gating in sprint 9 |
 | Q5 | Regression scenarios from production traces | P1 | 3 | Planned |
 | Q6 | Simulated customers with personas, including adversarial ones | P1 | 3 | Planned |
 | Q7 | Re-run simulations when knowledge or policies change | P1 | 3 | Planned |

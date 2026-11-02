@@ -117,3 +117,10 @@ def test_load_specs_rejects_duplicate_ids(tmp_path):
 def test_dump_is_stable_text():
     s = AgentSpec(id="a", instructions="x")
     assert dump_spec(s) == dump_spec(parse_spec(dump_spec(s)))
+
+
+def test_load_specs_reports_missing_or_empty_directories(tmp_path):
+    with pytest.raises(SpecError, match="not found"):
+        load_specs(tmp_path / "nope")
+    with pytest.raises(SpecError, match="No agent spec files"):
+        load_specs(tmp_path)

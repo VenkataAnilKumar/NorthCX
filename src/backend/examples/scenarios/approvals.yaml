@@ -1,0 +1,46 @@
+name: large-refund-is-held-then-approved
+description: Over the limit the action waits; once approved it runs and the customer is told.
+agent: support
+model:
+  - tool_call: {name: issue_refund, input: {order_id: "2077", amount: 240}}
+  - text: Good news, your refund of 240 has been approved and processed.
+turns:
+  - say: refund order 2077 in full, 240
+    expect: {status: needs_approval, tools_called: [issue_refund], reply_includes: [teammate]}
+  - decide: approve
+    by: rae
+    note: verified
+    expect: {approval_state: executed, status: completed, reply_includes: [approved]}
+expect:
+  approvals: [{tool: issue_refund, state: executed}]
+  outbox_kinds: [approval_result]
+  handoff: none
+---
+name: large-refund-rejected-is-explained
+description: A rejected approval never runs the action, and the customer hears why.
+agent: support
+model:
+  - tool_call: {name: issue_refund, input: {order_id: "2077", amount: 240}}
+  - text: A teammate wasn't able to approve that refund. I can offer a replacement instead.
+turns:
+  - say: refund 240 for order 2077
+    expect: {status: needs_approval}
+  - decide: reject
+    note: outside the return window
+    expect: {approval_state: rejected, reply_includes: [replacement]}
+expect:
+  approvals: [{tool: issue_refund, state: rejected}]
+---
+name: stale-approval-expires-and-goes-to-a-person
+description: A held action nobody decides is expired and the conversation is handed to a person.
+agent: support
+model:
+  - tool_call: {name: issue_refund, input: {order_id: "2077", amount: 240}}
+turns:
+  - say: refund 240 for order 2077
+    expect: {status: needs_approval}
+  - expire_approvals: true
+    expect: {expired: 1, handoff: {trigger: approval_expired}}
+expect:
+  approvals: [{tool: issue_refund, state: expired}]
+  outbox_kinds: [approval_expired]
