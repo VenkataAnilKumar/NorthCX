@@ -19,7 +19,7 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 | `docs/` | Documentation; start at `docs/README.md` |
 
 ## Status
-Early development. The Python backend reproduces the prototype's runtime, API and example agent (213 backend tests and 11 web tests passing with a scripted model) and adds copied/adapted input guardrails from a reference project. The web platform (`src/web`) is browser-tested against the backend. Postgres persistence and approval resume (exactly-once execution, outcomes delivered to the customer, expiry) are built. Handoffs (a package with the transcript, actions and facts, a queue, and always-to-a-person topics) are built. Scenario simulations (15 example scenarios, a judge, and a command line that gates CI) are built. Stored results and release gating, versions, channels, the Studio editor and insights are planned.
+Early development. The Python backend reproduces the prototype's runtime, API and example agent (233 backend tests and 13 web tests passing with a scripted model) and adds copied/adapted input guardrails from a reference project. The web platform (`src/web`) is browser-tested against the backend. Postgres persistence and approval resume (exactly-once execution, outcomes delivered to the customer, expiry) are built. Handoffs (a package with the transcript, actions and facts, a queue, and always-to-a-person topics) are built. Scenario simulations (15 example scenarios, a judge, and a command line that gates CI) are built. Stored simulation runs, a release-gate rule tied to the exact agent version, and a Simulations page are built. Versions and promotion, channels, the Studio editor and insights are planned.
 
 ## Quick start (backend)
 ```bash

@@ -14,7 +14,10 @@ Base path `/v1`. JSON. Optional `Authorization: Bearer <key>`.
 | POST | `/agents/:id/versions` | Create version (Phase 2) |
 | POST | `/agents/:id/releases` | Publish a version to an environment after checks (Phase 2-3) |
 | POST | `/agents/:id/rollback` | Restore a prior version (Phase 2) |
-| POST | `/simulations/runs` | Run scenarios (Phase 2) |
+| GET | `/simulations/scenarios` | Scenarios and available modes (built) |
+| POST | `/simulations/runs` | `{mode, only?, skipJudge?}`: run scenarios and store the result; 409 if a run is in progress (built) |
+| GET | `/simulations/runs`, `/simulations/runs/:id` | Stored runs and a full report (built) |
+| GET | `/simulations/gate?agent=` | Whether each agent's current version passed every required scenario (built) |
 | GET | `/audit` | Query the audit log (Phase 2) |
 | DELETE | `/customers/:id` | Delete a customer's data (Phase 3) |
 | GET | `/approvals?state=` | List approvals (built) |

@@ -108,3 +108,25 @@ describe("forced topic events", () => {
     expect(html).toContain("legal, safety");
   });
 });
+
+describe("simulation calls", () => {
+  it("runs scenarios with the chosen options and reads gates", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push([url, init]);
+      return new Response(JSON.stringify(url.includes("gate") ? { gates: [{ agent: "support", satisfied: true }] } : { id: "r1" }), { status: 200 });
+    }));
+    const { runSimulation, getGates } = await import("@/lib/api");
+    await runSimulation("scripted", true, "legal");
+    expect(calls[0][0]).toBe("/api/northcx/v1/simulations/runs");
+    expect(JSON.parse(String(calls[0][1]?.body))).toEqual({ mode: "scripted", skipJudge: true, only: "legal" });
+    await runSimulation("scripted", false);
+    expect(JSON.parse(String(calls[1][1]?.body))).toEqual({ mode: "scripted", skipJudge: false });
+    expect((await getGates())[0].satisfied).toBe(true);
+  });
+
+  it("renders gate and run badges", () => {
+    for (const [s, label] of [["satisfied", "Satisfied"], ["passed", "Passed"], ["failed", "Failed"], ["blocked", "Blocked"]])
+      expect(renderToStaticMarkup(createElement(StatusBadge, { status: s }))).toContain(label);
+  });
+});

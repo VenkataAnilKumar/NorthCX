@@ -6,6 +6,8 @@ const styles: Record<string, string> = {
   approved: "bg-[var(--ok-bg)] text-[var(--ok)]",
   rejected: "bg-[var(--bad-bg)] text-[var(--bad)]",
   blocked: "bg-[var(--bad-bg)] text-[var(--bad)]",
+  satisfied: "bg-[var(--ok-bg)] text-[var(--ok)]",
+  passed: "bg-[var(--ok-bg)] text-[var(--ok)]",
   open: "bg-[var(--warn-bg)] text-[var(--warn)]",
   resolved: "bg-[var(--ok-bg)] text-[var(--ok)]",
   executing: "bg-[var(--info-bg)] text-[var(--info)]",

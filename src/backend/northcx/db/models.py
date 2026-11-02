@@ -99,6 +99,21 @@ class HandoffRow(Base):
     __table_args__ = (Index("ix_handoffs_state", "state", "created_at"), Index("ix_handoffs_session", "session_id"))
 
 
+class SimRunRow(Base):
+    __tablename__ = "simulation_runs"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    mode: Mapped[str] = mapped_column(String(16), nullable=False)
+    source: Mapped[str] = mapped_column(String(16), nullable=False)
+    passed: Mapped[bool] = mapped_column(nullable=False)
+    seconds: Mapped[float] = mapped_column(Float, nullable=False)
+    counts: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    agent_digests: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    meta: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    results: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    __table_args__ = (Index("ix_simulation_runs_created", "created_at"),)
+
+
 class OutboxRow(Base):
     __tablename__ = "outbox"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)

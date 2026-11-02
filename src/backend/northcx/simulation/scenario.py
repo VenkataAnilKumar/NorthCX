@@ -1,6 +1,8 @@
 """Scenario files: YAML or JSON, validated strictly so a typo fails loudly instead of silently checking nothing."""
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from pathlib import Path
 from typing import Any, Literal
@@ -118,6 +120,11 @@ class Scenario(_Strict):
     trials: int = Field(default=1, ge=1, le=50)  # live-model runs are repeated
     min_pass_rate: float = Field(default=1.0, gt=0, le=1)
     source: str = ""  # file the scenario came from
+
+    def digest(self) -> str:
+        """Content hash of the scenario definition (not the file it came from)."""
+        body = self.model_dump(mode="json", exclude={"source"})
+        return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
     @model_validator(mode="after")
     def _steps_make_sense(self) -> "Scenario":

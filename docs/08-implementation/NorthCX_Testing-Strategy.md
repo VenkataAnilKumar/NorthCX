@@ -31,6 +31,9 @@ Package builder (transcript, action outcomes, summary), every escalation trigger
 ## Simulation tests
 The runner is itself tested: every check type fails when its expectation is wrong, scripts must match exactly, invariants catch broken histories, the judge fails closed, trials and the required/optional gate behave as documented, the command line returns the right exit codes, and the example suite passes. Weakening the example agent (no forced topics, no reply guardrail, no input guardrails, no approval rule) must make the suite fail.
 
+## Gate tests
+The gate rule is tested for version and scenario changes, newest-result-wins in both directions, partial runs, demo versus live runs, skipped checks, missing digests, and empty gates; stored runs share a contract suite across memory and Postgres, and the gate works from runs stored before a simulated restart. Mutation checks (ignoring the agent digest, or counting demo runs) make tests fail.
+
 ## Rules
 - No network in unit tests.
 - Any production failure becomes a regression scenario.

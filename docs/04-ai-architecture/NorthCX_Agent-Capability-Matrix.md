@@ -28,7 +28,7 @@ Status: Draft. Summary of the Feature Catalog by capability. State: Built / Plan
 | Persistence | Postgres stores | K3 | 2 | Built and tested |
 | Retrieval, lifecycle | Stores and tools | K4-K8 | 3 | Planned |
 | Unit tests | Scripted model | Q1 | 1 | Built |
-| Scenario simulations, judge, CI step | Simulation runner | Q2-Q4 | 2 | Built and tested (promotion gate sprint 9) |
+| Scenario simulations, judge, CI step, stored runs, gate rule | Simulation runner and service | Q2-Q4 | 2 | Built and tested (enforced at promotion in sprint 10) |
 | Simulated customers, regression from traces, knowledge-triggered runs | Simulation runner | Q5-Q7 | 3 | Planned |
 | Versions, rollback, environments, rollout | Release service | Q8-Q11 | 2-4 | Planned |
 | Traces and trace API | Trace store | O1, O2 | 1 | Built |

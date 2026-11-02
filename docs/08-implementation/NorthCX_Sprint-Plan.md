@@ -12,7 +12,7 @@ Status: Draft. Two-week sprints; estimates are placeholders until velocity is me
 | 6 (done) | 2 | Approval resume (W3) | Resume flow, idempotent execution, expiry |
 | 7 (done) | 2 | Handoff (W4) | Handoff package, forced-handoff topics |
 | 8 (done) | 2 | Simulation runner (W5) | Scenario format, assertions, scripted customers, judge |
-| 9 | 2 | CI gate (W5, W8) | Required scenarios, stored results, simulations page |
+| 9 (done) | 2 | CI gate (W5, W8) | Required scenarios, stored results, simulations page |
 | 10 | 2 | Versions and rollback (W6) | Immutable versions, diff, rollback, release records |
 | 11 | 2 | Access and audit (W7) | Roles, scoped keys, audit log, rate limits |
 | 12 | 2 | Operations (W7, W8) | Containers, secrets, dry-run, releases and audit pages |

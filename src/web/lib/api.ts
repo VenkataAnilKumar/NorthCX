@@ -47,6 +47,18 @@ export const listHandoffs = (state?: string) => api<{ handoffs: HandoffSummary[]
 export const getHandoff = (id: string) => api<Handoff>(`/v1/handoffs/${id}`);
 export const resolveHandoff = (id: string, by: string, note?: string) =>
   api<HandoffSummary>(`/v1/handoffs/${id}/resolve`, { method: "POST", body: JSON.stringify({ by, ...(note ? { note } : {}) }) });
+export interface SimScenario { name: string; agent: string; required: boolean; description: string; steps: number; judge: boolean; digest: string }
+export interface SimFailure { where: string; check: string; expected: unknown; actual: unknown }
+export interface SimScenarioResult { name: string; required: boolean; passed: boolean; pass_rate: number; agent: string; notes: string[]; trials: { failures: SimFailure[] }[] }
+export interface SimRunSummary { id: string; createdAt: number; mode: string; source: string; passed: boolean; counts: { total: number; passed: number; failed: number; required_failed: number }; seconds: number; meta: Record<string, string>; agentDigests: Record<string, string> }
+export interface SimRunDetail extends SimRunSummary { results: SimScenarioResult[] }
+export interface Gate { agent: string; agentDigest: string | null; satisfied: boolean; required: number; covered: number; reasons: string[]; runIds: string[] }
+export const listSimScenarios = () => api<{ modes: string[]; scenarios: SimScenario[] }>("/v1/simulations/scenarios");
+export const listSimRuns = () => api<{ runs: SimRunSummary[] }>("/v1/simulations/runs").then((r) => r.runs);
+export const getSimRun = (id: string) => api<SimRunDetail>(`/v1/simulations/runs/${id}`);
+export const getGates = () => api<{ gates: Gate[] }>("/v1/simulations/gate").then((r) => r.gates);
+export const runSimulation = (mode: string, skipJudge: boolean, only?: string) =>
+  api<SimRunSummary>("/v1/simulations/runs", { method: "POST", body: JSON.stringify({ mode, skipJudge, ...(only ? { only } : {}) }) });
 export const listOutbox = (sessionId: string, after: number) =>
   api<{ messages: OutboxMessage[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/outbox?after=${after}`).then((r) => r.messages);
 export const listAgents = () => api<{ agents: AgentInfo[] }>("/v1/agents").then((r) => r.agents);

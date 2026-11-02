@@ -34,6 +34,9 @@ class ScenarioResult:
     pass_rate: float
     source: str = ""
     notes: list[str] = field(default_factory=list)
+    agent: str = ""
+    scenario_digest: str = ""
+    agent_digest: str | None = None
 
     @property
     def failures(self) -> list[Failure]:
@@ -44,6 +47,8 @@ class ScenarioResult:
 class SuiteResult:
     mode: str
     results: list[ScenarioResult]
+    agent_digests: dict[str, str] = field(default_factory=dict)
+    seconds: float = 0.0
 
     @property
     def passed(self) -> bool:
@@ -57,7 +62,8 @@ class SuiteResult:
                 "required_failed": sum((not r.passed) and r.required for r in self.results)}
 
     def to_dict(self) -> dict[str, Any]:
-        return {"mode": self.mode, "passed": self.passed, "counts": self.counts, "results": [asdict(r) for r in self.results]}
+        return {"mode": self.mode, "passed": self.passed, "counts": self.counts, "agentDigests": self.agent_digests,
+                "seconds": self.seconds, "results": [asdict(r) for r in self.results]}
 
 
 def format_report(suite: SuiteResult) -> str:

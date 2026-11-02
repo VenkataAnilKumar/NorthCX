@@ -21,7 +21,7 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 | `audit_log` | `id` pk, `actor`, `action`, `target`, `detail` jsonb, `at` | Append-only |
 | `knowledge_sources` | `id` pk, `name`, `kind`, `updated_at`, `status` | |
 | `scenarios` | `id` pk, `suite`, `definition` jsonb, `required` bool, `origin_trace_id` | |
-| `simulation_runs` | `id` pk, `agent_version_id`, `results` jsonb, `passed` bool, `at` | |
+| `simulation_runs` (built) | `id` pk, `created_at`, `mode`, `source`, `passed`, `seconds`, `counts` jsonb, `agent_digests` jsonb, `meta` jsonb, `results` jsonb | Index on `created_at`; results hold per-scenario digests used by the gate (migration 0004); `agent_version_id` replaces digests once versions exist |
 | `experiments` | `id` pk, `agent_id`, `variant_a`, `variant_b`, `split`, `state` | |
 
 Indexes on `sessions(customer_id)`, `traces(session_id)`, `approvals(state)`. Retention jobs delete old `messages` and `trace_events` by policy.

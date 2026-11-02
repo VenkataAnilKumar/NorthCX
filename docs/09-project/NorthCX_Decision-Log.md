@@ -37,4 +37,7 @@
 | 34 | Scenario files are strictly validated; scripted models must be fully used; invariants are checked in every scenario | Decided, built | A passing scenario cannot hide a drifting script or a broken history |
 | 35 | A judge check without a judge model fails (or is skipped explicitly with a note) | Decided, built | Never a silent pass |
 | 36 | Only `required` scenarios gate; live runs use trials and a pass rate | Decided, built | |
+| 37 | A gate pass is tied to the exact agent digest and scenario definition, newest result wins, demo runs never count, skipped checks do not count | Decided, built | Prevents a stale or partial pass from releasing a changed agent |
+| 38 | Simulation runs are stored with per-scenario digests; CI records its run | Decided, built | Sprint 10 enforces the gate at promotion |
+| 39 | The API runs one simulation at a time, synchronously | Decided | Long live suites should use the command line until background jobs exist |
 | 9 | Contribution model: DCO vs CLA | Open | |

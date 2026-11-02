@@ -101,7 +101,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | Q1 | Unit tests with a scripted model | P0 | 1 | Built |
 | Q2 | Scenario simulations with assertions | P0 | 2 | Built |
 | Q3 | Judge-model scoring with calibration | P1 | 2 | Judge and agreement check built; not yet calibrated with a real model |
-| Q4 | CI gate on required scenarios | P0 | 2 | CI step built; promotion gating in sprint 9 |
+| Q4 | CI gate on required scenarios | P0 | 2 | Built: CI step, stored runs and gate rule; enforced at promotion in sprint 10 |
 | Q5 | Regression scenarios from production traces | P1 | 3 | Planned |
 | Q6 | Simulated customers with personas, including adversarial ones | P1 | 3 | Planned |
 | Q7 | Re-run simulations when knowledge or policies change | P1 | 3 | Planned |
@@ -130,7 +130,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 |---|---|---|---|---|
 | U1 | Agent editor (instructions, tools, guardrails, approvals) | P1 | 4 | Planned |
 | U2 | Test console with live trace | P1 | 4 | Planned |
-| U3 | Simulation runner and results | P1 | 4 | Planned |
+| U3 | Simulation runner and results | P1 | 4 | Early version built (runs, results, release gate); scenario editing planned |
 | U4 | Conversation review and failure tagging | P1 | 4 | Planned |
 | U5 | Approval queue | P1 | 4 | Planned |
 | U6 | Knowledge management | P1 | 4 | Planned |

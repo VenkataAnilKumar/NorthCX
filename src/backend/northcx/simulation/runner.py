@@ -126,9 +126,11 @@ def check_step(where: str, exp: StepExpect, d: StepData, out: list[Failure]) -> 
 
 
 class SimulationRunner:
-    def __init__(self, agent_factory: AgentFactory, config: SimConfig | None = None):
+    def __init__(self, agent_factory: AgentFactory, config: SimConfig | None = None,
+                 agent_digests: dict[str, str] | None = None):
         self.agent_factory = agent_factory
         self.cfg = config or SimConfig()
+        self.agent_digests = agent_digests or {}
 
     # ---- model selection ----
     def _inner_llm(self, sc: Scenario) -> tuple[LLM | None, str | None]:
@@ -154,7 +156,8 @@ class SimulationRunner:
         notes = []
         if sc.judge and self.cfg.skip_judge:
             notes.append("judge check skipped")
-        return ScenarioResult(sc.name, sc.required, rate >= sc.min_pass_rate, trials, rate, sc.source, notes)
+        return ScenarioResult(sc.name, sc.required, rate >= sc.min_pass_rate, trials, rate, sc.source, notes,
+                              agent=sc.agent, scenario_digest=sc.digest(), agent_digest=self.agent_digests.get(sc.agent))
 
     async def _trial(self, sc: Scenario, index: int) -> TrialResult:
         started = time.time()
@@ -279,7 +282,10 @@ class SimulationRunner:
         return TrialResult(not failures, failures, trace_ids, judge_result, model_calls, time.time() - started)
 
     async def run_suite(self, scenarios: list[Scenario]) -> SuiteResult:
-        return SuiteResult(self.cfg.mode, [await self.run_scenario(s) for s in scenarios])
+        started = time.time()
+        results = [await self.run_scenario(s) for s in scenarios]
+        used = {s.agent for s in scenarios}
+        return SuiteResult(self.cfg.mode, results, {a: d for a, d in self.agent_digests.items() if a in used}, time.time() - started)
 
 
 async def run_scenarios(scenarios: list[Scenario], agent_factory: AgentFactory, config: SimConfig | None = None) -> SuiteResult:

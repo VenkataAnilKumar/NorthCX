@@ -30,7 +30,7 @@ def test_migrations_apply_roll_back_and_reapply_cleanly(db_url):
     assert asyncio.run(tables()) <= {"alembic_version"}
     migrate(db_url)
     migrate(db_url)  # idempotent
-    assert {"sessions", "messages", "customer_facts", "traces", "trace_events", "approvals", "outbox", "handoffs"} <= asyncio.run(tables())
+    assert {"sessions", "messages", "customer_facts", "traces", "trace_events", "approvals", "outbox", "handoffs", "simulation_runs"} <= asyncio.run(tables())
 
 
 async def test_migration_matches_the_models(engine):
@@ -77,7 +77,7 @@ def test_server_runs_on_postgres(db_url):
     async def prepare():
         eng = create_engine(db_url, poolclass=NullPool)
         async with eng.begin() as c:
-            await c.execute(text("truncate sessions, messages, customer_facts, traces, trace_events, approvals, outbox, handoffs restart identity cascade"))
+            await c.execute(text("truncate sessions, messages, customer_facts, traces, trace_events, approvals, outbox, handoffs, simulation_runs restart identity cascade"))
         await eng.dispose()
 
     asyncio.run(prepare())

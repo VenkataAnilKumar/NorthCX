@@ -11,10 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from ..approvals import Approval
 from ..handoffs import Handoff
+from ..simulation.store import SimRun
 from ..outbox import OutboxMessage
 from ..trace import Trace, TraceEvent, TraceSummary
 from ..types import Message
-from .models import ApprovalRow, FactRow, HandoffRow, MessageRow, OutboxRow, SessionRow, TraceEventRow, TraceRow
+from .models import ApprovalRow, FactRow, HandoffRow, MessageRow, OutboxRow, SimRunRow, SessionRow, TraceEventRow, TraceRow
 
 
 def _jsonable(value: Any) -> Any:
@@ -234,3 +235,28 @@ class PgHandoffs(_Base):
         if existing is None:
             raise KeyError(f"Unknown handoff {handoff_id}")
         raise ValueError(f"Handoff {handoff_id} already {existing.state}")
+
+
+class PgSimRuns(_Base):
+    @staticmethod
+    def _to_run(r: SimRunRow) -> SimRun:
+        return SimRun(mode=r.mode, passed=r.passed, counts=r.counts, agent_digests=r.agent_digests, results=r.results,
+                      seconds=r.seconds, source=r.source, meta=r.meta, id=r.id, created_at=r.created_at)
+
+    async def add(self, run: SimRun) -> SimRun:
+        async with self._sm.begin() as s:
+            await s.execute(pg_insert(SimRunRow).values(
+                id=run.id, created_at=run.created_at, mode=run.mode, source=run.source, passed=run.passed,
+                seconds=run.seconds, counts=run.counts, agent_digests=run.agent_digests, meta=_jsonable(run.meta),
+                results=_jsonable(run.results)))
+        return run
+
+    async def get(self, run_id: str) -> SimRun | None:
+        async with self._sm() as s:
+            r = (await s.execute(select(SimRunRow).where(SimRunRow.id == run_id))).scalar_one_or_none()
+        return self._to_run(r) if r else None
+
+    async def list(self, limit: int = 50) -> list[SimRun]:
+        async with self._sm() as s:
+            rows = (await s.execute(select(SimRunRow).order_by(SimRunRow.created_at.desc()).limit(limit))).scalars().all()
+        return [self._to_run(r) for r in rows]

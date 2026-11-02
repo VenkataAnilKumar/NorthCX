@@ -25,8 +25,12 @@ jobs:
       - run: python -m pytest -q
         working-directory: src/backend
       - name: Scenario simulations (required scenarios gate the build)
-        run: python -m northcx.simulation examples/scenarios --specs examples --registry examples.support_agent:registry --skip-judge
+        run: >-
+          python -m northcx.simulation examples/scenarios --specs examples --registry examples.support_agent:registry
+          --skip-judge --record --source ci --meta commit=${{ github.sha }} --meta ref=${{ github.ref_name }}
         working-directory: src/backend
+        env:
+          NORTHCX_DATABASE_URL: postgresql://northcx:northcx@localhost:5432/northcx_test
   web:
     runs-on: ubuntu-latest
     steps:

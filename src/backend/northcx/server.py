@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from .agent import Agent
 from .approval_flow import ApprovalFlow
 from .runtime import Runtime
+from .simulation import Busy, SimulationService
 from .trace import TraceRepo
 from .widget import WIDGET_HTML
 
@@ -35,6 +36,13 @@ class ResolveBody(BaseModel):
     note: str | None = Field(default=None, max_length=1000)
 
 
+class SimRunBody(BaseModel):
+    mode: str = "scripted"
+    only: str | None = Field(default=None, max_length=100)
+    skip_judge: bool = Field(default=False, alias="skipJudge")
+    model_config = {"populate_by_name": True}
+
+
 class ExpireBody(BaseModel):
     older_than_seconds: float = Field(alias="olderThanSeconds", ge=0)
     model_config = {"populate_by_name": True}
@@ -45,7 +53,7 @@ def _err(status: int, code: str, message: str) -> JSONResponse:
 
 
 def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], api_key: str | None = None,
-               approval_ttl_seconds: float | None = None) -> FastAPI:
+               approval_ttl_seconds: float | None = None, simulations: SimulationService | None = None) -> FastAPI:
     flow = ApprovalFlow(runtime)
 
     @asynccontextmanager
@@ -169,6 +177,67 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(404, "not_found", "Unknown handoff")
         except ValueError as e:
             return _err(409, "conflict", str(e))
+
+    def need_sim() -> SimulationService | JSONResponse:
+        return simulations or _err(501, "not_configured", "Simulations are not configured on this server")
+
+    def run_json(r: Any, full: bool = False) -> dict[str, Any]:
+        out = {"id": r.id, "createdAt": r.created_at, "mode": r.mode, "source": r.source, "passed": r.passed,
+               "counts": r.counts, "seconds": r.seconds, "meta": r.meta, "agentDigests": r.agent_digests}
+        if full:
+            out["results"] = r.results
+        return out
+
+    @app.get("/v1/simulations/scenarios")
+    async def sim_scenarios() -> Any:
+        sim = need_sim()
+        if isinstance(sim, JSONResponse):
+            return sim
+        return {"modes": sim.modes, "scenarios": [
+            {"name": s.name, "agent": s.agent, "required": s.required, "description": s.description, "steps": len(s.turns),
+             "judge": s.judge is not None, "digest": s.digest()} for s in sim.scenarios]}
+
+    @app.post("/v1/simulations/runs")
+    async def sim_run(body: SimRunBody) -> Any:
+        sim = need_sim()
+        if isinstance(sim, JSONResponse):
+            return sim
+        try:
+            run = await sim.run(body.mode, body.only, body.skip_judge, source="api")
+        except Busy as e:
+            return _err(409, "busy", str(e))
+        except ValueError as e:
+            return _err(400, "bad_request", str(e))
+        return run_json(run)
+
+    @app.get("/v1/simulations/runs")
+    async def sim_runs(limit: int = 50) -> Any:
+        sim = need_sim()
+        if isinstance(sim, JSONResponse):
+            return sim
+        return {"runs": [run_json(r) for r in await sim.runs.list(max(1, min(limit, 200)))]}
+
+    @app.get("/v1/simulations/runs/{run_id}")
+    async def sim_run_detail(run_id: str) -> Any:
+        sim = need_sim()
+        if isinstance(sim, JSONResponse):
+            return sim
+        r = await sim.runs.get(run_id)
+        return run_json(r, full=True) if r else _err(404, "not_found", "Unknown run")
+
+    @app.get("/v1/simulations/gate")
+    async def sim_gate(agent: str | None = None) -> Any:
+        """Has each agent's current version passed every required scenario? (Used to gate releases.)"""
+        sim = need_sim()
+        if isinstance(sim, JSONResponse):
+            return sim
+        ids = [agent] if agent else sorted(sim.agent_digests)
+        out = []
+        for a in ids:
+            g = await sim.gate(a)
+            out.append({"agent": g.agent_id, "agentDigest": g.agent_digest, "satisfied": g.satisfied, "required": g.required,
+                        "covered": g.covered, "reasons": g.reasons, "runIds": g.run_ids})
+        return {"gates": out}
 
     @app.get("/v1/sessions/{session_id}/outbox")
     async def outbox(session_id: str, after: int = 0) -> Any:
