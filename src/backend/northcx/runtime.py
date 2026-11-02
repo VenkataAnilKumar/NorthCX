@@ -8,10 +8,10 @@ from typing import Any
 from pydantic import ValidationError
 
 from .agent import Agent, ToolContext
-from .approvals import ApprovalStore
+from .approvals import ApprovalRepo, ApprovalStore
 from .guardrails import GuardrailContext
 from .store import MemoryStore
-from .trace import Trace, TraceStore
+from .trace import Trace, TraceRepo
 from .types import LLM, LLMRequest, Message, text_of
 
 HANDOFF = "handoff_to_human"
@@ -37,7 +37,7 @@ class RunResult:
 
 
 class Runtime:
-    def __init__(self, llm: LLM, store: MemoryStore, traces: TraceStore, approvals: ApprovalStore | None = None):
+    def __init__(self, llm: LLM, store: MemoryStore, traces: TraceRepo, approvals: ApprovalRepo | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
 
@@ -63,7 +63,7 @@ class Runtime:
                 messages.append({"role": "assistant", "content": reply})
             trace.add("reply", reply=reply, status=status)
             await self.store.save_messages(session_id, messages)
-            self.traces.save(trace)
+            await self.traces.save(trace)
             return RunResult(reply, status, trace, pending)
 
         # Input guardrails run before the agent sees the message.
@@ -142,7 +142,7 @@ class Runtime:
                 reason = tool.requires_approval(data) if tool.requires_approval else None
                 if reason:
                     trace.add("approval", tool=use["name"], reason=reason)
-                    saved = self.approvals.add(trace_id=trace.id, session_id=session_id, tool=use["name"],
+                    saved = await self.approvals.add(trace_id=trace.id, session_id=session_id, tool=use["name"],
                                                input=use["input"], reason=reason)
                     pending.append({"id": saved.id, "tool": use["name"], "input": use["input"], "reason": reason})
                     results.append(self._err(use, "Pending human approval; not executed."))

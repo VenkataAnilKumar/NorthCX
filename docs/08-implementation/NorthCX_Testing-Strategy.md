@@ -19,6 +19,9 @@ Status: Draft
 - **Approval and handoff flows** end to end, including expiry and double-decision.
 - **Release tests:** promotion blocked on failure, rollback restores behaviour.
 
+## Database tests
+The in-memory and Postgres repositories share one contract suite (history round trip, replace semantics, facts, trace ordering and summaries, approval lifecycle, concurrent decisions). Postgres-only tests cover migrations (apply, roll back, re-apply, and agreement with the models), a simulated restart, and the server on Postgres. Locally the tests skip if no database is reachable; CI sets `NORTHCX_REQUIRE_DB=1` so a missing database fails the build.
+
 ## Rules
 - No network in unit tests.
 - Any production failure becomes a regression scenario.

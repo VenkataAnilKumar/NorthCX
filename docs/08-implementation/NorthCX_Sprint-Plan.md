@@ -8,7 +8,7 @@ Status: Draft. Two-week sprints; estimates are placeholders until velocity is me
 | 2 (done) | 1 | Server and web | Chat, traces and approvals API, widget, web platform baseline |
 | 3 (done) | 1 | Example agent | Support tools, instructions, sample data, offline demo model |
 | 4 (done) | 2 | Agent spec and CI (W1) | Spec schema, registries, spec files, CI workflow, restricted-path check, licence |
-| 5 | 2 | Persistence (W2) | Postgres stores, migrations, contract tests |
+| 5 (done) | 2 | Persistence (W2) | Postgres stores, migrations, contract tests |
 | 6 | 2 | Approval resume (W3) | Resume flow, idempotent execution, expiry |
 | 7 | 2 | Handoff (W4) | Handoff package, forced-handoff topics |
 | 8 | 2 | Simulation runner (W5) | Scenario format, assertions, scripted customers, judge |

@@ -1,15 +1,15 @@
 # NorthCX Database Schema
 
-Status: Draft proposal (Postgres).
+Status: Draft. The tables marked **built** exist in migration `0001` and match `northcx/db/models.py`; the rest are proposals for later sprints.
 
 | Table | Columns | Notes |
 |---|---|---|
-| `sessions` | `id` pk, `agent_id`, `customer_id`, `channel`, `created_at`, `updated_at` | |
-| `messages` | `id` pk, `session_id` fk, `seq`, `role`, `content` jsonb, `created_at` | Ordered by `seq` |
-| `customer_facts` | `customer_id`, `key`, `value`, `source_trace_id`, `updated_at` | pk (`customer_id`, `key`) |
-| `traces` | `id` pk, `session_id` fk, `agent_id`, `status`, `started_at`, `finished_at` | |
-| `trace_events` | `id` pk, `trace_id` fk, `seq`, `type`, `data` jsonb, `t` | Index (`trace_id`, `seq`) |
-| `approvals` | `id` pk, `trace_id` fk, `tool`, `input` jsonb, `reason`, `state`, `decided_by`, `decided_at` | state: pending/approved/rejected |
+| `sessions` (built) | `id` pk, `created_at`, `updated_at` | `agent_id`, `customer_id` and `channel` columns arrive with deletion (K8) and channels |
+| `messages` (built) | `id` identity pk, `session_id` fk (cascade), `seq`, `role`, `content` jsonb | Unique (`session_id`, `seq`); history is replaced atomically on save |
+| `customer_facts` (built) | `customer_id`, `key`, `value`, `updated_at` | pk (`customer_id`, `key`); `source_trace_id` later |
+| `traces` (built) | `id` pk, `session_id`, `agent_id`, `status`, `started_at`, `tools` jsonb, `event_count` | Summary columns written at save so lists never load events |
+| `trace_events` (built) | `id` identity pk, `trace_id` fk (cascade), `seq`, `type`, `t`, `data` jsonb | Unique (`trace_id`, `seq`) |
+| `approvals` (built) | `id` pk, `trace_id`, `session_id`, `tool`, `input` jsonb, `reason`, `state`, `created_at`, `decided_by`, `decided_at` | state: pending/approved/rejected; decisions are atomic so exactly one decision wins |
 | `agents` | `id` pk, `definition` jsonb, `version`, `published_at` | For Studio, Phase 4 |
 | `api_keys` | `id` pk, `hash`, `role`, `created_at`, `revoked_at` | Store hashes only |
 

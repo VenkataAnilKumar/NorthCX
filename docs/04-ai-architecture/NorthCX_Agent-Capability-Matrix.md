@@ -22,7 +22,8 @@ Status: Draft. Summary of the Feature Catalog by capability. State: Built / Plan
 | Chat API and widget | Server | C1, C2 | 1 | Built and tested |
 | Email, messaging, voice, SDK | Adapters | C3-C10 | 3-5 | Planned |
 | Session memory and facts | MemoryStore | K1, K2 | 1 | Built (in memory) |
-| Persistence, retrieval, lifecycle | Stores and tools | K3-K8 | 2-3 | Planned |
+| Persistence | Postgres stores | K3 | 2 | Built and tested |
+| Retrieval, lifecycle | Stores and tools | K4-K8 | 3 | Planned |
 | Unit tests | Scripted model | Q1 | 1 | Built |
 | Simulations, judge, CI gate | Simulation runner | Q2-Q7 | 2-3 | Planned |
 | Versions, rollback, environments, rollout | Release service | Q8-Q11 | 2-4 | Planned |

@@ -19,7 +19,7 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 | `docs/` | Documentation; start at `docs/README.md` |
 
 ## Status
-Early development. The Python backend reproduces the prototype's runtime, API and example agent (31 passing tests with a scripted model) and adds copied/adapted input guardrails from a reference project. The web platform (`src/web`) is browser-tested against the backend. Persistence, approval resume, simulations, channels, the Studio editor and insights are planned.
+Early development. The Python backend reproduces the prototype's runtime, API and example agent (85 passing tests with a scripted model) and adds copied/adapted input guardrails from a reference project. The web platform (`src/web`) is browser-tested against the backend. Persistence, approval resume, simulations, channels, the Studio editor and insights are planned.
 
 ## Quick start (backend)
 ```bash
@@ -28,6 +28,8 @@ python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
 python -m pytest
 ANTHROPIC_API_KEY=... python -m northcx    # http://localhost:3000 (NORTHCX_DEMO=1 uses an offline demo model)
+# Postgres storage: docker compose up -d postgres, then add
+#   NORTHCX_DATABASE_URL=postgresql://northcx:northcx@localhost:5432/northcx
 ```
 
 ## Quick start (web)

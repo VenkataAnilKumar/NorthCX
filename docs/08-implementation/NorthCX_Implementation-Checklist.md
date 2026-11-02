@@ -19,7 +19,8 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [ ] Simulation runner and scenarios (Q2)
 - [ ] CI workflow and required checks (Q4)
 - [ ] Judge rubric and calibration (Q3)
-- [ ] Postgres store and migrations (K3)
+- [x] Postgres stores (sessions, facts, traces, approvals) and migrations (K3); contract tests over both implementations; CI database service
+- [ ] Retention and deletion jobs (Phase 3)
 - [ ] Approval resume (R10)
 - [ ] Handoff package (H4); forced-handoff topics (S7)
 - [ ] Versions, diff, rollback (Q8, Q10)

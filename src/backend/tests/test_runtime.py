@@ -66,7 +66,7 @@ async def test_approval_pauses_and_is_stored():
     r = await rt.run(agent, "s", "refund me")
     assert r.status == "needs_approval"
     assert r.pending_approvals[0]["reason"] == "over limit"
-    assert len(rt.approvals.list("pending")) == 1
+    assert len(await rt.approvals.list("pending")) == 1
 
 
 async def test_executes_below_threshold():

@@ -24,4 +24,7 @@
 | 21 | Approval results reach the customer through a callback on the original channel, with a webhook option | Decided | Phase 2 approval resume |
 | 22 | Simulations: scripted model on every change, live model nightly | Decided | Testing Strategy |
 | 23 | Current work merged to `main`; further work in short-lived branches | Decided | Done for Phase 1 |
+| 24 | Trace and approval repositories are asynchronous interfaces with in-memory and Postgres implementations | Decided, built | Same contract tests run against both |
+| 25 | Trace summaries (status, tools, event count) are stored on the trace row | Decided | Lists never load events |
+| 26 | Session saves replace history atomically under an advisory lock; concurrent runs on one session are not yet protected | Decided; limitation recorded | Revisit before multi-worker deployment |
 | 9 | Contribution model: DCO vs CLA | Open | |

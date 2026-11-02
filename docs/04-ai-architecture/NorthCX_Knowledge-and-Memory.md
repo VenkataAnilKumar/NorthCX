@@ -7,7 +7,9 @@ Status: Draft
 - `loadMessages / saveMessages(sessionId)` for conversation history
 - `getFacts / setFact(customerId)` for durable customer facts
 
-Facts are injected into the system prompt. Adapters: in-memory (built), Postgres (Phase 2), external memory service (optional).
+Facts are injected into the system prompt. Adapters: in-memory and Postgres (both built), external memory service (optional, Phase 3).
+
+**Known limitation:** a run loads history, works, then saves the whole history. Saves are serialised and atomic, but two simultaneous runs on the same session can overwrite each other's turn (last save wins). Channels normally deliver one message at a time per conversation; a per-session lock or optimistic version check is planned before multi-worker deployment.
 
 ## Rules
 - Store facts only with a purpose and retention period.

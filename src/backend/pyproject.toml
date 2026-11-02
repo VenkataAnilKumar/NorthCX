@@ -9,6 +9,9 @@ dependencies = [
   "pydantic>=2.8",
   "uvicorn>=0.30",
   "pyyaml>=6",
+  "sqlalchemy[asyncio]>=2.0.30",
+  "asyncpg>=0.29",
+  "alembic>=1.13",
 ]
 
 [project.optional-dependencies]
@@ -21,6 +24,10 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["northcx*"]
 
+[tool.setuptools.package-data]
+northcx = ["db/migrations/*.mako", "db/migrations/versions/*.py"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]

@@ -7,6 +7,16 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: northcx, POSTGRES_PASSWORD: northcx, POSTGRES_DB: northcx_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U northcx" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NORTHCX_TEST_DATABASE_URL: postgresql+asyncpg://northcx:northcx@localhost:5432/northcx_test
+      NORTHCX_REQUIRE_DB: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

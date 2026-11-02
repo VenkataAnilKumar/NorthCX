@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from .agent import Agent
 from .runtime import Runtime
-from .trace import TraceStore
+from .trace import TraceRepo
 from .widget import WIDGET_HTML
 
 
@@ -29,7 +29,7 @@ def _err(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
 
 
-def create_app(runtime: Runtime, traces: TraceStore, agents: dict[str, Agent], api_key: str | None = None) -> FastAPI:
+def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], api_key: str | None = None) -> FastAPI:
     app = FastAPI(title="NorthCX")
 
     @app.middleware("http")
@@ -63,15 +63,14 @@ def create_app(runtime: Runtime, traces: TraceStore, agents: dict[str, Agent], a
 
     @app.get("/v1/traces/{trace_id}")
     async def get_trace(trace_id: str) -> Any:
-        t = traces.get(trace_id)
+        t = await traces.get(trace_id)
         return t.to_dict() if t else _err(404, "not_found", "Unknown trace")
 
     @app.get("/v1/traces")
-    async def list_traces(sessionId: str | None = None) -> Any:
-        items = sorted(traces.list(sessionId), key=lambda t: t.events[0].t if t.events else 0, reverse=True)
-        return {"traces": [{"id": t.id, "agentId": t.agent_id, "sessionId": t.session_id, "events": len(t.events),
-                            "status": t.status(), "startedAt": t.events[0].t if t.events else None,
-                            "tools": t.tools_called()} for t in items]}
+    async def list_traces(sessionId: str | None = None, limit: int = 200) -> Any:
+        items = await traces.summaries(sessionId, max(1, min(limit, 1000)))
+        return {"traces": [{"id": t.id, "agentId": t.agent_id, "sessionId": t.session_id, "events": t.events,
+                            "status": t.status, "startedAt": t.started_at, "tools": t.tools} for t in items]}
 
     @app.get("/v1/agents")
     async def list_agents() -> Any:
@@ -83,13 +82,13 @@ def create_app(runtime: Runtime, traces: TraceStore, agents: dict[str, Agent], a
 
     @app.get("/v1/approvals")
     async def list_approvals(state: str | None = None) -> Any:
-        return {"approvals": [a.__dict__ for a in runtime.approvals.list(state)]}
+        return {"approvals": [a.__dict__ for a in await runtime.approvals.list(state)]}
 
     # Records the decision only. Resuming the run is a Phase 2 feature.
     @app.post("/v1/approvals/{approval_id}/decision")
     async def decide(approval_id: str, body: DecisionBody) -> Any:
         try:
-            return runtime.approvals.decide(approval_id, body.approved, body.by).__dict__
+            return (await runtime.approvals.decide(approval_id, body.approved, body.by)).__dict__
         except KeyError:
             return _err(404, "not_found", "Unknown approval")
         except ValueError as e:

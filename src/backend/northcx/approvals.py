@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol
 
 
 @dataclass
@@ -20,24 +20,31 @@ class Approval:
     decided_at: float | None = None
 
 
+class ApprovalRepo(Protocol):
+    async def add(self, **kw: Any) -> Approval: ...
+    async def get(self, approval_id: str) -> Approval | None: ...
+    async def list(self, state: str | None = None) -> list[Approval]: ...
+    async def decide(self, approval_id: str, approved: bool, by: str) -> Approval: ...
+
+
 class ApprovalStore:
-    """Pending human approvals. Resuming a run after a decision is not implemented yet (Phase 2)."""
+    """In-memory approvals. Resuming a run after a decision is not implemented yet (Phase 2, sprint 6)."""
 
     def __init__(self) -> None:
         self._items: dict[str, Approval] = {}
 
-    def add(self, **kw: Any) -> Approval:
+    async def add(self, **kw: Any) -> Approval:
         a = Approval(**kw)
         self._items[a.id] = a
         return a
 
-    def get(self, approval_id: str) -> Approval | None:
+    async def get(self, approval_id: str) -> Approval | None:
         return self._items.get(approval_id)
 
-    def list(self, state: str | None = None) -> list[Approval]:
-        return [a for a in self._items.values() if not state or a.state == state]
+    async def list(self, state: str | None = None) -> list[Approval]:
+        return sorted((a for a in self._items.values() if not state or a.state == state), key=lambda a: a.created_at)
 
-    def decide(self, approval_id: str, approved: bool, by: str) -> Approval:
+    async def decide(self, approval_id: str, approved: bool, by: str) -> Approval:
         a = self._items.get(approval_id)
         if a is None:
             raise KeyError(f"Unknown approval {approval_id}")
