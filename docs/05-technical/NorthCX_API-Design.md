@@ -2,11 +2,12 @@
 
 Status: Draft
 
-Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exists; see Security). Errors: `401` missing or invalid key, `403` the role lacks the permission, `429` rate limited (with `Retry-After`). `GET /` and `GET /health` are public.
+Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exists; see Security). Errors: `401` missing or invalid key (`token_expired` for a lapsed chat token), `403` the role lacks the permission, `429` rate limited (with `Retry-After`). `GET /` and `GET /health` are public.
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | Liveness (public) |
+| POST | `/chat-tokens` | `{sessionId?, customerId?, agent?, ttlSeconds?}`: mint a chat token for one conversation (channel or admin key); returns `token`, `sessionId`, `expiresAt` (built) |
 | GET | `/me` | The caller's name, role and permissions (any key) |
 | GET | `/keys` | Keys (never secrets) and each role's permissions (admin) (built) |
 | POST | `/keys` | `{name, role, expiresInDays?}`: create a key; the secret is returned once (admin) (built) |

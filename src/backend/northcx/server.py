@@ -6,6 +6,8 @@ import asyncio
 import json
 import logging
 import re
+import secrets
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -14,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from .access import ROLES, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
+from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
 from .audit import AuditEntry, AuditRepo, InMemoryAudit
 from .catalog import AgentUnavailable, as_provider
@@ -74,6 +77,14 @@ class RollbackBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class TokenBody(BaseModel):
+    session_id: str | None = Field(default=None, alias="sessionId", pattern=r"^[A-Za-z0-9_.:-]{1,200}$")
+    customer_id: str | None = Field(default=None, alias="customerId", max_length=200)
+    agent: str | None = Field(default=None, max_length=200)
+    ttl_seconds: float = Field(default=DEFAULT_TTL, alias="ttlSeconds")
+    model_config = {"populate_by_name": True}
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str
@@ -93,6 +104,7 @@ def _err(status: int, code: str, message: str) -> JSONResponse:
 # Every /v1 route must appear here. A route that is not listed is refused (a test checks the table against the app).
 ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/me", "authenticated"),
+    ("POST", r"/v1/chat-tokens", "chat:mint"),
     ("POST", r"/v1/agents/[^/]+/chat", "chat:send"),
     ("GET", r"/v1/sessions/[^/]+/outbox", "outbox:read"),
     ("GET", r"/v1/traces", "traces:read"),
@@ -136,6 +148,9 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                audit: AuditRepo | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
+    if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
+        secret = derive_secret(None, api_key) or secrets.token_bytes(32)
+        access.signer = TokenSigner(secret)
     audit = audit or InMemoryAudit()
     provider = as_provider(agents)
     agents = provider  # everything below resolves agents through the provider
@@ -193,13 +208,15 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         ip = request.client.host if request.client else "unknown"
         if await access.enabled():
             header = request.headers.get("authorization", "")
-            ident = await access.authenticate(header[7:] if header.startswith("Bearer ") else None)
+            ident, why = await access.authenticate_detail(header[7:] if header.startswith("Bearer ") else None)
             if ident is None:
                 if limits and not access.limiter.allow(f"authfail:{ip}", limits.auth_failures_per_minute)[0]:
                     return too_many(60, "failed sign-in attempts")
                 if access.limiter.allow(f"authlog:{ip}", 6)[0]:  # sampled, so guessing cannot flood the log
                     await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target=path,
                                                   outcome="denied", detail={"client": ip}))
+                if why == "expired":
+                    return _err(401, "token_expired", "This chat session has expired; ask the site for a new one")
                 return _err(401, "unauthorized", "Missing or invalid API key")
         else:
             ident = OPEN_IDENTITY
@@ -238,7 +255,14 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return {"ready": True}
 
     @app.post("/v1/agents/{agent_id}/chat")
-    async def chat(agent_id: str, body: ChatBody) -> Any:
+    async def chat(agent_id: str, body: ChatBody, request: Request) -> Any:
+        who: Identity = request.state.identity
+        customer_id = body.customer_id
+        if who.session_id is not None:  # a chat token: one conversation, one customer, one agent
+            if body.session_id != who.session_id or (who.agent and agent_id != who.agent):
+                await record(request, "auth.denied", f"POST /v1/agents/{agent_id}/chat", "denied", reason="outside the token's scope")
+                return _err(403, "forbidden", "This chat token cannot be used for that conversation or agent")
+            customer_id = who.customer_id  # set by the company's server; the customer cannot choose it
         if limits:
             ok, retry = access.limiter.allow(f"session:{body.session_id}", limits.chat_per_session_per_minute)
             if not ok:
@@ -250,7 +274,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if agent is None:
             return _err(404, "not_found", "Unknown agent")
         try:
-            r = await runtime.run(agent, body.session_id, body.message, body.customer_id)
+            r = await runtime.run(agent, body.session_id, body.message, customer_id)
         except Exception:
             return _err(500, "internal", "Run failed")
         return {"reply": r.reply, "status": r.status, "traceId": r.trace_id, "pendingApprovals": r.pending_approvals,
@@ -416,6 +440,21 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             out.append({"agent": g.agent_id, "agentDigest": g.agent_digest, "satisfied": g.satisfied, "required": g.required,
                         "covered": g.covered, "reasons": g.reasons, "runIds": g.run_ids})
         return {"gates": out}
+
+    # ---------------- chat tokens ----------------
+    @app.post("/v1/chat-tokens", status_code=201)
+    async def mint_chat_token(body: TokenBody, request: Request) -> Any:
+        """Called by the company's server (holding a channel key), never by the customer's browser. Returns a token that
+        lets one browser talk in one conversation as one customer until it expires."""
+        who: Identity = request.state.identity
+        if access.signer is None:
+            return _err(501, "not_configured", "Chat tokens are not configured: set NORTHCX_TOKEN_SECRET or NORTHCX_API_KEY")
+        if not MIN_TTL <= body.ttl_seconds <= MAX_TTL:
+            return _err(400, "bad_request", f"ttlSeconds must be between {MIN_TTL} and {MAX_TTL}")
+        sid = body.session_id or f"web-{uuid.uuid4().hex}"
+        token, claims = access.signer.mint(sid=sid, kid=who.key_id or "open", cid=body.customer_id, agent=body.agent, ttl=body.ttl_seconds)
+        return JSONResponse({"token": token, "sessionId": sid, "customerId": body.customer_id, "agent": body.agent,
+                             "expiresAt": claims.exp, "ttlSeconds": body.ttl_seconds}, status_code=201)
 
     # ---------------- identity, keys and audit ----------------
     @app.get("/v1/me")
@@ -598,7 +637,11 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                 "spec": spec, "specYaml": spec_yaml(spec)}
 
     @app.get("/v1/sessions/{session_id}/outbox")
-    async def outbox(session_id: str, after: int = 0) -> Any:
+    async def outbox(session_id: str, request: Request, after: int = 0) -> Any:
+        who: Identity = request.state.identity
+        if who.session_id is not None and session_id != who.session_id:
+            await record(request, "auth.denied", f"GET /v1/sessions/{session_id}/outbox", "denied", reason="outside the token's scope")
+            return _err(403, "forbidden", "This chat token cannot read another conversation")
         items = await runtime.outbox.list(session_id, after)
         return {"messages": [{"id": m.id, "kind": m.kind, "createdAt": m.created_at, **m.payload} for m in items]}
 

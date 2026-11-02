@@ -5,6 +5,7 @@ from pathlib import Path
 import uvicorn
 
 from .access import AccessControl, InMemoryKeys, LimitConfig
+from .tokens import TokenSigner, derive_secret
 from .config import load_registry
 from .audit import InMemoryAudit
 from .db import (PgApprovalStore, PgAudit, PgHandoffs, PgKeys, PgMemoryStore, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
@@ -129,7 +130,14 @@ def run() -> None:
         limits = LimitConfig(float(env.get("NORTHCX_RATE_LIMIT_PER_MINUTE", 600)),
                              float(env.get("NORTHCX_CHAT_PER_SESSION_PER_MINUTE", 30)),
                              float(env.get("NORTHCX_AUTH_FAILURES_PER_MINUTE", 20)))
-    access = AccessControl(keys_repo, api_key, limits)
+    token_secret = derive_secret(env_or_file("NORTHCX_TOKEN_SECRET"), api_key)
+    if token_secret is None:
+        import secrets as _secrets
+
+        token_secret = _secrets.token_bytes(32)
+        print("NOTE: chat tokens use a random signing secret (set NORTHCX_TOKEN_SECRET or NORTHCX_API_KEY): tokens stop "
+              "working when the server restarts and are not valid across several servers.")
+    access = AccessControl(keys_repo, api_key, limits, signer=TokenSigner(token_secret))
     import asyncio
 
     if asyncio.run(access.enabled()) if db_url is None else _has_keys(db_url, access):

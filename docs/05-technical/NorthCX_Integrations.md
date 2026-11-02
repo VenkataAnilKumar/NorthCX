@@ -26,6 +26,25 @@ Tests and simulations can run tools in dry-run mode that records the intended ac
 ## Webhooks (P8)
 Signed events for conversation status changes, approvals and handoffs.
 
+## Embedding the customer chat
+1. Your server holds a **channel key** (create it on the Access page) in its secrets store.
+2. When a customer opens the chat, your server asks NorthCX for a token for that customer's conversation:
+```python
+import httpx
+r = httpx.post("https://northcx.example.com/v1/chat-tokens",
+               headers={"authorization": f"Bearer {CHANNEL_KEY}"},
+               json={"sessionId": f"web-{customer.id}", "customerId": customer.id, "agent": "support", "ttlSeconds": 3600})
+token = r.json()["token"]          # give this to the page, not the key
+```
+3. Your page sends the token with each message and polls for later messages (for example after an approval):
+```js
+fetch(`${API}/v1/agents/support/chat`, { method: "POST",
+  headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+  body: JSON.stringify({ sessionId, message }) })
+fetch(`${API}/v1/sessions/${sessionId}/outbox?after=${lastId}`, { headers: { authorization: `Bearer ${token}` } })
+```
+Use the same `sessionId` to resume a conversation. The customer cannot change the conversation or customer the token names. The built-in page at `/` does this with `/#token=<token>`. Allow the page's origin to call the API through your reverse proxy (NorthCX does not set cross-origin headers).
+
 ## Declaring a tool: effect, dry run and secrets
 - **`effect`**: `"read"` for a tool with no side effects, `"write"` (the default, the safe assumption) for anything that changes a system. Mark only genuinely read-only tools as reads.
 - **`dry_run_result`**: what a write tool returns when the platform is testing. Simulations (and the release gate's proofs) never execute write tools; they call this instead, or return a generic placeholder if you give none. Apply the same business rules in it (the example refund checks the order exists, is delivered and not over its total) so scenarios still catch rule violations. The command line's `--allow-side-effects` runs writes for real and exists only for sandboxes.

@@ -45,6 +45,9 @@ Secrets: reading from the environment and from files (both set is an error, miss
 
 Containers: the backend and web images were built and run for real (non-root, healthy, migrations present in the installed package, secrets from files, the scenario suite passing inside the image); the compose stack comes up with one command, refuses to start without required values, serves a browser session end to end through the compose network, and keeps its state across `restart` and `down` then `up`. CI repeats the stack build and a smoke test on every change. Not covered: Kubernetes, multi-process rate limiting, and a Docker Hub outage (one local build was briefly rate-limited by the registry).
 
+## Chat token tests
+Signed tokens (claims, expiry to the second, bounded lifetimes, forged or edited payloads and signatures, malformed and oversized input, correctly signed but nonsensical payloads, secret derivation); authentication (the minting key's status and role, revocation, expiry reported distinctly, tokens and keys not interchangeable, no signer); the API (minting roles and validation, a customer chatting with a token, the customer id taken from the token, scope violations audited, a token able to do nothing else, expiry and forgery, restart with a stable secret, per-conversation rate limits, open mode); and the demo page in a real browser (fragment token removed from the address bar, never sent in a URL, only the token stored). Mutation checks (trusting the body's customer, skipping the scope check, skipping the minting-key check, skipping the signature check) make tests fail.
+
 ## Rules
 - No network in unit tests.
 - Any production failure becomes a regression scenario.

@@ -58,4 +58,8 @@
 | 55 | Compose binds to loopback and requires a database password, an API key and authentication | Decided, built | TLS is the operator's reverse proxy |
 | 56 | The web image bakes in the backend address at build time | Decided; revisit | A runtime proxy would remove the rebuild |
 | 57 | The deployer supplies tools through `NORTHCX_REGISTRY` | Decided, built | |
+| 58 | Customers chat with signed, expiring, conversation-scoped tokens minted by the company's server; channel keys never go to browsers | Decided, built | |
+| 59 | The customer id comes from the token, not the request | Decided, built | The company's server vouches for who the customer is |
+| 60 | A token's validity depends on its minting key staying active; individual tokens are not revocable | Decided | Keep lifetimes short |
+| 61 | Token signing secret derives from the bootstrap key unless `NORTHCX_TOKEN_SECRET` is set | Decided, built | |
 | 9 | Contribution model: DCO vs CLA | Open | |

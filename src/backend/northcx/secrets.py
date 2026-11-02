@@ -53,7 +53,7 @@ class SecretStore:
                 value = env_or_file(f"NORTHCX_SECRET_{m.group(1)}", env)
                 if value:
                     tool[m.group(1).lower()] = value
-        hidden = {n: v for n in ("NORTHCX_API_KEY", "NORTHCX_WEBHOOK_SECRET", "ANTHROPIC_API_KEY", "NORTHCX_DATABASE_URL")
+        hidden = {n: v for n in ("NORTHCX_API_KEY", "NORTHCX_TOKEN_SECRET", "NORTHCX_WEBHOOK_SECRET", "ANTHROPIC_API_KEY", "NORTHCX_DATABASE_URL")
                   if (v := env_or_file(n, env))}
         return cls(tool, hidden)
 

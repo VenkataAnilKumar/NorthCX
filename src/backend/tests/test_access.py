@@ -64,7 +64,7 @@ def test_roles_follow_least_privilege():
     assert "releases:publish" not in r["developer"] and "releases:publish" in r["release_manager"]
     assert "approvals:decide" in r["reviewer"] and "approvals:decide" not in r["release_manager"]
     assert "releases:publish" not in r["reviewer"] and "versions:create" not in r["reviewer"]
-    assert r["channel"] == {"chat:send", "outbox:read"}
+    assert r["channel"] == {"chat:send", "outbox:read", "chat:mint"}
     assert "audit:read" in r["auditor"] and "audit:read" not in r["release_manager"] and "keys:manage" not in r["auditor"]
     assert not any(p.endswith((":create", ":run", ":publish", ":rollback", ":decide", ":resolve", ":manage", "send")) for p in r["viewer"])
     for perm in {p for _, _, p in ROUTE_PERMISSIONS if p != "authenticated"}:
@@ -247,6 +247,7 @@ CALLS = [  # (permission needed, method, path, body)
     ("releases:rollback", "POST", "/v1/agents/support/rollback", {}),
     ("approvals:decide", "POST", "/v1/approvals/missing/decision", {"approved": True}),
     ("handoffs:resolve", "POST", "/v1/handoffs/missing/resolve", {}),
+    ("chat:mint", "POST", "/v1/chat-tokens", {"sessionId": "s1"}),
     ("keys:manage", "GET", "/v1/keys", None),
     ("audit:read", "GET", "/v1/audit", None),
 ]
@@ -325,7 +326,7 @@ def test_key_management_through_the_api():
     assert made["key"].startswith(made["prefix"] + "_") and made["role"] == "channel" and made["expiresAt"] and made["createdBy"] == "admin-user"
     listed = c.get("/v1/keys", headers=adm).json()
     assert "key" not in json.dumps(listed["keys"]) and "hash" not in json.dumps(listed["keys"]).lower()
-    assert listed["roles"]["channel"] == ["chat:send", "outbox:read"]
+    assert listed["roles"]["channel"] == ["chat:mint", "chat:send", "outbox:read"]
     assert c.get("/v1/me", headers=H(made["key"])).json()["role"] == "channel"
     assert c.get("/v1/agents", headers=H(made["key"])).status_code == 403
     assert c.post("/v1/keys", json={"name": "web chat", "role": "viewer"}, headers=adm).status_code == 400  # name in use

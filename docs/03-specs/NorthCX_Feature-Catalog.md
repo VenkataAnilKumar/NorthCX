@@ -73,14 +73,14 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | ID | Feature | Pri | Phase | State |
 |---|---|---|---|---|
 | C1 | HTTP chat API | P0 | 1 | Built |
-| C2 | Web chat widget | P0 | 1 | Built |
+| C2 | Web chat widget | P0 | 1 | Built (demo page; uses chat tokens) |
 | C3 | Email | P1 | 3 | Planned |
 | C4 | SMS and messaging apps | P1 | 3 | Planned |
 | C5 | Voice (phone) | P2 | 5 | Planned |
 | C6 | Voice: multilingual, language switching, barge-in | P2 | 5 | Planned |
 | C7 | Embeddable SDK for mobile and web apps | P2 | 5 | Planned |
 | C8 | One agent definition across channels with channel-specific style | P1 | 3 | Planned |
-| C9 | Identity verification per channel | P1 | 3 | Planned |
+| C9 | Identity verification per channel | P1 | 3 | Partly built: the company's server vouches for the customer by minting the chat token with that customer's id; one-time-code verification planned |
 | C10 | Attachments (images, documents) | P2 | 5 | Planned |
 
 ## 7. Knowledge and memory

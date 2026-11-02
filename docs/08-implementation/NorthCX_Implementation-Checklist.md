@@ -30,6 +30,7 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [x] Secrets handling with redaction, and dry-run mode for write tools (T7, T8)
 - [x] Container images, one-command stack, health and readiness endpoints, deployment guide (P7); CI builds and smoke-tests the stack
 ## Phase 3
+- [x] Customer chat tokens: per-conversation, expiring, revocable, scoped to one conversation, customer and agent; demo page uses them
 - [ ] Safety extensions (S8-S11)
 - [ ] Retrieval tool, citations, connectors, summarisation, retention (K4-K8)
 - [ ] Email, SMS/messaging, identity verification, channel styles (C3, C4, C8, C9)

@@ -10,18 +10,24 @@ import time
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from .tokens import PREFIX as TOKEN_PREFIX, TokenError, TokenSigner
+
 # ---------------- roles and permissions ----------------
 VIEW = {"agents:read", "traces:read", "handoffs:read", "approvals:read", "simulations:read", "versions:read"}
 DEVELOP = VIEW | {"versions:create", "simulations:run", "chat:send", "outbox:read"}
 ROLES: dict[str, frozenset[str]] = {
     "admin": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "approvals:decide", "handoffs:resolve",
-                                  "keys:manage", "audit:read"}),
+                                  "keys:manage", "audit:read", "chat:mint"}),
     "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback"}),
     "developer": frozenset(DEVELOP),
     "reviewer": frozenset(VIEW | {"approvals:decide", "handoffs:resolve"}),
     "auditor": frozenset(VIEW | {"audit:read"}),
     "viewer": frozenset(VIEW),
-    "channel": frozenset({"chat:send", "outbox:read"}),  # for channel adapters and the customer-facing chat
+    "channel": frozenset({"chat:send", "outbox:read", "chat:mint"}),  # for the company's servers and channel adapters
+}
+# Roles that exist only inside the platform; a key can never be given one.
+INTERNAL_ROLES: dict[str, frozenset[str]] = {
+    "customer_session": frozenset({"chat:send", "outbox:read"}),  # a chat token: limited further to its own conversation
 }
 NAME_RE = re.compile(r"^[A-Za-z0-9 _.@-]{1,80}$")
 
@@ -32,10 +38,14 @@ class Identity:
     role: str
     key_id: str | None = None
     open_mode: bool = False  # no authentication is configured
+    # Set for a customer's chat token: the one conversation, customer and agent it is limited to.
+    session_id: str | None = None
+    customer_id: str | None = None
+    agent: str | None = None
 
     @property
     def permissions(self) -> frozenset[str]:
-        return ROLES[self.role]
+        return ROLES[self.role] if self.role in ROLES else INTERNAL_ROLES[self.role]
 
     def can(self, permission: str) -> bool:
         return permission in self.permissions
@@ -154,7 +164,8 @@ class LimitConfig:
 # ---------------- access control ----------------
 class AccessControl:
     def __init__(self, keys: KeyRepo | None = None, bootstrap_key: str | None = None, limits: LimitConfig | None = None,
-                 limiter: RateLimiter | None = None, touch_interval: float = 60.0):
+                 limiter: RateLimiter | None = None, touch_interval: float = 60.0, signer: TokenSigner | None = None):
+        self.signer = signer
         self.keys = keys or InMemoryKeys()
         self._bootstrap = hash_secret(bootstrap_key) if bootstrap_key else None
         self.limits, self.limiter = limits, limiter or RateLimiter()
@@ -172,6 +183,33 @@ class AccessControl:
         return self._has_keys
 
     async def authenticate(self, token: str | None) -> Identity | None:
+        return (await self.authenticate_detail(token))[0]
+
+    async def authenticate_detail(self, token: str | None) -> tuple[Identity | None, str | None]:
+        """(identity, None) on success, or (None, why) where why is `expired` for a lapsed chat token and `invalid` otherwise."""
+        if token and token.startswith(TOKEN_PREFIX):
+            return await self._chat_token(token)
+        who = await self._key(token)
+        return (who, None) if who else (None, "invalid")
+
+    async def _chat_token(self, token: str) -> tuple[Identity | None, str | None]:
+        if self.signer is None:
+            return None, "invalid"
+        try:
+            c = self.signer.verify(token)
+        except TokenError as e:
+            return None, "expired" if e.kind == "expired" else "invalid"
+        # The minting key must still be good: revoking it ends every conversation it opened.
+        if c.kid == "bootstrap":
+            if not self.configured_keys:
+                return None, "invalid"
+        else:
+            k = await self.keys.get(c.kid)
+            if k is None or not k.active() or "chat:mint" not in ROLES.get(k.role, frozenset()):
+                return None, "invalid"
+        return Identity(f"customer session {c.sid[:12]}", "customer_session", f"tok:{c.sid}", False, c.sid, c.cid, c.agent), None
+
+    async def _key(self, token: str | None) -> Identity | None:
         if not token:
             return None
         if self._bootstrap and hmac.compare_digest(hash_secret(token), self._bootstrap):
