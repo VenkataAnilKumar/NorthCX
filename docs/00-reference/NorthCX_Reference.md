@@ -38,7 +38,7 @@ Sierra (founded 2023 by Bret Taylor and Clay Bavor) sells enterprise customer-ex
 | **Agno** | Python agent framework + AgentOS runtime: teams, memory, guardrails, HITL, tracing, evals, JWT RBAC, MCP, scheduling, control-plane UI; runs in your VPC | Apache-2.0 | Agent SDK / Agent OS | Best runtime match |
 | **Sim** (simstudioai/sim) | Visual agent workflow builder: Next.js, Postgres + Drizzle, ReactFlow; branching/loops; deploy as API/webhook/schedule; tracing | Apache-2.0 | Agent Studio / Journeys | Good (Studio) |
 | **Onyx** | Self-hosted chat + RAG: 40+ connectors, agents, MCP, deep research; Next.js frontend, API backend, model server, workers | MIT outside `ee/` | Knowledge management | Partial (retrieval layer) |
-| **Kortix / Suna** | General autonomous agent: FastAPI, Next.js, Supabase, LiteLLM, Docker sandboxes (Daytona), browser automation | Apache-2.0 | Little | Weak (open-ended tasks, not scoped CX) |
+| **Kortix / Suna** | General autonomous agent: FastAPI, Next.js, Supabase, LiteLLM, Docker sandboxes (Daytona), browser automation | **Elastic License 2.0** (verified from the repo LICENSE on 2026-11-02; earlier search summaries said Apache-2.0) | Little | Weak (open-ended tasks, not scoped CX) |
 
 ### 2.2 Components for the remaining features
 | Feature | Option | License | Notes |
@@ -173,3 +173,51 @@ Search snippets and vendor marketing pages; **unverified**. Used as input to `03
 - [Sierra: Agent SDK](https://sierra.ai/product/agent-sdk), [Sierra: Build your AI agent](https://sierra.ai/product/build-your-ai-agent), [Sierra blog: Agents as a service](https://sierra.ai/blog/agents-as-a-service)
 - [sitegpt.ai review](https://sitegpt.ai/resources/sierra-review), [Atlan: Sierra platform](https://atlan.com/know/ai-agent/ai-agent-applications/what-is-sierra-ai/), [agentsindex.ai](https://agentsindex.ai/sierra), [apis.io](https://apis.io/providers/sierra/)
 - Checklists: [Qiscus](https://www.qiscus.com/en/blog/ai-customer-service-platform-evaluation-checklist/), [No Jitter](https://www.nojitter.com/ai-automation/ai-agents-require-guardrails-testing-and-visibility), [QuickBlox](https://quickblox.com/answers/ai-agent-platform-checklist/), [Infobip](https://www.infobip.com/blog/how-to-choose-chatbot-platform), [Cresta](https://cresta.com/guides/ai-voice-agents-customer-support)
+
+
+---
+
+## 10. Verified licences (primary source: repository LICENSE files, 2026-11-02)
+
+Read from shallow clones of each repository. This supersedes the licence claims in sections 2 to 9, which came from search summaries.
+
+| Project | Repository | Licence (verified) | Notes |
+|---|---|---|---|
+| Agno | agno-agi/agno | Apache-2.0 | Per-package LICENSE files under `libs/` |
+| Sim | simstudioai/sim | Apache-2.0 (root) | `apps/sim/ee` is under a separate **Sim Enterprise License**; do not copy |
+| Onyx | onyx-dot-app/onyx | MIT outside `ee` directories | `backend/ee`, `web/src/app/ee`, `web/src/ee` are under the Onyx Enterprise License; do not copy |
+| Kortix / Suna | kortix-ai/suna | **Elastic License 2.0** | Source-available, not OSI open source; restricts offering as a managed service and removing notices. Do not copy |
+| Pipecat | pipecat-ai/pipecat | BSD-2-Clause | Keep copyright notice |
+| Chatwoot | chatwoot/chatwoot | MIT outside `enterprise/` | `enterprise/` has its own licence; do not copy |
+| Langfuse | langfuse/langfuse | MIT outside `ee/` paths | `ee/`, `web/src/ee/`, `worker/src/ee/`, `packages/shared/src/server/ee/` are under a separate licence; do not copy |
+| Mem0 | mem0ai/mem0 | Apache-2.0 | |
+| NeMo Guardrails | NVIDIA-NeMo/Guardrails | Apache-2.0 | Third-party notices in `LICENCES-3rd-party` |
+
+Not yet checked: LiveKit Agents, Letta, Graphiti, Arize Phoenix, Guardrails AI.
+
+## 11. Code-reuse map (feature to source)
+
+Strategy decision (2026-11-02): do not write everything from scratch. Fetch the reference repositories, copy or adapt the code that implements our features, and keep provenance. Policy is in `05-technical/NorthCX_Code-Reuse-Policy.md`.
+
+Paths verified from the repository trees; fitness of each module is **not yet assessed** (no code read beyond directory names).
+
+| NorthCX capability (catalog IDs) | Source | Candidate paths | Language | Licence |
+|---|---|---|---|---|
+| Agent loop, tools, teams, workflows (A, R, T) | Agno | `libs/agno/agno/{agent,team,workflow,tools,models,run,session,skills}` | Python | Apache-2.0 |
+| Approvals, guardrails, hooks (S, H, T3) | Agno | `libs/agno/agno/{approval,guardrails,hooks}` | Python | Apache-2.0 |
+| Evals, tracing, metrics (Q, O) | Agno | `libs/agno/agno/{eval,tracing,scorer,metrics.py}` | Python | Apache-2.0 |
+| Memory, knowledge, vector stores (K) | Agno | `libs/agno/agno/{memory,knowledge,vectordb,db,compaction}` | Python | Apache-2.0 |
+| Scheduler, job queue, API runtime (P) | Agno | `libs/agno/agno/{scheduler,job_queue,os}` | Python | Apache-2.0 |
+| Long-term memory (K2, K6) | Mem0 | `mem0/{memory,vector_stores,embeddings,llms,reranker}` | Python | Apache-2.0 |
+| Guardrail rails and dialog policy (S) | NeMo Guardrails | `nemoguardrails/{rails,guardrails,library,actions,colang}` | Python | Apache-2.0 |
+| Knowledge connectors, indexing, retrieval (K4, K5) | Onyx | `backend/onyx/{connectors,indexing,document_index,context,chat,tools}` | Python | MIT (not `ee`) |
+| Chat bot integrations, MCP, voice, evals | Onyx | `backend/onyx/{onyxbot,mcp_server,voice,evals,deep_research}` | Python | MIT (not `ee`) |
+| Voice pipeline (C5, C6) | Pipecat | `src/pipecat/{pipeline,processors,transports,services,turns,serializers,audio,flows,evals}` | Python | BSD-2 |
+| Studio and workflow editor (U) | Sim | `apps/sim/{blocks,executor,serializer,stores,app,components,providers,tools}` | TypeScript | Apache-2.0 (not `ee`) |
+| PII handling | Sim | `apps/pii` | TypeScript | Apache-2.0 (verify) |
+| Trace and eval backend (O) | Langfuse | root packages outside `ee` paths | TypeScript | MIT |
+| Omnichannel inbox, email, messaging (C3, C4, H5) | Chatwoot | `app/{channels,models,services,listeners,mailboxes}` | Ruby | MIT (not `enterprise/`) |
+| Autonomous task agent | Kortix / Suna | none | | Elastic License 2.0 (excluded) |
+
+### Language implication
+Most reusable backend code (Agno, Mem0, NeMo Guardrails, Onyx, Pipecat) is Python, the Studio source (Sim) and trace backend (Langfuse) are TypeScript, and the inbox (Chatwoot) is Ruby. Copying code is easiest when our backend is Python with a TypeScript Studio. The inbox is better integrated through its API than copied.

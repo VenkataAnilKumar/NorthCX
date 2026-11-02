@@ -1,9 +1,10 @@
 # NorthCX Build vs Adopt
 
-Status: Draft. Component names are in `00-reference/NorthCX_Reference.md` (section 8).
+Status: Draft. Strategy: **adopt by copying and adapting** licensed reference code wherever possible; build only the gaps. See `NorthCX_Code-Reuse-Policy.md`. Component names and the feature-to-source map are in the Reference (sections 8, 10, 11).
 
 | Capability | Decision | Notes |
 |---|---|---|
+| Agent loop, tools, workflows | Copy and adapt | Plus our supervision and approval layer |
 | Agent runtime, tools, approvals | Build | Core differentiator; small |
 | Supervisor / guardrails | Build first, wrap a rules engine later | Own LLM check first |
 | Simulation testing | Build | No suitable open-source option found |

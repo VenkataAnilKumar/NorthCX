@@ -81,7 +81,7 @@ Model provider; customer-system APIs; telephony/messaging providers; database; c
 | Quality regressions on change | High | CI gate, versioning, rollback, staged rollout |
 | Cost and latency overruns | Medium | Step limits, budgets, cheaper supervisor model |
 | Integration burden | Medium | Interfaces, connector library |
-| Licence surprises in dependencies | Medium | Licence policy and CI scan |
+| Licence surprises in dependencies or copied code | High | Code Reuse Policy, provenance records, path allow-list and CI scan |
 | Metrics are guesses | Medium | Pilot measurement before committing targets |
 
 ## 10. Open questions

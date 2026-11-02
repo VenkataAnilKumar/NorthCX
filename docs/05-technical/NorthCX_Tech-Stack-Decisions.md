@@ -2,6 +2,9 @@
 
 Status: Draft. Named third-party components and alternatives are recorded in `00-reference/NorthCX_Reference.md` (section 8).
 
+## Language is now driven by code reuse
+Because NorthCX copies and adapts reference code, the backend language should follow the largest reusable body of code. The Reference (section 11) shows most backend sources are Python and the Studio source is TypeScript. Recommendation: Python backend with a TypeScript Studio. The existing TypeScript prototype in `src/` then serves as a reference implementation and test source. This is an open decision (Decision Log #3).
+
 ## Core decisions
 | # | Decision | Choice | Rationale |
 |---|---|---|---|

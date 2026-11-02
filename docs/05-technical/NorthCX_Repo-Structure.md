@@ -15,6 +15,8 @@ northcx/
 └── tests/                runtime and server tests with a scripted model         (built)
 ```
 
+Reuse layout (see Code Reuse Policy): `NOTICE`, `THIRD_PARTY.md` and `third_party/<source>/` hold attribution and provenance for copied code.
+
 Target split once stable: `packages/core`, `packages/sim`, `apps/server`, `apps/studio`, `adapters/*`.
 
 Conventions: ESM, strict TypeScript, Zod at boundaries, no network in unit tests.
