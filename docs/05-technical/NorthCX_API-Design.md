@@ -8,6 +8,7 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 |---|---|---|
 | GET | `/health` | Liveness (public) |
 | POST | `/chat-tokens` | `{sessionId?, customerId?, agent?, ttlSeconds?}`: mint a chat token for one conversation (channel or admin key); returns `token`, `sessionId`, `expiresAt` (built) |
+| POST | `/agents/{id}/chat/stream` | Same request and access rules as chat, answered as server-sent events: `started`, `progress` (`{type: tool, name}`) while tools run, `delta` pieces of the approved reply, then `done` (the full chat response) or `error`. No `Idempotency-Key` (400) (built) |
 | GET | `/monitor/findings` | Monitoring flags, newest first; filters `rule`, `severity`, `agentId`, `sessionId`, `since`, `limit` (`monitor:read`, built) |
 | GET | `/monitor/summary` | Counts per rule and severity, rule names, total (built) |
 | POST | `/channels/email/inbound` | Raw RFC 822 message as the body (≤ 1,000,000 bytes), `channel:inbound` permission; returns `{status, sessionId, reason, traceId, handoffId}`; 400 unusable, 413 too large, 501 not configured (built) |
@@ -53,3 +54,8 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 ## Idempotency
 
 `POST /v1/agents/{id}/chat` accepts an `Idempotency-Key` header (1-200 visible ASCII characters). A retry with the same key, caller, agent and conversation returns the first response unchanged with `Idempotent-Replay: true` and does not run the agent again. The same key with a different message or customer returns 422 `idempotency_key_reused`; a request still running returns 409 `request_in_progress`. Keys are kept 24 hours; a request that never finished (for example a crash) can be retried after five minutes. Failed requests (unknown agent, internal error) are not stored, so retrying them runs normally. Email deliveries are deduplicated by Message-ID instead.
+
+
+## Streaming
+
+`POST /v1/agents/{id}/chat/stream` returns `text/event-stream`. The agent's work and every supervisor check finish before the first `delta` is sent, so a customer never sees text a check could still reject; the pieces are the approved reply, split at word boundaries (joined they equal `reply` exactly). Progress events let a client show "Using lookup order…" during the wait. If the client disconnects, the turn still completes and is saved. Streaming of tokens straight from the model is not used because it would expose unchecked drafts.

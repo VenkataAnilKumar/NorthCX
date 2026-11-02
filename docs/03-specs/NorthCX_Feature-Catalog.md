@@ -24,7 +24,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | R3 | Valid saved history on every exit path | P0 | 1 | Built |
 | R4 | Graceful escalation on model failure | P0 | 1 | Built |
 | R5 | Model fallback and retry with backoff | P1 | 3 | Built |
-| R6 | Streaming responses | P1 | 3 | Planned |
+| R6 | Streaming responses | P1 | 3 | Built as progressive delivery of the checked reply plus tool progress; raw token streaming deliberately not used |
 | R7 | Per-conversation token and cost budget | P1 | 3 | Built for tokens (per turn and per day); cost in currency planned |
 | R8 | Multi-agent orchestration (specialist agents, routing) | P2 | 5 | Planned |
 | R9 | Multilingual conversations with automatic language detection | P1 | 4 | Planned |

@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import ValidationError
 
@@ -58,7 +59,7 @@ class Runtime:
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
-                  trusted: bool = False) -> RunResult:
+                  trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None) -> RunResult:
         """`trusted=True` is for messages the platform itself writes (for example an approval outcome); they skip
         the customer input checks and are traced as `system` events."""
         trace = Trace(agent.id, session_id, agent_version=agent.version)
@@ -176,6 +177,13 @@ class Runtime:
             results: list[dict] = []
             for use in uses:
                 trace.add("tool_call", name=use["name"], input=use["input"])
+                if progress:
+                    try:
+                        out = progress({"type": "tool", "name": use["name"]})
+                        if inspect.isawaitable(out):
+                            await out
+                    except Exception:  # a broken listener never affects the conversation
+                        pass
                 if use["name"] == HANDOFF:
                     trace.add("handoff", **use["input"])
                     results.append({"type": "tool_result", "tool_use_id": use["id"], "content": "Transferred to a human agent."})

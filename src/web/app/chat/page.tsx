@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { chat, getTrace, listAgents, listOutbox, statusLabel, type Trace } from "@/lib/api";
+import { chatStream, getTrace, listAgents, listOutbox, statusLabel, type Trace } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { ErrorBox, Loading, PageHeader } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
@@ -16,6 +16,7 @@ export default function TestConsole() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [trace, setTrace] = useState<Trace | null>(null);
   const [version, setVersion] = useState<number | null | undefined>(undefined);
@@ -49,14 +50,28 @@ export default function TestConsole() {
     if (!message || busy) return;
     setInput(""); setError(null); setBusy(true);
     setTurns((t) => [...t, { from: "user", text: message }]);
+    setWorking("Thinking…");
+    let started = false;
     try {
-      const r = await chat(agentId, sessionId, message);
-      setTurns((t) => [...t, { from: "agent", text: r.reply, status: r.status, handoffId: r.handoffId }]);
+      const r = await chatStream(agentId, sessionId, message, {
+        onProgress: (tool) => setWorking(`Using ${tool.replace(/_/g, " ")}…`),
+        onDelta: (piece) => {
+          setWorking(null);
+          setTurns((t) => started
+            ? t.map((x, i) => (i === t.length - 1 ? { ...x, text: x.text + piece } : x))
+            : [...t, { from: "agent", text: piece }]);
+          started = true;
+        },
+      });
+      setTurns((t) => {
+        const turn: Turn = { from: "agent", text: r.reply, status: r.status, handoffId: r.handoffId };
+        return started ? [...t.slice(0, -1), turn] : [...t, turn];
+      });
       setTrace(await getTrace(r.traceId));
       setVersion(r.agentVersion);
     } catch (err) {
       setError((err as Error).message);
-    } finally { setBusy(false); }
+    } finally { setBusy(false); setWorking(null); }
   }
 
   function reset() { setTurns([]); setTrace(null); setError(null); setSessionId(crypto.randomUUID()); }
@@ -89,7 +104,7 @@ export default function TestConsole() {
                     {t.handoffId && <Link href={`/handoffs?open=${t.handoffId}`} className="text-xs text-primary underline">View handoff</Link>}</div>)}
               </div>
             ))}
-            {busy && <p className="text-sm text-muted" role="status">Agent is working…</p>}
+            {busy && working && <p className="text-sm text-muted" role="status">{working}</p>}
             <div ref={endRef} />
           </div>
           {error && <div className="px-4 pb-2"><ErrorBox message={error} /></div>}

@@ -198,3 +198,37 @@ describe("revoked keys", () => {
     expect(renderToStaticMarkup(createElement(StatusBadge, { status: "revoked" }))).toContain("Revoked");
   });
 });
+
+describe("streaming chat", () => {
+  const sse = (...events: [string, unknown][]) => events.map(([e, d]) => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`).join("");
+  const streamOf = (text: string, size: number) => new ReadableStream<Uint8Array>({
+    start(c) { const b = new TextEncoder().encode(text); for (let i = 0; i < b.length; i += size) c.enqueue(b.slice(i, i + size)); c.close(); },
+  });
+
+  it("reports progress and pieces, even when events are split across chunks", async () => {
+    const done = { reply: "Hello there", status: "completed", traceId: "t1", pendingApprovals: [], handoffId: null, agentVersion: null };
+    const body = sse(["started", {}], ["progress", { type: "tool", name: "lookup_order" }], ["delta", { text: "Hello " }], ["delta", { text: "there" }], ["done", done]);
+    for (const size of [1, 7, 1000]) {
+      const calls: [string, RequestInit | undefined][] = [];
+      vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => { calls.push([url, init]); return new Response(streamOf(body, size), { status: 200 }); }));
+      const { chatStream, setApiKey } = await import("@/lib/api");
+      setApiKey("k");
+      const seen: string[] = [];
+      const r = await chatStream("support", "s1", "hi", { onProgress: (t) => seen.push(`tool:${t}`), onDelta: (t) => seen.push(t) });
+      expect(r.reply).toBe("Hello there");
+      expect(seen).toEqual(["tool:lookup_order", "Hello ", "there"]);
+      expect(calls[0][0]).toBe("/api/northcx/v1/agents/support/chat/stream");
+      expect(new Headers(calls[0][1]?.headers).get("authorization")).toBe("Bearer k");
+    }
+  });
+
+  it("turns refusals, server errors and cut-off streams into errors", async () => {
+    const { chatStream } = await import("@/lib/api");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: { message: "Too many messages" } }), { status: 429 })));
+    await expect(chatStream("a", "s", "m")).rejects.toThrow("Too many messages");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf(sse(["started", {}], ["error", { message: "Run failed" }]), 5), { status: 200 })));
+    await expect(chatStream("a", "s", "m")).rejects.toThrow("Run failed");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf(sse(["started", {}], ["delta", { text: "x" }]), 5), { status: 200 })));
+    await expect(chatStream("a", "s", "m")).rejects.toThrow("closed before");
+  });
+});

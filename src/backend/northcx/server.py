@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .access import ROLES, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
@@ -99,6 +99,17 @@ class ExpireBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+def _pieces(reply: str, size: int = 40) -> list[str]:
+    """Split a reply at word boundaries into pieces of about `size` characters; joining them gives the reply back exactly."""
+    out, cur = [], ""
+    for part in re.findall(r"\S+\s*|\s+", reply):
+        if cur and len(cur) + len(part) > size:
+            out.append(cur)
+            cur = ""
+        cur += part
+    return out + ([cur] if cur else [])
+
+
 def _err(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
 
@@ -109,6 +120,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/chat-tokens", "chat:mint"),
     ("POST", r"/v1/channels/email/inbound", "channel:inbound"),
     ("POST", r"/v1/agents/[^/]+/chat", "chat:send"),
+    ("POST", r"/v1/agents/[^/]+/chat/stream", "chat:send"),
     ("GET", r"/v1/sessions/[^/]+/outbox", "outbox:read"),
     ("GET", r"/v1/monitor/findings", "monitor:read"),
     ("GET", r"/v1/monitor/summary", "monitor:read"),
@@ -271,6 +283,69 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             log.exception("readiness check failed")
             return JSONResponse({"ready": False}, status_code=503)
         return {"ready": True}
+
+    @app.post("/v1/agents/{agent_id}/chat/stream")
+    async def chat_stream(agent_id: str, body: ChatBody, request: Request) -> Any:
+        """Server-sent events: `progress` while tools run, then the reply in `delta` pieces, then `done`.
+
+        The reply is released only after every supervisor has approved it, so the customer never sees text that a
+        check could still reject; `delta` pieces are the approved reply, delivered progressively.
+        """
+        who: Identity = request.state.identity
+        customer_id = body.customer_id
+        if request.headers.get("idempotency-key"):
+            return _err(400, "unsupported", "Idempotency-Key is not supported on the streaming endpoint; use /chat")
+        if who.session_id is not None:
+            if body.session_id != who.session_id or (who.agent and agent_id != who.agent):
+                await record(request, "auth.denied", f"POST /v1/agents/{agent_id}/chat/stream", "denied", reason="outside the token's scope")
+                return _err(403, "forbidden", "This chat token cannot be used for that conversation or agent")
+            customer_id = who.customer_id
+        if limits:
+            ok, retry = access.limiter.allow(f"session:{body.session_id}", limits.chat_per_session_per_minute)
+            if not ok:
+                return too_many(retry, "messages in this conversation")
+        try:
+            agent = await provider.get(agent_id)
+        except AgentUnavailable as e:
+            return _err(503, "agent_unavailable", str(e))
+        if agent is None:
+            return _err(404, "not_found", "Unknown agent")
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def work() -> None:
+            try:
+                r = await runtime.run(agent, body.session_id, body.message, customer_id, progress=lambda e: queue.put_nowait(("progress", e)))
+                queue.put_nowait(("result", r))
+            except Exception:
+                queue.put_nowait(("error", {"code": "internal", "message": "Run failed"}))
+
+        def sse(event: str, data: Any) -> str:
+            return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+        async def events() -> Any:
+            task = asyncio.create_task(work())
+            try:
+                yield sse("started", {"agent": agent_id})
+                while True:
+                    kind, payload = await queue.get()
+                    if kind == "progress":
+                        yield sse("progress", payload)
+                    elif kind == "error":
+                        yield sse("error", payload)
+                        return
+                    else:
+                        for piece in _pieces(payload.reply):
+                            yield sse("delta", {"text": piece})
+                        yield sse("done", {"reply": payload.reply, "status": payload.status, "traceId": payload.trace_id,
+                                           "pendingApprovals": payload.pending_approvals, "handoffId": payload.handoff_id,
+                                           "agentVersion": agent.version})
+                        return
+            finally:
+                if not task.done():
+                    await task  # the customer's message is always handled and saved, even if the client disconnects
+
+        return StreamingResponse(events(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
     @app.post("/v1/agents/{agent_id}/chat")
     async def chat(agent_id: str, body: ChatBody, request: Request) -> Any:

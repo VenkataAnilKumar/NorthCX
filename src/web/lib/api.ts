@@ -102,6 +102,48 @@ export const listAgents = () => api<{ agents: AgentInfo[] }>("/v1/agents").then(
 export const chat = (agentId: string, sessionId: string, message: string) =>
   api<ChatReply>(`/v1/agents/${agentId}/chat`, { method: "POST", body: JSON.stringify({ sessionId, message }) });
 
+export interface StreamHandlers { onProgress?: (tool: string) => void; onDelta?: (text: string) => void }
+
+/** Splits a server-sent-event stream into [event, data] pairs; handles events split across network chunks. */
+export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<[string, unknown]> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    buf += decoder.decode(value, { stream: !done });
+    let i: number;
+    while ((i = buf.indexOf("\n\n")) >= 0) {
+      const block = buf.slice(0, i);
+      buf = buf.slice(i + 2);
+      const ev = /^event: (.*)$/m.exec(block)?.[1];
+      const data = /^data: (.*)$/m.exec(block)?.[1];
+      if (ev && data) yield [ev, JSON.parse(data)];
+    }
+    if (done) return;
+  }
+}
+
+/** Like `chat`, but reports tool progress and reply text as it arrives. Resolves with the final result. */
+export async function chatStream(agentId: string, sessionId: string, message: string, h: StreamHandlers = {}): Promise<ChatReply> {
+  const headers = new Headers({ "content-type": "application/json" });
+  const key = getApiKey();
+  if (key) headers.set("authorization", `Bearer ${key}`);
+  const res = await fetch(`/api/northcx/v1/agents/${agentId}/chat/stream`, { method: "POST", headers, body: JSON.stringify({ sessionId, message }) });
+  if (!res.ok || !res.body) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body?.error?.message ?? `Request failed (${res.status})`, body?.error?.reasons ?? []);
+  }
+  for await (const [event, data] of readEvents(res.body)) {
+    const d = data as Record<string, unknown>;
+    if (event === "progress" && d.type === "tool") h.onProgress?.(String(d.name));
+    else if (event === "delta") h.onDelta?.(String(d.text));
+    else if (event === "done") return d as unknown as ChatReply;
+    else if (event === "error") throw new ApiError(500, String(d.message ?? "Run failed"));
+  }
+  throw new ApiError(502, "The connection closed before the reply finished");
+}
+
 export const statusLabel: Record<string, string> = {
   completed: "Completed", escalated: "Escalated", needs_approval: "Needs approval", unknown: "Unknown",
 };
