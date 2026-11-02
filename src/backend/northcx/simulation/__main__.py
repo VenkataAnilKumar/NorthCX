@@ -25,6 +25,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--judge-model", choices=["live"], help="grade judge checks with the live model")
     p.add_argument("--skip-judge", action="store_true", help="skip judge checks instead of failing them")
     p.add_argument("--only", help="run scenarios whose name contains this text")
+    p.add_argument("--allow-side-effects", action="store_true",
+                   help="DANGEROUS: execute write tools for real (only against sandboxes). By default they are simulated.")
     p.add_argument("--json", dest="json_out", help="write the full report as JSON to this path")
     p.add_argument("--record", action="store_true", help="store the run in the database (NORTHCX_DATABASE_URL)")
     p.add_argument("--source", default="cli", choices=["cli", "ci"], help="label stored with a recorded run")
@@ -76,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
         live = AnthropicLLM()
         judge = live if a.judge_model == "live" else None
     digests = {i: s.digest() for i, s in specs.items()}
-    suite = asyncio.run(SimulationRunner(agent_factory, SimConfig(a.model, live, judge, a.skip_judge), digests).run_suite(scenarios))
+    suite = asyncio.run(SimulationRunner(agent_factory, SimConfig(a.model, live, judge, a.skip_judge, not a.allow_side_effects), digests).run_suite(scenarios))
     print(format_report(suite))
     if a.record:
         from ..db import PgSimRuns, create_engine

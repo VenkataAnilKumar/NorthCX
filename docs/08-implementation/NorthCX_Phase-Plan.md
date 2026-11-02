@@ -44,12 +44,12 @@ Goal: a team can change an agent, prove it still works, release it, undo it, and
 | 11 | W7 roles, scoped keys, audit log, rate limits | W2 |
 | 12 | W7 containers, secrets, dry-run; W8 releases and audit pages | W6, W7 |
 
-### Exit criteria
-- State survives restart; schema migrates forward cleanly.
-- Approved action completes the conversation; expired approvals escalate.
-- A failing required scenario fails CI and blocks promotion.
-- Rollback works and is audited.
-- A fresh clone starts the whole stack with one compose command.
+### Exit criteria (status at the end of sprint 12: all met)
+- State survives restart; schema migrates forward cleanly. **Met** (Postgres stores, six migrations, restart tests, container restart test).
+- Approved action completes the conversation; expired approvals escalate. **Met**.
+- A failing required scenario fails CI and blocks promotion. **Met** (CI step and the gate at publish).
+- Rollback works and is audited. **Met**.
+- A fresh clone starts the whole stack with one compose command. **Met** (verified here with locally built images; CI verifies a clean build).
 
 ### Risks
 | Risk | Response |

@@ -21,6 +21,13 @@ Roles: admin, developer, reviewer (approvals), viewer (traces). Keys are stored 
 ## Approval and webhook controls
 Approved actions run once, are re-validated and re-supervised at execution time, and carry an idempotency key. Platform notices written into the conversation are produced by the platform, but they embed tool output, which remains untrusted data. Webhooks are signed with HMAC-SHA256 over the timestamp and body; receivers must verify the signature in constant time and reject old timestamps. Reviewer identity is the signed-in key's name (a typed name is only used in open mode).
 
+## Secrets and testing safely
+**Secrets** (platform and tool credentials) come from the environment or from mounted files (`NAME_FILE`, the form Docker and Kubernetes secrets use); setting both is an error. Tool credentials are handed to a tool only when it asks for one by name. Every value that reaches the model, a trace, saved history, an approval record, a handoff package, an outbox message or a reply is passed through a scrubber that replaces known secrets, including the platform's own API keys, model key, webhook secret and database URL, with `[redacted:name]`. Tests found and closed leaks in the model's own saved turns and in handoff reasons. Limits: only values the platform knows are scrubbed (a credential a tool fetches from elsewhere is not), and a secret that appears transformed (for example base64) is not recognised.
+
+**Dry run.** Simulations run with write tools simulated, so a scenario, a release proof or a CI run cannot change a real system by accident. Real side effects in tests require the explicit `--allow-side-effects` flag.
+
+**Containers.** The images run as an unprivileged user, carry no secrets, and use health and readiness endpoints that expose no internals. The compose file binds to 127.0.0.1 by default, refuses to start without a database password and API key, and requires authentication. Terminate TLS in front of it.
+
 ## Handoff packages
 A package holds the transcript, customer facts and action results, so it is personal data. Reading it needs the handoffs permission (viewer and above); give that role only to people who may see customer conversations. Forced-handoff patterns are author-supplied regular expressions: they are length-limited and applied only to messages up to 8,000 characters, but authors should avoid nested quantifiers.
 

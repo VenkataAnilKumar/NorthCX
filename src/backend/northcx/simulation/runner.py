@@ -31,6 +31,7 @@ class SimConfig:
     live_llm: LLM | None = None  # the model under test in live mode
     judge_llm: LLM | None = None
     skip_judge: bool = False  # skip judge checks (reported as a note) instead of failing them
+    dry_run: bool = True  # write tools are simulated, so scenarios never change real systems
 
 
 class RecordingLLM:
@@ -172,7 +173,7 @@ class SimulationRunner:
             return TrialResult(False, [Failure("scenario", "agent", f"agent '{sc.agent}' available", str(e))])
 
         store, traces, approvals, handoffs = InMemoryStore(), TraceStore(), ApprovalStore(), InMemoryHandoffs()
-        rt = Runtime(rec, store, traces, approvals, Outbox(), handoffs)
+        rt = Runtime(rec, store, traces, approvals, Outbox(), handoffs, dry_run=self.cfg.dry_run)
         flow = ApprovalFlow(rt)
         agents = {agent.id: agent}
         sid = f"sim-{sc.name}-{index}"

@@ -19,16 +19,23 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 | `docs/` | Documentation; start at `docs/README.md` |
 
 ## Status
-Early development. The Python backend reproduces the prototype's runtime, API and example agent (305 backend tests and 18 web tests passing with a scripted model) and adds copied/adapted input guardrails from a reference project. The web platform (`src/web`) is browser-tested against the backend. Postgres persistence and approval resume (exactly-once execution, outcomes delivered to the customer, expiry) are built. Handoffs (a package with the transcript, actions and facts, a queue, and always-to-a-person topics) are built. Scenario simulations (15 example scenarios, a judge, and a command line that gates CI) are built. Stored simulation runs, a release-gate rule tied to the exact agent version, and a Simulations page are built. Immutable agent versions with diffs, gated publishing and one-step rollback (with a versions page) are built. Roles, hashed API keys, a tamper-evident audit log and rate limits (with an Access page) are built. Environments, channels, the Studio editor and insights are planned.
+Early development. The Python backend reproduces the prototype's runtime, API and example agent (325 backend tests and 18 web tests passing with a scripted model) and adds copied/adapted input guardrails from a reference project. The web platform (`src/web`) is browser-tested against the backend. Postgres persistence and approval resume (exactly-once execution, outcomes delivered to the customer, expiry) are built. Handoffs (a package with the transcript, actions and facts, a queue, and always-to-a-person topics) are built. Scenario simulations (15 example scenarios, a judge, and a command line that gates CI) are built. Stored simulation runs, a release-gate rule tied to the exact agent version, and a Simulations page are built. Immutable agent versions with diffs, gated publishing and one-step rollback (with a versions page) are built. Roles, hashed API keys, a tamper-evident audit log and rate limits (with an Access page) are built. Environments, channels, the Studio editor and insights are planned.
 
-## Quick start (backend)
+## Quick start (everything, in containers)
+```bash
+cp .env.example .env          # set NORTHCX_DB_PASSWORD and NORTHCX_API_KEY, plus ANTHROPIC_API_KEY (or NORTHCX_DEMO=1)
+docker compose up -d --build --wait
+# console: http://localhost:3001   API: http://localhost:3000
+```
+
+## Quick start (backend from source)
 ```bash
 cd src/backend
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
 python -m pytest
 NORTHCX_API_KEY=<long random value> ANTHROPIC_API_KEY=... python -m northcx    # http://localhost:3000; without NORTHCX_API_KEY the server is open (development only) (NORTHCX_DEMO=1 uses an offline demo model)
-# Postgres storage: docker compose up -d postgres, then add
+# Postgres storage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres, then add
 #   NORTHCX_DATABASE_URL=postgresql://northcx:northcx@localhost:5432/northcx
 ```
 

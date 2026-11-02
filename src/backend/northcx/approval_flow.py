@@ -87,11 +87,13 @@ class ApprovalFlow:
         if blocked:
             return await done(False, {"error": f"blocked by policy: {blocked}"})
         try:
-            out = await tool.execute(data, ToolContext(claimed.session_id, claimed.customer_id, self.rt.store,
-                                                       idempotency_key=claimed.id))
+            out, simulated = await self.rt.execute_tool(tool, data, ToolContext(
+                claimed.session_id, claimed.customer_id, self.rt.store, idempotency_key=claimed.id,
+                dry_run=self.rt.dry_run, secrets=self.rt.secrets))
         except Exception as e:
-            return await done(False, {"error": str(e)})
-        return await done(True, {"result": json.loads(json.dumps(out, default=str))})
+            return await done(False, {"error": self.rt.secrets.redact_text(str(e))})
+        result = {"result": self.rt.secrets.redact(json.loads(json.dumps(out, default=str)))}
+        return await done(True, {**result, "dry_run": True} if simulated else result)
 
     async def expire_stale(self, agents: Any, ttl_seconds: float, now: float | None = None) -> list[Approval]:
         """Expire approvals pending longer than the TTL and hand each conversation to a person."""

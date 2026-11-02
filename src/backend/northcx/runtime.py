@@ -12,6 +12,7 @@ from .approvals import ApprovalRepo, ApprovalStore
 from .guardrails import GuardrailContext
 from .handoffs import Handoff, HandoffRepo, InMemoryHandoffs, build_package
 from .outbox import Outbox
+from .secrets import NO_SECRETS, SecretStore
 from .store import MemoryStore
 from .trace import Trace, TraceRepo
 from .types import LLM, LLMRequest, Message, text_of
@@ -41,11 +42,14 @@ class RunResult:
 
 class Runtime:
     def __init__(self, llm: LLM, store: MemoryStore, traces: TraceRepo, approvals: ApprovalRepo | None = None,
-                 outbox: Outbox | None = None, handoffs: HandoffRepo | None = None):
+                 outbox: Outbox | None = None, handoffs: HandoffRepo | None = None,
+                 secrets: SecretStore | None = None, dry_run: bool = False):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
         self.handoffs = handoffs or InMemoryHandoffs()
+        self.secrets = secrets or NO_SECRETS
+        self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
                   trusted: bool = False) -> RunResult:
@@ -54,7 +58,7 @@ class Runtime:
         trace = Trace(agent.id, session_id, agent_version=agent.version)
         messages: list[Message] = await self.store.load_messages(session_id)
         facts = await self.store.get_facts(customer_id) if customer_id else {}
-        ctx = ToolContext(session_id, customer_id, self.store)
+        ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets)
         pending: list[dict[str, Any]] = []
 
         facts_block = (
@@ -71,13 +75,19 @@ class Runtime:
             # Saved history must alternate and end on an assistant turn.
             if messages and messages[-1]["role"] == "user":
                 messages.append({"role": "assistant", "content": reply})
+            reply = self.secrets.redact_text(reply)
+            if messages and messages[-1]["role"] == "assistant" and isinstance(messages[-1]["content"], str):
+                messages[-1]["content"] = reply
             trace.add("reply", reply=reply, status=status)
-            await self.store.save_messages(session_id, messages)
+            for e in trace.events:  # nothing we keep may contain a secret
+                e.data = self.secrets.redact(e.data)
+            safe = self.secrets.redact(messages)  # the model's own turns too
+            await self.store.save_messages(session_id, safe)
             await self.traces.save(trace)
             handoff_id = None
             if status == "escalated":
                 handoff_id = (await self.create_handoff(
-                    agent_id=agent.id, session_id=session_id, customer_id=customer_id, trace=trace, messages=messages,
+                    agent_id=agent.id, session_id=session_id, customer_id=customer_id, trace=trace, messages=safe,
                     trigger=trigger or "agent_handoff", reason=reason, topics=topics or [])).id
             return RunResult(reply, status, trace, pending, handoff_id)
 
@@ -175,28 +185,37 @@ class Runtime:
                     return await finish("I've sent this to a teammate for approval and will confirm as soon as it's processed.",
                                         "needs_approval")
                 try:
-                    out = await tool.execute(data, ctx)
-                    trace.add("tool_result", name=use["name"], output=out)
-                    results.append({"type": "tool_result", "tool_use_id": use["id"], "content": json.dumps(out, default=str)})
+                    out, simulated = await self.execute_tool(tool, data, ctx)
+                    out = self.secrets.redact(json.loads(json.dumps(out, default=str)))
+                    trace.add("tool_result", name=use["name"], output=out, **({"dry_run": True} if simulated else {}))
+                    results.append({"type": "tool_result", "tool_use_id": use["id"], "content": json.dumps(out)})
                 except Exception as e:
-                    trace.add("error", tool=use["name"], error=str(e))
-                    results.append(self._err(use, f"Tool error: {e}"))
+                    msg = self.secrets.redact_text(str(e))
+                    trace.add("error", tool=use["name"], error=msg)
+                    results.append(self._err(use, f"Tool error: {msg}"))
             messages.append({"role": "user", "content": results})
         return await finish(FALLBACK, "escalated", "step_limit", f"No final answer after {agent.max_steps} steps")
 
     async def create_handoff(self, *, agent_id: str, session_id: str, customer_id: str | None, trace: Trace,
                              messages: list[Message], trigger: str, reason: str, topics: list[str]) -> Handoff:
         """Build the package a person receives and put the conversation in the handoff queue."""
+        reason = self.secrets.redact_text(reason)
         traces = [t for t in [await self.traces.get(s.id) for s in await self.traces.summaries(session_id, 50)
                               if s.id != trace.id] if t is not None]
         traces.sort(key=lambda t: t.events[0].t if t.events else 0)
         approvals = [a for a in await self.approvals.list() if a.session_id == session_id]
         facts = await self.store.get_facts(customer_id) if customer_id else {}
-        package = build_package(messages=messages, traces=traces + [trace], approvals=approvals, facts=facts,
-                                trigger=trigger, reason=reason, topics=topics)
+        package = self.secrets.redact(build_package(messages=messages, traces=traces + [trace], approvals=approvals, facts=facts,
+                                                    trigger=trigger, reason=reason, topics=topics))
         return await self.handoffs.add(Handoff(
             session_id=session_id, trace_id=trace.id, agent_id=agent_id, customer_id=customer_id, trigger=trigger,
             reason=reason, topics=topics, package=package))
+
+    async def execute_tool(self, tool: Any, data: Any, ctx: ToolContext) -> tuple[Any, bool]:
+        """Run a tool, or in dry-run mode simulate it if it is a write. Returns (result, was_simulated)."""
+        if self.dry_run and tool.effect != "read":
+            return tool.simulate(data, ctx), True
+        return await tool.execute(data, ctx), False
 
     @staticmethod
     def _err(use: dict, content: str) -> dict:

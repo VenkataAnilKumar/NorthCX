@@ -39,8 +39,8 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | T4 | Idempotency keys and retries for writes | P1 | 3 | Planned |
 | T5 | Connector library (orders, billing, accounts, helpdesk) | P1 | 3 | Planned |
 | T6 | Tool permissions per agent and per customer scope | P1 | 3 | Planned |
-| T7 | Secrets management for tool credentials | P0 | 2 | Planned |
-| T8 | Tool sandbox or dry-run mode for testing | P1 | 2 | Planned |
+| T7 | Secrets management for tool credentials | P0 | 2 | Built (environment or mounted files, scrubbed from everything stored) |
+| T8 | Tool sandbox or dry-run mode for testing | P1 | 2 | Built (write tools are simulated in simulations) |
 
 ## 4. Supervision and safety
 | ID | Feature | Pri | Phase | State |
@@ -146,7 +146,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | P4 | Rate limiting | P1 | 2 | Built (per process) |
 | P5 | Single sign-on for Studio | P2 | 4 | Planned |
 | P6 | Data residency options | P2 | 6 | Planned |
-| P7 | Self-hosting with containers | P0 | 2 | Planned |
+| P7 | Self-hosting with containers | P0 | 2 | Built (backend and web images, compose stack) |
 | P8 | Webhooks for status events | P1 | 3 | Planned |
 | P9 | Configuration through environment and files | P0 | 1 | Built |
 | P10 | Multi-tenancy | P2 | Later | Planned |

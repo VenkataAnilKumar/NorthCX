@@ -15,7 +15,7 @@ Status: Draft. Two-week sprints; estimates are placeholders until velocity is me
 | 9 (done) | 2 | CI gate (W5, W8) | Required scenarios, stored results, simulations page |
 | 10 (done) | 2 | Versions and rollback (W6) | Immutable versions, diff, rollback, release records |
 | 11 (done) | 2 | Access and audit (W7) | Roles, scoped keys, audit log, rate limits |
-| 12 | 2 | Operations (W7, W8) | Containers, secrets, dry-run, releases and audit pages |
+| 12 (done) | 2 | Operations (W7, W8) | Containers, secrets, dry-run, releases and audit pages |
 | 13 | 3 | Safety (W9) | Tool-output checks, PII redaction, policy library, monitoring |
 | 14 | 3 | Reliability (W10) | Model fallback, streaming, budgets, idempotent writes |
 | 15 | 3 | Knowledge (W11) | Retrieval tool, citations, connectors, freshness |

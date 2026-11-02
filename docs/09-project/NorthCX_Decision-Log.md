@@ -53,4 +53,9 @@
 | 50 | Rate limits are per process | Decided; revisit | A shared limiter is needed for many processes |
 | 51 | Keys are not yet limited to particular agents or environments | Decided; revisit | With environments in Phase 3 |
 | 52 | Interactive API docs are disabled | Decided | |
+| 53 | Tools declare `effect`; writes default to "write" and are simulated in simulations, with real side effects only behind an explicit flag | Decided, built | |
+| 54 | Secrets come from the environment or mounted files, are handed to tools by name, and are scrubbed from everything stored | Decided, built | |
+| 55 | Compose binds to loopback and requires a database password, an API key and authentication | Decided, built | TLS is the operator's reverse proxy |
+| 56 | The web image bakes in the backend address at build time | Decided; revisit | A runtime proxy would remove the rebuild |
+| 57 | The deployer supplies tools through `NORTHCX_REGISTRY` | Decided, built | |
 | 9 | Contribution model: DCO vs CLA | Open | |

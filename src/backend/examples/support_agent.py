@@ -34,7 +34,7 @@ def _lookup(data: LookupInput, ctx):
     return ORDERS.get(data.order_id, {"error": "Order not found"})
 
 
-def _refund(data: RefundInput, ctx):
+def _check_refund(data: RefundInput) -> None:
     order = ORDERS.get(data.order_id)
     if not order:
         raise ValueError("Order not found")
@@ -42,14 +42,25 @@ def _refund(data: RefundInput, ctx):
         raise ValueError("Only delivered orders can be refunded")
     if data.amount > order["total"]:
         raise ValueError("Amount exceeds order total")
+
+
+def _refund(data: RefundInput, ctx):
+    _check_refund(data)
+    # A real tool would call the payment system here, passing ctx.idempotency_key so a retry cannot refund twice.
+    return {"order_id": data.order_id, "refunded": data.amount}
+
+
+def _refund_dry_run(data: RefundInput, ctx):
+    _check_refund(data)  # the same business rules apply when testing
     return {"order_id": data.order_id, "refunded": data.amount}
 
 
 def registry() -> Registry:
     r = default_registry()
-    r.tool(Tool("lookup_order", "Look up an order by id. Returns status, total and item.", LookupInput, _lookup))
+    r.tool(Tool("lookup_order", "Look up an order by id. Returns status, total and item.", LookupInput, _lookup, effect="read"))
     r.tool(Tool("issue_refund", "Refund a delivered order. Amount must not exceed the order total.", RefundInput, _refund,
-                requires_approval=lambda d: f"Refund over {REFUND_APPROVAL_LIMIT} needs approval" if d.amount > REFUND_APPROVAL_LIMIT else None))
+                requires_approval=lambda d: f"Refund over {REFUND_APPROVAL_LIMIT} needs approval" if d.amount > REFUND_APPROVAL_LIMIT else None,
+                effect="write", dry_run_result=_refund_dry_run))
     return r
 
 

@@ -121,7 +121,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/audit", "audit:read"),
     ("GET", r"/v1/audit/verify", "audit:read"),
 ]
-PUBLIC_ROUTES = {("GET", "/"), ("GET", "/health")}
+PUBLIC_ROUTES = {("GET", "/"), ("GET", "/health"), ("GET", "/ready")}
 _COMPILED = [(m, re.compile(p), perm) for m, p, perm in ROUTE_PERMISSIONS]
 log = logging.getLogger("northcx.server")
 
@@ -223,7 +223,19 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
     @app.get("/health")
     async def health() -> dict[str, bool]:
+        """Liveness: the process is up."""
         return {"ok": True}
+
+    @app.get("/ready")
+    async def ready() -> Any:
+        """Readiness: the stores answer (for Postgres, the database is reachable). Used by load balancers and orchestrators."""
+        try:
+            await runtime.store.load_messages("__readiness_probe__")
+            await traces.summaries(limit=1)
+        except Exception:
+            log.exception("readiness check failed")
+            return JSONResponse({"ready": False}, status_code=503)
+        return {"ready": True}
 
     @app.post("/v1/agents/{agent_id}/chat")
     async def chat(agent_id: str, body: ChatBody) -> Any:

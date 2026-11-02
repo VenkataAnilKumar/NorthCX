@@ -62,3 +62,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 scripts/check_restricted_paths.py
+  stack:
+    # Builds the real images and starts the whole stack exactly as the README describes.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write a throwaway configuration
+        run: |
+          KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+          echo "::add-mask::$KEY"
+          echo "KEY=$KEY" >> "$GITHUB_ENV"
+          printf 'NORTHCX_DB_PASSWORD=ci%s\nNORTHCX_API_KEY=%s\nNORTHCX_DEMO=1\n' "$RANDOM$RANDOM" "$KEY" > .env
+      - run: docker compose up -d --build --wait --wait-timeout 300
+      - name: Smoke test
+        run: |
+          curl --fail --silent http://127.0.0.1:3000/ready
+          curl --fail --silent --output /dev/null http://127.0.0.1:3001/
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/v1/agents)" = "401"
+          curl --fail --silent -H "authorization: Bearer $KEY" http://127.0.0.1:3001/api/northcx/v1/me | grep -q '"role":"admin"'
+          curl --fail --silent -X POST -H "authorization: Bearer $KEY" -H 'content-type: application/json' \
+            -d '{"sessionId":"ci","message":"where is order 1042?"}' http://127.0.0.1:3000/v1/agents/support/chat | grep -q delivered
+      - if: failure()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down -v

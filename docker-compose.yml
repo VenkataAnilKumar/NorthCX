@@ -1,16 +1,55 @@
-# Development database. The full stack (backend, web) joins this file in Phase 2, sprint 12.
+# The whole NorthCX stack: database, backend, web console.
+#   cp .env.example .env     # then set the values marked REQUIRED
+#   docker compose up -d --build --wait
+# Console: http://localhost:3001   API: http://localhost:3000
+# Everything is bound to 127.0.0.1 by default; put a TLS-terminating reverse proxy in front before exposing it.
+name: northcx
+
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: northcx
-      POSTGRES_PASSWORD: northcx
       POSTGRES_DB: northcx
-    ports: ["5432:5432"]
+      POSTGRES_PASSWORD: ${NORTHCX_DB_PASSWORD:?Set NORTHCX_DB_PASSWORD in .env (letters and digits only)}
     volumes: ["northcx-pg:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U northcx"]
+      test: ["CMD-SHELL", "pg_isready -U northcx -d northcx"]
       interval: 5s
-      retries: 10
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ./src/backend
+    image: northcx/backend:local
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      NORTHCX_DATABASE_URL: postgresql://northcx:${NORTHCX_DB_PASSWORD}@postgres:5432/northcx
+      NORTHCX_API_KEY: ${NORTHCX_API_KEY:?Set NORTHCX_API_KEY in .env (a long random value)}
+      NORTHCX_REQUIRE_AUTH: "1"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NORTHCX_DEMO: ${NORTHCX_DEMO:-0}
+      NORTHCX_APPROVAL_TTL_SECONDS: ${NORTHCX_APPROVAL_TTL_SECONDS:-}
+      NORTHCX_WEBHOOK_URL: ${NORTHCX_WEBHOOK_URL:-}
+      NORTHCX_WEBHOOK_SECRET: ${NORTHCX_WEBHOOK_SECRET:-}
+    # To keep secrets out of the environment, mount files and use the *_FILE variants instead, for example:
+    #   environment: { NORTHCX_API_KEY_FILE: /run/secrets/northcx_api_key }   (and remove NORTHCX_API_KEY)
+    #   secrets: [northcx_api_key]
+    ports: ["${NORTHCX_BIND:-127.0.0.1}:${NORTHCX_BACKEND_PORT:-3000}:3000"]
+
+  web:
+    build:
+      context: ./src/web
+      args:
+        NORTHCX_API_URL: http://backend:3000
+    image: northcx/web:local
+    restart: unless-stopped
+    depends_on:
+      backend: { condition: service_healthy }
+    ports: ["${NORTHCX_BIND:-127.0.0.1}:${NORTHCX_WEB_PORT:-3001}:3001"]
+
 volumes:
   northcx-pg:

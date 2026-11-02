@@ -110,7 +110,7 @@ def actions(traces: list[Trace]) -> list[dict[str, Any]]:
                 if nxt.type in ("tool_call", "llm", "reply"):
                     break
                 if nxt.type == "tool_result" and nxt.data.get("name") == e.data["name"]:
-                    outcome, detail = "succeeded", nxt.data.get("output")
+                    outcome, detail = ("simulated" if nxt.data.get("dry_run") else "succeeded"), nxt.data.get("output")
                     break
                 if nxt.type == "error" and nxt.data.get("tool") == e.data["name"]:
                     outcome, detail = "failed", nxt.data.get("error")

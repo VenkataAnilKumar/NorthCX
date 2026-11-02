@@ -1,0 +1,5 @@
+# Development extras: publish the database on localhost so the backend can run from source.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
+services:
+  postgres:
+    ports: ["127.0.0.1:${NORTHCX_DB_PORT:-5432}:5432"]

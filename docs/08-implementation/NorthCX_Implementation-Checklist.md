@@ -27,8 +27,8 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [x] Handoff package (H4), handoff queue with resolve, and forced-handoff topics (S7); web handoffs page
 - [x] Immutable versions, diff, gated publishing, rollback, release history, live-agent serving, agent version on traces (Q8, Q10); web page for versions and releases
 - [x] Roles, hashed API keys, tamper-evident audit log, rate limits (P2-P4); Access page; key command line
-- [ ] Secrets handling, dry-run mode (T7, T8)
-- [ ] Container image and deployment guide (P7)
+- [x] Secrets handling with redaction, and dry-run mode for write tools (T7, T8)
+- [x] Container images, one-command stack, health and readiness endpoints, deployment guide (P7); CI builds and smoke-tests the stack
 ## Phase 3
 - [ ] Safety extensions (S8-S11)
 - [ ] Retrieval tool, citations, connectors, summarisation, retention (K4-K8)

@@ -10,9 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 MIGRATIONS = Path(__file__).with_name("migrations")
 
 
-def database_url_from_env() -> str | None:
-    """`NORTHCX_DATABASE_URL`, accepting plain `postgresql://` and `postgres://` forms."""
-    url = os.environ.get("NORTHCX_DATABASE_URL")
+def database_url_from_env(url: str | None = None) -> str | None:
+    """`NORTHCX_DATABASE_URL` (or the value given, for example read from a secret file), accepting plain `postgresql://`
+    and `postgres://` forms."""
+    url = url or os.environ.get("NORTHCX_DATABASE_URL")
     if not url:
         return None
     for prefix in ("postgresql://", "postgres://"):

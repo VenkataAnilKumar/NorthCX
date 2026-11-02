@@ -1,6 +1,45 @@
 # NorthCX Deployment Guide
 
-Status: Draft (target; not yet runnable end to end)
+Status: Draft. The container images and the compose stack are built and tested (see Testing Strategy); a Kubernetes manifest is not provided.
+
+## Quick start with containers
+```bash
+cp .env.example .env        # set NORTHCX_DB_PASSWORD, NORTHCX_API_KEY, and ANTHROPIC_API_KEY (or NORTHCX_DEMO=1)
+docker compose up -d --build --wait
+```
+This builds the backend and web images, starts Postgres, applies the database migrations, and waits until all three services are healthy. The console is at http://localhost:3001 and the API at http://localhost:3000, both bound to 127.0.0.1. Sign in on the console's Settings page with `NORTHCX_API_KEY`, then create named keys on the Access page. Data lives in the `northcx-pg` volume and survives `docker compose down` (use `down -v` to delete it).
+
+What the stack contains: **postgres** (16, with a health check), **backend** (Python, non-root, `/health` for liveness and `/ready` for readiness, which checks the database), and **web** (Next.js standalone server, non-root). The web console reaches the backend through a same-origin proxy whose address is fixed at image build time (`NORTHCX_API_URL`, default `http://backend:3000`); rebuild the web image if the backend moves.
+
+For development, `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres` publishes the database on localhost so the backend can run from source.
+
+## Bringing your own agents and tools
+The image ships the example support agent. To run yours, build an image `FROM` it (or mount directories) that adds your code, and set `NORTHCX_REGISTRY=your.module:function` (returns the tool registry), `NORTHCX_AGENTS_DIR` (agent spec files) and `NORTHCX_SCENARIOS_DIR` (scenarios). Tool credentials are `NORTHCX_SECRET_<NAME>` or `NORTHCX_SECRET_<NAME>_FILE`.
+
+## Environment reference
+| Variable | Meaning | Default |
+|---|---|---|
+| `ANTHROPIC_API_KEY` (`_FILE`) | Model key | required unless `NORTHCX_DEMO=1` |
+| `NORTHCX_DEMO` | `1` uses the offline demo model (not an AI) | off |
+| `NORTHCX_API_KEY` (`_FILE`) | Bootstrap admin key | none; without any key the server is open |
+| `NORTHCX_REQUIRE_AUTH` | `1` refuses to start without any key | off (compose sets it) |
+| `NORTHCX_DATABASE_URL` (`_FILE`) | Postgres URL; migrations run at start | in-memory storage |
+| `NORTHCX_REGISTRY` | `module:function` returning the tool registry | `examples.support_agent:registry` |
+| `NORTHCX_AGENTS_DIR`, `NORTHCX_SCENARIOS_DIR` | Spec and scenario directories | the bundled examples |
+| `NORTHCX_SECRET_<NAME>` (`_FILE`) | A credential for tools | none |
+| `NORTHCX_APPROVAL_TTL_SECONDS` | Expire approvals left undecided | never |
+| `NORTHCX_WEBHOOK_URL`, `NORTHCX_WEBHOOK_SECRET` (`_FILE`) | Push approval results (signed) | none |
+| `NORTHCX_RATE_LIMITS` (`off`), `NORTHCX_RATE_LIMIT_PER_MINUTE`, `NORTHCX_CHAT_PER_SESSION_PER_MINUTE`, `NORTHCX_AUTH_FAILURES_PER_MINUTE` | Per-process limits | 600 / 30 / 20 |
+| `NORTHCX_TRACE_DIR` | Also write traces to JSON lines (in-memory mode) | none |
+| `PORT` | Backend port inside the container | 3000 |
+| `NORTHCX_BIND`, `NORTHCX_BACKEND_PORT`, `NORTHCX_WEB_PORT` | Compose: listen address and host ports | 127.0.0.1, 3000, 3001 |
+
+## Operating it
+- **Upgrades:** pull or build the new images and run `docker compose up -d --build --wait`. Migrations apply on start and only move forward; take a database backup first. Rolling the images back across a migration needs the matching database backup.
+- **Backups:** back up the Postgres volume or use `pg_dump`. Everything lives there: conversations (personal data), approvals, handoffs, versions and releases, keys (hashes), the audit log and simulation runs. Treat backups as sensitive.
+- **Health:** probe `/ready` (load balancers, orchestrators); `/health` is liveness only. Logs go to standard output.
+- **Scaling:** the backend is stateless apart from per-process rate-limit buckets, so run several behind a load balancer; all state is in Postgres. Two simultaneous messages in one conversation can still overwrite each other (see Knowledge and Memory).
+- **TLS and exposure:** the compose file listens on loopback only. Put a reverse proxy that terminates TLS in front (and set `NORTHCX_BIND` only if you must publish directly).
 
 ## Environments
 | Env | Setup |

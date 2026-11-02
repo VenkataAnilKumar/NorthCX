@@ -5,12 +5,14 @@ from pathlib import Path
 import uvicorn
 
 from .access import AccessControl, InMemoryKeys, LimitConfig
+from .config import load_registry
 from .audit import InMemoryAudit
 from .db import (PgApprovalStore, PgAudit, PgHandoffs, PgKeys, PgMemoryStore, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
 from .runtime import Runtime
+from .secrets import ConfigError, SecretStore, env_or_file
 from .server import create_app
 from .simulation import InMemorySimRuns, ScenarioError, SimulationService, load_scenarios
 from .spec import BuildContext, SpecError, load_specs
@@ -28,7 +30,7 @@ def _has_keys(db_url: str, access: AccessControl) -> bool:
     async def check() -> bool:
         engine = create_engine(db_url, poolclass=NullPool)
         try:
-            return await AccessControl(PgKeys(engine), os.environ.get("NORTHCX_API_KEY")).enabled()
+            return await AccessControl(PgKeys(engine), env_or_file("NORTHCX_API_KEY")).enabled()
         finally:
             await engine.dispose()
 
@@ -36,11 +38,24 @@ def _has_keys(db_url: str, access: AccessControl) -> bool:
 
 
 def main() -> None:
+    try:
+        run()
+    except ConfigError as e:
+        sys.exit(f"Configuration error: {e}")
+
+
+def run() -> None:
     demo = os.environ.get("NORTHCX_DEMO") == "1"
-    if not demo and not os.environ.get("ANTHROPIC_API_KEY"):
-        sys.exit("Set ANTHROPIC_API_KEY to run the server (or NORTHCX_DEMO=1 for the offline demo model).")
+    anthropic_key = env_or_file("ANTHROPIC_API_KEY")
+    if anthropic_key:
+        os.environ["ANTHROPIC_API_KEY"] = anthropic_key  # the SDK reads it from the environment
+    if not demo and not anthropic_key:
+        sys.exit("Set ANTHROPIC_API_KEY (or ANTHROPIC_API_KEY_FILE) to run the server, or NORTHCX_DEMO=1 for the offline demo model.")
     import examples
-    from examples.support_agent import registry
+
+    registry = lambda: load_registry(os.environ.get("NORTHCX_REGISTRY", "examples.support_agent:registry"))  # noqa: E731
+    secrets = SecretStore.from_env()
+    api_key = env_or_file("NORTHCX_API_KEY")
 
     examples_dir = Path(examples.__file__).parent
     if demo:
@@ -50,7 +65,7 @@ def main() -> None:
     else:
         llm = AnthropicLLM()
 
-    db_url = database_url_from_env()
+    db_url = database_url_from_env(env_or_file("NORTHCX_DATABASE_URL"))
     if db_url:
         migrate(db_url)  # apply pending migrations before serving
         engine = create_engine(db_url)
@@ -68,19 +83,20 @@ def main() -> None:
 
     notifier = None
     if os.environ.get("NORTHCX_WEBHOOK_URL"):
-        secret = os.environ.get("NORTHCX_WEBHOOK_SECRET")
+        secret = env_or_file("NORTHCX_WEBHOOK_SECRET")
         if not secret:
-            sys.exit("NORTHCX_WEBHOOK_URL needs NORTHCX_WEBHOOK_SECRET")
+            sys.exit("NORTHCX_WEBHOOK_URL needs NORTHCX_WEBHOOK_SECRET (or NORTHCX_WEBHOOK_SECRET_FILE)")
         from .notify import WebhookNotifier
 
         notifier = WebhookNotifier(os.environ["NORTHCX_WEBHOOK_URL"], secret)
-    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs)
+    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets)
 
     # Agents and scenarios are files; the registry maps their tool names to code (the example registry for now).
     specs_dir = os.environ.get("NORTHCX_AGENTS_DIR") or str(examples_dir)
     scenarios_dir = os.environ.get("NORTHCX_SCENARIOS_DIR") or str(examples_dir / "scenarios")
     try:
         reg = registry()
+        print(f"Tool secrets available: {', '.join(secrets.names()) or 'none'}")
         specs = {s.id: s for s in load_specs(specs_dir)}
         baseline = {}
         for i, s in specs.items():  # agents defined by spec files; they serve until a version is released
@@ -113,7 +129,7 @@ def main() -> None:
         limits = LimitConfig(float(env.get("NORTHCX_RATE_LIMIT_PER_MINUTE", 600)),
                              float(env.get("NORTHCX_CHAT_PER_SESSION_PER_MINUTE", 30)),
                              float(env.get("NORTHCX_AUTH_FAILURES_PER_MINUTE", 20)))
-    access = AccessControl(keys_repo, os.environ.get("NORTHCX_API_KEY"), limits)
+    access = AccessControl(keys_repo, api_key, limits)
     import asyncio
 
     if asyncio.run(access.enabled()) if db_url is None else _has_keys(db_url, access):

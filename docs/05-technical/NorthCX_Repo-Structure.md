@@ -5,6 +5,7 @@ Status: Draft. All code lives under `src/`. `src/backend` (Python product backen
 ```
 northcx/
 ├── README.md, LICENSE, NOTICE, THIRD_PARTY.md
+├── docker-compose.yml        the full stack; docker-compose.dev.yml publishes the database; .env.example
 ├── scripts/                  repository checks (restricted paths, provenance)
 ├── .github/workflows/        CI
 ├── docs/                     numbered documentation phases
