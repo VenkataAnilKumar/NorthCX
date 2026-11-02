@@ -221,3 +221,16 @@ Paths verified from the repository trees; fitness of each module is **not yet as
 
 ### Language implication
 Most reusable backend code (Agno, Mem0, NeMo Guardrails, Onyx, Pipecat) is Python, the Studio source (Sim) and trace backend (Langfuse) are TypeScript, and the inbox (Chatwoot) is Ruby. Copying code is easiest when our backend is Python with a TypeScript Studio. The inbox is better integrated through its API than copied.
+
+## 12. Web platform candidates (checked 2026-11-02)
+
+Stacks read from each project's `package.json`; code quality and coupling are **not yet assessed**.
+
+| Source | Web stack | Useful for | Excluded | Licence |
+|---|---|---|---|---|
+| Sim (`apps/sim`) | Next.js 16, React 19, Tailwind 4, Zustand, TanStack Query, React Flow, Drizzle (Postgres), better-auth | Studio shell, workspace and auth, visual editor, knowledge pages, settings | `apps/sim/ee`; landing, billing and marketing pages | Apache-2.0 |
+| Langfuse (`web`) | Next.js 16, React 19, Tailwind 4, Zustand, TanStack Query, tRPC, next-auth | Trace viewer, datasets, evals, scores, dashboards (Conversations and Insights) | `ee/` paths including `web/src/ee` | MIT |
+| Onyx (`web`) | Next.js 16, React 19, Tailwind 4, Zustand, SWR, Recharts | Chat UI, connector and knowledge admin, agent settings | `web/src/ee`, `web/src/app/ee` | MIT |
+| Chatwoot (`app/javascript`) | Vue 3, Tailwind 3, Vite (Rails backend) | Human inbox (use through its API, do not copy) | `enterprise/` | MIT |
+
+Observation: Sim, Langfuse and Onyx share Next.js 16, React 19 and Tailwind 4, so their UI parts can live in one Next.js app. Differences to reconcile: data fetching (TanStack Query, tRPC, SWR), authentication (better-auth vs next-auth) and each project's own backend API, which the copied screens call and which we would replace with the NorthCX API.
