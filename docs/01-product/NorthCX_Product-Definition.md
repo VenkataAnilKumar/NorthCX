@@ -37,4 +37,4 @@ A composed open-source platform, with Claude as the default model:
 
 ## Open decisions
 - Final licence for NorthCX itself (proposal: Apache-2.0).
-- Whether Studio is adopted (Sim) or custom.
+- Whether Studio is adopted from an existing project or built in-house (see the Reference).
