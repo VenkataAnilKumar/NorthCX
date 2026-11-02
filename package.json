@@ -5,6 +5,7 @@
   "type": "module",
   "description": "NorthCX: open-source customer-experience agent platform built on the Claude API",
   "scripts": {
+    "dev": "tsx src/server/main.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

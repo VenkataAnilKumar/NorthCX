@@ -5,7 +5,7 @@ Status: Draft (target; not yet runnable end to end)
 ## Environments
 | Env | Setup |
 |---|---|
-| Local | `npm install`, `npm test`. The server (`npm run dev`) does not exist yet; it arrives in Phase 1 |
+| Local | `npm install`, `npm test`, then `ANTHROPIC_API_KEY=... npm run dev` (port from `PORT`, default 3000; optional `NORTHCX_API_KEY` and `NORTHCX_TRACE_DIR`). Uses in-memory storage, so state is lost on restart |
 | Staging/production | Container image for the server, Postgres, optional queue |
 
 ## Configuration

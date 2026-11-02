@@ -10,8 +10,8 @@ Base path `/v1`. JSON. Optional `Authorization: Bearer <key>`.
 | POST | `/agents/:id/chat` | Send a message; body `{sessionId, message, customerId?}` |
 | GET | `/traces/:id` | Fetch a trace |
 | GET | `/traces?sessionId=` | List traces for a session |
-| GET | `/approvals` | List pending approvals (planned) |
-| POST | `/approvals/:id/decision` | Approve or reject, then resume (planned) |
+| GET | `/approvals?state=` | List approvals (built) |
+| POST | `/approvals/:id/decision` | Record approve/reject with `{approved, by}` (built); resuming the run is planned for Phase 2 |
 
 ## Chat response
 `{reply, status: "completed"|"escalated"|"needs_approval", traceId, pendingApprovals[]}`

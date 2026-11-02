@@ -10,13 +10,14 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 - Simulation testing (planned), multiple channels (phased), low-code Studio (planned)
 
 ## Status
-Early development. The core runtime in `src/core` is built and covered by unit tests with a scripted model. The server, simulation testing, persistence and channel adapters are planned.
+Early development. The core runtime (`src/core`), HTTP server with web widget (`src/server`) and an example support agent (`examples/support`) are built and covered by tests using a scripted model. Simulation testing, persistence, approval resume and channel adapters are planned.
 
 ## Quick start
 ```bash
 npm install
 npm run typecheck
 npm test
+ANTHROPIC_API_KEY=... npm run dev   # http://localhost:3000
 ```
 
 ## Documentation

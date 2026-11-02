@@ -10,4 +10,5 @@
 | 6 | Fail closed for supervisor and model errors | Decided | Implemented and tested |
 | 7 | Approval resume in Phase 2 | Decided | Approvals stored now |
 | 8 | Card-number rule uses Luhn | Decided | Avoid blocking order numbers |
+| 10 | HTTP framework Hono; server entrypoint reads `ANTHROPIC_API_KEY` | Decided | Smoke-tested; a failed model call escalates |
 | 9 | Contribution model: DCO vs CLA | Open | |

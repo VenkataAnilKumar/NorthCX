@@ -12,7 +12,7 @@ Status: Draft
 | Traces | Trace store | 1 | Built (in-memory/JSONL) |
 | Session memory | `MemoryStore` | 1 | Built (in-memory) |
 | Customer facts | `MemoryStore` facts | 1 | Built |
-| Chat API | HTTP server | 1 | Planned |
+| Chat API | HTTP server | 1 | Built and tested (in-memory storage) |
 | Simulation testing | Scenario runner | 2 | Planned |
 | Persistent memory | Postgres adapter | 2 | Planned |
 | Knowledge retrieval | Retrieval tool | 3 | Planned |

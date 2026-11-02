@@ -6,8 +6,8 @@ Status: Living checklist
 - [x] Repo scaffold, TypeScript config, dependencies install
 - [x] Core runtime, tools, guardrails, memory, traces (typechecked)
 - [x] Unit tests for the runtime (history validity, approvals, handoff, guardrails, model failure)
-- [ ] Chat and trace API, auth, widget
-- [ ] Example support agent
+- [x] Chat, trace and approvals API, bearer auth, widget (in-memory storage)
+- [x] Example support agent
 ## Quality
 - [ ] Simulation runner and scenarios
 - [ ] CI workflow with required checks

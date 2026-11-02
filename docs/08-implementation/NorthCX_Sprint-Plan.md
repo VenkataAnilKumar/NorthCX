@@ -5,8 +5,8 @@ Status: Draft. Two-week sprints; estimates are placeholders.
 | Sprint | Focus | Items |
 |---|---|---|
 | 1 | Runtime tests (done) | Unit tests for loop, tools, approvals, handoff, guardrail rewrite |
-| 2 | Server | Chat and trace endpoints, auth, widget |
-| 3 | Example agent | Support tools, instructions, sample data |
+| 2 | Server (done) | Chat and trace endpoints, auth, widget |
+| 3 | Example agent (done) | Support tools, instructions, sample data |
 | 4 | Simulation | Scenario runner, assertions, scripted-model suites |
 | 5 | CI gate and judge | Judge rubric, repeat trials, CI workflow |
 | 6 | Persistence | Postgres store, migrations, retention |

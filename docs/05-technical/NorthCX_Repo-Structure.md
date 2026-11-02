@@ -10,9 +10,9 @@ northcx/
 ├── src/
 │   ├── core/             runtime, agent, guardrails, store, trace, llm, types   (built)
 │   ├── sim/              simulation runner and judge                            (planned)
-│   └── server/           HTTP API and widget                                   (planned)
-├── examples/support/     example agent, tools, scenarios                        (planned)
-└── tests/                unit tests with a scripted model                       (planned)
+│   └── server/           HTTP API, widget, entrypoint                           (built)
+├── examples/support/     example agent and tools                                (built; scenarios planned)
+└── tests/                runtime and server tests with a scripted model         (built)
 ```
 
 Target split once stable: `packages/core`, `packages/sim`, `apps/server`, `apps/studio`, `adapters/*`.
