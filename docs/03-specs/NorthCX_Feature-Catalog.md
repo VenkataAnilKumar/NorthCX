@@ -54,7 +54,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | S7 | Topics the agent must never handle alone (forced handoff list) | P0 | 2 | Built |
 | S8 | Input-side checks (prompt-injection, abuse detection) | P1 | 3 | Partly built: customer input and tool results are screened; abuse detection planned |
 | S9 | PII detection and redaction | P1 | 3 | Planned |
-| S10 | Monitoring of every conversation, not a sample | P1 | 3 | Planned |
+| S10 | Monitoring of every conversation, not a sample | P1 | 3 | Built: deterministic rules on every turn, findings API; a Monitoring page and alert delivery planned |
 | S11 | Policy library with tests | P1 | 3 | Planned |
 
 ## 5. Handoff and human collaboration

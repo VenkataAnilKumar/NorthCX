@@ -201,6 +201,20 @@ class EmailSessionRow(Base):
     __table_args__ = (Index("ix_email_sessions_sender", "sender"),)
 
 
+class MonitorFindingRow(Base):
+    __tablename__ = "monitor_findings"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    rule: Mapped[str] = mapped_column(String(64), nullable=False)
+    severity: Mapped[str] = mapped_column(String(16), nullable=False)
+    detail: Mapped[str] = mapped_column(String(400), nullable=False)
+    trace_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    agent_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_monitor_created", "created_at"), Index("ix_monitor_rule", "rule", "created_at"), Index("ix_monitor_session", "session_id"))
+
+
 class EmailMessageRow(Base):
     __tablename__ = "email_messages"
     message_id: Mapped[str] = mapped_column(String(998), primary_key=True)

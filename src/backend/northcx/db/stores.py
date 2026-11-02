@@ -14,12 +14,13 @@ from ..approvals import Approval
 from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
+from ..monitor import Finding
 from ..simulation.store import SimRun
 from ..versions import AgentVersion, Release
 from ..outbox import OutboxMessage
 from ..trace import Trace, TraceEvent, TraceSummary
 from ..types import Message
-from .models import ApprovalRow, FactRow, HandoffRow, AgentVersionRow, ApiKeyRow, AuditRow, EmailMessageRow, EmailSessionRow, MessageRow, OutboxRow, ReleaseRow, SimRunRow, SessionRow, TraceEventRow, TraceRow
+from .models import ApprovalRow, FactRow, HandoffRow, AgentVersionRow, ApiKeyRow, AuditRow, EmailMessageRow, EmailSessionRow, MonitorFindingRow, MessageRow, OutboxRow, ReleaseRow, SimRunRow, SessionRow, TraceEventRow, TraceRow
 
 
 def _jsonable(value: Any) -> Any:
@@ -413,6 +414,39 @@ class PgAudit(_Base):
         async with self._sm() as s:
             rows = (await s.execute(select(AuditRow).order_by(AuditRow.id))).scalars().all()
         return verify_entries([self._to_entry(r) for r in rows])
+
+
+class PgMonitor(_Base):
+    async def add(self, findings: list[Finding]) -> None:
+        if not findings:
+            return
+        async with self._sm.begin() as s:
+            await s.execute(pg_insert(MonitorFindingRow).values([
+                dict(id=f.id, rule=f.rule, severity=f.severity, detail=f.detail[:400], trace_id=f.trace_id, session_id=f.session_id,
+                     agent_id=f.agent_id, agent_version=f.agent_version, created_at=f.created_at) for f in findings]))
+
+    async def list(self, *, rule=None, severity=None, agent_id=None, session_id=None, since=None, limit=100) -> list[Finding]:
+        q = select(MonitorFindingRow).order_by(MonitorFindingRow.created_at.desc()).limit(limit)
+        for col, v in ((MonitorFindingRow.rule, rule), (MonitorFindingRow.severity, severity), (MonitorFindingRow.agent_id, agent_id),
+                       (MonitorFindingRow.session_id, session_id)):
+            if v:
+                q = q.where(col == v)
+        if since is not None:
+            q = q.where(MonitorFindingRow.created_at >= since)
+        async with self._sm() as s:
+            rows = (await s.execute(q)).scalars().all()
+        return [Finding(r.rule, r.severity, r.detail, r.trace_id, r.session_id, r.agent_id, r.agent_version, r.created_at, r.id) for r in rows]
+
+    async def counts(self, since: float | None = None) -> dict[str, dict[str, int]]:
+        q = select(MonitorFindingRow.rule, MonitorFindingRow.severity, func.count()).group_by(MonitorFindingRow.rule, MonitorFindingRow.severity)
+        if since is not None:
+            q = q.where(MonitorFindingRow.created_at >= since)
+        async with self._sm() as s:
+            rows = (await s.execute(q)).all()
+        out: dict[str, dict[str, int]] = {}
+        for rule, sev, n in rows:
+            out.setdefault(rule, {})[sev] = n
+        return out
 
 
 class PgEmailRepo(_Base):

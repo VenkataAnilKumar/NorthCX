@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from .agent import Agent, ToolContext
 from .approvals import ApprovalRepo, ApprovalStore
+from .monitor import Monitor
 from .guardrails import GuardrailContext, InputResult
 from .handoffs import Handoff, HandoffRepo, InMemoryHandoffs, build_package
 from .outbox import Outbox
@@ -43,12 +44,13 @@ class RunResult:
 class Runtime:
     def __init__(self, llm: LLM, store: MemoryStore, traces: TraceRepo, approvals: ApprovalRepo | None = None,
                  outbox: Outbox | None = None, handoffs: HandoffRepo | None = None,
-                 secrets: SecretStore | None = None, dry_run: bool = False):
+                 secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
         self.handoffs = handoffs or InMemoryHandoffs()
         self.secrets = secrets or NO_SECRETS
+        self.monitor = monitor or Monitor()
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
@@ -89,6 +91,7 @@ class Runtime:
                 handoff_id = (await self.create_handoff(
                     agent_id=agent.id, session_id=session_id, customer_id=customer_id, trace=trace, messages=safe,
                     trigger=trigger or "agent_handoff", reason=reason, topics=topics or [])).id
+            await self.monitor.observe(trace, status, trigger)
             return RunResult(reply, status, trace, pending, handoff_id)
 
         # Input guardrails run before the agent sees the message.

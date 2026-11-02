@@ -9,7 +9,8 @@ from .tokens import TokenSigner, derive_secret
 from .config import load_registry
 from .audit import InMemoryAudit
 from .channels.email import EmailChannel, EmailConfig, EmailNotifier, InMemoryEmailRepo, SmtpSender
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgKeys, PgMemoryStore, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
+from .monitor import InMemoryMonitor, Monitor
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgKeys, PgMemoryStore, PgMonitor, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -76,6 +77,7 @@ def run() -> None:
         versions_repo, releases_repo = PgVersions(engine), PgReleases(engine)
         keys_repo, audit_repo = PgKeys(engine), PgAudit(engine)
         email_repo = PgEmailRepo(engine)
+        monitor_repo = PgMonitor(engine)
         print("Using Postgres storage.")
     else:
         store, traces, approvals = InMemoryStore(), TraceStore(os.environ.get("NORTHCX_TRACE_DIR")), None
@@ -83,6 +85,7 @@ def run() -> None:
         versions_repo, releases_repo = InMemoryVersions(), InMemoryReleases()
         keys_repo, audit_repo = InMemoryKeys(), InMemoryAudit()
         email_repo = InMemoryEmailRepo()
+        monitor_repo = InMemoryMonitor()
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
 
     notifier = None
@@ -109,7 +112,7 @@ def run() -> None:
         from .notify import CompositeNotifier
 
         notifier = CompositeNotifier(*[n for n in (notifier, email_notifier) if n])
-    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets)
+    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo))
 
     # Agents and scenarios are files; the registry maps their tool names to code (the example registry for now).
     specs_dir = os.environ.get("NORTHCX_AGENTS_DIR") or str(examples_dir)

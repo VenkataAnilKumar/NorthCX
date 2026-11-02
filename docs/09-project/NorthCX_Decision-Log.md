@@ -69,3 +69,4 @@
 | 66 | Outbox now retries with back-off and a background flush runs every 15 s | Decided, built | Failed sends are retried, never duplicated (deterministic Message-ID) |
 | 9 | Contribution model: DCO vs CLA | Open | |
 | 67 | Tool results are screened (`output_guardrails`) before the model reads them; failures deny; an empty list leaves spec digests unchanged | Decided, built | Indirect-injection defence; phrase list narrow on purpose |
+| 68 | Monitoring is rule-based over traces for every turn (no model calls); findings are advisory and monitoring failures never affect conversations | Decided, built | |

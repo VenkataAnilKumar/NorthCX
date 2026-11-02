@@ -109,6 +109,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/channels/email/inbound", "channel:inbound"),
     ("POST", r"/v1/agents/[^/]+/chat", "chat:send"),
     ("GET", r"/v1/sessions/[^/]+/outbox", "outbox:read"),
+    ("GET", r"/v1/monitor/findings", "monitor:read"),
+    ("GET", r"/v1/monitor/summary", "monitor:read"),
     ("GET", r"/v1/traces", "traces:read"),
     ("GET", r"/v1/traces/[^/]+", "traces:read"),
     ("GET", r"/v1/agents", "agents:read"),
@@ -297,6 +299,19 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def get_trace(trace_id: str) -> Any:
         t = await traces.get(trace_id)
         return t.to_dict() if t else _err(404, "not_found", "Unknown trace")
+
+    @app.get("/v1/monitor/findings")
+    async def monitor_findings(rule: str | None = None, severity: str | None = None, agentId: str | None = None,
+                               sessionId: str | None = None, since: float | None = None, limit: int = 100) -> Any:
+        items = await runtime.monitor.repo.list(rule=rule, severity=severity, agent_id=agentId, session_id=sessionId,
+                                                since=since, limit=max(1, min(limit, 500)))
+        return {"findings": [f.to_dict() for f in items]}
+
+    @app.get("/v1/monitor/summary")
+    async def monitor_summary(since: float | None = None) -> Any:
+        counts = await runtime.monitor.repo.counts(since)
+        return {"rules": sorted(runtime.monitor.rules), "counts": counts,
+                "total": sum(n for by in counts.values() for n in by.values())}
 
     @app.get("/v1/traces")
     async def list_traces(sessionId: str | None = None, limit: int = 200) -> Any:
