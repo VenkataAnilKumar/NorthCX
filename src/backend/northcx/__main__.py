@@ -3,7 +3,7 @@ import sys
 
 import uvicorn
 
-from .db import PgApprovalStore, PgMemoryStore, PgOutbox, PgTraceStore, create_engine, database_url_from_env, migrate
+from .db import PgApprovalStore, PgHandoffs, PgMemoryStore, PgOutbox, PgTraceStore, create_engine, database_url_from_env, migrate
 from .llm import AnthropicLLM
 from .outbox import Outbox
 from .runtime import Runtime
@@ -23,11 +23,11 @@ def main() -> None:
         migrate(db_url)  # apply pending migrations before serving
         engine = create_engine(db_url)
         store, traces, approvals = PgMemoryStore(engine), PgTraceStore(engine), PgApprovalStore(engine)
-        outbox_repo = PgOutbox(engine)
+        outbox_repo, handoffs = PgOutbox(engine), PgHandoffs(engine)
         print("Using Postgres storage.")
     else:
         store, traces, approvals = InMemoryStore(), TraceStore(os.environ.get("NORTHCX_TRACE_DIR")), None
-        outbox_repo = None
+        outbox_repo, handoffs = None, None
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
     if demo:
         from .demo import DemoLLM
@@ -43,7 +43,7 @@ def main() -> None:
         from .notify import WebhookNotifier
 
         notifier = WebhookNotifier(os.environ["NORTHCX_WEBHOOK_URL"], secret)
-    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier))
+    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs)
     agents = {"support": support_agent()}
     specs_dir = os.environ.get("NORTHCX_AGENTS_DIR")
     if specs_dir:  # extra agents defined as specs, using the example tool registry

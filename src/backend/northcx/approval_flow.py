@@ -109,6 +109,9 @@ class ApprovalFlow:
             trace.add("handoff", reason="approval expired")
             trace.add("reply", reply=EXPIRED_REPLY, status="escalated")
             await self.rt.traces.save(trace)
-            await self.rt.outbox.publish(done.session_id, "approval_expired", {
+            handoff = await self.rt.create_handoff(
+                agent_id=done.agent_id or "unknown", session_id=done.session_id, customer_id=done.customer_id, trace=trace,
+                messages=messages, trigger="approval_expired", reason=f"Approval for {done.tool} was not decided in time", topics=[])
+            await self.rt.outbox.publish(done.session_id, "approval_expired", {"handoffId": handoff.id,
                 "approvalId": done.id, "tool": done.tool, "reply": EXPIRED_REPLY, "status": "escalated", "traceId": trace.id})
         return expired

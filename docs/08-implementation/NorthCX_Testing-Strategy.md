@@ -25,6 +25,9 @@ The in-memory and Postgres repositories share one contract suite (history round 
 ## Approval flow tests
 Run against both in-memory and Postgres stores: exactly-once execution under concurrent decisions, idempotency key, supervisor re-check at execution, invalid input at execution, tool failure, missing agent, chained approvals, model failure after execution, expiry (including races with decisions), valid saved history after every path, outbox contents, and webhook signing, retry and redelivery. Mutation checks confirmed that removing the atomic claim or the supervisor re-check makes tests fail.
 
+## Handoff tests
+Package builder (transcript, action outcomes, summary), every escalation trigger, forced topics (model never called, word boundaries, platform notices exempt, multiple topics), spec validation of topics, handoffs surviving a restart in Postgres, resolve-once under concurrency in both stores, and the queue API. A mutation check (disabling topic matching, or removing platform-notice handling) makes tests fail.
+
 ## Rules
 - No network in unit tests.
 - Any production failure becomes a regression scenario.

@@ -22,7 +22,7 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [x] Postgres stores (sessions, facts, traces, approvals) and migrations (K3); contract tests over both implementations; CI database service
 - [ ] Retention and deletion jobs (Phase 3)
 - [x] Approval resume (R10): decision, exactly-once execution with idempotency key, supervisor re-check, agent follow-up, outbox with signed webhook option, expiry sweeper
-- [ ] Handoff package (H4); forced-handoff topics (S7)
+- [x] Handoff package (H4), handoff queue with resolve, and forced-handoff topics (S7); web handoffs page
 - [ ] Versions, diff, rollback (Q8, Q10)
 - [ ] Roles, scoped keys, audit log, rate limits (P2-P4)
 - [ ] Secrets handling, dry-run mode (T7, T8)

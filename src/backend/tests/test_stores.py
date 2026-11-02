@@ -255,3 +255,48 @@ async def test_outbox_tracks_delivery_attempts(outbox_repo):
     await outbox_repo.record_attempt(m.id, True)
     assert await outbox_repo.undelivered() == []
     assert (await outbox_repo.list("s"))[0].attempts == 2
+
+
+# ---- handoffs ----
+@pytest.fixture
+def handoff_repo(kind, request):
+    from northcx.handoffs import InMemoryHandoffs
+
+    if kind == "memory":
+        return InMemoryHandoffs()
+    from northcx.db import PgHandoffs
+
+    return PgHandoffs(request.getfixturevalue("engine"))
+
+
+def make_handoff(session="s", created=1000.0, trigger="agent_handoff"):
+    from northcx.handoffs import Handoff
+
+    return Handoff(session_id=session, trace_id="t", agent_id="a", customer_id="c", trigger=trigger, reason="because",
+                   topics=["legal"], package={"summary": "S", "transcript": [{"from": "customer", "text": "héllo 日本"}]}, created_at=created)
+
+
+async def test_handoff_round_trip_listing_and_filters(handoff_repo):
+    a, b, c = make_handoff("s1", 1.0), make_handoff("s2", 2.0, "forced_topic"), make_handoff("s1", 3.0)
+    for h in (a, b, c):
+        await handoff_repo.add(h)
+    got = await handoff_repo.get(b.id)
+    assert (got.trigger, got.topics, got.customer_id, got.state) == ("forced_topic", ["legal"], "c", "open")
+    assert got.package == b.package
+    assert [h.id for h in await handoff_repo.list()] == [c.id, b.id, a.id]  # newest first
+    assert [h.id for h in await handoff_repo.list(session_id="s1")] == [c.id, a.id]
+    assert len(await handoff_repo.list(limit=1)) == 1
+    await handoff_repo.resolve(a.id, "jo", "done")
+    assert [h.id for h in await handoff_repo.list("open")] == [c.id, b.id]
+    assert [h.id for h in await handoff_repo.list("resolved")] == [a.id]
+    assert await handoff_repo.get("missing") is None
+
+
+async def test_handoff_resolves_exactly_once_even_concurrently(handoff_repo):
+    h = await handoff_repo.add(make_handoff())
+    res = await asyncio.gather(*[handoff_repo.resolve(h.id, f"u{i}") for i in range(6)], return_exceptions=True)
+    assert sum(not isinstance(r, Exception) for r in res) == 1
+    assert all(isinstance(r, ValueError) for r in res if isinstance(r, Exception))
+    assert (await handoff_repo.get(h.id)).state == "resolved"
+    with pytest.raises(KeyError):
+        await handoff_repo.resolve("missing", "jo")

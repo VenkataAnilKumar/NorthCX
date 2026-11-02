@@ -113,3 +113,26 @@ def test_rejecting_through_the_api_explains_to_the_customer():
     aid = c.get("/v1/approvals?state=pending").json()["approvals"][0]["id"]
     out = c.post(f"/v1/approvals/{aid}/decision", json={"approved": False, "by": "rae", "note": "too high"}).json()
     assert out["state"] == "rejected" and out["note"] == "too high" and out["resume"]["reply"] == "We couldn't approve that refund."
+
+
+def test_handoff_queue_api():
+    c, _ = build([tool_call("handoff_to_human", {"reason": "wants a person"}, "t1")])
+    r = chat(c, {"sessionId": "h1", "message": "person please", "customerId": "cu"}).json()
+    assert r["status"] == "escalated" and r["handoffId"]
+    # forced topic: the scripted model has nothing left, so it must not be consulted
+    r2 = chat(c, {"sessionId": "h2", "message": "I will speak to my lawyer"}).json()
+    assert r2["status"] == "escalated" and "person on our team" in r2["reply"]
+    listed = c.get("/v1/handoffs").json()["handoffs"]
+    assert {h["trigger"] for h in listed} == {"agent_handoff", "forced_topic"} and all("package" not in h for h in listed)
+    assert [h["id"] for h in c.get("/v1/handoffs?sessionId=h1").json()["handoffs"]] == [r["handoffId"]]
+    detail = c.get(f"/v1/handoffs/{r['handoffId']}").json()
+    assert detail["package"]["transcript"][0]["text"] == "person please" and detail["customerId"] == "cu"
+    assert "wants a person" in detail["summary"]
+    res = c.post(f"/v1/handoffs/{r['handoffId']}/resolve", json={"by": "jo", "note": "called back"}).json()
+    assert (res["state"], res["resolvedBy"], res["note"]) == ("resolved", "jo", "called back")
+    assert c.post(f"/v1/handoffs/{r['handoffId']}/resolve", json={"by": "x"}).status_code == 409
+    assert c.post("/v1/handoffs/nope/resolve", json={"by": "x"}).status_code == 404
+    assert c.get("/v1/handoffs/nope").status_code == 404
+    assert [h["id"] for h in c.get("/v1/handoffs?state=open").json()["handoffs"]] == [r2["handoffId"]]
+    assert c.post(f"/v1/handoffs/{r2['handoffId']}/resolve", json={}).status_code == 400
+    assert "legal" in c.get("/v1/agents").json()["agents"][0]["forcedTopics"]

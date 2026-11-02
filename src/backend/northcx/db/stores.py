@@ -10,10 +10,11 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from ..approvals import Approval
+from ..handoffs import Handoff
 from ..outbox import OutboxMessage
 from ..trace import Trace, TraceEvent, TraceSummary
 from ..types import Message
-from .models import ApprovalRow, FactRow, MessageRow, OutboxRow, SessionRow, TraceEventRow, TraceRow
+from .models import ApprovalRow, FactRow, HandoffRow, MessageRow, OutboxRow, SessionRow, TraceEventRow, TraceRow
 
 
 def _jsonable(value: Any) -> Any:
@@ -190,3 +191,46 @@ class PgOutbox(_Base):
             values["delivered_at"] = time.time()
         async with self._sm.begin() as s:
             await s.execute(update(OutboxRow).where(OutboxRow.id == message_id).values(**values))
+
+
+class PgHandoffs(_Base):
+    @staticmethod
+    def _to_handoff(r: HandoffRow) -> Handoff:
+        return Handoff(session_id=r.session_id, trace_id=r.trace_id, agent_id=r.agent_id, customer_id=r.customer_id,
+                       trigger=r.trigger, reason=r.reason, topics=list(r.topics), package=r.package, id=r.id, state=r.state,
+                       created_at=r.created_at, resolved_by=r.resolved_by, resolved_at=r.resolved_at, note=r.note)
+
+    async def add(self, handoff: Handoff) -> Handoff:
+        async with self._sm.begin() as s:
+            await s.execute(pg_insert(HandoffRow).values(
+                id=handoff.id, session_id=handoff.session_id, trace_id=handoff.trace_id, agent_id=handoff.agent_id,
+                customer_id=handoff.customer_id, trigger=handoff.trigger, reason=handoff.reason, topics=handoff.topics,
+                package=_jsonable(handoff.package), state=handoff.state, created_at=handoff.created_at))
+        return handoff
+
+    async def get(self, handoff_id: str) -> Handoff | None:
+        async with self._sm() as s:
+            r = (await s.execute(select(HandoffRow).where(HandoffRow.id == handoff_id))).scalar_one_or_none()
+        return self._to_handoff(r) if r else None
+
+    async def list(self, state: str | None = None, session_id: str | None = None, limit: int = 200) -> list[Handoff]:
+        q = select(HandoffRow).order_by(HandoffRow.created_at.desc()).limit(limit)
+        if state:
+            q = q.where(HandoffRow.state == state)
+        if session_id:
+            q = q.where(HandoffRow.session_id == session_id)
+        async with self._sm() as s:
+            return [self._to_handoff(r) for r in (await s.execute(q)).scalars().all()]
+
+    async def resolve(self, handoff_id: str, by: str, note: str | None = None) -> Handoff:
+        """Atomic: only an open handoff can be resolved, once."""
+        async with self._sm.begin() as s:
+            row = (await s.execute(update(HandoffRow).where(HandoffRow.id == handoff_id, HandoffRow.state == "open")
+                                   .values(state="resolved", resolved_by=by, resolved_at=time.time(), note=note)
+                                   .returning(HandoffRow))).scalar_one_or_none()
+            if row is not None:
+                return self._to_handoff(row)
+            existing = (await s.execute(select(HandoffRow).where(HandoffRow.id == handoff_id))).scalar_one_or_none()
+        if existing is None:
+            raise KeyError(f"Unknown handoff {handoff_id}")
+        raise ValueError(f"Handoff {handoff_id} already {existing.state}")

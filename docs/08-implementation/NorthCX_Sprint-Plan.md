@@ -10,7 +10,7 @@ Status: Draft. Two-week sprints; estimates are placeholders until velocity is me
 | 4 (done) | 2 | Agent spec and CI (W1) | Spec schema, registries, spec files, CI workflow, restricted-path check, licence |
 | 5 (done) | 2 | Persistence (W2) | Postgres stores, migrations, contract tests |
 | 6 (done) | 2 | Approval resume (W3) | Resume flow, idempotent execution, expiry |
-| 7 | 2 | Handoff (W4) | Handoff package, forced-handoff topics |
+| 7 (done) | 2 | Handoff (W4) | Handoff package, forced-handoff topics |
 | 8 | 2 | Simulation runner (W5) | Scenario format, assertions, scripted customers, judge |
 | 9 | 2 | CI gate (W5, W8) | Required scenarios, stored results, simulations page |
 | 10 | 2 | Versions and rollback (W6) | Immutable versions, diff, rollback, release records |

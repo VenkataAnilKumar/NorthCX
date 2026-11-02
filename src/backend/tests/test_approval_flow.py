@@ -33,12 +33,12 @@ def env(request):
     if kind == "memory":
         from northcx.approvals import ApprovalStore
 
-        stores = dict(store=InMemoryStore(), traces=TraceStore(), approvals=ApprovalStore(), outbox=Outbox())
+        stores = dict(store=InMemoryStore(), traces=TraceStore(), approvals=ApprovalStore(), outbox=Outbox(), handoffs=None)
     else:
-        from northcx.db import PgApprovalStore, PgMemoryStore, PgOutbox, PgTraceStore
+        from northcx.db import PgApprovalStore, PgHandoffs, PgMemoryStore, PgOutbox, PgTraceStore
 
         eng = request.getfixturevalue("engine")
-        stores = dict(store=PgMemoryStore(eng), traces=PgTraceStore(eng), approvals=PgApprovalStore(eng), outbox=Outbox(PgOutbox(eng)))
+        stores = dict(store=PgMemoryStore(eng), traces=PgTraceStore(eng), approvals=PgApprovalStore(eng), outbox=Outbox(PgOutbox(eng)), handoffs=PgHandoffs(eng))
     calls = Calls()
 
     def refund(d: Amount, ctx):
@@ -51,7 +51,7 @@ def env(request):
 
     def make(script, guardrails=None):
         llm = ScriptedLLM(script)
-        rt = Runtime(llm, stores["store"], stores["traces"], stores["approvals"], stores["outbox"])
+        rt = Runtime(llm, stores["store"], stores["traces"], stores["approvals"], stores["outbox"], stores["handoffs"])
         agent = Agent(id="a", instructions="help", tools=[tool], guardrails=guardrails or [])
         return llm, rt, agent, ApprovalFlow(rt), {"a": agent}
 
@@ -183,6 +183,10 @@ async def test_stale_approvals_expire_and_escalate(env):
     assert (msg.kind, msg.payload["status"]) == ("approval_expired", "escalated")
     trace = await rt.traces.get(msg.payload["traceId"])
     assert any(e.type == "handoff" for e in trace.events)
+    h = await rt.handoffs.get(msg.payload["handoffId"])
+    assert (h.trigger, h.state) == ("approval_expired", "open")
+    assert "refund" in h.package["summary"] and h.package["approvals"][0]["state"] == "expired"
+    assert [m["from"] for m in h.package["transcript"]][-1] == "agent"
     assert await flow.expire_stale(agents, 3600, now=created + 9999) == []  # idempotent
     with pytest.raises(ValueError):
         await flow.resolve(agents, aid, True, "rae")  # too late

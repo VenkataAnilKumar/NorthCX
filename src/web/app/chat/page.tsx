@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { chat, getTrace, listAgents, listOutbox, statusLabel, type Trace } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
@@ -6,7 +7,7 @@ import { ErrorBox, Loading, PageHeader } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
 import { TraceTimeline } from "@/components/trace-timeline";
 
-interface Turn { from: "user" | "agent"; text: string; status?: string; late?: boolean }
+interface Turn { from: "user" | "agent"; text: string; status?: string; late?: boolean; handoffId?: string | null }
 
 export default function TestConsole() {
   const agents = useLoad(listAgents);
@@ -49,7 +50,7 @@ export default function TestConsole() {
     setTurns((t) => [...t, { from: "user", text: message }]);
     try {
       const r = await chat(agentId, sessionId, message);
-      setTurns((t) => [...t, { from: "agent", text: r.reply, status: r.status }]);
+      setTurns((t) => [...t, { from: "agent", text: r.reply, status: r.status, handoffId: r.handoffId }]);
       setTrace(await getTrace(r.traceId));
     } catch (err) {
       setError((err as Error).message);
@@ -81,7 +82,9 @@ export default function TestConsole() {
               <div key={i} className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${t.from === "user" ? "ml-auto bg-primary text-primary-text" : "border border-border"}`}>
                 {t.late && <p className="mb-1 text-xs text-muted">Update from the team</p>}
                 <p className="whitespace-pre-wrap">{t.text}</p>
-                {t.status && t.status !== "completed" && <div className="mt-1"><StatusBadge status={t.status} /></div>}
+                {t.status && t.status !== "completed" && (
+                  <div className="mt-1 flex items-center gap-2"><StatusBadge status={t.status} />
+                    {t.handoffId && <Link href={`/handoffs?open=${t.handoffId}`} className="text-xs text-primary underline">View handoff</Link>}</div>)}
               </div>
             ))}
             {busy && <p className="text-sm text-muted" role="status">Agent is working…</p>}

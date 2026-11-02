@@ -1,17 +1,17 @@
 "use client";
 import Link from "next/link";
-import { listApprovals, listTraces } from "@/lib/api";
+import { listApprovals, listHandoffs, listTraces } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { ErrorBox, Loading, PageHeader } from "@/components/states";
 
 export default function Overview() {
   const { data, error, loading, reload } = useLoad(async () => {
-    const [traces, pending] = await Promise.all([listTraces(), listApprovals("pending")]);
-    return { traces, pending };
+    const [traces, pending, handoffs] = await Promise.all([listTraces(), listApprovals("pending"), listHandoffs("open")]);
+    return { traces, pending, handoffs };
   });
   if (loading && !data) return <Loading />;
   if (error) return <ErrorBox message={error} onRetry={reload} />;
-  const { traces, pending } = data!;
+  const { traces, pending, handoffs } = data!;
   const total = traces.length;
   const count = (s: string) => traces.filter((t) => t.status === s).length;
   const rate = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "–");
@@ -19,12 +19,13 @@ export default function Overview() {
     { label: "Conversations", value: String(total), href: "/conversations" },
     { label: "Completed", value: rate(count("completed")), href: "/conversations?status=completed" },
     { label: "Escalated", value: rate(count("escalated")), href: "/conversations?status=escalated" },
+    { label: "Open handoffs", value: String(handoffs.length), href: "/handoffs" },
     { label: "Pending approvals", value: String(pending.length), href: "/approvals" },
   ];
   return (
     <>
       <PageHeader title="Overview" subtitle="Runs since the backend started (in-memory storage)." />
-      <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {cards.map((c) => (
           <li key={c.label}>
             <Link href={c.href} className="block rounded-xl border border-border bg-surface p-4 shadow-sm hover:border-primary">

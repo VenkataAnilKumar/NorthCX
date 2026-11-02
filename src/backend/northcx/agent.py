@@ -7,6 +7,7 @@ from typing import Any, Awaitable, Callable
 from pydantic import BaseModel
 
 from .guardrails import Guardrail, InputGuardrail
+from .handoffs import ForcedTopic
 
 
 @dataclass
@@ -46,5 +47,6 @@ class Agent:
     tools: list[Tool] = field(default_factory=list)
     guardrails: list[Guardrail] = field(default_factory=list)
     input_guardrails: list[InputGuardrail] = field(default_factory=list)
+    forced_handoffs: list[ForcedTopic] = field(default_factory=list)  # topics that always go to a person
     model: str | None = None
     max_steps: int = 8

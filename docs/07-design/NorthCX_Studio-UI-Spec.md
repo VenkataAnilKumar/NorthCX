@@ -18,7 +18,7 @@ Let CX teams create and tune agents without code, producing the same agent defin
 | Settings | Keys, roles, channels, retention |
 
 ## Current state
-Built in `src/web`: overview, test console with live trace (U2), conversations with trace viewer (U4, without tagging), approvals queue (U5, decision only), agents (read-only view), settings. Not built: agent editor (U1), simulations (U3), knowledge (U6), publish (U7), role-based views (U8).
+Built in `src/web`: overview, handoff queue with package view and resolve, test console with live trace (U2), conversations with trace viewer (U4, without tagging), approvals queue (U5, decision only), agents (read-only view), settings. Not built: agent editor (U1), simulations (U3), knowledge (U6), publish (U7), role-based views (U8).
 
 ## Screen detail
 - **Agent editor (U1):** instructions with policy sections, tool toggles with approval rules, guardrail and forced-handoff lists, model settings, skills and journeys (Phase 4), template picker.

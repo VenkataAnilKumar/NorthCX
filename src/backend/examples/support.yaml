@@ -11,6 +11,14 @@ tools:
   - issue_refund
 guardrails:
   - no_card_numbers
+forced_handoff:
+  - name: legal
+    patterns: ['\b(lawyer|attorney|lawsuit|sue|suing|legal action)\b']
+    reply: I'm passing this to a person on our team who can discuss it with you directly.
+  - name: safety
+    patterns: ['\b(injur(ed|y)|unsafe|caught fire|burn(ed|t)|hospital)\b']
+  - name: formal_complaint
+    patterns: ['formal complaint', '\b(ombudsman|regulator)\b']
 input_guardrails:
   - name: pii_detection
     config: { mask_pii: true }

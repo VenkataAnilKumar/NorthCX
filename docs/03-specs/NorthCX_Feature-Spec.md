@@ -21,9 +21,10 @@ Status: Draft. Detailed behaviour for feature groups in `NorthCX_Feature-Catalog
 - **Acceptance:** an over-threshold call never executes without a recorded approval.
 
 ## 4. Supervision and safety (S1-S11)
+- **Forced-handoff topics (built):** declared in the agent spec; a matching customer message escalates before the model runs.
 - **Guardrail interface:** `checkToolCall`, `checkReply`; allow/deny with reason.
 - **Built:** card-number rule (with validity check), model-based policy supervisor, fail-closed handling, untrusted facts.
-- **Planned:** forced-handoff topic list; input checks for injection and abuse; PII detection and redaction; coverage of every conversation by monitoring; a policy library with its own tests.
+- **Planned:** input checks for tool output; PII detection and redaction; coverage of every conversation by monitoring; a policy library with its own tests.
 - **Acceptance:** each policy has at least one passing and one blocking scenario.
 
 ## 5. Handoff and approvals (H1-H8)

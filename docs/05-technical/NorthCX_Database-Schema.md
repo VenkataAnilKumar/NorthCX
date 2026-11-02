@@ -17,7 +17,7 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 | `agent_versions` | `id` pk, `agent_id`, `number`, `definition` jsonb, `author`, `note`, `created_at` | Immutable |
 | `environments` | `id` pk, `agent_id`, `name`, `version_id`, `rollout_percent` | |
 | `releases` | `id` pk, `agent_id`, `version_id`, `environment`, `by`, `checks` jsonb, `created_at` | |
-| `handoffs` | `id` pk, `trace_id`, `reason`, `trigger`, `package` jsonb, `queue`, `state` | |
+| `handoffs` (built) | `id` pk, `session_id`, `trace_id`, `agent_id`, `customer_id`, `trigger`, `reason`, `topics` jsonb, `package` jsonb, `state`, `created_at`, `resolved_by`, `resolved_at`, `note` | Indexes (`state`, `created_at`) and `session_id`; resolve is an atomic conditional update (migration 0003); `queue` arrives with routing |
 | `audit_log` | `id` pk, `actor`, `action`, `target`, `detail` jsonb, `at` | Append-only |
 | `knowledge_sources` | `id` pk, `name`, `kind`, `updated_at`, `status` | |
 | `scenarios` | `id` pk, `suite`, `definition` jsonb, `required` bool, `origin_trace_id` | |

@@ -51,7 +51,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | S4 | Payment-card number rule | P0 | 1 | Built |
 | S5 | Fail closed on supervisor or model error | P0 | 1 | Built |
 | S6 | Customer data treated as untrusted in prompts | P0 | 1 | Built |
-| S7 | Topics the agent must never handle alone (forced handoff list) | P0 | 2 | Planned |
+| S7 | Topics the agent must never handle alone (forced handoff list) | P0 | 2 | Built |
 | S8 | Input-side checks (prompt-injection, abuse detection) | P1 | 3 | Planned |
 | S9 | PII detection and redaction | P1 | 3 | Planned |
 | S10 | Monitoring of every conversation, not a sample | P1 | 3 | Planned |
@@ -63,7 +63,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | H1 | Handoff to a human with reason | P0 | 1 | Built |
 | H2 | Pending approvals stored with IDs | P0 | 1 | Built |
 | H3 | Approvals API (list, decide) | P0 | 1 | Built |
-| H4 | Handoff package: transcript, customer profile, actions taken, summary | P0 | 2 | Planned |
+| H4 | Handoff package: transcript, customer profile, actions taken, summary | P0 | 2 | Built (deterministic summary) |
 | H5 | Human inbox integration | P1 | 3 | Planned |
 | H6 | Agent assist for humans: suggested replies, next steps, call scripts | P2 | 5 | Planned |
 | H7 | Return conversation to the agent after human help | P2 | 5 | Planned |

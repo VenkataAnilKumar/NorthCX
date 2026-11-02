@@ -2,10 +2,10 @@ import type { TraceEvent } from "@/lib/api";
 
 const labels: Record<string, string> = {
   user: "Customer message", system: "Platform notice", llm: "Model call", tool_call: "Tool call", tool_result: "Tool result",
-  guardrail: "Guardrail", approval: "Approval requested", handoff: "Handoff", reply: "Reply", error: "Error",
+  guardrail: "Guardrail", forced_topic: "Forced topic", approval: "Approval requested", handoff: "Handoff", reply: "Reply", error: "Error",
 };
 const tone: Record<string, string> = {
-  guardrail: "border-[var(--warn)]", approval: "border-[var(--info)]", handoff: "border-[var(--warn)]", error: "border-[var(--bad)]",
+  guardrail: "border-[var(--warn)]", forced_topic: "border-[var(--warn)]", approval: "border-[var(--info)]", handoff: "border-[var(--warn)]", error: "border-[var(--bad)]",
   reply: "border-[var(--ok)]",
 };
 
@@ -16,6 +16,7 @@ function summary(e: TraceEvent): string {
     case "system": return String(d.message ?? "");
     case "tool_call": return `${d.name}(${JSON.stringify(d.input)})`;
     case "tool_result": return `${d.name} → ${JSON.stringify(d.output)}`;
+    case "forced_topic": return `Always goes to a person: ${(d.topics as string[] | undefined)?.join(", ") ?? ""}`;
     case "guardrail": return `${d.guardrail}: ${d.reason}`;
     case "approval": return `${d.tool}: ${d.reason}`;
     case "handoff": return String(d.reason ?? "");

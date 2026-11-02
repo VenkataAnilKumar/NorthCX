@@ -20,10 +20,13 @@ Base path `/v1`. JSON. Optional `Authorization: Bearer <key>`.
 | GET | `/approvals?state=` | List approvals (built) |
 | POST | `/approvals/:id/decision` | `{approved, by, note?}`: records the decision, runs the action once if approved, continues the conversation; returns the approval plus `resume` (`reply`, `status`, `traceId` or `error`). 404 unknown, 409 already decided |
 | POST | `/approvals/expire` | `{olderThanSeconds}`: expire stale pending approvals and escalate (built) |
+| GET | `/handoffs?state=&sessionId=` | Handoff queue (summaries) (built) |
+| GET | `/handoffs/:id` | One handoff with its full package (built) |
+| POST | `/handoffs/:id/resolve` | `{by, note?}`: mark resolved once; 409 if already resolved (built) |
 | GET | `/sessions/:id/outbox?after=` | Messages sent outside a request, such as approval results (built) |
 
 ## Chat response
-`{reply, status: "completed"|"escalated"|"needs_approval", traceId, pendingApprovals[]}`
+`{reply, status: "completed"|"escalated"|"needs_approval", traceId, pendingApprovals[], handoffId}` (`handoffId` is set when the status is `escalated`)
 
 ## Errors
 `400` invalid body, `401` bad key, `404` unknown agent or trace, `429` rate limited, `500` internal. Error body `{error: {code, message}}`.

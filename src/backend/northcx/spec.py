@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .agent import Agent, Tool
 from .guardrails import Guardrail, InputGuardrail, LLMPolicy, NoCardNumbers
+from .handoffs import ForcedTopic
 from .safety import PIIDetection, PromptInjection
 from .types import LLM
 
@@ -32,6 +33,21 @@ class ComponentRef(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
 
 
+class ForcedTopicSpec(BaseModel):
+    """A topic that always goes to a person. `patterns` are case-insensitive regular expressions."""
+
+    name: str = Field(min_length=1)
+    patterns: list[str] = Field(min_length=1)
+    reply: str | None = None
+    model_config = {"extra": "forbid"}
+
+    @field_validator("patterns")
+    @classmethod
+    def _patterns_compile(cls, v: list[str], info) -> list[str]:
+        ForcedTopic(info.data.get("name", "?"), v)  # raises ValueError on a bad or oversized pattern
+        return v
+
+
 class AgentSpec(BaseModel):
     spec_version: int = SPEC_VERSION
     id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9_.-]+$")
@@ -41,6 +57,7 @@ class AgentSpec(BaseModel):
     tools: list[str] = Field(default_factory=list)
     guardrails: list[ComponentRef] = Field(default_factory=list)
     input_guardrails: list[ComponentRef] = Field(default_factory=list)
+    forced_handoff: list[ForcedTopicSpec] = Field(default_factory=list)
 
     model_config = {"extra": "forbid"}
 
@@ -111,6 +128,9 @@ class Registry:
                 problems.append(f"Unknown tool '{t}' (known: {', '.join(self.tool_names()) or 'none'})")
         if len(set(spec.tools)) != len(spec.tools):
             problems.append("Duplicate tool references")
+        names = [t.name for t in spec.forced_handoff]
+        if len(set(names)) != len(names):
+            problems.append("Duplicate forced_handoff topic names")
         for g in spec.guardrails:
             if g.name not in self._guardrails:
                 problems.append(f"Unknown guardrail '{g.name}' (known: {', '.join(self.guardrail_names()) or 'none'})")
@@ -133,6 +153,8 @@ class Registry:
                 tools=[self._tools[t] for t in spec.tools],
                 guardrails=[self._guardrails[g.name](g.config, ctx) for g in spec.guardrails],
                 input_guardrails=[self._input_guardrails[g.name](g.config, ctx) for g in spec.input_guardrails],
+                forced_handoffs=[ForcedTopic(t.name, t.patterns, **({"reply": t.reply} if t.reply else {}))
+                                 for t in spec.forced_handoff],
             )
         except (TypeError, ValueError) as e:  # bad guardrail configuration
             raise SpecError(f"Invalid guardrail configuration: {e}") from e

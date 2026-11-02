@@ -7,7 +7,7 @@ from sqlalchemy import text
 from examples.support_agent import support_agent
 from sqlalchemy.pool import NullPool
 
-from northcx.db import PgApprovalStore, PgMemoryStore, PgOutbox, PgTraceStore, create_engine
+from northcx.db import PgApprovalStore, PgHandoffs, PgMemoryStore, PgOutbox, PgTraceStore, create_engine
 from northcx.outbox import Outbox
 from northcx.db.engine import downgrade, migrate
 from northcx.db.models import Base
@@ -30,7 +30,7 @@ def test_migrations_apply_roll_back_and_reapply_cleanly(db_url):
     assert asyncio.run(tables()) <= {"alembic_version"}
     migrate(db_url)
     migrate(db_url)  # idempotent
-    assert {"sessions", "messages", "customer_facts", "traces", "trace_events", "approvals", "outbox"} <= asyncio.run(tables())
+    assert {"sessions", "messages", "customer_facts", "traces", "trace_events", "approvals", "outbox", "handoffs"} <= asyncio.run(tables())
 
 
 async def test_migration_matches_the_models(engine):
@@ -77,7 +77,7 @@ def test_server_runs_on_postgres(db_url):
     async def prepare():
         eng = create_engine(db_url, poolclass=NullPool)
         async with eng.begin() as c:
-            await c.execute(text("truncate sessions, messages, customer_facts, traces, trace_events, approvals, outbox restart identity cascade"))
+            await c.execute(text("truncate sessions, messages, customer_facts, traces, trace_events, approvals, outbox, handoffs restart identity cascade"))
         await eng.dispose()
 
     asyncio.run(prepare())
@@ -97,3 +97,21 @@ def test_server_runs_on_postgres(db_url):
         assert c.get("/v1/sessions/s/outbox").json()["messages"][0]["reply"] == "Refund sent."
         assert c.post(f"/v1/approvals/{aid}/decision", json={"approved": False, "by": "x"}).status_code == 409
         assert c.get("/v1/approvals?state=pending").json()["approvals"] == []
+
+
+async def test_handoffs_and_forced_topics_survive_a_restart(db_url, engine):
+    mem, traces, approvals = stores(engine)
+    rt = Runtime(ScriptedLLM([tool_call("lookup_order", {"order_id": "1042"}, "t1"), llm_text("Delivered.")]),
+                 mem, traces, approvals, handoffs=PgHandoffs(engine))
+    await rt.run(support_agent(), "sess", "where is order 1042?", "cust")
+    r = await rt.run(support_agent(), "sess", "I am going to call my lawyer", "cust")
+    assert r.status == "escalated" and r.handoff_id
+    engine2 = create_engine(db_url, poolclass=NullPool)
+    try:
+        h = await PgHandoffs(engine2).get(r.handoff_id)
+        assert (h.trigger, h.topics, h.state) == ("forced_topic", ["legal"], "open")
+        assert [(a["tool"], a["outcome"]) for a in h.package["actions"]] == [("lookup_order", "succeeded")]
+        assert h.package["transcript"][-1]["from"] == "agent"
+        assert (await PgHandoffs(engine2).resolve(h.id, "jo")).state == "resolved"
+    finally:
+        await engine2.dispose()

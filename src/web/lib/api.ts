@@ -8,7 +8,10 @@ export interface Approval { id: string; trace_id: string; session_id: string; to
 export interface Resume { reply?: string; status?: Status; traceId?: string; error?: string }
 export interface OutboxMessage { id: number; kind: string; createdAt: number; reply: string; status: Status; traceId: string; tool?: string; approved?: boolean }
 export interface AgentInfo { id: string; instructions: string; model: string | null; maxSteps: number; tools: { name: string; description: string; approval: boolean }[]; guardrails: string[]; inputGuardrails: string[] }
-export interface ChatReply { reply: string; status: Status; traceId: string; pendingApprovals: { id: string; tool: string; reason: string }[] }
+export interface ChatReply { reply: string; status: Status; traceId: string; pendingApprovals: { id: string; tool: string; reason: string }[]; handoffId: string | null }
+export interface HandoffSummary { id: string; sessionId: string; traceId: string; agentId: string; customerId: string | null; trigger: string; reason: string; topics: string[]; state: "open" | "resolved"; createdAt: number; resolvedBy: string | null; resolvedAt: number | null; note: string | null; summary: string }
+export interface HandoffPackage { summary: string; trigger: string; triggerDescription: string; reason: string; topics: string[]; transcript: { from: "customer" | "agent" | "platform"; text: string }[]; customerFacts: Record<string, string>; actions: { tool: string; input: unknown; outcome: string; detail: unknown; traceId: string }[]; approvals: { id: string; tool: string; state: string; reason: string; input: unknown; note: string | null }[] }
+export interface Handoff extends HandoffSummary { package: HandoffPackage }
 
 const KEY = "northcx.apiKey";
 
@@ -40,6 +43,10 @@ export const getTrace = (id: string) => api<Trace>(`/v1/traces/${id}`);
 export const listApprovals = (state?: string) => api<{ approvals: Approval[] }>(`/v1/approvals${state ? `?state=${state}` : ""}`).then((r) => r.approvals);
 export const decideApproval = (id: string, approved: boolean, by: string, note?: string) =>
   api<Approval & { resume: Resume | null }>(`/v1/approvals/${id}/decision`, { method: "POST", body: JSON.stringify({ approved, by, ...(note ? { note } : {}) }) });
+export const listHandoffs = (state?: string) => api<{ handoffs: HandoffSummary[] }>(`/v1/handoffs${state ? `?state=${state}` : ""}`).then((r) => r.handoffs);
+export const getHandoff = (id: string) => api<Handoff>(`/v1/handoffs/${id}`);
+export const resolveHandoff = (id: string, by: string, note?: string) =>
+  api<HandoffSummary>(`/v1/handoffs/${id}/resolve`, { method: "POST", body: JSON.stringify({ by, ...(note ? { note } : {}) }) });
 export const listOutbox = (sessionId: string, after: number) =>
   api<{ messages: OutboxMessage[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/outbox?after=${after}`).then((r) => r.messages);
 export const listAgents = () => api<{ agents: AgentInfo[] }>("/v1/agents").then((r) => r.agents);

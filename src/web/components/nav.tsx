@@ -6,6 +6,7 @@ const items = [
   { href: "/", label: "Overview" },
   { href: "/chat", label: "Test console" },
   { href: "/conversations", label: "Conversations" },
+  { href: "/handoffs", label: "Handoffs" },
   { href: "/approvals", label: "Approvals" },
   { href: "/agents", label: "Agents" },
   { href: "/settings", label: "Settings" },

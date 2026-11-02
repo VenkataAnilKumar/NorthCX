@@ -31,4 +31,7 @@
 | 28 | Supervisors and input validation run again when an approved action executes | Decided, built | Policy may change while waiting |
 | 29 | Customer-facing results go through an outbox (poll) with optional signed webhook | Decided, built | Channel adapters later consume the same outbox |
 | 30 | Platform-written notices run as trusted turns (skip customer input checks, still supervised) | Decided, built | Tool output inside them stays untrusted |
+| 31 | Every escalation creates a handoff with a typed trigger and a deterministic package | Decided, built | Model-written summaries later |
+| 32 | Forced topics are deterministic patterns in the agent spec and run before the model | Decided, built | False positives cost a human visit, which is the safe direction |
+| 33 | Handoff resolve is a once-only atomic transition | Decided, built | Same pattern as approvals |
 | 9 | Contribution model: DCO vs CLA | Open | |

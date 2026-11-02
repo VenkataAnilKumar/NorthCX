@@ -16,9 +16,12 @@ Status: Draft. Summary of the Feature Catalog by capability. State: Built / Plan
 | Typed actions | Tools | T1-T3 | 1 | Built and tested |
 | Secrets, dry-run, scopes, connectors | Tools | T4-T8 | 2-3 | Planned |
 | Reply and tool supervision | Guardrails | S1-S6 | 1 | Built and tested |
-| Forced handoff, input checks, PII, monitoring | Guardrails | S7-S11 | 2-3 | Planned |
+| Forced handoff | Topic list in the agent spec | S7 | 2 | Built and tested |
+| Input checks (injection, PII) | Input guardrails | S8, S9 | 3 | Early version built; tool-output checks and redaction in traces planned |
+| Full monitoring, policy library | Guardrails | S10, S11 | 3 | Planned |
 | Handoff and approvals | Runtime + API | H1-H3 | 1 | Built and tested |
-| Handoff package, inbox, assist | Handoff service | H4-H8 | 2-5 | Planned |
+| Handoff package and queue | Handoff service | H4 | 2 | Built and tested |
+| Inbox integration, hours and routing, assist, return to agent | Handoff service | H5-H8 | 3-5 | Planned |
 | Chat API and widget | Server | C1, C2 | 1 | Built and tested |
 | Email, messaging, voice, SDK | Adapters | C3-C10 | 3-5 | Planned |
 | Session memory and facts | MemoryStore | K1, K2 | 1 | Built (in memory) |

@@ -80,6 +80,25 @@ class ApprovalRow(Base):
     __table_args__ = (Index("ix_approvals_state", "state"),)
 
 
+class HandoffRow(Base):
+    __tablename__ = "handoffs"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    trace_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    customer_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    trigger: Mapped[str] = mapped_column(String(32), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    topics: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    package: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    resolved_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    resolved_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    __table_args__ = (Index("ix_handoffs_state", "state", "created_at"), Index("ix_handoffs_session", "session_id"))
+
+
 class OutboxRow(Base):
     __tablename__ = "outbox"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)

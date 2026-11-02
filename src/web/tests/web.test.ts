@@ -78,3 +78,33 @@ describe("approval and outbox calls", () => {
     expect(html).toContain("Platform notice");
   });
 });
+
+describe("handoff calls", () => {
+  it("lists by state, loads a package and resolves with a note", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push([url, init]);
+      return new Response(JSON.stringify(url.endsWith("/v1/handoffs?state=open") ? { handoffs: [{ id: "h1" }] } : { id: "h1", state: "resolved" }), { status: 200 });
+    }));
+    const { listHandoffs, getHandoff, resolveHandoff } = await import("@/lib/api");
+    expect((await listHandoffs("open"))[0].id).toBe("h1");
+    await getHandoff("h1");
+    await resolveHandoff("h1", "jo", "called back");
+    expect(calls[0][0]).toBe("/api/northcx/v1/handoffs?state=open");
+    expect(calls[1][0]).toBe("/api/northcx/v1/handoffs/h1");
+    expect(JSON.parse(String(calls[2][1]?.body))).toEqual({ by: "jo", note: "called back" });
+  });
+
+  it("renders open and resolved badges", () => {
+    expect(renderToStaticMarkup(createElement(StatusBadge, { status: "open" }))).toContain("Open");
+    expect(renderToStaticMarkup(createElement(StatusBadge, { status: "resolved" }))).toContain("Resolved");
+  });
+});
+
+describe("forced topic events", () => {
+  it("shows which topics sent the conversation to a person", () => {
+    const html = renderToStaticMarkup(createElement(TraceTimeline, { events: [{ t: 1, type: "forced_topic", data: { topics: ["legal", "safety"] } }] }));
+    expect(html).toContain("Forced topic");
+    expect(html).toContain("legal, safety");
+  });
+});

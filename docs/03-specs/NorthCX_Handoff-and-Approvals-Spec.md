@@ -15,6 +15,15 @@ Status: Draft. Catalog IDs H1-H8, S7, T3, R10.
 ## Handoff package
 Transcript, customer profile and facts, actions taken with results, pending or failed actions, detected intent, handoff reason and trigger, short summary, trace link, and suggested next steps (Phase 5).
 
+## As built (Phase 2, sprint 7)
+**When a handoff is created.** Whenever a run ends `escalated`: the agent calls the handoff tool (`agent_handoff`), a forced topic matches (`forced_topic`), the customer's message is blocked by an input policy (`input_blocked`), supervisors reject the agent's replies repeatedly (`supervisor_rejections`), the step limit is reached (`step_limit`), the model cannot be reached (`model_error`), or an approval expires (`approval_expired`). The reason never includes internal error text.
+
+**The package** is built from what the platform already holds, with no extra model call: a one-paragraph summary, the trigger and reason, matched topics, the transcript (customer, agent and platform notices; supervisor feedback and tool plumbing excluded), the customer's facts, every tool call the agent attempted in the session with its outcome (succeeded, failed, held for approval, blocked by policy, not executed), and the session's approvals with their state and notes. The summary is templated, not model-written; a model summary is a later option.
+
+**The queue.** Handoffs are `open` until a person marks them `resolved` (once; a second attempt returns 409), recording who and an optional note. API: `GET /v1/handoffs?state=&sessionId=`, `GET /v1/handoffs/{id}` (with the full package), `POST /v1/handoffs/{id}/resolve`. The web console has a Handoffs page, and the chat response carries `handoffId`.
+
+**Not built yet.** Queue routing by topic, language and hours, assignment or claiming, an inbox integration, suggested replies, sentiment triggers, and return-to-agent. The package contains personal data, so access must be restricted like conversations are (roles arrive in sprint 11).
+
 ## Routing
 Queue by topic, language and hours (H8). Outside hours, the agent sets expectations and records a callback or ticket.
 
