@@ -12,5 +12,7 @@ Status: Draft. Feature IDs from `03-specs/NorthCX_Feature-Catalog.md`.
 | 6 | Advanced and release | A8, O8, Q12, P6, security review, documentation, v1.0 | Threat model closed; v1.0 tagged |
 | Later | Scale options | P10 multi-tenancy, P11 metering and billing | Decision after v1 |
 
+Detailed workstreams, sprints and decisions for Phases 2-6 are in `NorthCX_Phase-Plan.md`.
+
 ## Dependencies
 Phase 2 needs Phase 1 runtime and server. Phase 3 needs persistence and versions. Phase 4 needs persisted definitions, versions and metrics. Phase 5 needs streaming (R6). Phase 6 needs everything above.
