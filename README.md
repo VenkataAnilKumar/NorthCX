@@ -42,4 +42,4 @@ NORTHCX_API_URL=http://localhost:3000 npm run dev   # http://localhost:3001
 See [`docs/README.md`](docs/README.md). External research and component selections are in [`docs/00-reference/NorthCX_Reference.md`](docs/00-reference/NorthCX_Reference.md).
 
 ## Licence
-To be decided (proposal: Apache-2.0).
+Apache-2.0. See `LICENSE`; copied code keeps its own notices (`NOTICE`, `THIRD_PARTY.md`).

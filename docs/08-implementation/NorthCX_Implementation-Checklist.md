@@ -14,6 +14,8 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [x] Web platform (`src/web`): overview, test console with live trace, conversations and trace viewer, approvals queue, agents (read-only), settings; browser-tested end to end against the backend
 - [x] Offline demo model (`NORTHCX_DEMO=1`) for trying the platform without an API key
 ## Phase 2
+- [x] Agent spec, registries and the example agent as a spec (W1); CI workflow and restricted-path check
+- [x] Apache-2.0 licence
 - [ ] Simulation runner and scenarios (Q2)
 - [ ] CI workflow and required checks (Q4)
 - [ ] Judge rubric and calibration (Q3)

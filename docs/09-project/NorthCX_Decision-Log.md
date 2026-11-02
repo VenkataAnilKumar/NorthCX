@@ -6,7 +6,7 @@
 | 2 | External research confined to the Reference doc | Decided | Other docs are NorthCX-only |
 | 3 | Backend language: Python backend, TypeScript web platform | **Decided** (2026-11-02) | Driven by code reuse; TypeScript prototype becomes a reference implementation |
 | 15 | Web platform base: Studio shell from the visual-builder source, trace/eval screens from the observability source, knowledge screens from the knowledge source | Decided | Reference section 12; data hooks rewritten to the NorthCX API |
-| 4 | Project licence Apache-2.0 | Proposed | Undecided |
+| 4 | Project licence Apache-2.0 | **Decided** (2026-11-02) | `LICENSE` added; contributions follow the same licence |
 | 5 | Studio: adopt or build | Open | Decide at Phase 4 |
 | 6 | Fail closed for supervisor and model errors | Decided | Implemented and tested |
 | 7 | Approval resume in Phase 2 | Decided | Approvals stored now |
@@ -19,5 +19,9 @@
 | 16 | Do not copy the reference agent core (about 21,000 coupled lines); keep a small NorthCX runtime and copy small separable modules | Decided | Assessment recorded in `THIRD_PARTY.md` |
 | 17 | Web platform is written natively (Next.js 16, React 19, Tailwind 4) instead of copying the visual-builder source | Decided | The source is one large product tied to its own backend and a private UI package; its visual editor remains a Phase 4 reference |
 | 18 | Web app reaches the backend through a same-origin proxy (`/api/northcx`) | Decided | No CORS; API key held per browser tab |
-| 19 | Agent definitions become a serialisable spec with tools and guardrails registered by name | Proposed | Critical path for versions and Studio; see Phase Plan |
+| 19 | Agent definitions are a serialisable spec (YAML for authors, JSON for storage) with tools and guardrails registered by name | **Decided**, built (`northcx/spec.py`) | Critical path for versions and Studio |
+| 20 | Postgres through async SQLAlchemy with Alembic migrations | Decided | Phase 2 persistence |
+| 21 | Approval results reach the customer through a callback on the original channel, with a webhook option | Decided | Phase 2 approval resume |
+| 22 | Simulations: scripted model on every change, live model nightly | Decided | Testing Strategy |
+| 23 | Current work merged to `main`; further work in short-lived branches | Decided | Done for Phase 1 |
 | 9 | Contribution model: DCO vs CLA | Open | |

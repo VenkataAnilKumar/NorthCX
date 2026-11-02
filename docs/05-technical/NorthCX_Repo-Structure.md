@@ -4,7 +4,9 @@ Status: Draft. All code lives under `src/`. `src/backend` (Python product backen
 
 ```
 northcx/
-├── README.md, NOTICE, THIRD_PARTY.md
+├── README.md, LICENSE, NOTICE, THIRD_PARTY.md
+├── scripts/                  repository checks (restricted paths, provenance)
+├── .github/workflows/        CI
 ├── docs/                     numbered documentation phases
 ├── third_party/              copied source originals and licences (see Code Reuse Policy)
 └── src/

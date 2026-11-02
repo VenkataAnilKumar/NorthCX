@@ -8,4 +8,4 @@
 6. Describe what changed and why; link any related doc.
 
 Code style: typed Python for the backend, strict TypeScript for the web platform, no network in unit tests.
-Contribution agreement (DCO or CLA) is undecided.
+Contributions are licensed under Apache-2.0. A contribution agreement (DCO or CLA) is undecided.

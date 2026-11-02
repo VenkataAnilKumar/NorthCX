@@ -1,11 +1,17 @@
-"""Example customer-support agent: order lookup and refunds with an approval threshold."""
+"""Example customer-support agent: order lookup and refunds with an approval threshold.
+
+The agent itself is the declarative spec in `support.yaml`; this module registers the tools it refers to."""
 from __future__ import annotations
+
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
 from northcx.agent import Agent, Tool
-from northcx.guardrails import Guardrail, NoCardNumbers
-from northcx.safety import PIIDetection, PromptInjection
+from northcx.guardrails import Guardrail
+from northcx.spec import BuildContext, Registry, default_registry, load_spec
+
+SPEC_PATH = Path(__file__).with_name("support.yaml")
 
 ORDERS = {
     "1042": {"id": "1042", "status": "delivered", "total": 60, "item": "Trail shoes"},
@@ -39,20 +45,15 @@ def _refund(data: RefundInput, ctx):
     return {"order_id": data.order_id, "refunded": data.amount}
 
 
+def registry() -> Registry:
+    r = default_registry()
+    r.tool(Tool("lookup_order", "Look up an order by id. Returns status, total and item.", LookupInput, _lookup))
+    r.tool(Tool("issue_refund", "Refund a delivered order. Amount must not exceed the order total.", RefundInput, _refund,
+                requires_approval=lambda d: f"Refund over {REFUND_APPROVAL_LIMIT} needs approval" if d.amount > REFUND_APPROVAL_LIMIT else None))
+    return r
+
+
 def support_agent(extra_guardrails: list[Guardrail] | None = None) -> Agent:
-    return Agent(
-        id="support",
-        instructions="\n".join([
-            "You are a customer support agent for an online store.",
-            "Be concise and friendly. Use tools to check facts before answering; never guess order details.",
-            f"Refunds above {REFUND_APPROVAL_LIMIT} require human approval, which the system handles.",
-            "Never reveal payment card numbers. If you cannot help, hand off to a human.",
-        ]),
-        tools=[
-            Tool("lookup_order", "Look up an order by id. Returns status, total and item.", LookupInput, _lookup),
-            Tool("issue_refund", "Refund a delivered order. Amount must not exceed the order total.", RefundInput, _refund,
-                 requires_approval=lambda d: f"Refund over {REFUND_APPROVAL_LIMIT} needs approval" if d.amount > REFUND_APPROVAL_LIMIT else None),
-        ],
-        guardrails=[NoCardNumbers(), *(extra_guardrails or [])],
-        input_guardrails=[PIIDetection(mask_pii=True), PromptInjection()],
-    )
+    agent = registry().build(load_spec(SPEC_PATH), BuildContext())
+    agent.guardrails.extend(extra_guardrails or [])
+    return agent

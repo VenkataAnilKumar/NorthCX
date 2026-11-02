@@ -60,4 +60,4 @@ General-purpose autonomous agents (browsing, code execution), hosted multi-tenan
 Model provider availability and terms; customer-system APIs for actions; data-protection rules; telephony and messaging provider terms; open-source licence compatibility.
 
 ## 11. Open decisions
-Project licence; Studio adopt-or-build; runtime language confirmation; initial vertical focus.
+Studio adopt-or-build; runtime language confirmation; initial vertical focus.

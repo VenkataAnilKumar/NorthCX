@@ -6,7 +6,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | ID | Feature | Pri | Phase | State |
 |---|---|---|---|---|
 | A1 | Agent defined by natural-language goals and policies | P0 | 1 | Built |
-| A2 | Agents as code (version-controlled definitions) | P0 | 1 | Built |
+| A2 | Agents as code (version-controlled definitions, YAML spec) | P0 | 1-2 | Built |
 | A3 | Reusable skills composed into workflows (for example triage, respond, confirm) | P1 | 3 | Planned |
 | A4 | Adjustable workflow flexibility (strict steps to free-form) per skill | P1 | 3 | Planned |
 | A5 | Journeys: scenario blueprints with goals, guardrails and required steps | P1 | 4 | Planned |

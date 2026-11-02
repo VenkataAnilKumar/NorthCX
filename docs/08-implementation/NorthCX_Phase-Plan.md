@@ -74,14 +74,14 @@ Goal: real customers on real channels, grounded answers, safer and more reliable
 | W15 | Environments and regression | Q5-Q7, Q9 | dev/staging/production; promotion with checks; scenarios from production traces; re-runs on knowledge change | none |
 | W16 | Skills and templates | A3, A4, A7, A10, T5, T6 | Skills in the spec; templates; connector library; tool scopes | none |
 
-Sprints 13-21 (placeholders): safety, reliability, knowledge, memory, email, messaging and identity, observability, environments, skills.
+Sprints 13-21: safety, reliability, knowledge, memory, email, messaging and identity, observability, environments, skills.
 Exit: two channels and one knowledge source work end to end; traces exported and redacted; promotion gated by environments.
 Risks: provider terms for messaging and email; PII in knowledge sources; connector licence and quality (assess each before copying).
 
 ## 5. Phase 4: Non-engineers
 Workstreams: Studio editor, test console upgrades, simulations and review views, knowledge screens, publish flow (U1-U8); Insights (O5-O7, O9, O10); journeys and multilingual (A5, A6, R9); experiments (Q11); single sign-on (P5).
 Depends on: agent spec, versions, simulations, persistence.
-Sprints 22-30. Exit: a CX user edits, tests and publishes an agent without code; dashboards use the Success Metrics definitions.
+Sprints 22-27. Exit: a CX user edits, tests and publishes an agent without code; dashboards use the Success Metrics definitions.
 Open: build the editor natively or adapt reference editor patterns.
 
 ## 6. Phase 5: Voice and collaboration
@@ -101,7 +101,7 @@ Exit: threat model closed; load targets met; release candidate signed off.
 - **Review gates:** any change to supervision, approvals or audit needs a second reviewer.
 - **Metrics:** track simulation coverage and release lead time from Phase 2 onward.
 
-## 9. Decisions needed before Phase 2 starts
+## 9. Decisions (all accepted 2026-11-02)
 | # | Decision | Recommendation |
 |---|---|---|
 | 1 | Agent spec format (YAML or JSON, with Python only for tool code) | YAML for authors, JSON stored |
@@ -109,7 +109,7 @@ Exit: threat model closed; load targets met; release candidate signed off.
 | 3 | Approval resume delivery: webhook, channel callback, or polling | Callback through the original channel, webhook as option |
 | 4 | Project licence | Apache-2.0 |
 | 5 | Where simulations run in CI (scripted always; live model nightly) | As stated |
-| 6 | Whether to merge current work to `main` first | Yes, then work in short-lived branches |
+| 6 | Whether to merge current work to `main` first | Yes, then work in short-lived branches (done) |
 
 ## 10. Milestones
 | Milestone | Contents | Target |

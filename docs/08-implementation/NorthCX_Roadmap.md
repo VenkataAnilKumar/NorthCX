@@ -16,4 +16,4 @@ Detail: `NorthCX_Phase-Plan.md`.
 Safety and testability before reach; reach before polish; Studio after the definition format is stable.
 
 ## Open decisions
-Runtime language confirmation, project licence, Studio build vs adopt, initial vertical focus, connector scope.
+Studio build vs adopt, initial vertical focus, connector scope.
