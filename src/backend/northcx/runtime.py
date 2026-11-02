@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from .agent import Agent, ToolContext
 from .approvals import ApprovalRepo, ApprovalStore
 from .guardrails import GuardrailContext
+from .outbox import Outbox
 from .store import MemoryStore
 from .trace import Trace, TraceRepo
 from .types import LLM, LLMRequest, Message, text_of
@@ -37,11 +38,16 @@ class RunResult:
 
 
 class Runtime:
-    def __init__(self, llm: LLM, store: MemoryStore, traces: TraceRepo, approvals: ApprovalRepo | None = None):
+    def __init__(self, llm: LLM, store: MemoryStore, traces: TraceRepo, approvals: ApprovalRepo | None = None,
+                 outbox: Outbox | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
+        self.outbox = outbox or Outbox()
 
-    async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None) -> RunResult:
+    async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
+                  trusted: bool = False) -> RunResult:
+        """`trusted=True` is for messages the platform itself writes (for example an approval outcome); they skip
+        the customer input checks and are traced as `system` events."""
         trace = Trace(agent.id, session_id)
         messages: list[Message] = await self.store.load_messages(session_id)
         facts = await self.store.get_facts(customer_id) if customer_id else {}
@@ -67,7 +73,7 @@ class Runtime:
             return RunResult(reply, status, trace, pending)
 
         # Input guardrails run before the agent sees the message.
-        for g in agent.input_guardrails:
+        for g in ([] if trusted else agent.input_guardrails):
             res = await g.check_input(message)
             if res.reason:
                 trace.add("guardrail", guardrail=g.name, reason=res.reason, stage="input")
@@ -78,7 +84,7 @@ class Runtime:
                 message = res.text
 
         messages.append({"role": "user", "content": message})
-        trace.add("user", message=message)
+        trace.add("system" if trusted else "user", message=message)
 
         def close_out(uses: list[dict], results: list[dict]) -> None:
             answered = {r["tool_use_id"] for r in results}
@@ -142,8 +148,9 @@ class Runtime:
                 reason = tool.requires_approval(data) if tool.requires_approval else None
                 if reason:
                     trace.add("approval", tool=use["name"], reason=reason)
-                    saved = await self.approvals.add(trace_id=trace.id, session_id=session_id, tool=use["name"],
-                                               input=use["input"], reason=reason)
+                    saved = await self.approvals.add(trace_id=trace.id, session_id=session_id, agent_id=agent.id,
+                                                     customer_id=customer_id, tool=use["name"], input=use["input"],
+                                                     reason=reason)
                     pending.append({"id": saved.id, "tool": use["name"], "input": use["input"], "reason": reason})
                     results.append(self._err(use, "Pending human approval; not executed."))
                     close_out(uses, results)

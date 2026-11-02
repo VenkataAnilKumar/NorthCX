@@ -7,7 +7,8 @@ from sqlalchemy import text
 from examples.support_agent import support_agent
 from sqlalchemy.pool import NullPool
 
-from northcx.db import PgApprovalStore, PgMemoryStore, PgTraceStore, create_engine
+from northcx.db import PgApprovalStore, PgMemoryStore, PgOutbox, PgTraceStore, create_engine
+from northcx.outbox import Outbox
 from northcx.db.engine import downgrade, migrate
 from northcx.db.models import Base
 from northcx.llm import ScriptedLLM, text as llm_text, tool_call
@@ -29,7 +30,7 @@ def test_migrations_apply_roll_back_and_reapply_cleanly(db_url):
     assert asyncio.run(tables()) <= {"alembic_version"}
     migrate(db_url)
     migrate(db_url)  # idempotent
-    assert {"sessions", "messages", "customer_facts", "traces", "trace_events", "approvals"} <= asyncio.run(tables())
+    assert {"sessions", "messages", "customer_facts", "traces", "trace_events", "approvals", "outbox"} <= asyncio.run(tables())
 
 
 async def test_migration_matches_the_models(engine):
@@ -76,13 +77,14 @@ def test_server_runs_on_postgres(db_url):
     async def prepare():
         eng = create_engine(db_url, poolclass=NullPool)
         async with eng.begin() as c:
-            await c.execute(text("truncate sessions, messages, customer_facts, traces, trace_events, approvals restart identity cascade"))
+            await c.execute(text("truncate sessions, messages, customer_facts, traces, trace_events, approvals, outbox restart identity cascade"))
         await eng.dispose()
 
     asyncio.run(prepare())
     eng = create_engine(db_url, poolclass=NullPool)
     mem, traces, approvals = stores(eng)
-    rt = Runtime(ScriptedLLM([tool_call("issue_refund", {"order_id": "2077", "amount": 240}, "t1")]), mem, traces, approvals)
+    rt = Runtime(ScriptedLLM([tool_call("issue_refund", {"order_id": "2077", "amount": 240}, "t1"), llm_text("Refund sent.")]),
+                 mem, traces, approvals, Outbox(PgOutbox(eng)))
     with TestClient(create_app(rt, traces, {"support": support_agent()})) as c:
         r = c.post("/v1/agents/support/chat", json={"sessionId": "s", "message": "refund"}).json()
         assert r["status"] == "needs_approval"
@@ -90,6 +92,8 @@ def test_server_runs_on_postgres(db_url):
         listed = c.get("/v1/traces?sessionId=s").json()["traces"]
         assert listed[0]["status"] == "needs_approval" and listed[0]["tools"] == ["issue_refund"]
         aid = c.get("/v1/approvals?state=pending").json()["approvals"][0]["id"]
-        assert c.post(f"/v1/approvals/{aid}/decision", json={"approved": True, "by": "rae"}).json()["state"] == "approved"
+        done = c.post(f"/v1/approvals/{aid}/decision", json={"approved": True, "by": "rae"}).json()
+        assert done["state"] == "executed" and done["resume"]["reply"] == "Refund sent."
+        assert c.get("/v1/sessions/s/outbox").json()["messages"][0]["reply"] == "Refund sent."
         assert c.post(f"/v1/approvals/{aid}/decision", json={"approved": False, "by": "x"}).status_code == 409
         assert c.get("/v1/approvals?state=pending").json()["approvals"] == []

@@ -18,6 +18,9 @@ Status: Draft. Control mapping is a plan, not a certification.
 ## Access control
 Roles: admin, developer, reviewer (approvals), viewer (traces). Keys are stored hashed.
 
+## Approval and webhook controls
+Approved actions run once, are re-validated and re-supervised at execution time, and carry an idempotency key. Platform notices written into the conversation are produced by the platform, but they embed tool output, which remains untrusted data. Webhooks are signed with HMAC-SHA256 over the timestamp and body; receivers must verify the signature in constant time and reject old timestamps. Reviewer identity is currently a free-text name; authenticated reviewer identities and roles arrive with sprint 11.
+
 ## Roles (P2)
 | Role | Can |
 |---|---|

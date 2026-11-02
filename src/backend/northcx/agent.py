@@ -14,6 +14,7 @@ class ToolContext:
     session_id: str
     customer_id: str | None
     memory: Any
+    idempotency_key: str | None = None  # stable per approved action; tools should use it to deduplicate writes
 
 
 @dataclass

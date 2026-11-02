@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { chat, getTrace, listAgents, statusLabel, type Trace } from "@/lib/api";
+import { chat, getTrace, listAgents, listOutbox, statusLabel, type Trace } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { ErrorBox, Loading, PageHeader } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
 import { TraceTimeline } from "@/components/trace-timeline";
 
-interface Turn { from: "user" | "agent"; text: string; status?: string }
+interface Turn { from: "user" | "agent"; text: string; status?: string; late?: boolean }
 
 export default function TestConsole() {
   const agents = useLoad(listAgents);
@@ -21,6 +21,25 @@ export default function TestConsole() {
 
   useEffect(() => { if (agents.data?.length && !agentId) setAgentId(agents.data[0].id); }, [agents.data, agentId]);
   useEffect(() => { endRef.current?.scrollIntoView?.({ block: "end" }); }, [turns]);
+
+  // Messages that arrive later (for example after a reviewer decides an approval) appear in the conversation.
+  const lastOutbox = useRef(0);
+  useEffect(() => { lastOutbox.current = 0; }, [sessionId]);
+  useEffect(() => {
+    let stop = false;
+    const tick = async () => {
+      try {
+        const msgs = await listOutbox(sessionId, lastOutbox.current);
+        if (stop || !msgs.length) return;
+        lastOutbox.current = msgs[msgs.length - 1].id;
+        setTurns((t) => [...t, ...msgs.map((m) => ({ from: "agent" as const, text: m.reply, status: m.status, late: true }))]);
+        const last = msgs[msgs.length - 1];
+        if (last.traceId) setTrace(await getTrace(last.traceId));
+      } catch { /* the next tick retries */ }
+    };
+    const id = setInterval(tick, 2000);
+    return () => { stop = true; clearInterval(id); };
+  }, [sessionId]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -60,6 +79,7 @@ export default function TestConsole() {
             {turns.length === 0 && <p className="text-sm text-muted">Say hello, or ask about an order (for example: where is order 1042?).</p>}
             {turns.map((t, i) => (
               <div key={i} className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${t.from === "user" ? "ml-auto bg-primary text-primary-text" : "border border-border"}`}>
+                {t.late && <p className="mb-1 text-xs text-muted">Update from the team</p>}
                 <p className="whitespace-pre-wrap">{t.text}</p>
                 {t.status && t.status !== "completed" && <div className="mt-1"><StatusBadge status={t.status} /></div>}
               </div>

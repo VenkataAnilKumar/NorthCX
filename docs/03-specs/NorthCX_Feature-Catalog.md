@@ -28,7 +28,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | R7 | Per-conversation token and cost budget | P1 | 3 | Planned |
 | R8 | Multi-agent orchestration (specialist agents, routing) | P2 | 5 | Planned |
 | R9 | Multilingual conversations with automatic language detection | P1 | 4 | Planned |
-| R10 | Resume a run after a human decision | P0 | 2 | Planned |
+| R10 | Resume a run after a human decision | P0 | 2 | Built |
 
 ## 3. Tools and actions
 | ID | Feature | Pri | Phase | State |

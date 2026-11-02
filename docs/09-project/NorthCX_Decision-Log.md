@@ -27,4 +27,8 @@
 | 24 | Trace and approval repositories are asynchronous interfaces with in-memory and Postgres implementations | Decided, built | Same contract tests run against both |
 | 25 | Trace summaries (status, tools, event count) are stored on the trace row | Decided | Lists never load events |
 | 26 | Session saves replace history atomically under an advisory lock; concurrent runs on one session are not yet protected | Decided; limitation recorded | Revisit before multi-worker deployment |
+| 27 | Approval transitions are atomic conditional updates; execution is claimed before it runs, with the approval id as idempotency key | Decided, built | At-most-once in normal operation; tools must honour the key for crash safety |
+| 28 | Supervisors and input validation run again when an approved action executes | Decided, built | Policy may change while waiting |
+| 29 | Customer-facing results go through an outbox (poll) with optional signed webhook | Decided, built | Channel adapters later consume the same outbox |
+| 30 | Platform-written notices run as trusted turns (skip customer input checks, still supervised) | Decided, built | Tool output inside them stays untrusted |
 | 9 | Contribution model: DCO vs CLA | Open | |

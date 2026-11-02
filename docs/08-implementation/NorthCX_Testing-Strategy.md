@@ -22,6 +22,9 @@ Status: Draft
 ## Database tests
 The in-memory and Postgres repositories share one contract suite (history round trip, replace semantics, facts, trace ordering and summaries, approval lifecycle, concurrent decisions). Postgres-only tests cover migrations (apply, roll back, re-apply, and agreement with the models), a simulated restart, and the server on Postgres. Locally the tests skip if no database is reachable; CI sets `NORTHCX_REQUIRE_DB=1` so a missing database fails the build.
 
+## Approval flow tests
+Run against both in-memory and Postgres stores: exactly-once execution under concurrent decisions, idempotency key, supervisor re-check at execution, invalid input at execution, tool failure, missing agent, chained approvals, model failure after execution, expiry (including races with decisions), valid saved history after every path, outbox contents, and webhook signing, retry and redelivery. Mutation checks confirmed that removing the atomic claim or the supervisor re-check makes tests fail.
+
 ## Rules
 - No network in unit tests.
 - Any production failure becomes a regression scenario.

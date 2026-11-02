@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 
 from sqlalchemy import delete, func, select, text, update
@@ -9,9 +10,10 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from ..approvals import Approval
+from ..outbox import OutboxMessage
 from ..trace import Trace, TraceEvent, TraceSummary
 from ..types import Message
-from .models import ApprovalRow, FactRow, MessageRow, SessionRow, TraceEventRow, TraceRow
+from .models import ApprovalRow, FactRow, MessageRow, OutboxRow, SessionRow, TraceEventRow, TraceRow
 
 
 def _jsonable(value: Any) -> Any:
@@ -98,14 +100,15 @@ class PgApprovalStore(_Base):
     @staticmethod
     def _to_approval(r: ApprovalRow) -> Approval:
         return Approval(trace_id=r.trace_id, session_id=r.session_id, tool=r.tool, input=r.input, reason=r.reason, id=r.id,
-                        state=r.state, created_at=r.created_at, decided_by=r.decided_by, decided_at=r.decided_at)
+                        state=r.state, created_at=r.created_at, decided_by=r.decided_by, decided_at=r.decided_at,
+                        agent_id=r.agent_id, customer_id=r.customer_id, note=r.note, result=r.result)
 
     async def add(self, **kw: Any) -> Approval:
         a = Approval(**kw)
         async with self._sm.begin() as s:
             await s.execute(pg_insert(ApprovalRow).values(
                 id=a.id, trace_id=a.trace_id, session_id=a.session_id, tool=a.tool, input=_jsonable(a.input),
-                reason=a.reason, state=a.state, created_at=a.created_at))
+                reason=a.reason, state=a.state, created_at=a.created_at, agent_id=a.agent_id, customer_id=a.customer_id))
         return a
 
     async def get(self, approval_id: str) -> Approval | None:
@@ -120,18 +123,70 @@ class PgApprovalStore(_Base):
         async with self._sm() as s:
             return [self._to_approval(r) for r in (await s.execute(q)).scalars().all()]
 
-    async def decide(self, approval_id: str, approved: bool, by: str) -> Approval:
-        """Atomic: only a pending approval can be decided, so concurrent decisions cannot both win."""
-        import time
-
-        state = "approved" if approved else "rejected"
+    async def _transition(self, approval_id: str, from_state: str, values: dict[str, Any]) -> tuple[ApprovalRow | None, str]:
+        """Atomically move one approval out of `from_state`. Returns (updated row, its state); the row is None when the
+        approval was in another state (that state is returned). Raises KeyError if it does not exist."""
         async with self._sm.begin() as s:
-            res = await s.execute(update(ApprovalRow).where(ApprovalRow.id == approval_id, ApprovalRow.state == "pending")
-                                  .values(state=state, decided_by=by, decided_at=time.time()).returning(ApprovalRow))
-            row = res.scalar_one_or_none()
-            if row is None:
-                existing = (await s.execute(select(ApprovalRow).where(ApprovalRow.id == approval_id))).scalar_one_or_none()
-                if existing is None:
-                    raise KeyError(f"Unknown approval {approval_id}")
-                raise ValueError(f"Approval {approval_id} already {existing.state}")
-            return self._to_approval(row)
+            row = (await s.execute(update(ApprovalRow).where(ApprovalRow.id == approval_id, ApprovalRow.state == from_state)
+                                   .values(**values).returning(ApprovalRow))).scalar_one_or_none()
+            if row is not None:
+                return row, values["state"]
+            existing = (await s.execute(select(ApprovalRow).where(ApprovalRow.id == approval_id))).scalar_one_or_none()
+            if existing is None:
+                raise KeyError(f"Unknown approval {approval_id}")
+            return None, existing.state
+
+    async def decide(self, approval_id: str, approved: bool, by: str, note: str | None = None) -> Approval:
+        row, current = await self._transition(approval_id, "pending", dict(
+            state="approved" if approved else "rejected", decided_by=by, decided_at=time.time(), note=note))
+        if row is None:
+            raise ValueError(f"Approval {approval_id} already {current}")
+        return self._to_approval(row)
+
+    async def claim_execution(self, approval_id: str) -> Approval:
+        row, current = await self._transition(approval_id, "approved", dict(state="executing"))
+        if row is None:
+            raise ValueError(f"Approval {approval_id} is {current}, not approved")
+        return self._to_approval(row)
+
+    async def complete(self, approval_id: str, ok: bool, result: Any) -> Approval:
+        row, current = await self._transition(approval_id, "executing", dict(
+            state="executed" if ok else "failed", result=_jsonable(result)))
+        if row is None:
+            raise ValueError(f"Approval {approval_id} is {current}, not executing")
+        return self._to_approval(row)
+
+    async def expire(self, approval_id: str) -> Approval | None:
+        row, _ = await self._transition(approval_id, "pending", dict(state="expired", decided_at=time.time()))
+        return self._to_approval(row) if row else None
+
+
+class PgOutbox(_Base):
+    @staticmethod
+    def _to_msg(r: OutboxRow) -> OutboxMessage:
+        return OutboxMessage(r.session_id, r.kind, r.payload, id=r.id, created_at=r.created_at,
+                             delivered_at=r.delivered_at, attempts=r.attempts)
+
+    async def add(self, session_id: str, kind: str, payload: dict[str, Any]) -> OutboxMessage:
+        async with self._sm.begin() as s:
+            row = (await s.execute(pg_insert(OutboxRow).values(
+                session_id=session_id, kind=kind, payload=_jsonable(payload), created_at=time.time()).returning(OutboxRow))).scalar_one()
+            return self._to_msg(row)
+
+    async def list(self, session_id: str, after_id: int = 0, limit: int = 100) -> list[OutboxMessage]:
+        async with self._sm() as s:
+            rows = (await s.execute(select(OutboxRow).where(OutboxRow.session_id == session_id, OutboxRow.id > after_id)
+                                    .order_by(OutboxRow.id).limit(limit))).scalars().all()
+        return [self._to_msg(r) for r in rows]
+
+    async def undelivered(self, limit: int = 100) -> list[OutboxMessage]:
+        async with self._sm() as s:
+            rows = (await s.execute(select(OutboxRow).where(OutboxRow.delivered_at.is_(None)).order_by(OutboxRow.id).limit(limit))).scalars().all()
+        return [self._to_msg(r) for r in rows]
+
+    async def record_attempt(self, message_id: int, delivered: bool) -> None:
+        values: dict[str, Any] = {"attempts": OutboxRow.attempts + 1}
+        if delivered:
+            values["delivered_at"] = time.time()
+        async with self._sm.begin() as s:
+            await s.execute(update(OutboxRow).where(OutboxRow.id == message_id).values(**values))

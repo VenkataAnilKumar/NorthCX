@@ -19,7 +19,7 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 | `docs/` | Documentation; start at `docs/README.md` |
 
 ## Status
-Early development. The Python backend reproduces the prototype's runtime, API and example agent (85 passing tests with a scripted model) and adds copied/adapted input guardrails from a reference project. The web platform (`src/web`) is browser-tested against the backend. Persistence, approval resume, simulations, channels, the Studio editor and insights are planned.
+Early development. The Python backend reproduces the prototype's runtime, API and example agent (127 backend tests and 8 web tests passing with a scripted model) and adds copied/adapted input guardrails from a reference project. The web platform (`src/web`) is browser-tested against the backend. Postgres persistence and approval resume (exactly-once execution, outcomes delivered to the customer, expiry) are built. Simulations, handoff packages, versions, channels, the Studio editor and insights are planned.
 
 ## Quick start (backend)
 ```bash

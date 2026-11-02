@@ -6,6 +6,10 @@ const styles: Record<string, string> = {
   approved: "bg-[var(--ok-bg)] text-[var(--ok)]",
   rejected: "bg-[var(--bad-bg)] text-[var(--bad)]",
   blocked: "bg-[var(--bad-bg)] text-[var(--bad)]",
+  executing: "bg-[var(--info-bg)] text-[var(--info)]",
+  executed: "bg-[var(--ok-bg)] text-[var(--ok)]",
+  failed: "bg-[var(--bad-bg)] text-[var(--bad)]",
+  expired: "bg-[var(--warn-bg)] text-[var(--warn)]",
 };
 const labels: Record<string, string> = { needs_approval: "Needs approval" };
 

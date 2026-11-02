@@ -2,12 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from .agent import Agent
+from .approval_flow import ApprovalFlow
 from .runtime import Runtime
 from .trace import TraceRepo
 from .widget import WIDGET_HTML
@@ -23,14 +27,40 @@ class ChatBody(BaseModel):
 class DecisionBody(BaseModel):
     approved: bool
     by: str = Field(min_length=1)
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class ExpireBody(BaseModel):
+    older_than_seconds: float = Field(alias="olderThanSeconds", ge=0)
+    model_config = {"populate_by_name": True}
 
 
 def _err(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
 
 
-def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], api_key: str | None = None) -> FastAPI:
-    app = FastAPI(title="NorthCX")
+def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], api_key: str | None = None,
+               approval_ttl_seconds: float | None = None) -> FastAPI:
+    flow = ApprovalFlow(runtime)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        task = None
+        if approval_ttl_seconds:  # periodically expire stale approvals and hand those conversations to a person
+            async def sweep() -> None:
+                while True:
+                    await asyncio.sleep(max(1.0, min(60.0, approval_ttl_seconds / 2)))
+                    try:
+                        await flow.expire_stale(agents, approval_ttl_seconds)
+                    except Exception:  # keep sweeping; a failed pass is retried on the next tick
+                        pass
+
+            task = asyncio.create_task(sweep())
+        yield
+        if task:
+            task.cancel()
+
+    app = FastAPI(title="NorthCX", lifespan=lifespan)
 
     @app.middleware("http")
     async def auth(request: Request, call_next):
@@ -84,14 +114,31 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def list_approvals(state: str | None = None) -> Any:
         return {"approvals": [a.__dict__ for a in await runtime.approvals.list(state)]}
 
-    # Records the decision only. Resuming the run is a Phase 2 feature.
     @app.post("/v1/approvals/{approval_id}/decision")
     async def decide(approval_id: str, body: DecisionBody) -> Any:
+        """Record the decision, run the action if approved, and continue the conversation. The customer receives the
+        outcome through the outbox (and the webhook, if configured)."""
         try:
-            return (await runtime.approvals.decide(approval_id, body.approved, body.by)).__dict__
+            res = await flow.resolve(agents, approval_id, body.approved, body.by, body.note)
         except KeyError:
             return _err(404, "not_found", "Unknown approval")
         except ValueError as e:
             return _err(409, "conflict", str(e))
+        out = dict(res.approval.__dict__)
+        out["resume"] = ({"reply": res.run.reply, "status": res.run.status, "traceId": res.run.trace_id}
+                         if res.run else {"error": res.error})
+        if res.run and res.error:
+            out["resume"]["error"] = res.error
+        return out
+
+    @app.post("/v1/approvals/expire")
+    async def expire(body: ExpireBody) -> Any:
+        done = await flow.expire_stale(agents, body.older_than_seconds)
+        return {"expired": [a.id for a in done]}
+
+    @app.get("/v1/sessions/{session_id}/outbox")
+    async def outbox(session_id: str, after: int = 0) -> Any:
+        items = await runtime.outbox.list(session_id, after)
+        return {"messages": [{"id": m.id, "kind": m.kind, "createdAt": m.created_at, **m.payload} for m in items]}
 
     return app

@@ -37,13 +37,15 @@ def test_chat_with_tool_and_trace():
 def test_refund_threshold_and_approval_flow():
     small, _ = build([tool_call("issue_refund", {"order_id": "1042", "amount": 60}, "t1"), text("Refunded 60.")])
     assert chat(small, {"sessionId": "a", "message": "refund"}).json()["status"] == "completed"
-    big, _ = build([tool_call("issue_refund", {"order_id": "2077", "amount": 240}, "t1")])
+    big, _ = build([tool_call("issue_refund", {"order_id": "2077", "amount": 240}, "t1"), text("Your refund of 240 is on its way.")])
     assert chat(big, {"sessionId": "b", "message": "refund"}).json()["status"] == "needs_approval"
     pending = big.get("/v1/approvals?state=pending").json()["approvals"]
     assert len(pending) == 1
     aid = pending[0]["id"]
-    ok = big.post(f"/v1/approvals/{aid}/decision", json={"approved": True, "by": "reviewer"})
-    assert ok.json()["state"] == "approved"
+    ok = big.post(f"/v1/approvals/{aid}/decision", json={"approved": True, "by": "reviewer"}).json()
+    assert ok["state"] == "executed" and ok["resume"]["reply"] == "Your refund of 240 is on its way."
+    out = big.get("/v1/sessions/b/outbox").json()["messages"]
+    assert out[0]["kind"] == "approval_result" and out[0]["reply"] == ok["resume"]["reply"]
     assert big.post(f"/v1/approvals/{aid}/decision", json={"approved": False, "by": "x"}).status_code == 409
 
 
@@ -74,3 +76,40 @@ def test_agents_endpoint_and_trace_status():
     chat(c, {"sessionId": "s9", "message": "x"})
     summary = c.get("/v1/traces?sessionId=s9").json()["traces"][0]
     assert summary["status"] == "completed" and summary["tools"] == ["lookup_order"]
+
+
+def test_expire_endpoint_and_outbox_pagination():
+    c, rt = build([tool_call("issue_refund", {"order_id": "2077", "amount": 240}, "t1")])
+    chat(c, {"sessionId": "e", "message": "refund"})
+    assert c.post("/v1/approvals/expire", json={"olderThanSeconds": 3600}).json() == {"expired": []}
+    expired = c.post("/v1/approvals/expire", json={"olderThanSeconds": 0}).json()["expired"]
+    assert len(expired) == 1
+    msgs = c.get("/v1/sessions/e/outbox").json()["messages"]
+    assert [m["kind"] for m in msgs] == ["approval_expired"] and msgs[0]["status"] == "escalated"
+    assert c.get(f"/v1/sessions/e/outbox?after={msgs[0]['id']}").json()["messages"] == []
+    assert c.post("/v1/approvals/expire", json={"olderThanSeconds": -1}).status_code == 400
+    assert c.post(f"/v1/approvals/{expired[0]}/decision", json={"approved": True, "by": "late"}).status_code == 409
+
+
+def test_sweeper_expires_stale_approvals_in_the_background():
+    import time
+
+    traces = TraceStore()
+    rt = Runtime(ScriptedLLM([tool_call("issue_refund", {"order_id": "2077", "amount": 240}, "t1")]), InMemoryStore(), traces)
+    with TestClient(create_app(rt, traces, {"support": support_agent()}, approval_ttl_seconds=0.01)) as c:
+        chat(c, {"sessionId": "sw", "message": "refund"})
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            if c.get("/v1/approvals?state=expired").json()["approvals"]:
+                break
+            time.sleep(0.2)
+        assert len(c.get("/v1/approvals?state=expired").json()["approvals"]) == 1
+        assert c.get("/v1/sessions/sw/outbox").json()["messages"][0]["kind"] == "approval_expired"
+
+
+def test_rejecting_through_the_api_explains_to_the_customer():
+    c, _ = build([tool_call("issue_refund", {"order_id": "2077", "amount": 240}, "t1"), text("We couldn't approve that refund.")])
+    chat(c, {"sessionId": "r", "message": "refund"})
+    aid = c.get("/v1/approvals?state=pending").json()["approvals"][0]["id"]
+    out = c.post(f"/v1/approvals/{aid}/decision", json={"approved": False, "by": "rae", "note": "too high"}).json()
+    assert out["state"] == "rejected" and out["note"] == "too high" and out["resume"]["reply"] == "We couldn't approve that refund."

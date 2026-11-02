@@ -9,7 +9,8 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 | `customer_facts` (built) | `customer_id`, `key`, `value`, `updated_at` | pk (`customer_id`, `key`); `source_trace_id` later |
 | `traces` (built) | `id` pk, `session_id`, `agent_id`, `status`, `started_at`, `tools` jsonb, `event_count` | Summary columns written at save so lists never load events |
 | `trace_events` (built) | `id` identity pk, `trace_id` fk (cascade), `seq`, `type`, `t`, `data` jsonb | Unique (`trace_id`, `seq`) |
-| `approvals` (built) | `id` pk, `trace_id`, `session_id`, `tool`, `input` jsonb, `reason`, `state`, `created_at`, `decided_by`, `decided_at` | state: pending/approved/rejected; decisions are atomic so exactly one decision wins |
+| `approvals` (built) | `id` pk, `trace_id`, `session_id`, `agent_id`, `customer_id`, `tool`, `input` jsonb, `reason`, `state`, `created_at`, `decided_by`, `decided_at`, `note`, `result` jsonb | State machine in the Handoff and Approvals spec; every transition is an atomic conditional update (migration 0002 added the context, note and result columns) |
+| `outbox` (built) | `id` identity pk, `session_id`, `kind`, `payload` jsonb, `created_at`, `delivered_at`, `attempts` | Index (`session_id`, `id`); undelivered rows are retried |
 | `agents` | `id` pk, `definition` jsonb, `version`, `published_at` | For Studio, Phase 4 |
 | `api_keys` | `id` pk, `hash`, `role`, `created_at`, `revoked_at` | Store hashes only |
 

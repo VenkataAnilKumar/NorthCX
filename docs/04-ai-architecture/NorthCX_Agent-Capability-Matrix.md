@@ -9,7 +9,7 @@ Status: Draft. Summary of the Feature Catalog by capability. State: Built / Plan
 | Skills, journeys, templates | Definition format | A3-A7 | 3-4 | Planned |
 | Draft agents from procedures | Generation | A8 | 6 | Planned |
 | Multi-step tool use | Runtime loop | R1 | 1 | Built |
-| Resume after approval | Approvals + runtime | R10 | 2 | Planned |
+| Resume after approval | Approval flow + runtime | R10 | 2 | Built and tested |
 | Fallback, streaming, budgets | Runtime | R5-R7 | 3 | Planned |
 | Multilingual | Detection + prompts | R9 | 4 | Planned |
 | Multi-agent routing | Orchestrator | R8 | 5 | Planned |

@@ -73,4 +73,20 @@ class ApprovalRow(Base):
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
     decided_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
     decided_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False, server_default="")
+    customer_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result: Mapped[Any] = mapped_column(JSONB, nullable=True)
     __table_args__ = (Index("ix_approvals_state", "state"),)
+
+
+class OutboxRow(Base):
+    __tablename__ = "outbox"
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    payload: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    delivered_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    __table_args__ = (Index("ix_outbox_session", "session_id", "id"),)

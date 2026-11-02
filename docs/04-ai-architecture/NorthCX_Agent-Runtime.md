@@ -34,7 +34,7 @@ Status: Draft. Describes the runtime semantics, implemented and tested in the Ty
 - Customer facts are placed in the prompt as untrusted data.
 
 ## Known gaps
-- Approvals are stored (`ApprovalStore`, in memory) but resuming a run after a decision is not implemented (Phase 2).
+- Approvals are stored (in memory or Postgres) and resumed by `ApprovalFlow` (see the Handoff and Approvals spec). A run started by the platform itself (an approval outcome) uses `trusted=True`: it skips the customer input checks and is traced as a `system` event, but replies and tool calls are still supervised.
 - A blocked tool call is not retried with guidance beyond the error result.
 - Parallel tool execution is sequential.
 - Streaming responses are not supported.

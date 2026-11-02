@@ -21,7 +21,7 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [ ] Judge rubric and calibration (Q3)
 - [x] Postgres stores (sessions, facts, traces, approvals) and migrations (K3); contract tests over both implementations; CI database service
 - [ ] Retention and deletion jobs (Phase 3)
-- [ ] Approval resume (R10)
+- [x] Approval resume (R10): decision, exactly-once execution with idempotency key, supervisor re-check, agent follow-up, outbox with signed webhook option, expiry sweeper
 - [ ] Handoff package (H4); forced-handoff topics (S7)
 - [ ] Versions, diff, rollback (Q8, Q10)
 - [ ] Roles, scoped keys, audit log, rate limits (P2-P4)

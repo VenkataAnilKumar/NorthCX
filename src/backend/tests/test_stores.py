@@ -178,3 +178,80 @@ async def test_concurrent_decisions_have_exactly_one_winner(approval_store):
     results = await asyncio.gather(*[approval_store.decide(a.id, i % 2 == 0, f"u{i}") for i in range(6)], return_exceptions=True)
     assert sum(not isinstance(r, Exception) for r in results) == 1
     assert all(isinstance(r, ValueError) for r in results if isinstance(r, Exception))
+
+
+# ---- approval state machine ----
+async def test_approval_state_machine(approval_store):
+    a = await approval_store.add(trace_id="t", session_id="s", agent_id="ag", customer_id="c", tool="x", input={"n": 1}, reason="r")
+    assert (a.agent_id, a.customer_id) == ("ag", "c")
+    with pytest.raises(ValueError):
+        await approval_store.claim_execution(a.id)  # not approved yet
+    with pytest.raises(ValueError):
+        await approval_store.complete(a.id, True, {})
+    d = await approval_store.decide(a.id, True, "rae", "fine")
+    assert (d.state, d.note) == ("approved", "fine")
+    c = await approval_store.claim_execution(a.id)
+    assert c.state == "executing"
+    with pytest.raises(ValueError):
+        await approval_store.claim_execution(a.id)  # a second claim must lose
+    assert await approval_store.expire(a.id) is None  # only pending approvals expire
+    done = await approval_store.complete(a.id, True, {"result": {"ok": 1}})
+    assert (done.state, done.result) == ("executed", {"result": {"ok": 1}})
+    got = await approval_store.get(a.id)
+    assert (got.state, got.result, got.agent_id, got.customer_id, got.note) == ("executed", {"result": {"ok": 1}}, "ag", "c", "fine")
+
+
+async def test_failed_and_expired_paths(approval_store):
+    a = await approval_store.add(trace_id="t", session_id="s", tool="x", input={}, reason="r")
+    await approval_store.decide(a.id, True, "rae")
+    await approval_store.claim_execution(a.id)
+    assert (await approval_store.complete(a.id, False, {"error": "boom"})).state == "failed"
+    b = await approval_store.add(trace_id="t", session_id="s", tool="x", input={}, reason="r")
+    assert (await approval_store.expire(b.id)).state == "expired"
+    assert await approval_store.expire(b.id) is None
+    with pytest.raises(ValueError):
+        await approval_store.decide(b.id, True, "late")
+    with pytest.raises(KeyError):
+        await approval_store.expire("missing")
+    with pytest.raises(KeyError):
+        await approval_store.claim_execution("missing")
+
+
+async def test_only_one_concurrent_claim_wins(approval_store):
+    a = await approval_store.add(trace_id="t", session_id="s", tool="x", input={}, reason="r")
+    await approval_store.decide(a.id, True, "rae")
+    res = await asyncio.gather(*[approval_store.claim_execution(a.id) for _ in range(6)], return_exceptions=True)
+    assert sum(not isinstance(r, Exception) for r in res) == 1
+
+
+# ---- outbox ----
+@pytest.fixture
+def outbox_repo(kind, request):
+    from northcx.outbox import InMemoryOutbox
+
+    if kind == "memory":
+        return InMemoryOutbox()
+    from northcx.db import PgOutbox
+
+    return PgOutbox(request.getfixturevalue("engine"))
+
+
+async def test_outbox_orders_filters_and_paginates(outbox_repo):
+    a = await outbox_repo.add("s1", "approval_result", {"reply": "one"})
+    b = await outbox_repo.add("s2", "approval_result", {"reply": "other"})
+    c = await outbox_repo.add("s1", "approval_expired", {"reply": "two"})
+    assert a.id < b.id < c.id
+    assert [m.payload["reply"] for m in await outbox_repo.list("s1")] == ["one", "two"]
+    assert [m.payload["reply"] for m in await outbox_repo.list("s1", after_id=a.id)] == ["two"]
+    assert await outbox_repo.list("s1", after_id=c.id) == []
+    assert len(await outbox_repo.list("s1", limit=1)) == 1
+
+
+async def test_outbox_tracks_delivery_attempts(outbox_repo):
+    m = await outbox_repo.add("s", "approval_result", {})
+    assert [x.id for x in await outbox_repo.undelivered()] == [m.id]
+    await outbox_repo.record_attempt(m.id, False)
+    assert (await outbox_repo.undelivered())[0].attempts == 1
+    await outbox_repo.record_attempt(m.id, True)
+    assert await outbox_repo.undelivered() == []
+    assert (await outbox_repo.list("s"))[0].attempts == 2

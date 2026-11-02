@@ -1,7 +1,7 @@
 import type { TraceEvent } from "@/lib/api";
 
 const labels: Record<string, string> = {
-  user: "Customer message", llm: "Model call", tool_call: "Tool call", tool_result: "Tool result",
+  user: "Customer message", system: "Platform notice", llm: "Model call", tool_call: "Tool call", tool_result: "Tool result",
   guardrail: "Guardrail", approval: "Approval requested", handoff: "Handoff", reply: "Reply", error: "Error",
 };
 const tone: Record<string, string> = {
@@ -12,7 +12,8 @@ const tone: Record<string, string> = {
 function summary(e: TraceEvent): string {
   const d = e.data;
   switch (e.type) {
-    case "user": return String(d.message ?? "");
+    case "user":
+    case "system": return String(d.message ?? "");
     case "tool_call": return `${d.name}(${JSON.stringify(d.input)})`;
     case "tool_result": return `${d.name} → ${JSON.stringify(d.output)}`;
     case "guardrail": return `${d.guardrail}: ${d.reason}`;

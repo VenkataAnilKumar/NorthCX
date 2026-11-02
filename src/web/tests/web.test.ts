@@ -53,3 +53,28 @@ describe("components", () => {
     expect(html).toContain("done (completed)");
   });
 });
+
+describe("approval and outbox calls", () => {
+  it("sends the decision note and reads the outbox with the cursor", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push([url, init]);
+      return new Response(JSON.stringify(url.includes("outbox") ? { messages: [{ id: 3, kind: "approval_result", reply: "done" }] } : { state: "executed", resume: { reply: "ok" } }), { status: 200 });
+    }));
+    const { decideApproval, listOutbox } = await import("@/lib/api");
+    const res = await decideApproval("a1", false, "rae", "too high");
+    expect(JSON.parse(String(calls[0][1]?.body))).toEqual({ approved: false, by: "rae", note: "too high" });
+    expect(res.resume?.reply).toBe("ok");
+    await decideApproval("a1", true, "rae");
+    expect(JSON.parse(String(calls[1][1]?.body))).toEqual({ approved: true, by: "rae" });
+    const msgs = await listOutbox("sess/1", 2);
+    expect(calls[2][0]).toBe("/api/northcx/v1/sessions/sess%2F1/outbox?after=2");
+    expect(msgs[0].id).toBe(3);
+  });
+
+  it("renders the new approval states and platform notices", () => {
+    for (const s of ["executed", "failed", "expired"]) expect(renderToStaticMarkup(createElement(StatusBadge, { status: s }))).toContain(s.charAt(0).toUpperCase() + s.slice(1));
+    const html = renderToStaticMarkup(createElement(TraceTimeline, { events: [{ t: 1, type: "system", data: { message: "approved" } }] }));
+    expect(html).toContain("Platform notice");
+  });
+});

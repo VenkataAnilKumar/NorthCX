@@ -40,6 +40,14 @@ class DemoLLM:
             return text("Sorry, I couldn't find that order.")
         msg = _last_user_text(req)
         low = msg.lower()
+        if msg.startswith("[system]"):  # platform notice, for example an approval outcome
+            if "declined" in low:
+                return text("A teammate reviewed your request and couldn't approve it. Would you like to speak with a person?")
+            if '"error"' in low:
+                return text("I'm sorry, the approved action could not be completed. A teammate will follow up.")
+            amount = re.search(r'"refunded": ([\d.]+)', msg)
+            return text(f"Good news: your refund of {amount.group(1)} was approved and processed." if amount
+                        else "Your request was approved and completed.")
         order = re.search(r"\b(\d{4})\b", msg)
         if re.search(r"\b(human|person|agent|someone)\b", low):
             return tool_call("handoff_to_human", {"reason": "Customer asked for a person"}, f"tu_{uuid.uuid4().hex[:6]}")

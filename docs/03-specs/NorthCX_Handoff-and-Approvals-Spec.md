@@ -29,6 +29,19 @@ A human may hand a simple remainder back to the agent with notes (H7).
 5. Pending approvals expire after a configured time and escalate.
 6. Every decision is audited.
 
+## As built (Phase 2, sprint 6)
+**States.** `pending` to `approved` to `executing` to `executed` or `failed`; `pending` to `rejected` or `expired`. Every transition is atomic in the store, so concurrent callers cannot decide, claim or expire the same approval twice.
+
+**Approve.** The decision is recorded (reviewer, optional note). The held call is then claimed, validated again, re-checked by the supervisors (policy may have changed while it waited), and executed with the approval id as an idempotency key that tools should use to deduplicate writes. The outcome (result or error) is stored on the approval. The agent receives a platform notice with the outcome and writes the customer-facing reply, which passes the normal reply checks. If the model call fails afterwards, the action still stands and the conversation is escalated.
+
+**Reject.** The action is never executed; the agent receives the reviewer's note and explains the outcome, offering alternatives or a handoff.
+
+**Expire.** A sweeper (`NORTHCX_APPROVAL_TTL_SECONDS`) or `POST /v1/approvals/expire` expires approvals pending longer than the limit, writes a handoff trace, and tells the customer a person will help. A late decision is refused (409).
+
+**Delivery.** Each result is stored in an outbox (`GET /v1/sessions/{id}/outbox?after=`) so channels and the web console can poll, and optionally pushed to a webhook (`NORTHCX_WEBHOOK_URL` and `NORTHCX_WEBHOOK_SECRET`). Webhook bodies are signed (`X-NorthCX-Signature`: HMAC-SHA256 over `timestamp.body`, with `X-NorthCX-Timestamp`); receivers should verify the signature and reject timestamps older than five minutes. Failed pushes retry with backoff and stay in the outbox until delivered.
+
+**Limits.** A crash between executing a tool and recording its result leaves the approval in `executing`; tools must honour the idempotency key so a manual retry is safe. The follow-up runs inside the decision request. Delivery to channels other than polling and webhooks arrives with the channel adapters.
+
 ## Acceptance
 - A handoff always includes the full package.
 - A decided approval cannot be decided again.

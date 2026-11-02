@@ -18,7 +18,9 @@ Base path `/v1`. JSON. Optional `Authorization: Bearer <key>`.
 | GET | `/audit` | Query the audit log (Phase 2) |
 | DELETE | `/customers/:id` | Delete a customer's data (Phase 3) |
 | GET | `/approvals?state=` | List approvals (built) |
-| POST | `/approvals/:id/decision` | Record approve/reject with `{approved, by}` (built); resuming the run is planned for Phase 2 |
+| POST | `/approvals/:id/decision` | `{approved, by, note?}`: records the decision, runs the action once if approved, continues the conversation; returns the approval plus `resume` (`reply`, `status`, `traceId` or `error`). 404 unknown, 409 already decided |
+| POST | `/approvals/expire` | `{olderThanSeconds}`: expire stale pending approvals and escalate (built) |
+| GET | `/sessions/:id/outbox?after=` | Messages sent outside a request, such as approval results (built) |
 
 ## Chat response
 `{reply, status: "completed"|"escalated"|"needs_approval", traceId, pendingApprovals[]}`

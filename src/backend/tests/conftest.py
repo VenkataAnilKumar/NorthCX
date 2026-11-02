@@ -53,7 +53,7 @@ def engine(db_url):
         eng = create_engine(db_url, poolclass=NullPool)
         async with eng.begin() as c:
             await c.execute(text(
-                "truncate sessions, messages, customer_facts, traces, trace_events, approvals restart identity cascade"))
+                "truncate sessions, messages, customer_facts, traces, trace_events, approvals, outbox restart identity cascade"))
         await eng.dispose()
 
     asyncio.run(clean())

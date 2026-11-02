@@ -3,7 +3,10 @@ export type Status = "completed" | "escalated" | "needs_approval" | "unknown";
 export interface TraceEvent { t: number; type: string; data: Record<string, unknown> }
 export interface Trace { id: string; agent_id: string; session_id: string; events: TraceEvent[] }
 export interface TraceSummary { id: string; agentId: string; sessionId: string; events: number; status: Status; startedAt: number | null; tools: string[] }
-export interface Approval { id: string; trace_id: string; session_id: string; tool: string; input: unknown; reason: string; state: "pending" | "approved" | "rejected"; created_at: number; decided_by: string | null; decided_at: number | null }
+export type ApprovalState = "pending" | "approved" | "rejected" | "expired" | "executing" | "executed" | "failed";
+export interface Approval { id: string; trace_id: string; session_id: string; tool: string; input: unknown; reason: string; state: ApprovalState; created_at: number; decided_by: string | null; decided_at: number | null; note: string | null; result: unknown }
+export interface Resume { reply?: string; status?: Status; traceId?: string; error?: string }
+export interface OutboxMessage { id: number; kind: string; createdAt: number; reply: string; status: Status; traceId: string; tool?: string; approved?: boolean }
 export interface AgentInfo { id: string; instructions: string; model: string | null; maxSteps: number; tools: { name: string; description: string; approval: boolean }[]; guardrails: string[]; inputGuardrails: string[] }
 export interface ChatReply { reply: string; status: Status; traceId: string; pendingApprovals: { id: string; tool: string; reason: string }[] }
 
@@ -35,8 +38,10 @@ export const listTraces = (status?: string) =>
   api<{ traces: TraceSummary[] }>("/v1/traces").then((r) => (status ? r.traces.filter((t) => t.status === status) : r.traces));
 export const getTrace = (id: string) => api<Trace>(`/v1/traces/${id}`);
 export const listApprovals = (state?: string) => api<{ approvals: Approval[] }>(`/v1/approvals${state ? `?state=${state}` : ""}`).then((r) => r.approvals);
-export const decideApproval = (id: string, approved: boolean, by: string) =>
-  api<Approval>(`/v1/approvals/${id}/decision`, { method: "POST", body: JSON.stringify({ approved, by }) });
+export const decideApproval = (id: string, approved: boolean, by: string, note?: string) =>
+  api<Approval & { resume: Resume | null }>(`/v1/approvals/${id}/decision`, { method: "POST", body: JSON.stringify({ approved, by, ...(note ? { note } : {}) }) });
+export const listOutbox = (sessionId: string, after: number) =>
+  api<{ messages: OutboxMessage[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/outbox?after=${after}`).then((r) => r.messages);
 export const listAgents = () => api<{ agents: AgentInfo[] }>("/v1/agents").then((r) => r.agents);
 export const chat = (agentId: string, sessionId: string, message: string) =>
   api<ChatReply>(`/v1/agents/${agentId}/chat`, { method: "POST", body: JSON.stringify({ sessionId, message }) });
