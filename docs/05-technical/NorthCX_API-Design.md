@@ -8,6 +8,7 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 |---|---|---|
 | GET | `/health` | Liveness (public) |
 | POST | `/chat-tokens` | `{sessionId?, customerId?, agent?, ttlSeconds?}`: mint a chat token for one conversation (channel or admin key); returns `token`, `sessionId`, `expiresAt` (built) |
+| POST | `/channels/email/inbound` | Raw RFC 822 message as the body (≤ 1,000,000 bytes), `channel:inbound` permission; returns `{status, sessionId, reason, traceId, handoffId}`; 400 unusable, 413 too large, 501 not configured (built) |
 | GET | `/me` | The caller's name, role and permissions (any key) |
 | GET | `/keys` | Keys (never secrets) and each role's permissions (admin) (built) |
 | POST | `/keys` | `{name, role, expiresInDays?}`: create a key; the secret is returned once (admin) (built) |
