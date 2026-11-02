@@ -10,11 +10,28 @@ export interface Guardrail {
   checkReply?(reply: string, ctx: GuardrailContext): Promise<Verdict> | Verdict;
 }
 
-/** Deterministic rule: never emit something that looks like a payment card number. */
+const luhn = (digits: string) => {
+  let sum = 0;
+  for (let i = 0; i < digits.length; i++) {
+    let d = Number(digits[digits.length - 1 - i]);
+    if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
+    sum += d;
+  }
+  return sum % 10 === 0;
+};
+
+/** Deterministic rule: never emit a valid payment-card number (13-19 digits passing the Luhn check). */
 export const noCardNumbers = (): Guardrail => ({
   name: "no-card-numbers",
-  checkReply: (reply) =>
-    /\b(?:\d[ -]?){13,16}\b/.test(reply) ? { allow: false, reason: "Reply contains a card-number-like sequence." } : { allow: true },
+  checkReply: (reply) => {
+    for (const m of reply.matchAll(/\b\d(?:[ -]?\d){12,18}\b/g)) {
+      const digits = m[0].replace(/\D/g, "");
+      if (digits.length >= 13 && digits.length <= 19 && luhn(digits)) {
+        return { allow: false, reason: "Reply contains a payment-card number." };
+      }
+    }
+    return { allow: true };
+  },
 });
 
 /** LLM supervisor: a (cheaper) model judges the draft reply against written policies. Fails closed. */

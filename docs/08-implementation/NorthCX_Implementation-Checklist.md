@@ -5,7 +5,7 @@ Status: Living checklist
 ## Foundation
 - [x] Repo scaffold, TypeScript config, dependencies install
 - [x] Core runtime, tools, guardrails, memory, traces (typechecked)
-- [ ] Unit tests for the runtime
+- [x] Unit tests for the runtime (history validity, approvals, handoff, guardrails, model failure)
 - [ ] Chat and trace API, auth, widget
 - [ ] Example support agent
 ## Quality

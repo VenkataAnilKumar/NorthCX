@@ -7,6 +7,7 @@ Status: Draft. Control mapping is a plan, not a certification.
 |---|---|
 | Prompt injection via customer or tool data | Supervisor, tool allow-lists, treat tool output as data, no secrets in prompts |
 | Unauthorised or excessive actions | Typed tools, least-privilege credentials, approval gates |
+| Untrusted text in customer facts or tool output | Facts are labelled as untrusted data in the prompt; treat tool output as data; supervisor checks replies |
 | PII leakage in replies | Reply guardrails, minimal tool outputs |
 | PII in logs and traces | Redaction, retention limits, role-restricted access |
 | Credential exposure | Secrets manager, never in prompts or traces |

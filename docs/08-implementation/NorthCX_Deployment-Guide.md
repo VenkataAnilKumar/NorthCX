@@ -5,7 +5,7 @@ Status: Draft (target; not yet runnable end to end)
 ## Environments
 | Env | Setup |
 |---|---|
-| Local | `npm install`, `npm run dev` with a model API key in the environment |
+| Local | `npm install`, `npm test`. The server (`npm run dev`) does not exist yet; it arrives in Phase 1 |
 | Staging/production | Container image for the server, Postgres, optional queue |
 
 ## Configuration

@@ -16,5 +16,8 @@ An adapter translates a channel message to `POST /v1/agents/:id/chat {sessionId,
 ## Voice requirements
 Low-latency streaming, barge-in handling, short replies, spoken confirmation for actions, DTMF fallback, and handoff to a phone queue. Latency budget to be set when voice starts.
 
+## Voice legal and consent
+Call recording and automated-call rules vary by jurisdiction. The voice adapter must announce that the caller is speaking to an automated agent, obtain recording consent where required, and honour opt-out and data-deletion requests. Legal review is required before launch.
+
 ## Open questions
 Streaming replies on the API, identity verification per channel, and per-channel style guidance in instructions.

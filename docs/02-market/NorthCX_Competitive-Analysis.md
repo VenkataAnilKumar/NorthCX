@@ -27,6 +27,14 @@ Status: Draft. Named competitors and comparison tables live in `00-reference/Nor
 3. Composes proven components behind interfaces.
 4. Claude-first without lock-in.
 
+## How differentiation will be measured
+| Claim | Evidence to produce |
+|---|---|
+| Safer by default | Simulation suite showing zero policy violations reach customers |
+| Easy to self-host | Time from clone to running agent |
+| Lower cost | Cost per resolved conversation, published methodology |
+| CX-ready | Out-of-the-box actions, approvals and handoff in the example agent |
+
 ## Risks
 - Established vendors may move faster on enterprise integrations.
 - Composition adds integration and licence-review burden.

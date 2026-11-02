@@ -6,8 +6,8 @@ Status: Draft
 |---|---|---|---|
 | Natural-language goals and policies | Agent instructions | 1 | Built |
 | Typed actions | Tools with Zod schemas | 1 | Built |
-| Approval for sensitive actions | `requiresApproval` | 1 | Built (resume pending) |
-| Reply and action supervision | Guardrails | 1 | Built |
+| Approval for sensitive actions | `requiresApproval` | 1 | Built and tested; stored in memory; resume is Phase 2 |
+| Reply and action supervision | Guardrails | 1 | Built and tested |
 | Human handoff | `handoff_to_human` | 1 | Built |
 | Traces | Trace store | 1 | Built (in-memory/JSONL) |
 | Session memory | `MemoryStore` | 1 | Built (in-memory) |

@@ -8,11 +8,11 @@ Status: Draft. Describes `src/core/guardrails.ts`.
 ## Built-in guardrails
 | Guardrail | Type | Behaviour |
 |---|---|---|
-| `noCardNumbers` | Rule | Denies replies containing a card-number-like digit sequence |
+| `noCardNumbers` | Rule | Denies replies containing a 13-19 digit sequence that passes the Luhn check, so order and tracking numbers are not blocked |
 | `llmPolicy` | Model | A supervisor model judges the draft against written policies and returns JSON; unparseable output denies |
 
 ## Principles
-1. **Fail closed.** Uncertain or malformed supervisor output blocks.
+1. **Fail closed.** Uncertain or malformed supervisor output blocks, and so does a supervisor that throws.
 2. **Defence in depth.** Rules for exact patterns, a model for judgement, approval gates for high-impact actions.
 3. **Explain every block.** Reasons are traced and fed back to the agent for rewrite.
 4. **Bounded retries.** Two rewrites, then escalate.

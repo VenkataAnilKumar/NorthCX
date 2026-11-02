@@ -4,7 +4,7 @@ Status: Draft. Two-week sprints; estimates are placeholders.
 
 | Sprint | Focus | Items |
 |---|---|---|
-| 1 | Runtime tests | Unit tests for loop, tools, approvals, handoff, guardrail rewrite |
+| 1 | Runtime tests (done) | Unit tests for loop, tools, approvals, handoff, guardrail rewrite |
 | 2 | Server | Chat and trace endpoints, auth, widget |
 | 3 | Example agent | Support tools, instructions, sample data |
 | 4 | Simulation | Scenario runner, assertions, scripted-model suites |

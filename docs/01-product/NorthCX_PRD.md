@@ -15,6 +15,9 @@ Status: Draft
 | Correct handoff when unresolved | >= 95% |
 | Time to first agent from a template | < 1 day |
 
+## Definition of "resolved"
+A conversation is resolved when it ends with status `completed`, the customer confirms the outcome or does not contact again about the same issue within a defined window (default 3 days, to validate), and no human handoff or reopen occurred. Metrics and any outcome-based pricing use this definition.
+
 ## Requirements
 | ID | Requirement | Priority | Phase |
 |---|---|---|---|

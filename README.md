@@ -10,12 +10,13 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 - Simulation testing (planned), multiple channels (phased), low-code Studio (planned)
 
 ## Status
-Early development. The core runtime is scaffolded in `src/core`. The server, simulation testing and channel adapters are planned.
+Early development. The core runtime in `src/core` is built and covered by unit tests with a scripted model. The server, simulation testing, persistence and channel adapters are planned.
 
 ## Quick start
 ```bash
 npm install
 npm run typecheck
+npm test
 ```
 
 ## Documentation

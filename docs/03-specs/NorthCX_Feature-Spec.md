@@ -12,7 +12,7 @@ Status: Draft. Maps to PRD requirement IDs.
 Guardrails check each tool call (`checkToolCall`) and each draft reply (`checkReply`). Verdict is allow or deny with a reason. A denied reply is rewritten up to twice, then the conversation is escalated. An LLM supervisor that returns unparseable output denies (fails closed).
 
 ## F4. Approvals (R4)
-A tool may return a reason from `requiresApproval`. The run stops with status `needs_approval`, lists the pending call, and the customer is told a teammate will confirm. Resuming after approval is a Phase 1 follow-up.
+A tool may return a reason from `requiresApproval`. The run stops with status `needs_approval`, the pending call is stored with an ID, and the customer is told a teammate will confirm. Resuming the run after a decision is a Phase 2 feature.
 
 ## F5. Handoff (R5)
 A built-in `handoff_to_human` tool ends the run with status `escalated` and records the reason in the trace.
