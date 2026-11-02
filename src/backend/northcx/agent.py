@@ -6,7 +6,7 @@ from typing import Any, Awaitable, Callable
 
 from pydantic import BaseModel
 
-from .guardrails import Guardrail, InputGuardrail
+from .guardrails import Guardrail, InputGuardrail, OutputGuardrail
 from .handoffs import ForcedTopic
 from .secrets import NO_SECRETS, SecretStore
 
@@ -67,6 +67,7 @@ class Agent:
     tools: list[Tool] = field(default_factory=list)
     guardrails: list[Guardrail] = field(default_factory=list)
     input_guardrails: list[InputGuardrail] = field(default_factory=list)
+    output_guardrails: list[OutputGuardrail] = field(default_factory=list)  # screen tool results before the model reads them
     forced_handoffs: list[ForcedTopic] = field(default_factory=list)  # topics that always go to a person
     version: int | None = None  # set when served from a released version
     digest: str | None = None

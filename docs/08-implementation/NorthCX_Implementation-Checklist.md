@@ -33,7 +33,7 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [x] Customer chat tokens: per-conversation, expiring, revocable, scoped to one conversation, customer and agent; demo page uses them
 - [ ] Safety extensions (S8-S11)
 - [ ] Retrieval tool, citations, connectors, summarisation, retention (K4-K8)
-- [ ] Email, SMS/messaging, identity verification, channel styles (C3, C4, C8, C9)
+- [x] Email channel (C3) — built; [ ] SMS/messaging, identity verification, channel styles (C4, C8, C9)
 - [ ] Inbox integration, hours and routing (H5, H8)
 - [ ] Fallback, streaming, budgets, idempotency, webhooks (R5-R7, T4, P8)
 - [ ] Trace export and redaction (O3, O4); environments (Q9); regression from traces (Q5-Q7)

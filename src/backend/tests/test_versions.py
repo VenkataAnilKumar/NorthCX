@@ -110,6 +110,7 @@ def test_diff_reads_like_a_review():
     assert diff_specs(a, a) == {"identical": True, "instructions": None, "tools": {"added": [], "removed": []},
                                 "guardrails": {"added": [], "removed": [], "changed": []},
                                 "input_guardrails": {"added": [], "removed": [], "changed": []},
+                                    "output_guardrails": {"added": [], "removed": [], "changed": []},
                                 "forced_handoff": {"added": [], "removed": [], "changed": []}, "other": {}}
     changed = json.loads(AgentSpec.model_validate({**a, "forced_handoff": [{"name": "legal", "patterns": ["attorney"]}]}).canonical())
     assert diff_specs(a, changed)["forced_handoff"]["changed"] == ["legal"]

@@ -316,6 +316,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                                       for t in a.tools],
                             "guardrails": [g.name for g in a.guardrails],
                             "inputGuardrails": [g.name for g in a.input_guardrails],
+                            "outputGuardrails": [g.name for g in a.output_guardrails],
                             "forcedTopics": [t.name for t in a.forced_handoffs]} for a in live]}
 
     @app.get("/v1/approvals")

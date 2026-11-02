@@ -23,3 +23,5 @@ input_guardrails:
   - name: pii_detection
     config: { mask_pii: true }
   - prompt_injection
+output_guardrails:
+  - tool_output_injection

@@ -14,9 +14,9 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .agent import Agent, Tool
-from .guardrails import Guardrail, InputGuardrail, LLMPolicy, NoCardNumbers
+from .guardrails import Guardrail, InputGuardrail, OutputGuardrail, LLMPolicy, NoCardNumbers
 from .handoffs import ForcedTopic
-from .safety import PIIDetection, PromptInjection
+from .safety import PIIDetection, PromptInjection, ToolOutputInjection, ToolOutputPII
 from .types import LLM
 
 SPEC_VERSION = 1
@@ -57,11 +57,12 @@ class AgentSpec(BaseModel):
     tools: list[str] = Field(default_factory=list)
     guardrails: list[ComponentRef] = Field(default_factory=list)
     input_guardrails: list[ComponentRef] = Field(default_factory=list)
+    output_guardrails: list[ComponentRef] = Field(default_factory=list)
     forced_handoff: list[ForcedTopicSpec] = Field(default_factory=list)
 
     model_config = {"extra": "forbid"}
 
-    @field_validator("guardrails", "input_guardrails", mode="before")
+    @field_validator("guardrails", "input_guardrails", "output_guardrails", mode="before")
     @classmethod
     def _allow_bare_names(cls, v: Any) -> Any:
         # Authors may write a plain string instead of {name: ...}
@@ -75,7 +76,10 @@ class AgentSpec(BaseModel):
         return v
 
     def canonical(self) -> str:
-        return json.dumps(self.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+        data = self.model_dump(mode="json")
+        if not data["output_guardrails"]:
+            del data["output_guardrails"]  # keeps the digest of specs written before this field existed
+        return json.dumps(data, sort_keys=True, separators=(",", ":"))
 
     def digest(self) -> str:
         """Stable content hash. Identical specs always have the same digest."""
@@ -84,6 +88,7 @@ class AgentSpec(BaseModel):
 
 GuardrailFactory = Callable[[dict[str, Any], "BuildContext"], Guardrail]
 InputFactory = Callable[[dict[str, Any], "BuildContext"], InputGuardrail]
+OutputFactory = Callable[[dict[str, Any], "BuildContext"], OutputGuardrail]
 
 
 class BuildContext:
@@ -98,6 +103,7 @@ class Registry:
         self._tools: dict[str, Tool] = {}
         self._guardrails: dict[str, GuardrailFactory] = {}
         self._input_guardrails: dict[str, InputFactory] = {}
+        self._output_guardrails: dict[str, OutputFactory] = {}
 
     def tool(self, tool: Tool) -> Tool:
         if tool.name in self._tools:
@@ -110,6 +116,12 @@ class Registry:
 
     def input_guardrail(self, name: str, factory: InputFactory) -> None:
         self._input_guardrails[name] = factory
+
+    def output_guardrail(self, name: str, factory: "OutputFactory") -> None:
+        self._output_guardrails[name] = factory
+
+    def output_guardrail_names(self) -> list[str]:
+        return sorted(self._output_guardrails)
 
     def tool_names(self) -> list[str]:
         return sorted(self._tools)
@@ -137,6 +149,9 @@ class Registry:
         for g in spec.input_guardrails:
             if g.name not in self._input_guardrails:
                 problems.append(f"Unknown input guardrail '{g.name}' (known: {', '.join(self.input_guardrail_names()) or 'none'})")
+        for g in spec.output_guardrails:
+            if g.name not in self._output_guardrails:
+                problems.append(f"Unknown output guardrail '{g.name}' (known: {', '.join(self.output_guardrail_names()) or 'none'})")
         return problems
 
     def build(self, spec: AgentSpec, ctx: BuildContext | None = None) -> Agent:
@@ -153,6 +168,7 @@ class Registry:
                 tools=[self._tools[t] for t in spec.tools],
                 guardrails=[self._guardrails[g.name](g.config, ctx) for g in spec.guardrails],
                 input_guardrails=[self._input_guardrails[g.name](g.config, ctx) for g in spec.input_guardrails],
+                output_guardrails=[self._output_guardrails[g.name](g.config, ctx) for g in spec.output_guardrails],
                 forced_handoffs=[ForcedTopic(t.name, t.patterns, **({"reply": t.reply} if t.reply else {}))
                                  for t in spec.forced_handoff],
             )
@@ -176,6 +192,8 @@ def default_registry() -> Registry:
     r.guardrail("llm_policy", llm_policy)
     r.input_guardrail("pii_detection", lambda cfg, ctx: PIIDetection(**cfg))
     r.input_guardrail("prompt_injection", lambda cfg, ctx: PromptInjection(**cfg))
+    r.output_guardrail("tool_output_injection", lambda cfg, ctx: ToolOutputInjection(**cfg))
+    r.output_guardrail("tool_output_pii", lambda cfg, ctx: ToolOutputPII(**cfg))
     return r
 
 

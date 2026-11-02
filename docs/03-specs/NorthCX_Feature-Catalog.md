@@ -52,7 +52,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | S5 | Fail closed on supervisor or model error | P0 | 1 | Built |
 | S6 | Customer data treated as untrusted in prompts | P0 | 1 | Built |
 | S7 | Topics the agent must never handle alone (forced handoff list) | P0 | 2 | Built |
-| S8 | Input-side checks (prompt-injection, abuse detection) | P1 | 3 | Planned |
+| S8 | Input-side checks (prompt-injection, abuse detection) | P1 | 3 | Partly built: customer input and tool results are screened; abuse detection planned |
 | S9 | PII detection and redaction | P1 | 3 | Planned |
 | S10 | Monitoring of every conversation, not a sample | P1 | 3 | Planned |
 | S11 | Policy library with tests | P1 | 3 | Planned |

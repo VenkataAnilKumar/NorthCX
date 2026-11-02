@@ -57,6 +57,19 @@ class InputGuardrail:
         return InputResult(True)
 
 
+class OutputGuardrail:
+    """Checks (and may rewrite) what a tool returned before the model reads it.
+
+    Tool results are data, not instructions, but they often hold text written by third parties (order notes,
+    web pages, customer-written fields), so they are screened like customer input.
+    """
+
+    name = "output-guardrail"
+
+    async def check_output(self, tool: str, text: str) -> InputResult:
+        return InputResult(True)
+
+
 def _luhn(digits: str) -> bool:
     total = 0
     for i, ch in enumerate(reversed(digits)):

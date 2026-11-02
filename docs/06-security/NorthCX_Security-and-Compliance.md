@@ -74,3 +74,6 @@ Support for data access and deletion requests (privacy regulations), audit trail
 
 ## Open
 Pen-test plan, key rotation, data-residency options, DPA templates.
+
+
+**Tool results (indirect injection).** Text returned by tools can be written by third parties (order notes, web pages, customer-entered fields). An agent can list `output_guardrails`; each text value in a tool result is checked before the model reads it. `tool_output_injection` withholds results containing phrases that address the model (for example "ignore previous instructions", "new instructions:", `system:` lines, "do not tell the customer"); `tool_output_pii` masks (or, with `mask_pii: false`, withholds) personal data. A withheld result is replaced by a notice telling the model not to act on it and to hand off if it cannot continue; the event is recorded in the trace with the tool name. A screen that fails is treated as a denial. The phrase list is narrow by design, so it is an alarm for obvious attempts; approvals, tool policies and supervisors remain the main controls. Specs without `output_guardrails` keep their existing digests.

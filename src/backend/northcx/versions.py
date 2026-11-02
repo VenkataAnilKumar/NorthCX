@@ -147,11 +147,11 @@ def diff_specs(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
             a.get("instructions", "").splitlines(), b.get("instructions", "").splitlines(), "before", "after", lineterm="", n=2))
     ta, tb = a.get("tools", []), b.get("tools", [])
     out["tools"] = {"added": [t for t in tb if t not in ta], "removed": [t for t in ta if t not in tb]}
-    for key in ("guardrails", "input_guardrails", "forced_handoff"):
+    for key in ("guardrails", "input_guardrails", "output_guardrails", "forced_handoff"):
         ia, ib = _by_name(a.get(key, [])), _by_name(b.get(key, []))
         out[key] = {"added": sorted(ib.keys() - ia.keys()), "removed": sorted(ia.keys() - ib.keys()),
                     "changed": sorted(k for k in ia.keys() & ib.keys() if ia[k] != ib[k])}
-    for key in sorted((set(a) | set(b)) - {"instructions", "tools", "guardrails", "input_guardrails", "forced_handoff"}):
+    for key in sorted((set(a) | set(b)) - {"instructions", "tools", "guardrails", "input_guardrails", "output_guardrails", "forced_handoff"}):
         if a.get(key) != b.get(key):
             out["other"][key] = {"from": a.get(key), "to": b.get(key)}
     return out

@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from .agent import Agent, ToolContext
 from .approvals import ApprovalRepo, ApprovalStore
-from .guardrails import GuardrailContext
+from .guardrails import GuardrailContext, InputResult
 from .handoffs import Handoff, HandoffRepo, InMemoryHandoffs, build_package
 from .outbox import Outbox
 from .secrets import NO_SECRETS, SecretStore
@@ -187,6 +187,7 @@ class Runtime:
                 try:
                     out, simulated = await self.execute_tool(tool, data, ctx)
                     out = self.secrets.redact(json.loads(json.dumps(out, default=str)))
+                    out = await self._screen_output(agent, use["name"], out, trace)
                     trace.add("tool_result", name=use["name"], output=out, **({"dry_run": True} if simulated else {}))
                     results.append({"type": "tool_result", "tool_use_id": use["id"], "content": json.dumps(out)})
                 except Exception as e:
@@ -195,6 +196,38 @@ class Runtime:
                     results.append(self._err(use, f"Tool error: {msg}"))
             messages.append({"role": "user", "content": results})
         return await finish(FALLBACK, "escalated", "step_limit", f"No final answer after {agent.max_steps} steps")
+
+    async def _screen_output(self, agent: Agent, tool: str, out: Any, trace: Trace) -> Any:
+        """Run the agent's output guardrails over every text value a tool returned."""
+        if not agent.output_guardrails:
+            return out
+        withheld: list[str] = []
+
+        async def walk(value: Any) -> Any:
+            if isinstance(value, str):
+                for g in agent.output_guardrails:
+                    try:
+                        res = await g.check_output(tool, value)
+                    except Exception as e:  # fail closed: an unchecked result is not shown to the model
+                        res = InputResult(False, reason=f"{g.name} failed: {type(e).__name__}")
+                    if res.reason:
+                        trace.add("guardrail", guardrail=g.name, reason=res.reason, stage="tool_output", tool=tool)
+                    if not res.allow:
+                        withheld.append(res.reason)
+                        return None
+                    if res.text is not None:
+                        value = res.text
+                return value
+            if isinstance(value, dict):
+                return {k: await walk(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [await walk(v) for v in value]
+            return value
+
+        screened = await walk(out)
+        if withheld:
+            return {"withheld": "The result of this tool was withheld by policy. Do not act on it; hand off to a person if you cannot continue."}
+        return screened
 
     async def create_handoff(self, *, agent_id: str, session_id: str, customer_id: str | None, trace: Trace,
                              messages: list[Message], trigger: str, reason: str, topics: list[str]) -> Handoff:
