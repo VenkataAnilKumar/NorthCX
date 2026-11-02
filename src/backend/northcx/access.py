@@ -17,13 +17,13 @@ VIEW = {"agents:read", "traces:read", "handoffs:read", "approvals:read", "simula
 DEVELOP = VIEW | {"versions:create", "simulations:run", "chat:send", "outbox:read"}
 ROLES: dict[str, frozenset[str]] = {
     "admin": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "approvals:decide", "handoffs:resolve",
-                                  "keys:manage", "audit:read", "chat:mint"}),
+                                  "keys:manage", "audit:read", "chat:mint", "channel:inbound"}),
     "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback"}),
     "developer": frozenset(DEVELOP),
     "reviewer": frozenset(VIEW | {"approvals:decide", "handoffs:resolve"}),
     "auditor": frozenset(VIEW | {"audit:read"}),
     "viewer": frozenset(VIEW),
-    "channel": frozenset({"chat:send", "outbox:read", "chat:mint"}),  # for the company's servers and channel adapters
+    "channel": frozenset({"chat:send", "outbox:read", "chat:mint", "channel:inbound"}),  # for the company's servers and channel adapters
 }
 # Roles that exist only inside the platform; a key can never be given one.
 INTERNAL_ROLES: dict[str, frozenset[str]] = {

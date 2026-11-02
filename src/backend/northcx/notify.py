@@ -22,6 +22,24 @@ def verify(secret: str, timestamp: str, body: bytes, signature: str, tolerance: 
     return hmac.compare_digest(sign(secret, timestamp, body), signature)
 
 
+class CompositeNotifier:
+    """Several notifiers behind one outbox. Each ignores messages that are not its business; if any that applies fails,
+    the message is retried (the others must therefore tolerate being told again)."""
+
+    def __init__(self, *notifiers) -> None:
+        self.notifiers = notifiers
+
+    async def deliver(self, message: OutboxMessage) -> None:
+        errors = []
+        for n in self.notifiers:
+            try:
+                await n.deliver(message)
+            except Exception as e:
+                errors.append(e)
+        if errors:
+            raise RuntimeError("; ".join(str(e) for e in errors))
+
+
 class WebhookNotifier:
     """POSTs each message as JSON, signed with HMAC-SHA256 over `timestamp.body`. Retries with backoff."""
 

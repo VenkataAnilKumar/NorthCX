@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from ..access import ApiKey
 from ..approvals import Approval
+from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
 from ..simulation.store import SimRun
@@ -18,7 +19,7 @@ from ..versions import AgentVersion, Release
 from ..outbox import OutboxMessage
 from ..trace import Trace, TraceEvent, TraceSummary
 from ..types import Message
-from .models import ApprovalRow, FactRow, HandoffRow, AgentVersionRow, ApiKeyRow, AuditRow, MessageRow, OutboxRow, ReleaseRow, SimRunRow, SessionRow, TraceEventRow, TraceRow
+from .models import ApprovalRow, FactRow, HandoffRow, AgentVersionRow, ApiKeyRow, AuditRow, EmailMessageRow, EmailSessionRow, MessageRow, OutboxRow, ReleaseRow, SimRunRow, SessionRow, TraceEventRow, TraceRow
 
 
 def _jsonable(value: Any) -> Any:
@@ -172,7 +173,7 @@ class PgOutbox(_Base):
     @staticmethod
     def _to_msg(r: OutboxRow) -> OutboxMessage:
         return OutboxMessage(r.session_id, r.kind, r.payload, id=r.id, created_at=r.created_at,
-                             delivered_at=r.delivered_at, attempts=r.attempts)
+                             delivered_at=r.delivered_at, attempts=r.attempts, last_attempt_at=r.last_attempt_at)
 
     async def add(self, session_id: str, kind: str, payload: dict[str, Any]) -> OutboxMessage:
         async with self._sm.begin() as s:
@@ -186,15 +187,19 @@ class PgOutbox(_Base):
                                     .order_by(OutboxRow.id).limit(limit))).scalars().all()
         return [self._to_msg(r) for r in rows]
 
-    async def undelivered(self, limit: int = 100) -> list[OutboxMessage]:
+    async def undelivered(self, limit: int = 100, max_attempts: int | None = None) -> list[OutboxMessage]:
+        q = select(OutboxRow).where(OutboxRow.delivered_at.is_(None)).order_by(OutboxRow.id).limit(limit)
+        if max_attempts is not None:
+            q = q.where(OutboxRow.attempts < max_attempts)
         async with self._sm() as s:
-            rows = (await s.execute(select(OutboxRow).where(OutboxRow.delivered_at.is_(None)).order_by(OutboxRow.id).limit(limit))).scalars().all()
+            rows = (await s.execute(q)).scalars().all()
         return [self._to_msg(r) for r in rows]
 
-    async def record_attempt(self, message_id: int, delivered: bool) -> None:
-        values: dict[str, Any] = {"attempts": OutboxRow.attempts + 1}
+    async def record_attempt(self, message_id: int, delivered: bool, at: float | None = None) -> None:
+        at = at if at is not None else time.time()
+        values: dict[str, Any] = {"attempts": OutboxRow.attempts + 1, "last_attempt_at": at}
         if delivered:
-            values["delivered_at"] = time.time()
+            values["delivered_at"] = at
         async with self._sm.begin() as s:
             await s.execute(update(OutboxRow).where(OutboxRow.id == message_id).values(**values))
 
@@ -408,3 +413,54 @@ class PgAudit(_Base):
         async with self._sm() as s:
             rows = (await s.execute(select(AuditRow).order_by(AuditRow.id))).scalars().all()
         return verify_entries([self._to_entry(r) for r in rows])
+
+
+class PgEmailRepo(_Base):
+    @staticmethod
+    def _to_session(r: EmailSessionRow) -> EmailSession:
+        return EmailSession(session_id=r.session_id, sender=r.sender, subject=r.subject, last_message_id=r.last_message_id,
+                            customer_id=r.customer_id, verified=r.verified, references=list(r.references), created_at=r.created_at)
+
+    async def get_session(self, session_id: str) -> EmailSession | None:
+        async with self._sm() as s:
+            r = (await s.execute(select(EmailSessionRow).where(EmailSessionRow.session_id == session_id))).scalar_one_or_none()
+        return self._to_session(r) if r else None
+
+    async def find_session(self, message_ids: list[str]) -> EmailSession | None:
+        if not message_ids:
+            return None
+        async with self._sm() as s:
+            rows = (await s.execute(select(EmailMessageRow.message_id, EmailMessageRow.session_id)
+                                    .where(EmailMessageRow.message_id.in_(message_ids)))).all()
+            by_id = {r.message_id: r.session_id for r in rows}
+            for mid in message_ids:  # nearest first
+                sid = by_id.get(mid)
+                if sid:
+                    r = (await s.execute(select(EmailSessionRow).where(EmailSessionRow.session_id == sid))).scalar_one_or_none()
+                    if r:
+                        return self._to_session(r)
+        return None
+
+    async def save_session(self, session: EmailSession) -> None:
+        values = dict(session_id=session.session_id, sender=session.sender, subject=session.subject[:500],
+                      customer_id=session.customer_id, verified=session.verified, last_message_id=session.last_message_id,
+                      references=session.references, created_at=session.created_at)
+        async with self._sm.begin() as s:
+            await s.execute(pg_insert(EmailSessionRow).values(**values).on_conflict_do_update(
+                index_elements=[EmailSessionRow.session_id], set_={k: v for k, v in values.items() if k != "session_id"}))
+
+    async def has_message(self, message_id: str) -> bool:
+        async with self._sm() as s:
+            return (await s.execute(select(EmailMessageRow.message_id).where(EmailMessageRow.message_id == message_id))).first() is not None
+
+    async def record_message(self, message_id: str, session_id: str, direction: str, outcome: str, peer: str) -> bool:
+        async with self._sm.begin() as s:
+            res = await s.execute(pg_insert(EmailMessageRow).values(
+                message_id=message_id[:998], session_id=session_id, direction=direction, outcome=outcome, peer=peer, created_at=time.time()
+            ).on_conflict_do_nothing(index_elements=[EmailMessageRow.message_id]))
+            return res.rowcount == 1
+
+    async def recent_count(self, peer: str, direction: str, since: float) -> int:
+        async with self._sm() as s:
+            return (await s.execute(select(func.count()).select_from(EmailMessageRow).where(
+                EmailMessageRow.peer == peer, EmailMessageRow.direction == direction, EmailMessageRow.created_at >= since))).scalar_one()

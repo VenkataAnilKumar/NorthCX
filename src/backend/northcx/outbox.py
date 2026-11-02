@@ -17,13 +17,14 @@ class OutboxMessage:
     created_at: float = field(default_factory=time.time)
     delivered_at: float | None = None
     attempts: int = 0
+    last_attempt_at: float | None = None
 
 
 class OutboxRepo(Protocol):
     async def add(self, session_id: str, kind: str, payload: dict[str, Any]) -> OutboxMessage: ...
     async def list(self, session_id: str, after_id: int = 0, limit: int = 100) -> list[OutboxMessage]: ...
-    async def undelivered(self, limit: int = 100) -> list[OutboxMessage]: ...
-    async def record_attempt(self, message_id: int, delivered: bool) -> None: ...
+    async def undelivered(self, limit: int = 100, max_attempts: int | None = None) -> list[OutboxMessage]: ...
+    async def record_attempt(self, message_id: int, delivered: bool, at: float | None = None) -> None: ...
 
 
 class InMemoryOutbox:
@@ -38,14 +39,16 @@ class InMemoryOutbox:
     async def list(self, session_id: str, after_id: int = 0, limit: int = 100) -> list[OutboxMessage]:
         return [m for m in self._items if m.session_id == session_id and m.id > after_id][:limit]
 
-    async def undelivered(self, limit: int = 100) -> list[OutboxMessage]:
-        return [m for m in self._items if m.delivered_at is None][:limit]
+    async def undelivered(self, limit: int = 100, max_attempts: int | None = None) -> list[OutboxMessage]:
+        return [m for m in self._items if m.delivered_at is None and (max_attempts is None or m.attempts < max_attempts)][:limit]
 
-    async def record_attempt(self, message_id: int, delivered: bool) -> None:
+    async def record_attempt(self, message_id: int, delivered: bool, at: float | None = None) -> None:
+        at = at if at is not None else time.time()
         m = self._items[message_id - 1]
         m.attempts += 1
+        m.last_attempt_at = at
         if delivered:
-            m.delivered_at = time.time()
+            m.delivered_at = at
 
 
 class Notifier(Protocol):
@@ -66,20 +69,24 @@ class Outbox:
             await self._push(m)
         return m
 
-    async def _push(self, m: OutboxMessage) -> bool:
+    async def _push(self, m: OutboxMessage, now: float | None = None) -> bool:
         try:
             await self.notifier.deliver(m)  # type: ignore[union-attr]
         except Exception:
-            await self.repo.record_attempt(m.id, False)
+            await self.repo.record_attempt(m.id, False, now)
             return False
-        await self.repo.record_attempt(m.id, True)
+        await self.repo.record_attempt(m.id, True, now)
         return True
 
-    async def flush(self) -> int:
-        """Retry every undelivered message; returns how many were delivered."""
+    async def flush(self, now: float | None = None, max_attempts: int = 12) -> int:
+        """Retry undelivered messages whose back-off has passed (30 s, doubling to an hour, between attempts), giving up
+        after `max_attempts` (the message stays stored and visible). Returns how many were delivered."""
         if not self.notifier:
             return 0
-        return sum([await self._push(m) for m in await self.repo.undelivered()])
+        now = now if now is not None else time.time()
+        due = [m for m in await self.repo.undelivered(200, max_attempts)
+               if m.last_attempt_at is None or now - m.last_attempt_at >= min(30 * 2 ** max(m.attempts - 1, 0), 3600)]
+        return sum([await self._push(m, now) for m in due])
 
     async def list(self, session_id: str, after_id: int = 0, limit: int = 100) -> list[OutboxMessage]:
         return await self.repo.list(session_id, after_id, limit)

@@ -36,3 +36,16 @@ Embeddable client with streaming, attachments and handoff status.
 
 ## Open questions
 Streaming replies on the API, identity verification per channel, and per-channel style guidance in instructions.
+
+
+## Email channel — as built
+
+- **Inbound:** `POST /v1/channels/email/inbound` with the raw message as the body (≤ 1,000,000 bytes). Requires the `channel:inbound` permission (`channel` and `admin` roles). Responses: `{status, sessionId, reason, traceId, handoffId}`; `status` is `replied`, `escalated`, `needs_approval`, `held_for_person`, `rate_limited`, `ignored` or `duplicate`. 400 unusable message, 413 too large, 501 channel not configured, 500 internal (the gateway should redeliver; nothing is lost because messages are recorded only after handling).
+- **Parsing:** plain text preferred, HTML reduced to text, quoted history and signatures removed, attachments listed by name but never read, header injection neutralised.
+- **Threading:** `In-Reply-To`/`References` map to a session; a message from a different address starts a new conversation.
+- **Never answered:** `Auto-Submitted`, bulk/list mail, bounces, no-reply senders, our own address, duplicates (by Message-ID).
+- **Identity:** anonymous unless the gateway reports `dmarc=pass` and `NORTHCX_EMAIL_TRUST_AUTH_RESULTS=1`.
+- **Outbound:** SMTP (`smtp://`, `smtp+starttls://`, `smtps://`) through the outbox, so approval results and handoff notices are emailed in the same thread; retried with back-off, exactly once per message.
+- **Configuration:** `NORTHCX_EMAIL_FROM`, `NORTHCX_SMTP_URL` (or `_FILE`), `NORTHCX_EMAIL_AGENT`, `NORTHCX_EMAIL_FROM_NAME`, `NORTHCX_EMAIL_TRUST_AUTH_RESULTS`, `NORTHCX_EMAIL_MAX_REPLIES_PER_HOUR`.
+- **Storage:** migration 0007 (`email_sessions`, `email_messages`, `outbox.last_attempt_at`).
+- **Limits:** no attachments or inline images read; no IMAP polling; replies are plain text.

@@ -62,4 +62,9 @@
 | 59 | The customer id comes from the token, not the request | Decided, built | The company's server vouches for who the customer is |
 | 60 | A token's validity depends on its minting key staying active; individual tokens are not revocable | Decided | Keep lifetimes short |
 | 61 | Token signing secret derives from the bootstrap key unless `NORTHCX_TOKEN_SECRET` is set | Decided, built | |
+| 62 | Email arrives as raw RFC 822 POSTed by the customer's mail gateway (no built-in IMAP/SMTP listener); replies leave over SMTP | Decided, built | Keeps the runtime out of the mail-server business |
+| 63 | Sender address is a customer identity only if the trusted gateway reports `dmarc=pass`; otherwise anonymous | Decided, built | Header is ignored unless `NORTHCX_EMAIL_TRUST_AUTH_RESULTS=1` |
+| 64 | A different sender never joins an existing thread; auto-mail, lists, bounces and our own mail are never answered; per-sender hourly reply cap | Decided, built | Prevents loops and mail-bombing |
+| 65 | Mail from a conversation with an open handoff is recorded for the person, not answered by the agent | Decided, built | Resumes after the handoff is resolved |
+| 66 | Outbox now retries with back-off and a background flush runs every 15 s | Decided, built | Failed sends are retried, never duplicated (deterministic Message-ID) |
 | 9 | Contribution model: DCO vs CLA | Open | |

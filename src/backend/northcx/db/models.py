@@ -184,4 +184,29 @@ class OutboxRow(Base):
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
     delivered_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    last_attempt_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     __table_args__ = (Index("ix_outbox_session", "session_id", "id"),)
+
+
+class EmailSessionRow(Base):
+    __tablename__ = "email_sessions"
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    sender: Mapped[str] = mapped_column(String(320), nullable=False)
+    subject: Mapped[str] = mapped_column(String(500), nullable=False)
+    customer_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    verified: Mapped[bool] = mapped_column(nullable=False)
+    last_message_id: Mapped[str] = mapped_column(String(998), nullable=False)
+    references: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_email_sessions_sender", "sender"),)
+
+
+class EmailMessageRow(Base):
+    __tablename__ = "email_messages"
+    message_id: Mapped[str] = mapped_column(String(998), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    direction: Mapped[str] = mapped_column(String(3), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False)
+    peer: Mapped[str] = mapped_column(String(320), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_email_messages_session", "session_id"), Index("ix_email_messages_peer", "peer", "direction", "created_at"))

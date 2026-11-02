@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from .access import ROLES, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
+from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
 from .audit import AuditEntry, AuditRepo, InMemoryAudit
@@ -105,6 +106,7 @@ def _err(status: int, code: str, message: str) -> JSONResponse:
 ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/me", "authenticated"),
     ("POST", r"/v1/chat-tokens", "chat:mint"),
+    ("POST", r"/v1/channels/email/inbound", "channel:inbound"),
     ("POST", r"/v1/agents/[^/]+/chat", "chat:send"),
     ("GET", r"/v1/sessions/[^/]+/outbox", "outbox:read"),
     ("GET", r"/v1/traces", "traces:read"),
@@ -145,7 +147,7 @@ def permission_for(method: str, path: str) -> str | None:
 def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], api_key: str | None = None,
                approval_ttl_seconds: float | None = None, simulations: SimulationService | None = None,
                releases: ReleaseService | None = None, access: AccessControl | None = None,
-               audit: AuditRepo | None = None) -> FastAPI:
+               audit: AuditRepo | None = None, email: EmailChannel | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -158,7 +160,17 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        task = None
+        task = flusher = None
+        if runtime.outbox.notifier is not None:  # retry deliveries that failed (email, webhooks) with back-off
+            async def flush_loop() -> None:
+                while True:
+                    await asyncio.sleep(15)
+                    try:
+                        await runtime.outbox.flush()
+                    except Exception:
+                        log.exception("outbox flush failed")
+
+            flusher = asyncio.create_task(flush_loop())
         if approval_ttl_seconds:  # periodically expire stale approvals and hand those conversations to a person
             async def sweep() -> None:
                 while True:
@@ -170,8 +182,9 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
             task = asyncio.create_task(sweep())
         yield
-        if task:
-            task.cancel()
+        for t in (task, flusher):
+            if t:
+                t.cancel()
 
     # The interactive API docs are off: they would describe the API to anyone who can reach the server.
     app = FastAPI(title="NorthCX", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
@@ -440,6 +453,32 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             out.append({"agent": g.agent_id, "agentDigest": g.agent_digest, "satisfied": g.satisfied, "required": g.required,
                         "covered": g.covered, "reasons": g.reasons, "runIds": g.run_ids})
         return {"gates": out}
+
+    # ---------------- email channel ----------------
+    MAX_EMAIL_BYTES = 1_000_000
+
+    @app.post("/v1/channels/email/inbound")
+    async def email_inbound(request: Request) -> Any:
+        """The company's mail system forwards each raw message here (Content-Type message/rfc822)."""
+        if email is None:
+            return _err(501, "not_configured", "The email channel is not configured (set NORTHCX_EMAIL_FROM and NORTHCX_SMTP_URL)")
+        declared = request.headers.get("content-length")
+        if declared and declared.isdigit() and int(declared) > MAX_EMAIL_BYTES:
+            return _err(413, "too_large", "Message is too large")
+        raw = b""
+        async for chunk in request.stream():
+            raw += chunk
+            if len(raw) > MAX_EMAIL_BYTES:
+                return _err(413, "too_large", "Message is too large")
+        try:
+            res = await email.receive(raw)
+        except EmailParseError as e:
+            return _err(400, "bad_message", str(e))
+        except Exception:
+            log.exception("email inbound failed")
+            return _err(500, "internal", "Could not process the message; it can be delivered again")
+        return {"status": res.status, "sessionId": res.session_id, "reason": res.reason, "traceId": res.trace_id,
+                "handoffId": res.handoff_id}
 
     # ---------------- chat tokens ----------------
     @app.post("/v1/chat-tokens", status_code=201)

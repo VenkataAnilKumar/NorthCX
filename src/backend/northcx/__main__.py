@@ -8,7 +8,8 @@ from .access import AccessControl, InMemoryKeys, LimitConfig
 from .tokens import TokenSigner, derive_secret
 from .config import load_registry
 from .audit import InMemoryAudit
-from .db import (PgApprovalStore, PgAudit, PgHandoffs, PgKeys, PgMemoryStore, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
+from .channels.email import EmailChannel, EmailConfig, EmailNotifier, InMemoryEmailRepo, SmtpSender
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgKeys, PgMemoryStore, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -74,12 +75,14 @@ def run() -> None:
         outbox_repo, handoffs, sim_runs = PgOutbox(engine), PgHandoffs(engine), PgSimRuns(engine)
         versions_repo, releases_repo = PgVersions(engine), PgReleases(engine)
         keys_repo, audit_repo = PgKeys(engine), PgAudit(engine)
+        email_repo = PgEmailRepo(engine)
         print("Using Postgres storage.")
     else:
         store, traces, approvals = InMemoryStore(), TraceStore(os.environ.get("NORTHCX_TRACE_DIR")), None
         outbox_repo, handoffs, sim_runs = None, None, InMemorySimRuns()
         versions_repo, releases_repo = InMemoryVersions(), InMemoryReleases()
         keys_repo, audit_repo = InMemoryKeys(), InMemoryAudit()
+        email_repo = InMemoryEmailRepo()
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
 
     notifier = None
@@ -90,6 +93,22 @@ def run() -> None:
         from .notify import WebhookNotifier
 
         notifier = WebhookNotifier(os.environ["NORTHCX_WEBHOOK_URL"], secret)
+    email_config = email_notifier = None
+    if os.environ.get("NORTHCX_EMAIL_FROM"):
+        smtp_url = env_or_file("NORTHCX_SMTP_URL")
+        if not smtp_url:
+            sys.exit("NORTHCX_EMAIL_FROM needs NORTHCX_SMTP_URL (or NORTHCX_SMTP_URL_FILE)")
+        email_config = EmailConfig(os.environ["NORTHCX_EMAIL_FROM"].strip(), os.environ.get("NORTHCX_EMAIL_AGENT", "support"),
+                                   os.environ.get("NORTHCX_EMAIL_TRUST_AUTH_RESULTS") == "1",
+                                   int(os.environ.get("NORTHCX_EMAIL_MAX_REPLIES_PER_HOUR", 6)),
+                                   from_name=os.environ.get("NORTHCX_EMAIL_FROM_NAME", ""))
+        try:
+            email_notifier = EmailNotifier(email_repo, SmtpSender(smtp_url), email_config)
+        except ValueError as e:
+            sys.exit(f"Configuration error: {e}")
+        from .notify import CompositeNotifier
+
+        notifier = CompositeNotifier(*[n for n in (notifier, email_notifier) if n])
     runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets)
 
     # Agents and scenarios are files; the registry maps their tool names to code (the example registry for now).
@@ -151,7 +170,8 @@ def run() -> None:
 
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
-                      access=access, audit=audit_repo)
+                      access=access, audit=audit_repo,
+                      email=EmailChannel(runtime, agents, email_repo, email_config) if email_config else None)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
 
 
