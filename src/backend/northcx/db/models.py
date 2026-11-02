@@ -47,6 +47,7 @@ class TraceRow(Base):
     started_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     tools: Mapped[Any] = mapped_column(JSONB, nullable=False)
     event_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    agent_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     __table_args__ = (Index("ix_traces_session", "session_id"), Index("ix_traces_started", "started_at"))
 
 
@@ -112,6 +113,36 @@ class SimRunRow(Base):
     meta: Mapped[Any] = mapped_column(JSONB, nullable=False)
     results: Mapped[Any] = mapped_column(JSONB, nullable=False)
     __table_args__ = (Index("ix_simulation_runs_created", "created_at"),)
+
+
+class AgentVersionRow(Base):
+    __tablename__ = "agent_versions"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    number: Mapped[int] = mapped_column(Integer, nullable=False)
+    spec: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    author: Mapped[str] = mapped_column(String(200), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (UniqueConstraint("agent_id", "number", name="uq_agent_versions_number"),)
+
+
+class ReleaseRow(Base):
+    __tablename__ = "releases"
+    seq: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    environment: Mapped[str] = mapped_column(String(32), nullable=False)
+    action: Mapped[str] = mapped_column(String(16), nullable=False)
+    version_id: Mapped[str | None] = mapped_column(String(64), ForeignKey("agent_versions.id"), nullable=True)
+    number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    previous_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    by: Mapped[str] = mapped_column(String(200), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    gate: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_releases_agent_env", "agent_id", "environment", "seq"),)
 
 
 class OutboxRow(Base):

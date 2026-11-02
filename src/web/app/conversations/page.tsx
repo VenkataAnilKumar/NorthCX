@@ -28,13 +28,13 @@ function List() {
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-muted"><tr>
-              <th className="p-3 font-medium">Started</th><th className="p-3 font-medium">Agent</th><th className="p-3 font-medium">Session</th>
+              <th className="p-3 font-medium">Started</th><th className="p-3 font-medium">Agent</th><th className="p-3 font-medium">Version</th><th className="p-3 font-medium">Session</th>
               <th className="p-3 font-medium">Tools</th><th className="p-3 font-medium">Status</th><th className="p-3"><span className="sr-only">Open</span></th>
             </tr></thead>
             <tbody>{data.map((t) => (
               <tr key={t.id} className="border-b border-border last:border-0">
                 <td className="p-3 whitespace-nowrap">{formatTime(t.startedAt)}</td>
-                <td className="p-3">{t.agentId}</td>
+                <td className="p-3">{t.agentId}</td><td className="p-3">{t.agentVersion ? `v${t.agentVersion}` : "file"}</td>
                 <td className="p-3 font-mono text-xs">{t.sessionId.slice(0, 8)}</td>
                 <td className="p-3">{t.tools.join(", ") || "–"}</td>
                 <td className="p-3"><StatusBadge status={t.status} /></td>

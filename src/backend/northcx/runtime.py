@@ -51,7 +51,7 @@ class Runtime:
                   trusted: bool = False) -> RunResult:
         """`trusted=True` is for messages the platform itself writes (for example an approval outcome); they skip
         the customer input checks and are traced as `system` events."""
-        trace = Trace(agent.id, session_id)
+        trace = Trace(agent.id, session_id, agent_version=agent.version)
         messages: list[Message] = await self.store.load_messages(session_id)
         facts = await self.store.get_facts(customer_id) if customer_id else {}
         ctx = ToolContext(session_id, customer_id, self.store)

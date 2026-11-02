@@ -48,5 +48,7 @@ class Agent:
     guardrails: list[Guardrail] = field(default_factory=list)
     input_guardrails: list[InputGuardrail] = field(default_factory=list)
     forced_handoffs: list[ForcedTopic] = field(default_factory=list)  # topics that always go to a person
+    version: int | None = None  # set when served from a released version
+    digest: str | None = None
     model: str | None = None
     max_steps: int = 8

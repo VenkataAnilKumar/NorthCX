@@ -19,13 +19,13 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [x] Simulation runner, scenario format, 15 example scenarios, command line, judge and agreement check (Q2, part of Q3)
 - [x] CI runs the scripted suite and fails on a required scenario (first part of Q4)
 - [x] Stored simulation runs, release-gate rule, simulation API and web page, CI records its run (sprint 9)
-- [ ] Enforce the gate when promoting a version (sprint 10, with versions)
+- [x] Gate enforced when publishing a version (sprint 10)
 - [ ] Calibrate the judge against human-labelled conversations with a real model (Q3)
 - [x] Postgres stores (sessions, facts, traces, approvals) and migrations (K3); contract tests over both implementations; CI database service
 - [ ] Retention and deletion jobs (Phase 3)
 - [x] Approval resume (R10): decision, exactly-once execution with idempotency key, supervisor re-check, agent follow-up, outbox with signed webhook option, expiry sweeper
 - [x] Handoff package (H4), handoff queue with resolve, and forced-handoff topics (S7); web handoffs page
-- [ ] Versions, diff, rollback (Q8, Q10)
+- [x] Immutable versions, diff, gated publishing, rollback, release history, live-agent serving, agent version on traces (Q8, Q10); web page for versions and releases
 - [ ] Roles, scoped keys, audit log, rate limits (P2-P4)
 - [ ] Secrets handling, dry-run mode (T7, T8)
 - [ ] Container image and deployment guide (P7)

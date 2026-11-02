@@ -130,3 +130,36 @@ describe("simulation calls", () => {
       expect(renderToStaticMarkup(createElement(StatusBadge, { status: s }))).toContain(label);
   });
 });
+
+describe("version and release calls", () => {
+  it("creates versions from YAML, publishes with a note and keeps gate reasons on errors", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push([url, init]);
+      if (url.endsWith("/releases") && init?.method === "POST")
+        return new Response(JSON.stringify({ error: { code: "gate_not_satisfied", message: "The release gate is not satisfied", reasons: ["a: not run", "b: failed"] } }), { status: 409 });
+      return new Response(JSON.stringify({ number: 2 }), { status: 200 });
+    }));
+    const { createVersion, publishVersion, rollbackAgent, diffVersions, versionGate, runForVersion, ApiError } = await import("@/lib/api");
+    await createVersion("support", "id: support\n", "dev", "tweak");
+    expect(calls[0][0]).toBe("/api/northcx/v1/agents/support/versions");
+    expect(JSON.parse(String(calls[0][1]?.body))).toEqual({ specYaml: "id: support\n", by: "dev", note: "tweak" });
+    const err = await publishVersion("support", 2, "rel", "go").catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(409);
+    expect(err.reasons).toEqual(["a: not run", "b: failed"]);
+    await rollbackAgent("support", "oncall");
+    expect(JSON.parse(String(calls[2][1]?.body))).toEqual({ by: "oncall" });
+    await diffVersions("support", 1, 2);
+    expect(calls[3][0]).toBe("/api/northcx/v1/agents/support/versions/1/diff/2");
+    await runForVersion("support", 2);
+    expect(JSON.parse(String(calls[4][1]?.body))).toEqual({ mode: "scripted", skipJudge: true, agent: "support", version: 2 });
+    await versionGate("support", 2).catch(() => undefined);
+    expect(calls[5][0]).toBe("/api/northcx/v1/simulations/gate?agent=support&version=2");
+  });
+
+  it("renders release action badges", () => {
+    for (const [s, label] of [["live", "Live"], ["publish", "Publish"], ["rollback", "Rollback"]])
+      expect(renderToStaticMarkup(createElement(StatusBadge, { status: s }))).toContain(label);
+  });
+});

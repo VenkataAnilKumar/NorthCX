@@ -18,6 +18,7 @@ export default function TestConsole() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [trace, setTrace] = useState<Trace | null>(null);
+  const [version, setVersion] = useState<number | null | undefined>(undefined);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { if (agents.data?.length && !agentId) setAgentId(agents.data[0].id); }, [agents.data, agentId]);
@@ -52,6 +53,7 @@ export default function TestConsole() {
       const r = await chat(agentId, sessionId, message);
       setTurns((t) => [...t, { from: "agent", text: r.reply, status: r.status, handoffId: r.handoffId }]);
       setTrace(await getTrace(r.traceId));
+      setVersion(r.agentVersion);
     } catch (err) {
       setError((err as Error).message);
     } finally { setBusy(false); }
@@ -99,7 +101,7 @@ export default function TestConsole() {
           </form>
         </section>
         <section aria-label="Trace">
-          <h2 className="mb-2 text-sm font-medium text-muted">Latest trace {trace && <span>· {statusLabel[trace.events.at(-1)?.data.status as string] ?? ""}</span>}</h2>
+          <h2 className="mb-2 text-sm font-medium text-muted">Latest trace {trace && <span>· {statusLabel[trace.events.at(-1)?.data.status as string] ?? ""}{version !== undefined && ` · agent ${version ? `version ${version}` : "from spec file"}`}</span>}</h2>
           {trace ? <TraceTimeline events={trace.events} /> : <p className="text-sm text-muted">The trace for the latest reply appears here.</p>}
         </section>
       </div>

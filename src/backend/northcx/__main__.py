@@ -4,8 +4,8 @@ from pathlib import Path
 
 import uvicorn
 
-from .db import (PgApprovalStore, PgHandoffs, PgMemoryStore, PgOutbox, PgSimRuns, PgTraceStore, create_engine,
-                 database_url_from_env, migrate)
+from .db import (PgApprovalStore, PgHandoffs, PgMemoryStore, PgOutbox, PgReleases, PgSimRuns, PgTraceStore, PgVersions,
+                 create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
 from .runtime import Runtime
@@ -14,6 +14,7 @@ from .simulation import InMemorySimRuns, ScenarioError, SimulationService, load_
 from .spec import BuildContext, SpecError, load_specs
 from .store import InMemoryStore
 from .trace import TraceStore
+from .versions import InMemoryReleases, InMemoryVersions, LiveAgents, ReleaseService
 
 
 def main() -> None:
@@ -37,10 +38,12 @@ def main() -> None:
         engine = create_engine(db_url)
         store, traces, approvals = PgMemoryStore(engine), PgTraceStore(engine), PgApprovalStore(engine)
         outbox_repo, handoffs, sim_runs = PgOutbox(engine), PgHandoffs(engine), PgSimRuns(engine)
+        versions_repo, releases_repo = PgVersions(engine), PgReleases(engine)
         print("Using Postgres storage.")
     else:
         store, traces, approvals = InMemoryStore(), TraceStore(os.environ.get("NORTHCX_TRACE_DIR")), None
         outbox_repo, handoffs, sim_runs = None, None, InMemorySimRuns()
+        versions_repo, releases_repo = InMemoryVersions(), InMemoryReleases()
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
 
     notifier = None
@@ -59,7 +62,10 @@ def main() -> None:
     try:
         reg = registry()
         specs = {s.id: s for s in load_specs(specs_dir)}
-        agents = {i: reg.build(s, BuildContext(llm=llm)) for i, s in specs.items()}
+        baseline = {}
+        for i, s in specs.items():  # agents defined by spec files; they serve until a version is released
+            baseline[i] = reg.build(s, BuildContext(llm=llm))
+            baseline[i].digest = s.digest()
         scenarios = load_scenarios(scenarios_dir) if Path(scenarios_dir).exists() else []
     except (SpecError, ScenarioError) as e:
         sys.exit(f"Invalid configuration: {e}")
@@ -70,10 +76,19 @@ def main() -> None:
             return reg.build(specs[agent_id], BuildContext(llm=sim_llm))
 
         simulations = SimulationService(scenarios, factory, sim_runs, {i: s.digest() for i, s in specs.items()},
-                                        live_llm=None if demo else llm, judge_llm=None if demo else llm)
+                                        live_llm=None if demo else llm, judge_llm=None if demo else llm,
+                                        spec_builder=lambda spec, sim_llm: reg.build(spec, BuildContext(llm=sim_llm)))
+    release_service = ReleaseService(versions_repo, releases_repo, reg, specs, simulations)
+
+    def build_live(spec):
+        agent = reg.build(spec, BuildContext(llm=llm))
+        agent.digest = spec.digest()
+        return agent
+
+    agents = LiveAgents(baseline, release_service, build_live)
 
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
-    app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations)
+    app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
 
 

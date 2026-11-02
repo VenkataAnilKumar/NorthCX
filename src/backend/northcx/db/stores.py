@@ -12,10 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from ..approvals import Approval
 from ..handoffs import Handoff
 from ..simulation.store import SimRun
+from ..versions import AgentVersion, Release
 from ..outbox import OutboxMessage
 from ..trace import Trace, TraceEvent, TraceSummary
 from ..types import Message
-from .models import ApprovalRow, FactRow, HandoffRow, MessageRow, OutboxRow, SimRunRow, SessionRow, TraceEventRow, TraceRow
+from .models import ApprovalRow, FactRow, HandoffRow, AgentVersionRow, MessageRow, OutboxRow, ReleaseRow, SimRunRow, SessionRow, TraceEventRow, TraceRow
 
 
 def _jsonable(value: Any) -> Any:
@@ -65,10 +66,11 @@ class PgMemoryStore(_Base):
 class PgTraceStore(_Base):
     async def save(self, trace: Trace) -> None:
         summary = TraceSummary(trace.id, trace.agent_id, trace.session_id, len(trace.events), trace.status(),
-                               trace.events[0].t if trace.events else None, trace.tools_called())
+                               trace.events[0].t if trace.events else None, trace.tools_called(), trace.agent_version)
         async with self._sm.begin() as s:
             values = dict(id=trace.id, session_id=trace.session_id, agent_id=trace.agent_id, status=summary.status,
-                          started_at=summary.started_at, tools=summary.tools, event_count=summary.events)
+                          started_at=summary.started_at, tools=summary.tools, event_count=summary.events,
+                          agent_version=summary.agent_version)
             await s.execute(pg_insert(TraceRow).values(**values).on_conflict_do_update(
                 index_elements=[TraceRow.id], set_={k: v for k, v in values.items() if k != "id"}))
             await s.execute(delete(TraceEventRow).where(TraceEventRow.trace_id == trace.id))
@@ -85,7 +87,7 @@ class PgTraceStore(_Base):
                 return None
             events = (await s.execute(
                 select(TraceEventRow).where(TraceEventRow.trace_id == trace_id).order_by(TraceEventRow.seq))).scalars().all()
-        t = Trace(agent_id=row.agent_id, session_id=row.session_id, id=row.id)
+        t = Trace(agent_id=row.agent_id, session_id=row.session_id, id=row.id, agent_version=row.agent_version)
         t.events = [TraceEvent(e.t, e.type, e.data) for e in events]
         return t
 
@@ -95,7 +97,8 @@ class PgTraceStore(_Base):
             q = q.where(TraceRow.session_id == session_id)
         async with self._sm() as s:
             rows = (await s.execute(q)).scalars().all()
-        return [TraceSummary(r.id, r.agent_id, r.session_id, r.event_count, r.status, r.started_at, list(r.tools)) for r in rows]
+        return [TraceSummary(r.id, r.agent_id, r.session_id, r.event_count, r.status, r.started_at, list(r.tools), r.agent_version)
+                for r in rows]
 
 
 class PgApprovalStore(_Base):
@@ -260,3 +263,69 @@ class PgSimRuns(_Base):
         async with self._sm() as s:
             rows = (await s.execute(select(SimRunRow).order_by(SimRunRow.created_at.desc()).limit(limit))).scalars().all()
         return [self._to_run(r) for r in rows]
+
+
+class PgVersions(_Base):
+    @staticmethod
+    def _to_version(r: AgentVersionRow) -> AgentVersion:
+        return AgentVersion(agent_id=r.agent_id, number=r.number, spec=r.spec, digest=r.digest, author=r.author, note=r.note,
+                            id=r.id, created_at=r.created_at)
+
+    async def create(self, agent_id: str, spec: dict[str, Any], digest: str, author: str, note: str | None) -> AgentVersion:
+        """Numbers are assigned inside one transaction under a per-agent lock, so they are gapless and unique."""
+        async with self._sm.begin() as s:
+            await s.execute(text("select pg_advisory_xact_lock(hashtext(:k))"), {"k": f"agent_versions:{agent_id}"})
+            last = (await s.execute(select(func.max(AgentVersionRow.number)).where(AgentVersionRow.agent_id == agent_id))).scalar()
+            v = AgentVersion(agent_id, (last or 0) + 1, spec, digest, author, note)
+            await s.execute(pg_insert(AgentVersionRow).values(
+                id=v.id, agent_id=agent_id, number=v.number, spec=_jsonable(spec), digest=digest, author=author, note=note,
+                created_at=v.created_at))
+            return v
+
+    async def get(self, version_id: str) -> AgentVersion | None:
+        async with self._sm() as s:
+            r = (await s.execute(select(AgentVersionRow).where(AgentVersionRow.id == version_id))).scalar_one_or_none()
+        return self._to_version(r) if r else None
+
+    async def get_number(self, agent_id: str, number: int) -> AgentVersion | None:
+        async with self._sm() as s:
+            r = (await s.execute(select(AgentVersionRow).where(AgentVersionRow.agent_id == agent_id,
+                                                               AgentVersionRow.number == number))).scalar_one_or_none()
+        return self._to_version(r) if r else None
+
+    async def list(self, agent_id: str) -> list[AgentVersion]:
+        async with self._sm() as s:
+            rows = (await s.execute(select(AgentVersionRow).where(AgentVersionRow.agent_id == agent_id)
+                                    .order_by(AgentVersionRow.number.desc()))).scalars().all()
+        return [self._to_version(r) for r in rows]
+
+
+class PgReleases(_Base):
+    @staticmethod
+    def _to_release(r: ReleaseRow) -> Release:
+        return Release(agent_id=r.agent_id, action=r.action, by=r.by, version_id=r.version_id, number=r.number, gate=r.gate,
+                       note=r.note, previous_number=r.previous_number, environment=r.environment, id=r.id,
+                       created_at=r.created_at, seq=r.seq)
+
+    async def add(self, release: Release) -> Release:
+        async with self._sm.begin() as s:
+            row = (await s.execute(pg_insert(ReleaseRow).values(
+                id=release.id, agent_id=release.agent_id, environment=release.environment, action=release.action,
+                version_id=release.version_id, number=release.number, previous_number=release.previous_number, by=release.by,
+                note=release.note, gate=_jsonable(release.gate), created_at=release.created_at).returning(ReleaseRow))).scalar_one()
+            return self._to_release(row)
+
+    async def list(self, agent_id: str, environment: str = "production", limit: int = 100) -> list[Release]:
+        async with self._sm() as s:
+            rows = (await s.execute(select(ReleaseRow).where(ReleaseRow.agent_id == agent_id, ReleaseRow.environment == environment)
+                                    .order_by(ReleaseRow.seq.desc()).limit(limit))).scalars().all()
+        return [self._to_release(r) for r in rows]
+
+    async def current(self, agent_id: str, environment: str = "production") -> Release | None:
+        rows = await self.list(agent_id, environment, 1)
+        return rows[0] if rows else None
+
+    async def agents_with_releases(self, environment: str = "production") -> list[str]:
+        async with self._sm() as s:
+            rows = (await s.execute(select(ReleaseRow.agent_id).where(ReleaseRow.environment == environment).distinct())).all()
+        return sorted(r[0] for r in rows)

@@ -32,6 +32,7 @@ Status: Draft. Describes the runtime semantics, implemented and tested in the Ty
 - Every exit path saves history and the trace, and saved history is always valid: every `tool_use` is answered and the last turn is the assistant's.
 - Guardrail errors count as denials (fail closed); model errors escalate instead of crashing.
 - Customer facts are placed in the prompt as untrusted data.
+- The agent version that answered is recorded on the trace (null for an agent built from a spec file).
 
 ## Known gaps
 - Approvals are stored (in memory or Postgres) and resumed by `ApprovalFlow` (see the Handoff and Approvals spec). A run started by the platform itself (an approval outcome) uses `trusted=True`: it skips the customer input checks and is traced as a `system` event, but replies and tool calls are still supervised.

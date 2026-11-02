@@ -1,14 +1,14 @@
 export type Status = "completed" | "escalated" | "needs_approval" | "unknown";
 
 export interface TraceEvent { t: number; type: string; data: Record<string, unknown> }
-export interface Trace { id: string; agent_id: string; session_id: string; events: TraceEvent[] }
-export interface TraceSummary { id: string; agentId: string; sessionId: string; events: number; status: Status; startedAt: number | null; tools: string[] }
+export interface Trace { id: string; agent_id: string; session_id: string; agent_version: number | null; events: TraceEvent[] }
+export interface TraceSummary { id: string; agentId: string; sessionId: string; events: number; status: Status; startedAt: number | null; tools: string[]; agentVersion: number | null }
 export type ApprovalState = "pending" | "approved" | "rejected" | "expired" | "executing" | "executed" | "failed";
 export interface Approval { id: string; trace_id: string; session_id: string; tool: string; input: unknown; reason: string; state: ApprovalState; created_at: number; decided_by: string | null; decided_at: number | null; note: string | null; result: unknown }
 export interface Resume { reply?: string; status?: Status; traceId?: string; error?: string }
 export interface OutboxMessage { id: number; kind: string; createdAt: number; reply: string; status: Status; traceId: string; tool?: string; approved?: boolean }
-export interface AgentInfo { id: string; instructions: string; model: string | null; maxSteps: number; tools: { name: string; description: string; approval: boolean }[]; guardrails: string[]; inputGuardrails: string[] }
-export interface ChatReply { reply: string; status: Status; traceId: string; pendingApprovals: { id: string; tool: string; reason: string }[]; handoffId: string | null }
+export interface AgentInfo { id: string; version: number | null; digest: string | null; instructions: string; model: string | null; maxSteps: number; tools: { name: string; description: string; approval: boolean }[]; guardrails: string[]; inputGuardrails: string[] }
+export interface ChatReply { reply: string; status: Status; traceId: string; pendingApprovals: { id: string; tool: string; reason: string }[]; handoffId: string | null; agentVersion: number | null }
 export interface HandoffSummary { id: string; sessionId: string; traceId: string; agentId: string; customerId: string | null; trigger: string; reason: string; topics: string[]; state: "open" | "resolved"; createdAt: number; resolvedBy: string | null; resolvedAt: number | null; note: string | null; summary: string }
 export interface HandoffPackage { summary: string; trigger: string; triggerDescription: string; reason: string; topics: string[]; transcript: { from: "customer" | "agent" | "platform"; text: string }[]; customerFacts: Record<string, string>; actions: { tool: string; input: unknown; outcome: string; detail: unknown; traceId: string }[]; approvals: { id: string; tool: string; state: string; reason: string; input: unknown; note: string | null }[] }
 export interface Handoff extends HandoffSummary { package: HandoffPackage }
@@ -23,7 +23,7 @@ export function setApiKey(key: string): void {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public reasons: string[] = []) { super(message); }
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -33,7 +33,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (init.body) headers.set("content-type", "application/json");
   const res = await fetch(`/api/northcx${path}`, { ...init, headers });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, body?.error?.message ?? `Request failed (${res.status})`);
+  if (!res.ok) throw new ApiError(res.status, body?.error?.message ?? `Request failed (${res.status})`, body?.error?.reasons ?? []);
   return body as T;
 }
 
@@ -59,6 +59,27 @@ export const getSimRun = (id: string) => api<SimRunDetail>(`/v1/simulations/runs
 export const getGates = () => api<{ gates: Gate[] }>("/v1/simulations/gate").then((r) => r.gates);
 export const runSimulation = (mode: string, skipJudge: boolean, only?: string) =>
   api<SimRunSummary>("/v1/simulations/runs", { method: "POST", body: JSON.stringify({ mode, skipJudge, ...(only ? { only } : {}) }) });
+export interface AgentVersion { id: string; agentId: string; number: number; digest: string; author: string; note: string | null; createdAt: number; live: boolean; everReleased: boolean; spec?: unknown; specYaml?: string }
+export interface ReleaseRecord { id: string; agentId: string; environment: string; action: "publish" | "rollback"; version: number | null; previousVersion: number | null; by: string; note: string | null; gate: { satisfied?: boolean; covered?: number; required?: number }; createdAt: number; toBaseline: boolean }
+export interface LiveInfo { agentId: string; source: "release" | "baseline"; version: number | null; digest: string; release: ReleaseRecord | null; specYaml: string }
+export interface VersionDiff { from: number; to: number; identical: boolean; instructions: string | null; tools: { added: string[]; removed: string[] }; guardrails: Chg; input_guardrails: Chg; forced_handoff: Chg; other: Record<string, { from: unknown; to: unknown }> }
+interface Chg { added: string[]; removed: string[]; changed: string[] }
+const agentPath = (id: string) => `/v1/agents/${encodeURIComponent(id)}`;
+export const getLive = (id: string) => api<LiveInfo>(`${agentPath(id)}/live`);
+export const listVersions = (id: string) => api<{ versions: AgentVersion[] }>(`${agentPath(id)}/versions`).then((r) => r.versions);
+export const getVersionDetail = (id: string, n: number) => api<AgentVersion>(`${agentPath(id)}/versions/${n}`);
+export const createVersion = (id: string, specYaml: string, by: string, note?: string) =>
+  api<AgentVersion>(`${agentPath(id)}/versions`, { method: "POST", body: JSON.stringify({ specYaml, by, ...(note ? { note } : {}) }) });
+export const diffVersions = (id: string, a: number, b: number) => api<VersionDiff>(`${agentPath(id)}/versions/${a}/diff/${b}`);
+export const versionGate = (id: string, n: number) =>
+  api<{ gates: Gate[] }>(`/v1/simulations/gate?agent=${encodeURIComponent(id)}&version=${n}`).then((r) => r.gates[0]);
+export const runForVersion = (id: string, n: number) =>
+  api<SimRunSummary>("/v1/simulations/runs", { method: "POST", body: JSON.stringify({ mode: "scripted", skipJudge: true, agent: id, version: n }) });
+export const publishVersion = (id: string, version: number, by: string, note?: string) =>
+  api<ReleaseRecord>(`${agentPath(id)}/releases`, { method: "POST", body: JSON.stringify({ version, by, ...(note ? { note } : {}) }) });
+export const rollbackAgent = (id: string, by: string, note?: string) =>
+  api<ReleaseRecord>(`${agentPath(id)}/rollback`, { method: "POST", body: JSON.stringify({ by, ...(note ? { note } : {}) }) });
+export const listReleases = (id: string) => api<{ releases: ReleaseRecord[] }>(`${agentPath(id)}/releases`).then((r) => r.releases);
 export const listOutbox = (sessionId: string, after: number) =>
   api<{ messages: OutboxMessage[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/outbox?after=${after}`).then((r) => r.messages);
 export const listAgents = () => api<{ agents: AgentInfo[] }>("/v1/agents").then((r) => r.agents);

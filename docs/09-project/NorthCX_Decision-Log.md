@@ -40,4 +40,10 @@
 | 37 | A gate pass is tied to the exact agent digest and scenario definition, newest result wins, demo runs never count, skipped checks do not count | Decided, built | Prevents a stale or partial pass from releasing a changed agent |
 | 38 | Simulation runs are stored with per-scenario digests; CI records its run | Decided, built | Sprint 10 enforces the gate at promotion |
 | 39 | The API runs one simulation at a time, synchronously | Decided | Long live suites should use the command line until background jobs exist |
+| 40 | Spec files are the baseline; versions are stored in the database and take over when released | Decided, built | First release is explicit and gated |
+| 41 | Publishing needs the gate for that version's digest; rollback needs no gate | Decided, built | Rollback restores something already proven in production |
+| 42 | Rolling back a rollback goes forward again; the first release can be withdrawn to the spec file | Decided, built | Simple undo semantics |
+| 43 | The live agent is resolved from the release store on every request | Decided, built | Releases take effect on all processes at once |
+| 44 | An unbuildable live version answers 503 rather than falling back silently | Decided, built | Rollback is the recovery |
+| 45 | Conversations are not pinned to a version | Decided; revisit | Pinning arrives with environments and staged rollout |
 | 9 | Contribution model: DCO vs CLA | Open | |

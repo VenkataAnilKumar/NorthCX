@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 from .agent import Agent, ToolContext
 from .approvals import Approval
+from .catalog import AgentUnavailable, as_provider
 from .runtime import FALLBACK, Runtime, RunResult
 from .trace import Trace
 
@@ -30,18 +31,22 @@ class ApprovalFlow:
     def __init__(self, runtime: Runtime):
         self.rt = runtime
 
-    async def resolve(self, agents: dict[str, Agent], approval_id: str, approved: bool, by: str,
+    async def resolve(self, agents: Any, approval_id: str, approved: bool, by: str,
                       note: str | None = None) -> Resolution:
         """Record the decision, run the action if approved, tell the agent the outcome, and notify the customer.
 
         Raises KeyError for an unknown approval and ValueError if it was already decided."""
         a = await self.rt.approvals.decide(approval_id, approved, by, note)
-        agent = agents.get(a.agent_id)
+        try:
+            agent = await as_provider(agents).get(a.agent_id)
+            problem = f"agent '{a.agent_id}' is not available"
+        except AgentUnavailable as e:
+            agent, problem = None, str(e)
         if agent is None:
             if approved:
                 await self.rt.approvals.claim_execution(a.id)
-                a = await self.rt.approvals.complete(a.id, False, {"error": f"agent '{a.agent_id}' is not available"})
-            return Resolution(a, error=f"agent '{a.agent_id}' is not available")
+                a = await self.rt.approvals.complete(a.id, False, {"error": problem})
+            return Resolution(a, error=problem)
 
         if approved:
             outcome = await self._execute(agent, a)
@@ -88,7 +93,7 @@ class ApprovalFlow:
             return await done(False, {"error": str(e)})
         return await done(True, {"result": json.loads(json.dumps(out, default=str))})
 
-    async def expire_stale(self, agents: dict[str, Agent], ttl_seconds: float, now: float | None = None) -> list[Approval]:
+    async def expire_stale(self, agents: Any, ttl_seconds: float, now: float | None = None) -> list[Approval]:
         """Expire approvals pending longer than the TTL and hand each conversation to a person."""
         cutoff = (now if now is not None else time.time()) - ttl_seconds
         expired = []

@@ -24,6 +24,9 @@ Approved actions run once, are re-validated and re-supervised at execution time,
 ## Handoff packages
 A package holds the transcript, customer facts and action results, so it is personal data. Until roles exist (sprint 11) anyone with an API key can read it; restrict who receives that key. Forced-handoff patterns are author-supplied regular expressions: they are length-limited and applied only to messages up to 8,000 characters, but authors should avoid nested quantifiers.
 
+## Release controls
+A version can go live only when the release gate passes for its exact content, so an unreviewed or untested edit cannot reach customers through the API. Publishing and rollback are recorded with who, when and why, but identities are free text and any API key can publish until roles arrive (sprint 11); treat the API key as release authority. Specs are validated against the code's tool and guardrail registry and cannot name anything that does not exist.
+
 ## Roles (P2)
 | Role | Can |
 |---|---|

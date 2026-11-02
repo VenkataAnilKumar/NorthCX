@@ -34,6 +34,9 @@ The runner is itself tested: every check type fails when its expectation is wron
 ## Gate tests
 The gate rule is tested for version and scenario changes, newest-result-wins in both directions, partial runs, demo versus live runs, skipped checks, missing digests, and empty gates; stored runs share a contract suite across memory and Postgres, and the gate works from runs stored before a simulated restart. Mutation checks (ignoring the agent digest, or counting demo runs) make tests fail.
 
+## Release tests
+Over memory and Postgres: numbering (also concurrent), immutability, refusal of invalid, mismatched or unchanged specs, readable diffs, the gate at publish for the exact version (including a failing proof and a proof for a different version), rollback in all its forms (undo, toggle, named version, never-live version, baseline, no gate needed), live serving and caching, an unbuildable live version, agent version on traces, approvals resolved against the live agent, and the whole API flow. Mutation checks (publishing without the gate, or checking the gate for the file's digest instead of the version's) make tests fail. A browser test walks the entire flow including a restart.
+
 ## Rules
 - No network in unit tests.
 - Any production failure becomes a regression scenario.

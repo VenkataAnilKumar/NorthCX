@@ -10,14 +10,16 @@ Base path `/v1`. JSON. Optional `Authorization: Bearer <key>`.
 | POST | `/agents/:id/chat` | Send a message; body `{sessionId, message, customerId?}` |
 | GET | `/traces/:id` | Fetch a trace |
 | GET | `/traces?sessionId=` | List traces for a session |
-| GET | `/agents/:id/versions` | List versions (Phase 2) |
-| POST | `/agents/:id/versions` | Create version (Phase 2) |
-| POST | `/agents/:id/releases` | Publish a version to an environment after checks (Phase 2-3) |
-| POST | `/agents/:id/rollback` | Restore a prior version (Phase 2) |
+| POST | `/agents/:id/versions` | `{spec | specYaml | fromBaseline, by, note?}`: save the next version (built) |
+| GET | `/agents/:id/versions`, `/agents/:id/versions/:n` | List and read versions with their YAML (built) |
+| GET | `/agents/:id/versions/:a/diff/:b` | Reviewable diff between two versions (built) |
+| POST | `/agents/:id/releases` | `{version, by, note?}`: publish; 409 `gate_not_satisfied` with `reasons` unless the gate passes for that version (built) |
+| POST | `/agents/:id/rollback` | `{by, note?, toVersion?}`: restore a previously live version or the spec file; no gate (built) |
+| GET | `/agents/:id/releases`, `/agents/:id/live` | Release history; what is serving now (built) |
 | GET | `/simulations/scenarios` | Scenarios and available modes (built) |
-| POST | `/simulations/runs` | `{mode, only?, skipJudge?}`: run scenarios and store the result; 409 if a run is in progress (built) |
+| POST | `/simulations/runs` | `{mode, only?, skipJudge?, agent?, version?}`: run scenarios (against a saved version if given) and store the result; 409 if a run is in progress (built) |
 | GET | `/simulations/runs`, `/simulations/runs/:id` | Stored runs and a full report (built) |
-| GET | `/simulations/gate?agent=` | Whether each agent's current version passed every required scenario (built) |
+| GET | `/simulations/gate?agent=&version=` | Whether the agent's spec file, or a saved version, passed every required scenario (built) |
 | GET | `/audit` | Query the audit log (Phase 2) |
 | DELETE | `/customers/:id` | Delete a customer's data (Phase 3) |
 | GET | `/approvals?state=` | List approvals (built) |

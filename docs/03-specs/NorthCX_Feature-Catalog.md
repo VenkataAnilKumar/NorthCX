@@ -105,9 +105,9 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | Q5 | Regression scenarios from production traces | P1 | 3 | Planned |
 | Q6 | Simulated customers with personas, including adversarial ones | P1 | 3 | Planned |
 | Q7 | Re-run simulations when knowledge or policies change | P1 | 3 | Planned |
-| Q8 | Agent versioning and change history | P0 | 2 | Planned |
-| Q9 | Environments (dev, staging, production) and promotion | P1 | 3 | Planned |
-| Q10 | Rollback to a prior version | P0 | 2 | Planned |
+| Q8 | Agent versioning and change history | P0 | 2 | Built |
+| Q9 | Environments (dev, staging, production) and promotion | P1 | 3 | Planned (one production environment exists today) |
+| Q10 | Rollback to a prior version | P0 | 2 | Built |
 | Q11 | Staged rollout and A/B experiments | P2 | 4 | Planned |
 | Q12 | Load and cost testing | P2 | 6 | Planned |
 
@@ -134,7 +134,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | U4 | Conversation review and failure tagging | P1 | 4 | Planned |
 | U5 | Approval queue | P1 | 4 | Planned |
 | U6 | Knowledge management | P1 | 4 | Planned |
-| U7 | Publish workflow with required checks | P1 | 4 | Planned |
+| U7 | Publish workflow with required checks | P1 | 4 | Early version built (versions page: save, run scenarios, publish, roll back) |
 | U8 | Role-based views | P1 | 4 | Planned |
 
 ## 11. Security, administration and platform
