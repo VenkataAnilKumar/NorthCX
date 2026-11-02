@@ -5,7 +5,7 @@ Status: Draft (target; not yet runnable end to end)
 ## Environments
 | Env | Setup |
 |---|---|
-| Local | `npm install`, `npm test`, then `ANTHROPIC_API_KEY=... npm run dev` (port from `PORT`, default 3000; optional `NORTHCX_API_KEY` and `NORTHCX_TRACE_DIR`). Uses in-memory storage, so state is lost on restart |
+| Local | Target: one compose file starts Postgres, the backend and the web platform; model API key from the environment. The TypeScript prototype still runs with `npm install && ANTHROPIC_API_KEY=... npm run dev` (in-memory, state lost on restart) |
 | Staging/production | Container image for the server, Postgres, optional queue |
 
 ## Configuration

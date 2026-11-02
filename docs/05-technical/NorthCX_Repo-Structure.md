@@ -1,6 +1,6 @@
 # NorthCX Repo Structure
 
-Status: Draft (current and target)
+Status: Draft. Current layout is the TypeScript prototype; the target layout below is the product.
 
 ```
 northcx/
@@ -19,4 +19,18 @@ Reuse layout (see Code Reuse Policy): `NOTICE`, `THIRD_PARTY.md` and `third_part
 
 Target split once stable: `packages/core`, `packages/sim`, `apps/server`, `apps/studio`, `adapters/*`.
 
-Conventions: ESM, strict TypeScript, Zod at boundaries, no network in unit tests.
+Conventions: backend in Python with typed models and pytest; web platform in strict TypeScript; no network in unit tests.
+
+## Target layout (product)
+```
+northcx/
+├── backend/              Python (FastAPI): runtime, supervision, memory, knowledge, simulation, release, audit, API
+│   ├── northcx/
+│   ├── adapters/         channels, inbox, voice, observability export
+│   └── tests/
+├── web/                  Next.js platform: Studio, insights, approvals, admin
+├── prototype/            TypeScript reference implementation (today's src/, examples/, tests/)
+├── third_party/          copied source with original licences (see Code Reuse Policy)
+├── NOTICE, THIRD_PARTY.md
+└── docs/
+```

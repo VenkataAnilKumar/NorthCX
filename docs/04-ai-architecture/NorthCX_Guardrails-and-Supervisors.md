@@ -1,6 +1,6 @@
 # NorthCX Guardrails and Supervisors
 
-Status: Draft. Describes `src/core/guardrails.ts`.
+Status: Draft. Describes behaviour implemented in the TypeScript prototype (`src/core/guardrails.ts`); the Python backend must match it.
 
 ## Interface
 `Guardrail { name, checkToolCall?(call, ctx), checkReply?(reply, ctx) }` returning `{allow: true}` or `{allow: false, reason}`.

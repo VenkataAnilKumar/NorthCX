@@ -1,12 +1,12 @@
 # NorthCX Agent Runtime
 
-Status: Draft. Describes `src/core/runtime.ts`; covered by unit tests in `tests/runtime.test.ts`.
+Status: Draft. Describes the runtime semantics, implemented and tested in the TypeScript prototype (`src/core/runtime.ts`, `tests/runtime.test.ts`). The Python backend must reproduce these semantics and tests.
 
 ## Concepts
 | Concept | Definition |
 |---|---|
 | Agent | `defineAgent({id, instructions, tools, guardrails, model, maxSteps})` |
-| Tool | Zod-validated function with optional `requiresApproval` |
+| Tool | Schema-validated function with optional `requiresApproval` |
 | Guardrail | Supervisor with `checkToolCall` and/or `checkReply` |
 | Session | Message history identified by `sessionId` |
 | Run | One user message processed to a final reply |

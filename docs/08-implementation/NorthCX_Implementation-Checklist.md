@@ -2,7 +2,7 @@
 
 Status: Living checklist. IDs refer to the Feature Catalog.
 
-## Phase 1 (done)
+## Phase 1 (done in the TypeScript prototype; to be reproduced in the Python backend)
 - [x] Scaffold, strict TypeScript, dependencies (P9)
 - [x] Runtime, tools, guardrails, memory, traces (R1-R4, T1-T3, S1-S6, K1, K2, O1)
 - [x] Unit tests (Q1)

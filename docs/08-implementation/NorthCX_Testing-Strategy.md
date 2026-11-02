@@ -28,4 +28,4 @@ Status: Draft
 Before a judge gates CI, compare its verdicts to human labels on a sample set, record agreement, and re-check when the judge model changes. Deterministic assertions take priority over judge scores.
 
 ## Current coverage
-`tests/runtime.test.ts`: tool execution, invalid input, approvals, handoff, history validity, guardrail rewrite and escalation, supervisor and model failure, untrusted facts.
+Prototype tests (`tests/runtime.test.ts`), to be ported to pytest for the Python backend: tool execution, invalid input, approvals, handoff, history validity, guardrail rewrite and escalation, supervisor and model failure, untrusted facts.

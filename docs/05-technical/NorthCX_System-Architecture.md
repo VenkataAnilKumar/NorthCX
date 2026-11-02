@@ -1,6 +1,6 @@
 # NorthCX System Architecture
 
-Status: Draft. Proposed, pending the runtime-language decision recorded in Tech-Stack-Decisions. Component selections are in the Reference (section 8).
+Status: Draft. Backend is Python and the web platform is TypeScript (Decision Log #3). Component status below describes the TypeScript prototype, which is the reference implementation. Component selections are in the Reference (section 8).
 
 ## Layers
 ```
@@ -20,7 +20,7 @@ Platform         Studio | Simulation & evals | Observability | Auth/RBAC
 ## Components
 | Component | Responsibility | Status |
 |---|---|---|
-| Runtime (`src/core/runtime.ts`) | Step loop, tool execution, guardrail checks, handoff, approvals | Scaffolded |
+| Runtime (prototype: `src/core/runtime.ts`; product: Python backend) | Step loop, tool execution, guardrail checks, handoff, approvals | Scaffolded |
 | Guardrails (`guardrails.ts`) | Rule and LLM-based supervisors; fail closed | Scaffolded |
 | Tools (`agent.ts`) | Zod-validated tools with optional approval rule | Scaffolded |
 | Memory (`store.ts`) | Session history and customer facts; pluggable | In-memory only |

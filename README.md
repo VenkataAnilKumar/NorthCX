@@ -10,7 +10,7 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 - Simulation testing (planned), multiple channels (phased), low-code Studio (planned)
 
 ## Status
-Early development. The core runtime (`src/core`), HTTP server with web widget (`src/server`) and an example support agent (`examples/support`) are built and covered by tests using a scripted model. Simulation testing, persistence, approval resume and channel adapters are planned.
+Early development. The product will be a Python backend with a TypeScript web platform, assembled by copying and adapting licensed reference code. The repository currently holds a TypeScript prototype (`src/core`, `src/server`, `examples/support`) that serves as the reference implementation of runtime behaviour, covered by tests with a scripted model. Simulation testing, persistence, approval resume and channel adapters are planned.
 
 ## Quick start
 ```bash

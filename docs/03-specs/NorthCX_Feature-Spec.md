@@ -15,7 +15,7 @@ Status: Draft. Detailed behaviour for feature groups in `NorthCX_Feature-Catalog
 - **Planned:** fallback model and retries; streaming; token and cost budget that escalates when exceeded; language detection and same-language replies; multi-agent routing; resume after approval.
 
 ## 3. Tools (T1-T8)
-- **Definition:** name, description, Zod input schema, `run`, optional `requiresApproval(input)`.
+- **Definition:** name, description, typed input schema, `run`, optional `requiresApproval(input)`.
 - **Behaviour:** schema validated first; guardrails second; approval third; execution last. Errors become tool results the model can react to.
 - **Planned:** idempotency keys for writes; per-agent and per-customer permission scopes; secrets injected at run time; dry-run mode that records intended actions without executing; connector library for common business systems.
 - **Acceptance:** an over-threshold call never executes without a recorded approval.
