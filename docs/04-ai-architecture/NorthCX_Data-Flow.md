@@ -13,6 +13,12 @@ Customer -> Channel adapter -> POST /v1/agents/:id/chat
    <- {reply, status, traceId}
 ```
 
+## Additional flows
+- **Approval:** pending approval stored, reviewer decides, run resumes, audit entry written.
+- **Release:** version created, simulations run, promotion recorded, traffic split applied.
+- **Export:** traces redacted then sent to the external backend.
+- **Deletion:** request removes history, facts and traces for a customer.
+
 ## Data classes
 | Data | Where | Sensitivity | Retention |
 |---|---|---|---|

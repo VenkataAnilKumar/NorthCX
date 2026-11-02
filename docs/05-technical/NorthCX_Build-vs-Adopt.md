@@ -13,6 +13,9 @@ Status: Draft. Component names are in `00-reference/NorthCX_Reference.md` (secti
 | Omnichannel and human inbox | Adopt | Webhook integration |
 | Voice | Adopt | Phase 5 |
 | Studio | Decide at Phase 4 | Adopt or build |
+| Agent-assisted building and natural-language analytics | Build on the model | Phase 6 |
+| Release management | Build | Versions, environments, rollback |
+| Audit, roles, rate limits | Build | Phase 2 |
 | Durable workflows | Research | Not yet researched |
 | CX connectors | Research | Not yet researched |
 | Outcome-based billing | Build, later | Out of v1 |

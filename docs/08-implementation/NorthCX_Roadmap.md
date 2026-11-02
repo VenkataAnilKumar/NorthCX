@@ -2,13 +2,16 @@
 
 Status: Draft
 
-| Horizon | Themes |
-|---|---|
-| Now | Tested runtime, HTTP API, example agent |
-| Next | Simulation testing, persistence, approvals |
-| Later | Channels, knowledge, trace export |
-| Future | Studio, insights, voice |
-| Exploring | Agent-assisted agent building, outcome-based billing, multi-tenant hosting, durable workflows |
+| Horizon | Phases | Themes |
+|---|---|---|
+| Now | 1 (complete) | Tested runtime, HTTP API, widget, example agent |
+| Next | 2 | Simulation testing, persistence, approval resume, versions and rollback, roles and audit |
+| Later | 3 | Email and messaging, knowledge, safety extensions, environments, trace export |
+| Future | 4-5 | Studio, insights, experiments, voice, agent assist |
+| Exploring | 6+ | Agent-assisted building, natural-language analytics, multi-tenancy, metering and outcome billing |
+
+## Principles
+Safety and testability before reach; reach before polish; Studio after the definition format is stable.
 
 ## Open decisions
-Runtime language confirmation, project licence, Studio build vs adopt, connector scope.
+Runtime language confirmation, project licence, Studio build vs adopt, initial vertical focus, connector scope.

@@ -21,5 +21,10 @@ Status: Draft. Describes `src/core/guardrails.ts`.
 ## Policy categories to cover
 Personal data exposure, unauthorised commitments (refunds, discounts), unsupported claims, regulated advice, tone and brand, prompt-injection attempts.
 
-## Gaps
-Input-side checks, per-tool argument policies, rate limits, and a policy test suite are planned.
+## Planned extensions (S7-S11)
+- **Forced-handoff topics (Phase 2):** a configurable list (for example legal threats, safety issues, formal complaints) that always escalates before the agent answers.
+- **Input checks (Phase 3):** injection and abuse detection on customer messages and tool output.
+- **PII detection and redaction (Phase 3):** in replies and in exported traces.
+- **Full coverage monitoring (Phase 3):** every conversation scored, not a sample.
+- **Policy library (Phase 3):** reusable policies, each with passing and blocking scenarios.
+- **Per-tool argument policies:** limits such as maximum amounts by customer tier.

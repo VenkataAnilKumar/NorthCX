@@ -11,6 +11,21 @@ Status: Draft. Connector research not yet done.
 | Helpdesk / inbox | Tickets, human queue | Channel adapter + handoff |
 | Knowledge | Articles, policies | Retrieval tool |
 
+## Connector library (T5)
+In-tree, tested connectors for common categories, each with typed tools, approval defaults and scenarios: order lookup, shipment tracking, refunds and credits, subscription changes, account profile updates, ticket create/update, appointment booking.
+
+## Permissions (T6)
+Tools are granted per agent and scoped per customer, so an agent can only touch the current customer's records.
+
+## Idempotency (T4)
+Writes carry an idempotency key derived from session and call; retries never duplicate effects.
+
+## Dry-run (T8)
+Tests and simulations can run tools in dry-run mode that records the intended action without executing it.
+
+## Webhooks (P8)
+Signed events for conversation status changes, approvals and handoffs.
+
 ## Tool authoring checklist
 Narrow scope; typed input; least-privilege credentials; idempotency key for writes; timeouts; return minimal data; approval rule for money or irreversible actions; tests with a scripted model.
 

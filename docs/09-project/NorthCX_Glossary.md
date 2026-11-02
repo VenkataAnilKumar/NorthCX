@@ -16,3 +16,13 @@
 | Customer facts | Durable facts stored per customer |
 | Adapter | Code connecting a channel or service to the API |
 | Studio | The planned low-code builder |
+| Skill | A reusable procedure an agent can use inside a workflow |
+| Journey | A scenario blueprint with goals, required steps and guardrails |
+| Version | An immutable snapshot of an agent definition |
+| Release | A version published to an environment |
+| Environment | dev, staging or production |
+| Forced-handoff topic | A topic that always goes to a human |
+| Handoff package | Transcript, profile, actions and summary given to a human |
+| Containment | Share of conversations that end without handoff |
+| Required scenario | A simulation that must pass before promotion |
+| Staged rollout | Serving a new version to a share of traffic |

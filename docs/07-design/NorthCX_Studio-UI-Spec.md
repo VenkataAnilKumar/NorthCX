@@ -17,6 +17,16 @@ Let CX teams create and tune agents without code, producing the same agent defin
 | Insights | Resolution, escalation, guardrail hits, cost |
 | Settings | Keys, roles, channels, retention |
 
+## Screen detail
+- **Agent editor (U1):** instructions with policy sections, tool toggles with approval rules, guardrail and forced-handoff lists, model settings, skills and journeys (Phase 4), template picker.
+- **Test console (U2):** chat with a draft, live trace beside the conversation, replay a past conversation against the draft.
+- **Simulations (U3):** suites, required flags, results with diffs against the last release, create a scenario from a conversation.
+- **Conversations (U4):** filters, tags, failure causes, open trace, create regression scenario.
+- **Approvals (U5):** queue with age and risk, payload, context, approve/reject with note.
+- **Knowledge (U6):** sources, freshness, test queries with citations.
+- **Publish (U7):** change summary, diff, required checks, environment, rollout percentage, rollback.
+- **Role-based views (U8):** CX, developer, reviewer, compliance, admin.
+
 ## Principles
 Every edit is versioned and revertible; publish requires passing required simulations; traces are one click from any conversation.
 

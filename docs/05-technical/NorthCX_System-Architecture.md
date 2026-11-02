@@ -25,10 +25,17 @@ Platform         Studio | Simulation & evals | Observability | Auth/RBAC
 | Tools (`agent.ts`) | Zod-validated tools with optional approval rule | Scaffolded |
 | Memory (`store.ts`) | Session history and customer facts; pluggable | In-memory only |
 | Traces (`trace.ts`) | Event log per run | In-memory / JSONL |
-| Server | HTTP API, SSE, widget | Planned |
-| Simulation | Scenario runner, assertions, judge | Planned |
-| Channel adapters | Inbox and voice bridges | Planned |
-| Studio | Low-code builder | Planned |
+| Server (`src/server`) | HTTP API, auth, widget | Built |
+| Approvals | Pending approvals and decisions | Built (in memory); resume Phase 2 |
+| Simulation | Scenario runner, simulated customers, judge, CI gate | Phase 2 |
+| Release service | Versions, environments, rollback, rollout | Phases 2-4 |
+| Audit and access control | Roles, scoped keys, audit log, rate limits | Phase 2 |
+| Handoff service | Handoff package, routing, return-to-agent | Phases 2-5 |
+| Knowledge service adapter | Retrieval with citations | Phase 3 |
+| Channel adapters | Email, messaging, voice, SDK | Phases 3-5 |
+| Safety extensions | Input checks, PII redaction, monitoring | Phase 3 |
+| Observability export | Redaction and OpenTelemetry export | Phase 3 |
+| Studio and Insights | Low-code builder, dashboards | Phase 4 |
 
 ## Request flow (chat)
 1. Channel adapter receives a message and calls `Runtime.run(agent, {sessionId, message, customerId})`.
@@ -36,6 +43,9 @@ Platform         Studio | Simulation & evals | Observability | Auth/RBAC
 3. Tool calls are validated, checked by guardrails, held for approval if flagged, then executed.
 4. The draft reply passes through reply guardrails; rejected drafts are rewritten up to twice, then escalated.
 5. History and trace are saved; the reply and status (`completed`, `escalated`, `needs_approval`) return to the channel.
+
+## Release path
+Agent definition, then version, then required simulations, then promotion to an environment, then optional staged rollout with metric comparison, with rollback at every step. See `03-specs/NorthCX_Release-Management.md`.
 
 ## Cross-cutting
 - **Security:** schema validation on all tool input; approval gates; supervisors fail closed.

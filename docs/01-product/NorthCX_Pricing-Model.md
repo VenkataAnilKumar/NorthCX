@@ -1,21 +1,35 @@
 # NorthCX Pricing Model
 
-Status: Draft proposal. No market testing has been done; figures are intentionally absent.
+Status: Draft proposal. No market testing; figures are deliberately absent.
 
 ## Positioning
-NorthCX core is open source and free to self-host. Outcome-based pricing is a model some commercial platforms use; see the Reference.
+NorthCX core is open source and free to self-host. Revenue, if any, comes from services and optional commercial offerings; this document keeps those options open.
 
-## Options
-| Model | Description | Pros | Cons |
+## Cost drivers for a deployment
+| Driver | Notes |
+|---|---|
+| Model usage | Largest variable cost; scales with conversations, steps and history length |
+| Supervisor model usage | Extra calls per reply; cheaper model recommended |
+| Voice | Speech services and telephony add per-minute cost |
+| Infrastructure | Servers, database, queue |
+| Human review | Approvals and failure review |
+| Channels and inbox | Messaging provider fees |
+
+## Packaging options
+| Option | Description | Pros | Cons |
 |---|---|---|---|
-| A. Open core, self-host only | Core Apache-2.0; paid support and services | Simple; builds trust | Revenue depends on services |
-| B. Open core + managed cloud | Hosted NorthCX billed by usage | Recurring revenue | Operating burden; multi-tenancy is a non-goal for v1 |
-| C. Outcome-based (resolutions) | Charge per resolved conversation | Aligns with value | Needs reliable resolution measurement and billing |
-| D. Seat/usage for Studio | Paid Studio features | Clear upgrade path | Splits the community |
+| A. Open core, self-host | Core under a permissive licence; paid support and services | Trust, adoption | Revenue depends on services |
+| B. Managed cloud | Hosted NorthCX billed by usage | Recurring revenue | Operating burden; multi-tenancy is out of v1 scope |
+| C. Outcome-based | Charge per resolved conversation | Aligned with value | Needs a trusted definition of "resolved" and reliable billing |
+| D. Commercial add-ons | Paid Studio, SSO, advanced insights | Clear upgrade path | Splits the community |
 
 ## Recommendation
-Start with **A** for v1. Revisit **B** and **C** after the simulation and insights features can measure resolution reliably, since outcome pricing needs a trusted definition of "resolved".
+Start with A for v1. Revisit B and C when resolution measurement is reliable and multi-tenancy exists.
 
-## Open decisions
-- What counts as a resolution (customer confirmation, no contact within N days).
-- Which features, if any, are commercial-only.
+## Feature split principle
+Anything needed to run safely stays open: runtime, supervision, approvals, audit, simulations, release management. Candidates for commercial add-ons: SSO, advanced analytics, hosted operations, premium support.
+
+## Decision inputs needed
+- Customer discovery on willingness to pay.
+- Definition and audit method for "resolved".
+- Hosting and support capacity.

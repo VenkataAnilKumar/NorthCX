@@ -11,6 +11,9 @@ Status: Draft (target; not yet runnable end to end)
 ## Configuration
 Environment variables: model API key, server port, API keys for clients, database URL, trace export endpoint, retention settings. Secrets via a secrets manager.
 
+## Environments
+dev, staging and production are separate deployments or namespaces with separate secrets, databases and API keys. Promotion of agent versions follows the Release Management spec.
+
 ## Release steps
 1. Typecheck and unit tests pass.
 2. Required simulations pass.

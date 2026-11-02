@@ -18,6 +18,18 @@ Status: Draft. Control mapping is a plan, not a certification.
 ## Access control
 Roles: admin, developer, reviewer (approvals), viewer (traces). Keys are stored hashed.
 
+## Roles (P2)
+| Role | Can |
+|---|---|
+| admin | Manage keys, roles, settings, retention |
+| developer | Create versions, run simulations, promote to non-production |
+| release manager | Promote to production, roll back |
+| reviewer | Decide approvals |
+| viewer | Read conversations and traces within scope |
+
+## Single sign-on (P5)
+Studio supports enterprise single sign-on in Phase 4.
+
 ## Audit
 Every tool call, approval decision, guardrail block and handoff is in the trace with timestamps and actor.
 

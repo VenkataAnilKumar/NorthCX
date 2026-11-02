@@ -11,4 +11,6 @@
 | 7 | Approval resume in Phase 2 | Decided | Approvals stored now |
 | 8 | Card-number rule uses Luhn | Decided | Avoid blocking order numbers |
 | 10 | HTTP framework Hono; server entrypoint reads `ANTHROPIC_API_KEY` | Decided | Smoke-tested; a failed model call escalates |
+| 11 | Release management is a core feature, not an add-on | Decided | Versions, rollback, gated promotion |
+| 12 | Forced-handoff topics are policy, not model judgement | Decided | Always escalate |
 | 9 | Contribution model: DCO vs CLA | Open | |

@@ -12,6 +12,13 @@ Status: Draft
 | Load | Throughput, latency, cost per run | Live or stub | Before release |
 | Security | Dependency, licence and secret scans; pen-test | n/a | CI and per release |
 
+## Additional test types
+- **Simulated-customer runs** with adversarial personas (Q6).
+- **Knowledge-change runs** triggered when sources change (Q7).
+- **Regression scenarios** generated from production traces (Q5).
+- **Approval and handoff flows** end to end, including expiry and double-decision.
+- **Release tests:** promotion blocked on failure, rollback restores behaviour.
+
 ## Rules
 - No network in unit tests.
 - Any production failure becomes a regression scenario.

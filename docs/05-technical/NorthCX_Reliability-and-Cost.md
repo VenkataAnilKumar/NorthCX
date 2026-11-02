@@ -12,6 +12,9 @@ Status: Draft. Targets are proposals to validate with load and pilot data.
 | Supervisor error | Treated as a denial (implemented) |
 | Store unavailable | Fail the request with a clear error; do not answer without history |
 
+## Planned reliability features
+Model fallback and retries (R5), streaming (R6), cost budgets (R7), idempotent writes (T4), approval expiry, and queue-based processing for channels with delayed replies.
+
 ## Targets (to validate)
 | Metric | Proposal |
 |---|---|

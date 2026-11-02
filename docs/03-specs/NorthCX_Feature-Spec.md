@@ -1,42 +1,57 @@
 # NorthCX Feature Spec
 
-Status: Draft. Maps to PRD requirement IDs.
+Status: Draft. Detailed behaviour for feature groups in `NorthCX_Feature-Catalog.md`. "State" reflects the code today.
 
-## F1. Agent definition (R1)
-`defineAgent({ id, instructions, tools, guardrails, model, maxSteps })`. Instructions state goals and policies in natural language. Defaults: `maxSteps` 8.
+## 1. Agent definition (A1-A10)
+- **Inputs:** `id`, `instructions` (goals, policies, tone), `tools`, `guardrails`, `model`, `maxSteps` (default 8).
+- **Behaviour:** the instructions become the system prompt with the handoff rule and untrusted customer facts appended. An agent is plain data plus functions, so it is version-controlled.
+- **Planned:** skills (named reusable procedures such as triage, respond, confirm) with a flexibility setting from strict steps to free-form; journeys (scenario blueprints with required steps and guardrails); templates; tone settings; generation of drafts from procedures or transcripts.
+- **Acceptance:** an agent loads from a file, runs, and produces a trace. State: Built (core).
 
-## F2. Tools (R2)
-`tool({ name, description, input (Zod), run, requiresApproval })`. Input is validated before running; invalid input and thrown errors are returned to the model as error results. The JSON schema sent to the model is generated from the Zod schema.
+## 2. Runtime (R1-R10)
+- **Loop:** model call, tool calls, guardrails, reply. Detailed in `04-ai-architecture/NorthCX_Agent-Runtime.md`.
+- **Edge cases:** invalid tool input; unknown tool; tool exception; model failure; supervisor failure; step limit; rewrite limit; multiple tool calls in one turn including a handoff.
+- **Guarantees:** saved history is valid and ends on an assistant turn; every exit path writes a trace.
+- **Planned:** fallback model and retries; streaming; token and cost budget that escalates when exceeded; language detection and same-language replies; multi-agent routing; resume after approval.
 
-## F3. Supervision (R3)
-Guardrails check each tool call (`checkToolCall`) and each draft reply (`checkReply`). Verdict is allow or deny with a reason. A denied reply is rewritten up to twice, then the conversation is escalated. An LLM supervisor that returns unparseable output denies (fails closed).
+## 3. Tools (T1-T8)
+- **Definition:** name, description, Zod input schema, `run`, optional `requiresApproval(input)`.
+- **Behaviour:** schema validated first; guardrails second; approval third; execution last. Errors become tool results the model can react to.
+- **Planned:** idempotency keys for writes; per-agent and per-customer permission scopes; secrets injected at run time; dry-run mode that records intended actions without executing; connector library for common business systems.
+- **Acceptance:** an over-threshold call never executes without a recorded approval.
 
-## F4. Approvals (R4)
-A tool may return a reason from `requiresApproval`. The run stops with status `needs_approval`, the pending call is stored with an ID, and the customer is told a teammate will confirm. Resuming the run after a decision is a Phase 2 feature.
+## 4. Supervision and safety (S1-S11)
+- **Guardrail interface:** `checkToolCall`, `checkReply`; allow/deny with reason.
+- **Built:** card-number rule (with validity check), model-based policy supervisor, fail-closed handling, untrusted facts.
+- **Planned:** forced-handoff topic list; input checks for injection and abuse; PII detection and redaction; coverage of every conversation by monitoring; a policy library with its own tests.
+- **Acceptance:** each policy has at least one passing and one blocking scenario.
 
-## F5. Handoff (R5)
-A built-in `handoff_to_human` tool ends the run with status `escalated` and records the reason in the trace.
+## 5. Handoff and approvals (H1-H8)
+Specified in `NorthCX_Handoff-and-Approvals-Spec.md`.
 
-## F6. Traces (R6)
-Each run records user, model, tool call, tool result, guardrail, approval, handoff, reply and error events with timestamps. Exposed through the API by trace ID.
+## 6. Channels (C1-C10)
+- **Contract:** adapter maps a channel message to the chat API and posts the reply; session ID stable per conversation; escalation routes to the inbox.
+- **Built:** HTTP API and widget.
+- **Planned:** email (thread to session), SMS and messaging, voice, mobile/web SDK, attachments, per-channel style and identity verification.
+- **Acceptance:** each channel passes a round-trip scenario including handoff.
 
-## F7. Chat API and widget (R7)
-`POST /v1/agents/:id/chat {sessionId, message, customerId?}` returns `{reply, status, traceId}`. `GET /v1/traces/:id` returns the trace. Optional bearer-token auth. A minimal web widget is served at `/`.
+## 7. Knowledge and memory (K1-K8)
+- **Memory:** session history and customer facts behind `MemoryStore`.
+- **Knowledge:** a retrieval tool returns passages with source references; the agent must not assert beyond them; freshness metadata on sources.
+- **Context at start:** optional pull of customer data from business systems.
+- **Lifecycle:** retention, export, deletion per customer; summarisation of long histories.
 
-## F8. Simulations (R8)
-A scenario has scripted user turns and expectations: tools called or not called, final status, reply text, and an optional judge-model rubric. Runs in CI with a deterministic scripted model or against Claude.
+## 8. Testing and release (Q1-Q12)
+- **Simulations:** scenarios with scripted or simulated customers, assertions, optional judge. See `04-ai-architecture/NorthCX_Simulation-and-Evals.md`.
+- **Release:** `NorthCX_Release-Management.md`.
 
-## F9. Memory (R9)
-`MemoryStore` holds session messages and per-customer facts. Facts are injected into the system prompt. Adapters: in-memory, Postgres, external memory service.
+## 9. Observability and insights (O1-O10)
+- **Built:** trace per run, trace API.
+- **Planned:** OpenTelemetry export, redaction, metrics, containment and satisfaction, intent gaps, failure analysis, alerts, conversation search and tags, natural-language analytics.
 
-## F10. Knowledge (R10)
-A retrieval tool queries an external knowledge service and returns passages with sources.
+## 10. Studio (U1-U8)
+Screens and behaviour in `07-design/NorthCX_Studio-UI-Spec.md`.
 
-## F11. Channels (R11) and voice (R14)
-Inbox webhooks route incoming messages to the API and post replies back. Voice runs through a voice adapter calling the same API.
-
-## F12. Studio (R13) and insights (R15)
-Low-code builder over the agent definition format; dashboards for resolution rate, escalations, guardrail hits, tool errors.
-
-## Acceptance
-Each feature has simulation or unit tests before it is marked done.
+## 11. Platform (P1-P11)
+- **Built:** bearer key auth, environment configuration.
+- **Planned:** roles and scoped keys, audit log, rate limiting, single sign-on, containers, webhooks, data-residency options; later, multi-tenancy and usage metering.
