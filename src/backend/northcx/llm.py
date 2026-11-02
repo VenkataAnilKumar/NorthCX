@@ -27,7 +27,10 @@ class AnthropicLLM:
         if req.tools:
             kwargs["tools"] = req.tools
         res = await self._client.messages.create(**kwargs)
-        return LLMResponse(content=[b.model_dump() for b in res.content], stop_reason=res.stop_reason or "end_turn")
+        u = getattr(res, "usage", None)
+        usage = {"input_tokens": int(getattr(u, "input_tokens", 0) or 0), "output_tokens": int(getattr(u, "output_tokens", 0) or 0)} if u else {}
+        return LLMResponse(content=[b.model_dump() for b in res.content], stop_reason=res.stop_reason or "end_turn",
+                           usage=usage, model=getattr(res, "model", None))
 
 
 Script = Union[LLMResponse, Callable[[LLMRequest], LLMResponse]]

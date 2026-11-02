@@ -73,3 +73,4 @@ class Agent:
     digest: str | None = None
     model: str | None = None
     max_steps: int = 8
+    max_run_tokens: int | None = None  # stop and hand off when one turn has used this many model tokens

@@ -71,3 +71,5 @@
 | 67 | Tool results are screened (`output_guardrails`) before the model reads them; failures deny; an empty list leaves spec digests unchanged | Decided, built | Indirect-injection defence; phrase list narrow on purpose |
 | 68 | Monitoring is rule-based over traces for every turn (no model calls); findings are advisory and monitoring failures never affect conversations | Decided, built | |
 | 69 | Policy library is deterministic and ships with executable allow/block cases; every policy needs both outcomes covered | Decided, built | |
+| 70 | Model calls go through a wrapper with retries, per-call timeout, ordered fallback models and a circuit breaker; non-transient errors are never retried | Decided, built | |
+| 71 | Token budgets are per run (spec `max_run_tokens`) and per server per day; exceeding either hands the conversation to a person | Decided, built | Daily count is per process |

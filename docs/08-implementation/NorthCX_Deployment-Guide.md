@@ -30,6 +30,7 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_TOKEN_SECRET` (`_FILE`) | Signing secret for customer chat tokens | derived from `NORTHCX_API_KEY`; random (tokens lost at restart) if neither is set |
 | `NORTHCX_APPROVAL_TTL_SECONDS` | Expire approvals left undecided | never |
 | `NORTHCX_WEBHOOK_URL`, `NORTHCX_WEBHOOK_SECRET` (`_FILE`) | Push approval results (signed) | none |
+| `NORTHCX_MODEL_FALLBACKS`, `NORTHCX_MODEL_RETRIES`, `NORTHCX_MODEL_TIMEOUT`, `NORTHCX_DAILY_TOKEN_BUDGET` | Model reliability: fallback models in order, retries per model, seconds per call, and a per-server daily token cap | no fallbacks; 2 retries; 60 s; no cap |
 | `NORTHCX_EMAIL_FROM`, `NORTHCX_SMTP_URL` (`_FILE`), `NORTHCX_EMAIL_AGENT`, `NORTHCX_EMAIL_FROM_NAME`, `NORTHCX_EMAIL_TRUST_AUTH_RESULTS`, `NORTHCX_EMAIL_MAX_REPLIES_PER_HOUR` | Email channel: enabled when `NORTHCX_EMAIL_FROM` and `NORTHCX_SMTP_URL` are set; point your mail gateway at `POST /v1/channels/email/inbound` with a `channel` key | off; 10 replies/hour/sender |
 | `NORTHCX_RATE_LIMITS` (`off`), `NORTHCX_RATE_LIMIT_PER_MINUTE`, `NORTHCX_CHAT_PER_SESSION_PER_MINUTE`, `NORTHCX_AUTH_FAILURES_PER_MINUTE` | Per-process limits | 600 / 30 / 20 |
 | `NORTHCX_TRACE_DIR` | Also write traces to JSON lines (in-memory mode) | none |

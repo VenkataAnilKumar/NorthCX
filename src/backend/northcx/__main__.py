@@ -9,6 +9,8 @@ from .tokens import TokenSigner, derive_secret
 from .config import load_registry
 from .audit import InMemoryAudit
 from .channels.email import EmailChannel, EmailConfig, EmailNotifier, InMemoryEmailRepo, SmtpSender
+from .reliability import ReliableLLM, UsageLedger
+from .llm import DEFAULT_MODEL
 from .monitor import InMemoryMonitor, Monitor
 from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgKeys, PgMemoryStore, PgMonitor, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
@@ -67,6 +69,10 @@ def run() -> None:
         llm = DemoLLM()
     else:
         llm = AnthropicLLM()
+        fallbacks = [m.strip() for m in os.environ.get("NORTHCX_MODEL_FALLBACKS", "").split(",") if m.strip()]
+        llm = ReliableLLM(llm, ([DEFAULT_MODEL] + fallbacks) if fallbacks else [],
+                          retries=int(os.environ.get("NORTHCX_MODEL_RETRIES", 2)),
+                          timeout=float(os.environ.get("NORTHCX_MODEL_TIMEOUT", 60)) or None)
 
     db_url = database_url_from_env(env_or_file("NORTHCX_DATABASE_URL"))
     if db_url:
@@ -112,7 +118,8 @@ def run() -> None:
         from .notify import CompositeNotifier
 
         notifier = CompositeNotifier(*[n for n in (notifier, email_notifier) if n])
-    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo))
+    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo),
+                      ledger=UsageLedger(int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None))
 
     # Agents and scenarios are files; the registry maps their tool names to code (the example registry for now).
     specs_dir = os.environ.get("NORTHCX_AGENTS_DIR") or str(examples_dir)

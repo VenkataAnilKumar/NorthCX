@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from .agent import Agent, ToolContext
 from .approvals import ApprovalRepo, ApprovalStore
 from .monitor import Monitor
+from .reliability import UsageLedger
 from .guardrails import GuardrailContext, InputResult
 from .handoffs import Handoff, HandoffRepo, InMemoryHandoffs, build_package
 from .outbox import Outbox
@@ -44,13 +45,15 @@ class RunResult:
 class Runtime:
     def __init__(self, llm: LLM, store: MemoryStore, traces: TraceRepo, approvals: ApprovalRepo | None = None,
                  outbox: Outbox | None = None, handoffs: HandoffRepo | None = None,
-                 secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None):
+                 secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None,
+                 ledger: UsageLedger | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
         self.handoffs = handoffs or InMemoryHandoffs()
         self.secrets = secrets or NO_SECRETS
         self.monitor = monitor or Monitor()
+        self.ledger = ledger or UsageLedger()
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
@@ -126,7 +129,16 @@ class Runtime:
 
         rewrites = 0
         rewrite_from = -1
+        used = 0
         for step in range(agent.max_steps):
+            if self.ledger.exhausted():
+                trace.add("budget", scope="daily", used=self.ledger.used_today(), limit=self.ledger.daily_limit)
+                return await finish(FALLBACK, "escalated", "budget_exceeded", "The daily model budget is used up")
+            if agent.max_run_tokens and used >= agent.max_run_tokens:
+                trace.add("budget", scope="run", used=used, limit=agent.max_run_tokens)
+                if rewrite_from >= 0:
+                    del messages[rewrite_from:]
+                return await finish(FALLBACK, "escalated", "budget_exceeded", "This conversation turn used its model budget")
             try:
                 res = await self.llm.complete(LLMRequest(system=system, messages=messages, tools=tools, model=agent.model))
             except Exception as e:  # model failure escalates instead of crashing
@@ -134,7 +146,12 @@ class Runtime:
                 if rewrite_from >= 0:
                     del messages[rewrite_from:]
                 return await finish(FALLBACK, "escalated", "model_error", "The model call failed")
-            trace.add("llm", step=step, stop_reason=res.stop_reason)
+            tokens = sum(int(v) for v in res.usage.values()) if res.usage else 0
+            used += tokens
+            self.ledger.add(agent.id, tokens)
+            trace.add("llm", step=step, stop_reason=res.stop_reason,
+                      **({"tokens": tokens} if tokens else {}), **({"model": res.model} if res.model else {}),
+                      **({"fallback": True} if res.fallback else {}))
             messages.append({"role": "assistant", "content": res.content})
             uses = [b for b in res.content if b.get("type") == "tool_use"]
 

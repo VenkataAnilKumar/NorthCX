@@ -21,6 +21,9 @@ class LLMRequest:
 class LLMResponse:
     content: list[Block]
     stop_reason: str = "end_turn"
+    usage: dict[str, int] = field(default_factory=dict)  # input_tokens, output_tokens when the backend reports them
+    model: str | None = None  # the model that actually answered
+    fallback: bool = False  # answered by a fallback model
 
 
 class LLM(Protocol):

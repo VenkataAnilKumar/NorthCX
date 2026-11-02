@@ -55,6 +55,7 @@ class AgentSpec(BaseModel):
     instructions: str = Field(min_length=1)
     model: str | None = None
     max_steps: int = Field(default=8, ge=1, le=50)
+    max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
     tools: list[str] = Field(default_factory=list)
     guardrails: list[ComponentRef] = Field(default_factory=list)
     input_guardrails: list[ComponentRef] = Field(default_factory=list)
@@ -78,6 +79,8 @@ class AgentSpec(BaseModel):
 
     def canonical(self) -> str:
         data = self.model_dump(mode="json")
+        if data.get("max_run_tokens") is None:
+            del data["max_run_tokens"]  # keeps digests of specs written before this field existed
         if not data["output_guardrails"]:
             del data["output_guardrails"]  # keeps the digest of specs written before this field existed
         return json.dumps(data, sort_keys=True, separators=(",", ":"))
@@ -166,6 +169,7 @@ class Registry:
                 instructions=spec.instructions,
                 model=spec.model,
                 max_steps=spec.max_steps,
+                max_run_tokens=spec.max_run_tokens,
                 tools=[self._tools[t] for t in spec.tools],
                 guardrails=[self._guardrails[g.name](g.config, ctx) for g in spec.guardrails],
                 input_guardrails=[self._input_guardrails[g.name](g.config, ctx) for g in spec.input_guardrails],

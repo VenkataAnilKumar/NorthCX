@@ -42,6 +42,10 @@ services:
       NORTHCX_EMAIL_FROM_NAME: ${NORTHCX_EMAIL_FROM_NAME:-}
       NORTHCX_EMAIL_TRUST_AUTH_RESULTS: ${NORTHCX_EMAIL_TRUST_AUTH_RESULTS:-}
       NORTHCX_EMAIL_MAX_REPLIES_PER_HOUR: ${NORTHCX_EMAIL_MAX_REPLIES_PER_HOUR:-}
+      NORTHCX_MODEL_FALLBACKS: ${NORTHCX_MODEL_FALLBACKS:-}
+      NORTHCX_MODEL_RETRIES: ${NORTHCX_MODEL_RETRIES:-}
+      NORTHCX_MODEL_TIMEOUT: ${NORTHCX_MODEL_TIMEOUT:-}
+      NORTHCX_DAILY_TOKEN_BUDGET: ${NORTHCX_DAILY_TOKEN_BUDGET:-}
     # To keep secrets out of the environment, mount files and use the *_FILE variants instead, for example:
     #   environment: { NORTHCX_API_KEY_FILE: /run/secrets/northcx_api_key }   (and remove NORTHCX_API_KEY)
     #   secrets: [northcx_api_key]
