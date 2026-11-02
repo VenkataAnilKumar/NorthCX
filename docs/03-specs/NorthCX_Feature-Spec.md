@@ -27,13 +27,13 @@ Each run records user, model, tool call, tool result, guardrail, approval, hando
 A scenario has scripted user turns and expectations: tools called or not called, final status, reply text, and an optional judge-model rubric. Runs in CI with a deterministic scripted model or against Claude.
 
 ## F9. Memory (R9)
-`MemoryStore` holds session messages and per-customer facts. Facts are injected into the system prompt. Adapters: in-memory, Postgres, Mem0.
+`MemoryStore` holds session messages and per-customer facts. Facts are injected into the system prompt. Adapters: in-memory, Postgres, external memory service.
 
 ## F10. Knowledge (R10)
-A retrieval tool queries an external knowledge service (Onyx) and returns passages with sources.
+A retrieval tool queries an external knowledge service and returns passages with sources.
 
 ## F11. Channels (R11) and voice (R14)
-Chatwoot webhooks route incoming messages to the API and post replies back. Voice runs through Pipecat calling the same API.
+Inbox webhooks route incoming messages to the API and post replies back. Voice runs through a voice adapter calling the same API.
 
 ## F12. Studio (R13) and insights (R15)
 Low-code builder over the agent definition format; dashboards for resolution rate, escalations, guardrail hits, tool errors.

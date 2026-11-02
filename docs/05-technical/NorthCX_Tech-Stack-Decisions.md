@@ -1,26 +1,29 @@
 # NorthCX Tech Stack Decisions
 
-Status: Draft. Licences and versions are from third-party sources; verify against official repos.
+Status: Draft. Named third-party components and alternatives are recorded in `00-reference/NorthCX_Reference.md` (section 8).
 
-## Decisions
-| # | Decision | Choice | Alternatives | Rationale |
-|---|---|---|---|---|
-| D1 | Runtime language | **TypeScript** (proposed) | Python with Agno | Scaffold exists; Claude SDK, Sim and a web Studio share the language. Revisit if Agno's features are needed. |
-| D2 | Model access | Anthropic SDK behind an `LLM` interface | LiteLLM | Keeps Claude first-class while allowing other backends later. |
-| D3 | HTTP server | Hono | Fastify, Express | Small, typed, runs on Node and edge. |
-| D4 | Validation | Zod | Valibot | Tool schemas double as model tool specs. |
-| D5 | Persistence | Postgres | SQLite for dev | Sessions, traces, facts. |
-| D6 | Tests | Vitest | Jest | Fast, ESM-native. |
-| D7 | Observability | Langfuse via OpenTelemetry | Phoenix (source-available) | Permissive core licence. |
-| D8 | Memory adapter | Mem0 behind `MemoryStore` | Letta, Graphiti | Apache-2.0; pluggable. |
-| D9 | Knowledge / RAG | Onyx as a retrieval service | Own pgvector | Reuse connectors; verify the `ee/` split. |
-| D10 | Channels / handoff | Chatwoot | Build own inbox | Covers email, SMS, WhatsApp, live chat. |
-| D11 | Voice | Pipecat | LiveKit Agents | BSD-2; avoids LiveKit model-licence caveat. |
-| D12 | Studio | Sim, or custom | Build | Decide at Phase 4. |
-| D13 | Supervisor | Own LLM supervisor, NeMo Guardrails optional | NeMo only | Simple first; add rule engine if needed. |
+## Core decisions
+| # | Decision | Choice | Rationale |
+|---|---|---|---|
+| D1 | Runtime language | TypeScript (proposed) | Scaffold exists; one language across runtime, server and Studio |
+| D2 | Model access | Anthropic SDK behind an `LLM` interface | Claude first-class; other backends possible |
+| D3 | HTTP server | Hono | Small, typed, runs on Node and edge |
+| D4 | Validation | Zod | Tool schemas double as model tool specs |
+| D5 | Persistence | Postgres (SQLite for dev) | Sessions, traces, customer facts |
+| D6 | Tests | Vitest | Fast, ESM-native |
 
-## Language note
-Pipecat, NeMo Guardrails, Mem0 and Agno are Python. If used, they run as separate services behind HTTP; the TypeScript runtime does not import them.
+## Integration points (implemented behind interfaces)
+| Capability | Interface | Selection |
+|---|---|---|
+| Memory | `MemoryStore` | See Reference §8 |
+| Knowledge retrieval | A tool calling an external service | See Reference §8 |
+| Observability | OpenTelemetry export of traces | See Reference §8 |
+| Channels and human inbox | Webhook adapter calling the chat API | See Reference §8 |
+| Voice | Adapter calling the chat API | See Reference §8 |
+| Supervisor | `Guardrail` interface | Own LLM supervisor first |
+| Studio | Edits the agent definition format | Decide at Phase 4 |
 
-## Licence summary
-Apache-2.0, MIT and BSD dependencies only in the core. Components with caveats (Onyx `ee/`, Langfuse `ee/`, Chatwoot enterprise features, LiveKit model licence, Phoenix ELv2) must be reviewed before use.
+## Constraints
+- Only permissively licensed dependencies in the core (Apache-2.0, MIT, BSD).
+- Components not written in TypeScript run as separate services behind HTTP.
+- Licence caveats are tracked in the Reference.

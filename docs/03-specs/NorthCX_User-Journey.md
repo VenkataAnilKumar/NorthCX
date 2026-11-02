@@ -18,7 +18,7 @@ Status: Draft
 ## 3. Customer: needs a person
 1. Customer asks for a human, or the agent cannot resolve.
 2. Agent calls `handoff_to_human` with a reason.
-3. Chatwoot inbox receives the conversation with transcript; status `escalated`.
+3. Human inbox receives the conversation with transcript; status `escalated`.
 
 ## 4. Platform engineer: ship an agent change
 1. Edit instructions or a tool.

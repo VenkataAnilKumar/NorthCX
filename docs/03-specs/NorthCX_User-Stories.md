@@ -15,6 +15,6 @@ Status: Draft
 | US9 | Customer | I chat on the website and get an answer or a human. | Widget returns reply and status | R7 |
 | US10 | Customer | The agent remembers me across sessions. | Customer facts appear in the next session | R9 |
 | US11 | Maya | I edit policies without code. | Studio changes produce a valid agent definition | R13 |
-| US12 | Customer | I reach support by email or WhatsApp. | Messages routed via Chatwoot | R11 |
+| US12 | Customer | I reach support by email or WhatsApp. | Messages routed through the inbox integration | R11 |
 | US13 | Customer | I call and speak to the agent. | Voice session uses the same agent | R14 |
 | US14 | Maya | I view resolution rate and escalations. | Dashboard shows the metrics | R15 |

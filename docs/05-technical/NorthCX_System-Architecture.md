@@ -1,12 +1,12 @@
 # NorthCX System Architecture
 
-Status: Draft. Proposed, pending the runtime-language decision recorded in Tech-Stack-Decisions.
+Status: Draft. Proposed, pending the runtime-language decision recorded in Tech-Stack-Decisions. Component selections are in the Reference (section 8).
 
 ## Layers
 ```
 Channels         web chat | email | SMS | WhatsApp | voice
                      |            |
-                 Channel adapters (HTTP API, Chatwoot webhooks, Pipecat)
+                 Channel adapters (HTTP API, inbox webhooks, voice adapter)
                      |
 Agent runtime    loop: model -> tool calls -> supervisor -> reply
                      |        |            |
@@ -27,7 +27,7 @@ Platform         Studio | Simulation & evals | Observability | Auth/RBAC
 | Traces (`trace.ts`) | Event log per run | In-memory / JSONL |
 | Server | HTTP API, SSE, widget | Planned |
 | Simulation | Scenario runner, assertions, judge | Planned |
-| Channel adapters | Chatwoot and voice bridges | Planned |
+| Channel adapters | Inbox and voice bridges | Planned |
 | Studio | Low-code builder | Planned |
 
 ## Request flow (chat)
@@ -48,4 +48,4 @@ Docker Compose for development; containers for the server and workers; Postgres 
 ## Open decisions
 1. Runtime language (see Tech-Stack-Decisions).
 2. Persistence: Postgres schema in `05-technical/NorthCX_Database-Schema.md` (planned).
-3. Whether Chatwoot is the only channel/handoff integration in v1.
+3. Whether one inbox integration is enough for v1 channels and handoff.

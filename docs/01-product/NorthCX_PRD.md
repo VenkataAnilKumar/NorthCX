@@ -35,14 +35,13 @@ Status: Draft
 | R15 | Analytics / insights dashboards | P2 | 4 |
 
 ## Out of scope for v1
-Outcome-based billing, multi-tenant SaaS, agent-builds-agent (Ghostwriter equivalent).
+Outcome-based billing, multi-tenant SaaS, agent-builds-agent.
 
 ## Risks
 | Risk | Mitigation |
 |---|---|
 | Hallucinated or unauthorised actions | Schema validation, approval gates, supervisor, simulations |
-| Source claims about Sierra are unverified | Re-verify when docs are reachable |
-| Dependency licence surprises (`ee/` dirs, source-available) | Licence matrix; prefer Apache/MIT/BSD |
+| Dependency licence surprises | Licence matrix; prefer Apache/MIT/BSD |
 | Model cost and latency | Cheaper supervisor model; caching; step limits |
 
 ## Open questions

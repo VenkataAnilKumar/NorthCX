@@ -104,3 +104,40 @@ Sierra (founded 2023 by Bret Taylor and Clay Bavor) sells enterprise customer-ex
 - Observability: [Phoenix vs Langfuse](https://futureagi.com/blog/arize-phoenix-vs-langfuse-2026/), [Prem AI](https://blog.premai.io/llm-observability-setting-up-langfuse-langsmith-helicone-phoenix)
 - Guardrails: [NeMo Guardrails (PyPI)](https://pypi.org/project/nemoguardrails/), [NVIDIA](https://developer.nvidia.com/neMo-guardrails)
 - Memory: [Mem0 vs Zep vs Letta](https://toolfreebie.com/?p=327), [Mem0 vs Letta](https://vectorize.io/articles/mem0-vs-letta)
+
+---
+
+## 7. Competitive comparison (moved from the market doc)
+
+Details are third-party summaries and **unverified**.
+
+| Dimension | Sierra (reported) | Agno | Sim | Onyx | NorthCX (target) |
+|---|---|---|---|---|---|
+| Open source | No | Yes (Apache-2.0) | Yes (Apache-2.0) | Yes (MIT, `ee/` excluded) | Yes |
+| CX-specific out of the box | Yes | No | No | No | Yes |
+| Omnichannel incl. voice | Yes | Build it | Build it | Limited | Phased (chat first) |
+| Supervisor / guardrails | Yes | Guardrails | Limited | Limited | Yes |
+| Simulation testing | Yes | Evals | No | No | Yes (planned) |
+| Low-code builder | Yes | Control plane UI | Yes | Agent builder | Phase 4 |
+| Self-host | Unclear | Yes | Yes | Yes | Yes |
+
+Segments: enterprise CX agent platforms (Sierra, direct benchmark); incumbent helpdesk AI; open-source frameworks (Agno), workflow builders (Sim), knowledge/chat (Onyx); general agent platforms (Kortix/Suna, different use case). Sierra's reported outcome-based pricing informs the pricing options in `01-product`.
+
+## 8. Proposed component selections (moved from the technical docs)
+
+| # | Capability | Candidate selected | Alternatives | Rationale / notes |
+|---|---|---|---|---|
+| D1 | Runtime language | TypeScript (own runtime) | Python with Agno | Scaffold exists; shares language with a web Studio and Sim |
+| D7 | Observability | Langfuse via OpenTelemetry | Phoenix (source-available) | Permissive core licence |
+| D8 | Memory | Mem0 behind `MemoryStore` | Letta, Graphiti | Apache-2.0; pluggable |
+| D9 | Knowledge / RAG | Onyx as a retrieval service | Own pgvector | Reuse connectors; verify `ee/` split |
+| D10 | Channels / human inbox | Chatwoot | Build own inbox | Email, SMS, WhatsApp, live chat |
+| D11 | Voice | Pipecat | LiveKit Agents | BSD-2; avoids LiveKit model-licence caveat |
+| D12 | Studio | Sim, or custom | Build | Decide at Phase 4 |
+| D13 | Supervisor | Own LLM supervisor; NeMo Guardrails optional | NeMo only | Simple first |
+
+Python components (Pipecat, NeMo Guardrails, Mem0, Agno) would run as separate services behind HTTP.
+
+Build vs adopt: **build** the runtime, supervisor, simulation testing, outcome billing (later). **Adopt** memory (Mem0), knowledge (Onyx), observability (Langfuse), inbox (Chatwoot), voice (Pipecat). **Decide later** Studio (Sim or custom). **Evaluate** Agno only if switching to Python. **Skip** Kortix/Suna. **Research** durable workflows (Temporal, Inngest) and CX connectors.
+
+Licence cautions to review before use: Onyx `ee/`, Langfuse `ee/`, Chatwoot enterprise features, LiveKit model licence, Phoenix ELv2.

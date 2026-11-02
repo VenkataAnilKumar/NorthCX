@@ -32,4 +32,4 @@ Status: Draft. Personas are hypotheses to validate with user interviews, not res
 | Maya | Studio, insights, simulations summary, policy editing |
 | Dev | Agent SDK, tool schemas, CI simulations, traces |
 | Sam | Guardrails, approvals, audit log, RBAC |
-| Jo | Handoff with transcript, Chatwoot inbox |
+| Jo | Handoff with transcript, human inbox |

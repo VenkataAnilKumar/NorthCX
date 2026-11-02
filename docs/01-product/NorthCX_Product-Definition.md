@@ -6,7 +6,7 @@ Status: Draft
 NorthCX lets a company deploy supervised AI agents that resolve customer issues end to end, across chat, email, messaging and voice, on open-source infrastructure it controls.
 
 ## Problem
-Enterprise customer-experience agents (Sierra is the benchmark) are closed, priced by outcome, and gated to large contracts. Teams that want the same capability, with control over data and models, must stitch together agent frameworks, channel tools, evals and observability themselves.
+Enterprise customer-experience agent platforms are closed and gated to large contracts. Teams that want the same capability, with control over data and models, must stitch together agent frameworks, channel tools, evals and observability themselves.
 
 ## Solution
 A composed open-source platform, with Claude as the default model:

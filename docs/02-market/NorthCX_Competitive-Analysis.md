@@ -1,38 +1,33 @@
 # NorthCX Competitive Analysis
 
-Status: Draft. Competitor details come from third-party summaries and are **unverified**.
+Status: Draft. Named competitors and comparison tables live in `00-reference/NorthCX_Reference.md` (sections 1, 2 and 7).
 
-## Segments
-| Segment | Examples | Relevance |
-|---|---|---|
-| Enterprise CX agent platforms | Sierra | Direct benchmark |
-| Incumbent helpdesk AI | Helpdesk vendors' built-in bots | Compete for the same budget |
-| Open-source agent frameworks | Agno | Building block / alternative runtime |
-| Open-source workflow builders | Sim | Studio building block |
-| Open-source knowledge/chat | Onyx | Knowledge building block |
-| General agent platforms | Kortix/Suna | Different use case |
+## Market segments
+| Segment | Relevance to NorthCX |
+|---|---|
+| Enterprise customer-experience agent platforms | Direct benchmark for capability |
+| Incumbent helpdesk AI add-ons | Compete for the same budget |
+| Open-source agent frameworks | Possible building blocks |
+| Open-source workflow and knowledge tools | Possible building blocks |
+| General-purpose autonomous agents | Different use case |
 
-## Comparison
-| Dimension | Sierra (reported) | Agno | Sim | Onyx | NorthCX (target) |
-|---|---|---|---|---|---|
-| Open source | No | Yes (Apache-2.0) | Yes (Apache-2.0) | Yes (MIT, `ee/` excluded) | Yes |
-| CX-specific out of the box | Yes | No | No | No | Yes |
-| Omnichannel incl. voice | Yes | Build it | Build it | Limited | Phased (chat first) |
-| Supervisor / guardrails | Yes | Guardrails | Limited | Limited | Yes |
-| Simulation testing | Yes | Evals | No | No | Yes (planned) |
-| Low-code builder | Yes | Control plane UI | Yes | Agent builder | Phase 4 |
-| Self-host | Unclear | Yes | Yes | Yes | Yes |
+## Where NorthCX competes
+| Dimension | NorthCX position |
+|---|---|
+| Openness | Open source and self-hostable |
+| CX focus | Purpose-built: actions, approvals, handoff |
+| Safety | Supervisors, approvals and simulations are core |
+| Channels | Chat first; email, messaging and voice phased |
+| Model | Claude by default, model-agnostic through an interface |
+| Authoring | Code first; low-code Studio in a later phase |
 
 ## Differentiation
-1. Open and self-hostable CX platform, not a general framework.
-2. Safety first: supervisors, approvals and simulations are core, not add-ons.
-3. Composes proven projects instead of reinventing them.
-4. Claude-first, model-agnostic through an interface.
+1. An open and self-hostable CX platform, not a general framework.
+2. Safety is built in: supervisors, approval gates, simulation testing.
+3. Composes proven components behind interfaces.
+4. Claude-first without lock-in.
 
 ## Risks
-- Sierra and incumbents move faster on enterprise integrations.
-- Composition adds integration burden and licence review.
-- Frameworks like Agno may add CX features.
-
-## To verify
-Sierra's pricing, SDK availability and channel list; current licences and versions of every open-source project.
+- Established vendors may move faster on enterprise integrations.
+- Composition adds integration and licence-review burden.
+- General frameworks may add CX features.

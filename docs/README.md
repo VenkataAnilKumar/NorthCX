@@ -1,8 +1,8 @@
 # NorthCX Documentation
 
-NorthCX is an open-source customer-experience agent platform built on the Claude API. These docs follow the numbered-phase layout used in the Qvora and LaunchIQ repos.
+NorthCX is an open-source customer-experience agent platform built on the Claude API. Documents are organized in numbered phase folders.
 
-> Many claims about Sierra AI and the candidate open-source projects come from third-party sources. See the confidence note in `00-reference/NorthCX_Reference.md`.
+> All external research, benchmarks and third-party component selections live only in `00-reference/NorthCX_Reference.md`. Other documents describe NorthCX and point to the Reference where needed.
 
 ## Reading order
 | Folder | Status | Documents |
@@ -20,4 +20,4 @@ NorthCX is an open-source customer-experience agent platform built on the Claude
 ## Conventions
 - File names: `NorthCX_<Name>.md` inside `NN-folder/`.
 - Each doc starts with a status line (Draft / Review / Final) and lists its open decisions.
-- Facts that came from unverified sources are marked **(unverified)**.
+- Documents outside `00-reference/` do not name external products or projects.

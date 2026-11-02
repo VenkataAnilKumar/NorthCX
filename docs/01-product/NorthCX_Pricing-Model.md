@@ -3,7 +3,7 @@
 Status: Draft proposal. No market testing has been done; figures are intentionally absent.
 
 ## Positioning
-NorthCX core is open source and free to self-host. Sierra, by contrast, is reported to price on outcomes (unverified).
+NorthCX core is open source and free to self-host. Outcome-based pricing is a model some commercial platforms use; see the Reference.
 
 ## Options
 | Model | Description | Pros | Cons |
