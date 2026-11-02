@@ -25,6 +25,12 @@ class Trace:
     def add(self, type: str, **data: Any) -> None:
         self.events.append(TraceEvent(time.time(), type, data))
 
+    def status(self) -> str:
+        for e in reversed(self.events):
+            if e.type == "reply":
+                return str(e.data.get("status", "completed"))
+        return "unknown"
+
     def tools_called(self) -> list[str]:
         return [e.data["name"] for e in self.events if e.type == "tool_call"]
 

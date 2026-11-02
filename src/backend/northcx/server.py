@@ -68,8 +68,18 @@ def create_app(runtime: Runtime, traces: TraceStore, agents: dict[str, Agent], a
 
     @app.get("/v1/traces")
     async def list_traces(sessionId: str | None = None) -> Any:
-        return {"traces": [{"id": t.id, "agentId": t.agent_id, "sessionId": t.session_id, "events": len(t.events)}
-                           for t in traces.list(sessionId)]}
+        items = sorted(traces.list(sessionId), key=lambda t: t.events[0].t if t.events else 0, reverse=True)
+        return {"traces": [{"id": t.id, "agentId": t.agent_id, "sessionId": t.session_id, "events": len(t.events),
+                            "status": t.status(), "startedAt": t.events[0].t if t.events else None,
+                            "tools": t.tools_called()} for t in items]}
+
+    @app.get("/v1/agents")
+    async def list_agents() -> Any:
+        return {"agents": [{"id": a.id, "instructions": a.instructions, "model": a.model, "maxSteps": a.max_steps,
+                            "tools": [{"name": t.name, "description": t.description, "approval": t.requires_approval is not None}
+                                      for t in a.tools],
+                            "guardrails": [g.name for g in a.guardrails],
+                            "inputGuardrails": [g.name for g in a.input_guardrails]} for a in agents.values()]}
 
     @app.get("/v1/approvals")
     async def list_approvals(state: str | None = None) -> Any:

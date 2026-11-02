@@ -11,6 +11,8 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [x] Python backend: runtime, guardrails, stores, approvals, FastAPI server, widget, example agent (`src/backend/`)
 - [x] Input checks: PII masking and prompt-injection detection, adapted from a reference project (S8, S9 early; recorded in `THIRD_PARTY.md`)
 - [x] Provenance files: `NOTICE`, `THIRD_PARTY.md`, `third_party/`
+- [x] Web platform (`src/web`): overview, test console with live trace, conversations and trace viewer, approvals queue, agents (read-only), settings; browser-tested end to end against the backend
+- [x] Offline demo model (`NORTHCX_DEMO=1`) for trying the platform without an API key
 ## Phase 2
 - [ ] Simulation runner and scenarios (Q2)
 - [ ] CI workflow and required checks (Q4)

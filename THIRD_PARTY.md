@@ -13,3 +13,4 @@ Unmodified originals for diffing are kept in `third_party/agno/original/` with t
 | Source | Module | Reason |
 |---|---|---|
 | agno-agi/agno | `agno/approval`, `agno/agent` | Tightly coupled to Agno's own tool, run and HITL types (the agent package alone is about 21,000 lines); NorthCX keeps its own small runtime, whose semantics are specified and tested |
+| simstudioai/sim | `apps/sim` (web app: `components`, `stores`, `executor`, `app/workspace`) | shallow clone, 2026-11-02 | Apache-2.0 (root); `apps/sim/ee` excluded | Roughly 21,000 files in one product, wired to its own database layer, authentication, billing and a workspace package (`@sim/emcn`) that its UI components import. Nothing copied; the NorthCX web app is written natively in the same stack (Next.js, React, Tailwind) following the Studio spec |

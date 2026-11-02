@@ -1,6 +1,6 @@
 # NorthCX Repo Structure
 
-Status: Draft. All code lives under `src/`. `src/backend` (Python product backend) and `src/prototype` (TypeScript reference) exist; `src/web` is still to come.
+Status: Draft. All code lives under `src/`. `src/backend` (Python product backend) and `src/prototype` (TypeScript reference) exist; `src/web` (Next.js platform) now exists.
 
 ```
 northcx/
@@ -12,7 +12,7 @@ northcx/
     │   ├── northcx/          package
     │   ├── examples/         example agents
     │   └── tests/
-    ├── web/                  Next.js platform: Studio, insights, approvals, admin (planned)
+    ├── web/                  Next.js platform: overview, test console, conversations, approvals, agents, settings (built); Studio editor and insights (planned)
     └── prototype/            TypeScript reference implementation of the runtime semantics
 ```
 

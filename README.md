@@ -13,13 +13,13 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 | Path | Contents |
 |---|---|
 | `src/backend/` | Python product backend (FastAPI): runtime, guardrails, safety, stores, server, example agent, tests |
-| `src/web/` | Web platform (planned): Studio and insights, built from reference code |
+| `src/web/` | Web platform (Next.js): overview, test console, conversations and traces, approvals, agents, settings |
 | `src/prototype/` | TypeScript reference implementation of the runtime semantics |
 | `third_party/`, `NOTICE`, `THIRD_PARTY.md` | Provenance and licences of copied code |
 | `docs/` | Documentation; start at `docs/README.md` |
 
 ## Status
-Early development. The Python backend reproduces the prototype's runtime, API and example agent (29 passing tests with a scripted model) and adds copied/adapted input guardrails from a reference project. Persistence, approval resume, simulations, channels and the web platform are planned.
+Early development. The Python backend reproduces the prototype's runtime, API and example agent (31 passing tests with a scripted model) and adds copied/adapted input guardrails from a reference project. The web platform (`src/web`) is browser-tested against the backend. Persistence, approval resume, simulations, channels, the Studio editor and insights are planned.
 
 ## Quick start (backend)
 ```bash
@@ -27,7 +27,15 @@ cd src/backend
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
 python -m pytest
-ANTHROPIC_API_KEY=... python -m northcx    # http://localhost:3000
+ANTHROPIC_API_KEY=... python -m northcx    # http://localhost:3000 (NORTHCX_DEMO=1 uses an offline demo model)
+```
+
+## Quick start (web)
+```bash
+cd src/web
+npm install
+npm test
+NORTHCX_API_URL=http://localhost:3000 npm run dev   # http://localhost:3001
 ```
 
 ## Documentation
