@@ -1,0 +1,6 @@
+NorthCX
+This product includes software adapted from the following projects.
+
+Agno (https://github.com/agno-agi/agno)
+  Licensed under the Apache License, Version 2.0. See third_party/agno/LICENSE.
+  Adapted files are listed in THIRD_PARTY.md and carry attribution headers.

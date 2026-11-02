@@ -2,12 +2,15 @@
 
 Status: Living checklist. IDs refer to the Feature Catalog.
 
-## Phase 1 (done in the TypeScript prototype; to be reproduced in the Python backend)
+## Phase 1 (done in the TypeScript prototype and reproduced in the Python backend: 29 tests)
 - [x] Scaffold, strict TypeScript, dependencies (P9)
 - [x] Runtime, tools, guardrails, memory, traces (R1-R4, T1-T3, S1-S6, K1, K2, O1)
 - [x] Unit tests (Q1)
 - [x] Chat, trace and approvals API, bearer auth, widget (C1, C2, O2, H3, P1)
 - [x] Example support agent
+- [x] Python backend: runtime, guardrails, stores, approvals, FastAPI server, widget, example agent (`backend/`)
+- [x] Input checks: PII masking and prompt-injection detection, adapted from a reference project (S8, S9 early; recorded in `THIRD_PARTY.md`)
+- [x] Provenance files: `NOTICE`, `THIRD_PARTY.md`, `third_party/`
 ## Phase 2
 - [ ] Simulation runner and scenarios (Q2)
 - [ ] CI workflow and required checks (Q4)

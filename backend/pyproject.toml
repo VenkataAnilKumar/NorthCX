@@ -1,0 +1,25 @@
+[project]
+name = "northcx"
+version = "0.1.0"
+description = "NorthCX: open-source customer-experience agent platform built on the Claude API"
+requires-python = ">=3.12"
+dependencies = [
+  "anthropic>=0.40",
+  "fastapi>=0.115",
+  "pydantic>=2.8",
+  "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "httpx>=0.27"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["northcx*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

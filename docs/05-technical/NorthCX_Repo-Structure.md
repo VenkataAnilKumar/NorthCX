@@ -1,6 +1,6 @@
 # NorthCX Repo Structure
 
-Status: Draft. Current layout is the TypeScript prototype; the target layout below is the product.
+Status: Draft. The repository now has `backend/` (Python product backend), `prototype/` (TypeScript reference), `third_party/`, `NOTICE` and `THIRD_PARTY.md`. `web/` is still to come.
 
 ```
 northcx/

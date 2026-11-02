@@ -16,4 +16,5 @@
 | 12 | Forced-handoff topics are policy, not model judgement | Decided | Always escalate |
 | 13 | Assemble by copying and adapting licensed reference code, not from scratch | Decided | Policy in Code-Reuse-Policy |
 | 14 | Exclude `ee`/enterprise directories and source-available code from copying | Decided | One reference project is Elastic-licensed; two others have enterprise or `ee` directories |
+| 16 | Do not copy the reference agent core (about 21,000 coupled lines); keep a small NorthCX runtime and copy small separable modules | Decided | Assessment recorded in `THIRD_PARTY.md` |
 | 9 | Contribution model: DCO vs CLA | Open | |

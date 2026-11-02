@@ -4,24 +4,34 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 
 ## What it does
 - Agents defined by goals and guardrails, with typed tools
-- Policy supervision of every reply and tool call, human approval for sensitive actions
+- Supervision of every reply and tool call, input checks (PII masking, prompt-injection), human approval for sensitive actions
 - Human handoff with full context
 - Per-conversation traces
-- Simulation testing (planned), multiple channels (phased), low-code Studio (planned)
+- Simulation testing (planned), more channels (phased), web platform and Studio (planned)
+
+## Layout
+| Path | Contents |
+|---|---|
+| `backend/` | Python product backend (FastAPI): runtime, guardrails, safety, stores, server, example agent, tests |
+| `web/` | Web platform (planned): Studio and insights, built from reference code |
+| `prototype/` | TypeScript reference implementation of the runtime semantics |
+| `third_party/`, `NOTICE`, `THIRD_PARTY.md` | Provenance and licences of copied code |
+| `docs/` | Documentation; start at `docs/README.md` |
 
 ## Status
-Early development. The product will be a Python backend with a TypeScript web platform, assembled by copying and adapting licensed reference code. The repository currently holds a TypeScript prototype (`src/core`, `src/server`, `examples/support`) that serves as the reference implementation of runtime behaviour, covered by tests with a scripted model. Simulation testing, persistence, approval resume and channel adapters are planned.
+Early development. The Python backend reproduces the prototype's runtime, API and example agent (29 passing tests with a scripted model) and adds copied/adapted input guardrails from a reference project. Persistence, approval resume, simulations, channels and the web platform are planned.
 
-## Quick start
+## Quick start (backend)
 ```bash
-npm install
-npm run typecheck
-npm test
-ANTHROPIC_API_KEY=... npm run dev   # http://localhost:3000
+cd backend
+python -m venv .venv && . .venv/bin/activate
+pip install -e ".[dev]"
+python -m pytest
+ANTHROPIC_API_KEY=... python -m northcx    # http://localhost:3000
 ```
 
 ## Documentation
-See [`docs/README.md`](docs/README.md) for the index. External research and component selections are in [`docs/00-reference/NorthCX_Reference.md`](docs/00-reference/NorthCX_Reference.md).
+See [`docs/README.md`](docs/README.md). External research and component selections are in [`docs/00-reference/NorthCX_Reference.md`](docs/00-reference/NorthCX_Reference.md).
 
 ## Licence
 To be decided (proposal: Apache-2.0).
