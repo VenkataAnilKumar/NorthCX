@@ -73,3 +73,4 @@
 | 69 | Policy library is deterministic and ships with executable allow/block cases; every policy needs both outcomes covered | Decided, built | |
 | 70 | Model calls go through a wrapper with retries, per-call timeout, ordered fallback models and a circuit breaker; non-transient errors are never retried | Decided, built | |
 | 71 | Token budgets are per run (spec `max_run_tokens`) and per server per day; exceeding either hands the conversation to a person | Decided, built | Daily count is per process |
+| 72 | Chat requests accept `Idempotency-Key` (24 h, scoped to caller, agent and conversation); tool calls get per-call keys; identical writes in a turn run once; reads retry once, writes never | Decided, built | |

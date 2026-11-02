@@ -1,8 +1,9 @@
 """The agent run loop. Semantics are ported from the TypeScript reference implementation in prototype/."""
 from __future__ import annotations
 
+import hashlib
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pydantic import ValidationError
@@ -130,6 +131,7 @@ class Runtime:
         rewrites = 0
         rewrite_from = -1
         used = 0
+        done_writes: dict[str, Any] = {}
         for step in range(agent.max_steps):
             if self.ledger.exhausted():
                 trace.add("budget", scope="daily", used=self.ledger.used_today(), limit=self.ledger.daily_limit)
@@ -205,7 +207,16 @@ class Runtime:
                     return await finish("I've sent this to a teammate for approval and will confirm as soon as it's processed.",
                                         "needs_approval")
                 try:
-                    out, simulated = await self.execute_tool(tool, data, ctx)
+                    sig = json.dumps([use["name"], use["input"]], sort_keys=True, default=str)
+                    if tool.effect != "read" and sig in done_writes:
+                        # The model repeated a write it already made this turn: answer from the first result, do not act twice.
+                        out, simulated = done_writes[sig], False
+                        trace.add("duplicate_call", name=use["name"])
+                    else:
+                        key = hashlib.sha256(f"{session_id}|{trace.id}|{sig}".encode()).hexdigest()[:32]
+                        out, simulated = await self.execute_tool(tool, data, replace(ctx, idempotency_key=key))
+                        if tool.effect != "read" and not simulated:
+                            done_writes[sig] = out
                     out = self.secrets.redact(json.loads(json.dumps(out, default=str)))
                     out = await self._screen_output(agent, use["name"], out, trace)
                     trace.add("tool_result", name=use["name"], output=out, **({"dry_run": True} if simulated else {}))
@@ -268,6 +279,11 @@ class Runtime:
         """Run a tool, or in dry-run mode simulate it if it is a write. Returns (result, was_simulated)."""
         if self.dry_run and tool.effect != "read":
             return tool.simulate(data, ctx), True
+        if tool.effect == "read":  # reads have no side effects, so one retry is safe
+            try:
+                return await tool.execute(data, ctx), False
+            except Exception:
+                return await tool.execute(data, ctx), False
         return await tool.execute(data, ctx), False
 
     @staticmethod

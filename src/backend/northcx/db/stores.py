@@ -15,12 +15,13 @@ from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
 from ..monitor import Finding
+from ..idempotency import STALE_AFTER, TTL_SECONDS, Outcome
 from ..simulation.store import SimRun
 from ..versions import AgentVersion, Release
 from ..outbox import OutboxMessage
 from ..trace import Trace, TraceEvent, TraceSummary
 from ..types import Message
-from .models import ApprovalRow, FactRow, HandoffRow, AgentVersionRow, ApiKeyRow, AuditRow, EmailMessageRow, EmailSessionRow, MonitorFindingRow, MessageRow, OutboxRow, ReleaseRow, SimRunRow, SessionRow, TraceEventRow, TraceRow
+from .models import ApprovalRow, FactRow, HandoffRow, AgentVersionRow, ApiKeyRow, AuditRow, EmailMessageRow, EmailSessionRow, IdempotencyRow, MonitorFindingRow, MessageRow, OutboxRow, ReleaseRow, SimRunRow, SessionRow, TraceEventRow, TraceRow
 
 
 def _jsonable(value: Any) -> Any:
@@ -414,6 +415,35 @@ class PgAudit(_Base):
         async with self._sm() as s:
             rows = (await s.execute(select(AuditRow).order_by(AuditRow.id))).scalars().all()
         return verify_entries([self._to_entry(r) for r in rows])
+
+
+class PgIdempotency(_Base):
+    async def begin(self, scope: str, req_hash: str, now: float | None = None) -> Outcome:
+        now = time.time() if now is None else now
+        async with self._sm.begin() as s:
+            await s.execute(delete(IdempotencyRow).where(IdempotencyRow.created_at < now - TTL_SECONDS))
+            ins = await s.execute(pg_insert(IdempotencyRow).values(scope=scope, req_hash=req_hash, response=None, created_at=now)
+                                  .on_conflict_do_nothing().returning(IdempotencyRow.scope))
+            if ins.first() is not None:
+                return Outcome("new")
+            row = (await s.execute(select(IdempotencyRow).where(IdempotencyRow.scope == scope).with_for_update())).scalar_one_or_none()
+            if row is None:  # removed between statements: treat as new
+                await s.execute(pg_insert(IdempotencyRow).values(scope=scope, req_hash=req_hash, response=None, created_at=now).on_conflict_do_nothing())
+                return Outcome("new")
+            if row.response is None and row.created_at < now - STALE_AFTER:
+                row.req_hash, row.created_at = req_hash, now  # the earlier attempt never finished: take over
+                return Outcome("new")
+            if row.req_hash != req_hash:
+                return Outcome("conflict")
+            return Outcome("replay", row.response) if row.response is not None else Outcome("in_progress")
+
+    async def complete(self, scope: str, response: dict[str, Any]) -> None:
+        async with self._sm.begin() as s:
+            await s.execute(update(IdempotencyRow).where(IdempotencyRow.scope == scope).values(response=_jsonable(response)))
+
+    async def abandon(self, scope: str) -> None:
+        async with self._sm.begin() as s:
+            await s.execute(delete(IdempotencyRow).where(IdempotencyRow.scope == scope, IdempotencyRow.response.is_(None)))
 
 
 class PgMonitor(_Base):

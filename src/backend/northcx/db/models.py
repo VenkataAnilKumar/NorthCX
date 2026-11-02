@@ -201,6 +201,15 @@ class EmailSessionRow(Base):
     __table_args__ = (Index("ix_email_sessions_sender", "sender"),)
 
 
+class IdempotencyRow(Base):
+    __tablename__ = "idempotency_keys"
+    scope: Mapped[str] = mapped_column(String(64), primary_key=True)
+    req_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    response: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_idempotency_created", "created_at"),)
+
+
 class MonitorFindingRow(Base):
     __tablename__ = "monitor_findings"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)

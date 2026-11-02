@@ -19,6 +19,7 @@ from .access import ROLES, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
 from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
+from .idempotency import IdempotencyStore, InMemoryIdempotency, scope_hash, request_hash, valid_key
 from .audit import AuditEntry, AuditRepo, InMemoryAudit
 from .catalog import AgentUnavailable, as_provider
 from .runtime import Runtime
@@ -149,13 +150,15 @@ def permission_for(method: str, path: str) -> str | None:
 def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], api_key: str | None = None,
                approval_ttl_seconds: float | None = None, simulations: SimulationService | None = None,
                releases: ReleaseService | None = None, access: AccessControl | None = None,
-               audit: AuditRepo | None = None, email: EmailChannel | None = None) -> FastAPI:
+               audit: AuditRepo | None = None, email: EmailChannel | None = None,
+               idempotency: IdempotencyStore | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
         secret = derive_secret(None, api_key) or secrets.token_bytes(32)
         access.signer = TokenSigner(secret)
     audit = audit or InMemoryAudit()
+    idem = idempotency or InMemoryIdempotency()
     provider = as_provider(agents)
     agents = provider  # everything below resolves agents through the provider
     flow = ApprovalFlow(runtime)
@@ -282,18 +285,40 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             ok, retry = access.limiter.allow(f"session:{body.session_id}", limits.chat_per_session_per_minute)
             if not ok:
                 return too_many(retry, "messages in this conversation")
+        ikey = request.headers.get("idempotency-key")
+        scope = None
+        if ikey is not None:
+            if not valid_key(ikey):
+                return _err(400, "bad_idempotency_key", "Idempotency-Key must be 1-200 visible ASCII characters")
+            scope = scope_hash(who.key_id or who.name, agent_id, body.session_id, ikey)
+            out = await idem.begin(scope, request_hash([body.message, customer_id]))
+            if out.state == "replay":
+                return JSONResponse(out.response, headers={"Idempotent-Replay": "true"})
+            if out.state == "conflict":
+                return _err(422, "idempotency_key_reused", "This Idempotency-Key was used with a different request")
+            if out.state == "in_progress":
+                return _err(409, "request_in_progress", "A request with this Idempotency-Key is still being processed; retry shortly")
         try:
             agent = await provider.get(agent_id)
         except AgentUnavailable as e:
+            if scope:
+                await idem.abandon(scope)
             return _err(503, "agent_unavailable", str(e))
         if agent is None:
+            if scope:
+                await idem.abandon(scope)
             return _err(404, "not_found", "Unknown agent")
         try:
             r = await runtime.run(agent, body.session_id, body.message, customer_id)
         except Exception:
+            if scope:
+                await idem.abandon(scope)
             return _err(500, "internal", "Run failed")
-        return {"reply": r.reply, "status": r.status, "traceId": r.trace_id, "pendingApprovals": r.pending_approvals,
-                "handoffId": r.handoff_id, "agentVersion": agent.version}
+        result = {"reply": r.reply, "status": r.status, "traceId": r.trace_id, "pendingApprovals": r.pending_approvals,
+                  "handoffId": r.handoff_id, "agentVersion": agent.version}
+        if scope:
+            await idem.complete(scope, result)
+        return result
 
     @app.get("/v1/traces/{trace_id}")
     async def get_trace(trace_id: str) -> Any:

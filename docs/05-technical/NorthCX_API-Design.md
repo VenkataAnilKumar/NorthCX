@@ -48,3 +48,8 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 
 ## Later
 Server-sent events for streaming, webhooks for status changes, pagination for lists.
+
+
+## Idempotency
+
+`POST /v1/agents/{id}/chat` accepts an `Idempotency-Key` header (1-200 visible ASCII characters). A retry with the same key, caller, agent and conversation returns the first response unchanged with `Idempotent-Replay: true` and does not run the agent again. The same key with a different message or customer returns 422 `idempotency_key_reused`; a request still running returns 409 `request_in_progress`. Keys are kept 24 hours; a request that never finished (for example a crash) can be retried after five minutes. Failed requests (unknown agent, internal error) are not stored, so retrying them runs normally. Email deliveries are deduplicated by Message-ID instead.

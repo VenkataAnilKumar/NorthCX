@@ -41,3 +41,10 @@ Stateless runtime workers scale horizontally; state lives in the store. Concurre
 - **Timeout:** each model call is limited (default 60 s) so a hung connection cannot hold a conversation.
 - **Budgets:** an agent spec may set `max_run_tokens` (1,000 to 5,000,000); a turn that reaches it stops and is handed to a person. `NORTHCX_DAILY_TOKEN_BUDGET` stops all model calls for the rest of the UTC day and hands conversations to people. Both are recorded as `budget` trace events and escalate with trigger `budget_exceeded`. Token counts come from the provider's usage report.
 - **Limits:** the daily count is per server process and resets at restart; with several servers each enforces the cap separately. There is no per-customer or per-dollar budget yet, and streaming is not built.
+
+### Write safety
+
+- Every tool call receives a stable `idempotency_key` (unique to that call in that turn); tools that call external systems should pass it on so a retry cannot duplicate the action. Approved actions keep using the approval id.
+- If the model repeats an identical write call within one turn, the platform answers from the first result and does not execute it again (trace event `duplicate_call`). A later turn is a new, intentional action.
+- Read tools are retried once on error; write tools are never retried automatically.
+- API clients should send `Idempotency-Key` on chat requests that they may retry (see API Design).
