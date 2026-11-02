@@ -141,3 +141,35 @@ Python components (Pipecat, NeMo Guardrails, Mem0, Agno) would run as separate s
 Build vs adopt: **build** the runtime, supervisor, simulation testing, outcome billing (later). **Adopt** memory (Mem0), knowledge (Onyx), observability (Langfuse), inbox (Chatwoot), voice (Pipecat). **Decide later** Studio (Sim or custom). **Evaluate** Agno only if switching to Python. **Skip** Kortix/Suna. **Research** durable workflows (Temporal, Inngest) and CX connectors.
 
 Licence cautions to review before use: Onyx `ee/`, Langfuse `ee/`, Chatwoot enterprise features, LiveKit model licence, Phoenix ELv2.
+
+---
+
+## 9. Additional feature research (web search, 2026-11-02)
+
+Search snippets and vendor marketing pages; **unverified**. Used as input to `03-specs/NorthCX_Feature-Catalog.md`.
+
+### Sierra components reported
+| Component | Reported detail |
+|---|---|
+| Ghostwriter | Agent-building agent (launched March 2026): turns procedures and recordings into production agents for voice, chat and email, 30+ languages; reduces manual journey editing, integrations, simulations and issue triage |
+| Voice | Phone support replacing rigid IVR menus; 55+ languages with mid-call language switching (third-party claim) |
+| Live Assist | Real-time guidance for human agents: next-step suggestions, drafted replies and call scripts |
+| Insights | Analytics, experimentation and observability; Explorer answers analytics questions in plain language |
+| Agent Data Platform | Persistent memory layer (customer history, CRM records); reportedly fronted by a product called Context Engine |
+| Journeys | Composable building blocks with goals and guardrails; Agent Studio 2.0 lets users describe journeys in natural language |
+| Agent SDK | Goals and reusable skills (for example triage, respond, confirm) composed into workflows; adjustable workflow flexibility; secure connection to internal and external systems; simulations to catch regressions; journeys as code with change tracking; one build deployed to chat, phone, email, SMS and messaging; debugging via API-call and logic traces |
+| Release management | No versioning, environments, promotion or rollback details found |
+| Lineup caveat | Sources disagree on whether Agent OS and Agent SDK are product names or developer terms |
+
+### Market checklist themes (vendor guides)
+- Handoff continues the conversation with history and customer profile; the customer never repeats themselves.
+- Monitoring covers every AI interaction, not a sample.
+- A defined list of topics the AI must never handle alone (for example complaints, legal matters).
+- Analytics: containment rate, CSAT, intent gaps, workflow failure points.
+- A/B tests or staged rollouts before changes go live.
+- Simulation runs after knowledge changes; tests use real, messy conversations.
+
+### Sources
+- [Sierra: Agent SDK](https://sierra.ai/product/agent-sdk), [Sierra: Build your AI agent](https://sierra.ai/product/build-your-ai-agent), [Sierra blog: Agents as a service](https://sierra.ai/blog/agents-as-a-service)
+- [sitegpt.ai review](https://sitegpt.ai/resources/sierra-review), [Atlan: Sierra platform](https://atlan.com/know/ai-agent/ai-agent-applications/what-is-sierra-ai/), [agentsindex.ai](https://agentsindex.ai/sierra), [apis.io](https://apis.io/providers/sierra/)
+- Checklists: [Qiscus](https://www.qiscus.com/en/blog/ai-customer-service-platform-evaluation-checklist/), [No Jitter](https://www.nojitter.com/ai-automation/ai-agents-require-guardrails-testing-and-visibility), [QuickBlox](https://quickblox.com/answers/ai-agent-platform-checklist/), [Infobip](https://www.infobip.com/blog/how-to-choose-chatbot-platform), [Cresta](https://cresta.com/guides/ai-voice-agents-customer-support)

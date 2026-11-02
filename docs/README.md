@@ -10,7 +10,7 @@ NorthCX is an open-source customer-experience agent platform built on the Claude
 | `00-reference/` | `NorthCX_Reference.md` (all external research and component selections) |
 | `01-product/` | Product-Definition, PRD, Personas, Pricing-Model |
 | `02-market/` | Competitive-Analysis |
-| `03-specs/` | Feature-Spec, User-Stories, User-Journey |
+| `03-specs/` | Feature-Catalog, Feature-Spec, User-Stories, User-Journey |
 | `04-ai-architecture/` | Agent-Runtime, Agent-Capability-Matrix, Guardrails-and-Supervisors, Knowledge-and-Memory, Simulation-and-Evals, Data-Flow |
 | `05-technical/` | System-Architecture, Tech-Stack-Decisions, Build-vs-Adopt, Channels-and-Voice, Integrations, API-Design, Database-Schema, Observability, Repo-Structure, Reliability-and-Cost |
 | `06-security/` | Security-and-Compliance, Licenses |
