@@ -26,7 +26,7 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [x] Approval resume (R10): decision, exactly-once execution with idempotency key, supervisor re-check, agent follow-up, outbox with signed webhook option, expiry sweeper
 - [x] Handoff package (H4), handoff queue with resolve, and forced-handoff topics (S7); web handoffs page
 - [x] Immutable versions, diff, gated publishing, rollback, release history, live-agent serving, agent version on traces (Q8, Q10); web page for versions and releases
-- [ ] Roles, scoped keys, audit log, rate limits (P2-P4)
+- [x] Roles, hashed API keys, tamper-evident audit log, rate limits (P2-P4); Access page; key command line
 - [ ] Secrets handling, dry-run mode (T7, T8)
 - [ ] Container image and deployment guide (P7)
 ## Phase 3

@@ -163,3 +163,38 @@ describe("version and release calls", () => {
       expect(renderToStaticMarkup(createElement(StatusBadge, { status: s }))).toContain(label);
   });
 });
+
+describe("access calls", () => {
+  it("creates keys, reads the audit log with filters, and omits the claimed name when signed in", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push([url, init]);
+      return new Response(JSON.stringify(url.includes("/v1/audit?") ? { entries: [{ id: 1 }] } : { ok: true }), { status: 200 });
+    }));
+    const { createKey, listAudit, decideApproval, resolveHandoff, publishVersion, getMe } = await import("@/lib/api");
+    await createKey("svc", "channel", 30);
+    expect(JSON.parse(String(calls[0][1]?.body))).toEqual({ name: "svc", role: "channel", expiresInDays: 30 });
+    expect((await listAudit("release.publish", "rae", 9))[0].id).toBe(1);
+    expect(calls[1][0]).toBe("/api/northcx/v1/audit?limit=100&action=release.publish&actor_name=rae&before=9");
+    await decideApproval("a1", true, undefined, "ok");
+    expect(JSON.parse(String(calls[2][1]?.body))).toEqual({ approved: true, note: "ok" });
+    await resolveHandoff("h1");
+    expect(JSON.parse(String(calls[3][1]?.body))).toEqual({});
+    await publishVersion("support", 2, "claimed");
+    expect(JSON.parse(String(calls[4][1]?.body))).toEqual({ version: 2, by: "claimed" });
+    await getMe();
+    expect(calls[5][0]).toBe("/api/northcx/v1/me");
+  });
+
+  it("shows a 403's message from the server", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: { code: "forbidden", message: "The 'viewer' role cannot do this (needs approvals:decide)" } }), { status: 403 })));
+    const { decideApproval } = await import("@/lib/api");
+    await expect(decideApproval("a", true)).rejects.toMatchObject({ status: 403, message: expect.stringContaining("viewer") });
+  });
+});
+
+describe("revoked keys", () => {
+  it("are labelled as revoked", () => {
+    expect(renderToStaticMarkup(createElement(StatusBadge, { status: "revoked" }))).toContain("Revoked");
+  });
+});

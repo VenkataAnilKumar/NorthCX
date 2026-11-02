@@ -4,6 +4,8 @@ from typing import Any
 
 import asyncio
 import json
+import logging
+import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -11,7 +13,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
+from .access import ROLES, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
 from .approval_flow import ApprovalFlow
+from .audit import AuditEntry, AuditRepo, InMemoryAudit
 from .catalog import AgentUnavailable, as_provider
 from .runtime import Runtime
 from .simulation import Busy, SimulationService
@@ -30,12 +34,12 @@ class ChatBody(BaseModel):
 
 class DecisionBody(BaseModel):
     approved: bool
-    by: str = Field(min_length=1)
+    by: str | None = Field(default=None, max_length=200)  # only used when the server has no authentication configured
     note: str | None = Field(default=None, max_length=1000)
 
 
 class ResolveBody(BaseModel):
-    by: str = Field(min_length=1)
+    by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
 
 
@@ -52,21 +56,28 @@ class VersionBody(BaseModel):
     spec: dict[str, Any] | None = None
     spec_yaml: str | None = Field(default=None, alias="specYaml", max_length=100_000)
     from_baseline: bool = Field(default=False, alias="fromBaseline")
-    by: str = Field(min_length=1, max_length=200)
+    by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
     model_config = {"populate_by_name": True}
 
 
 class PublishBody(BaseModel):
     version: int = Field(ge=1)
-    by: str = Field(min_length=1, max_length=200)
+    by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
 
 
 class RollbackBody(BaseModel):
     to_version: int | None = Field(default=None, alias="toVersion", ge=1)
-    by: str = Field(min_length=1, max_length=200)
+    by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
+    model_config = {"populate_by_name": True}
+
+
+class KeyBody(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    role: str
+    expires_in_days: float | None = Field(default=None, alias="expiresInDays")
     model_config = {"populate_by_name": True}
 
 
@@ -79,9 +90,53 @@ def _err(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
 
 
+# Every /v1 route must appear here. A route that is not listed is refused (a test checks the table against the app).
+ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
+    ("GET", r"/v1/me", "authenticated"),
+    ("POST", r"/v1/agents/[^/]+/chat", "chat:send"),
+    ("GET", r"/v1/sessions/[^/]+/outbox", "outbox:read"),
+    ("GET", r"/v1/traces", "traces:read"),
+    ("GET", r"/v1/traces/[^/]+", "traces:read"),
+    ("GET", r"/v1/agents", "agents:read"),
+    ("GET", r"/v1/agents/[^/]+/live", "agents:read"),
+    ("GET", r"/v1/agents/[^/]+/versions", "versions:read"),
+    ("GET", r"/v1/agents/[^/]+/versions/[^/]+", "versions:read"),
+    ("GET", r"/v1/agents/[^/]+/versions/[^/]+/diff/[^/]+", "versions:read"),
+    ("GET", r"/v1/agents/[^/]+/releases", "versions:read"),
+    ("POST", r"/v1/agents/[^/]+/versions", "versions:create"),
+    ("POST", r"/v1/agents/[^/]+/releases", "releases:publish"),
+    ("POST", r"/v1/agents/[^/]+/rollback", "releases:rollback"),
+    ("GET", r"/v1/approvals", "approvals:read"),
+    ("POST", r"/v1/approvals/expire", "approvals:decide"),
+    ("POST", r"/v1/approvals/[^/]+/decision", "approvals:decide"),
+    ("GET", r"/v1/handoffs", "handoffs:read"),
+    ("GET", r"/v1/handoffs/[^/]+", "handoffs:read"),
+    ("POST", r"/v1/handoffs/[^/]+/resolve", "handoffs:resolve"),
+    ("GET", r"/v1/simulations/(scenarios|runs|gate)", "simulations:read"),
+    ("GET", r"/v1/simulations/runs/[^/]+", "simulations:read"),
+    ("POST", r"/v1/simulations/runs", "simulations:run"),
+    ("GET", r"/v1/keys", "keys:manage"),
+    ("POST", r"/v1/keys", "keys:manage"),
+    ("POST", r"/v1/keys/[^/]+/revoke", "keys:manage"),
+    ("GET", r"/v1/audit", "audit:read"),
+    ("GET", r"/v1/audit/verify", "audit:read"),
+]
+PUBLIC_ROUTES = {("GET", "/"), ("GET", "/health")}
+_COMPILED = [(m, re.compile(p), perm) for m, p, perm in ROUTE_PERMISSIONS]
+log = logging.getLogger("northcx.server")
+
+
+def permission_for(method: str, path: str) -> str | None:
+    return next((perm for m, rx, perm in _COMPILED if m == method and rx.fullmatch(path)), None)
+
+
 def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], api_key: str | None = None,
                approval_ttl_seconds: float | None = None, simulations: SimulationService | None = None,
-               releases: ReleaseService | None = None) -> FastAPI:
+               releases: ReleaseService | None = None, access: AccessControl | None = None,
+               audit: AuditRepo | None = None) -> FastAPI:
+    if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
+        access = AccessControl(bootstrap_key=api_key)
+    audit = audit or InMemoryAudit()
     provider = as_provider(agents)
     agents = provider  # everything below resolves agents through the provider
     flow = ApprovalFlow(runtime)
@@ -103,12 +158,59 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if task:
             task.cancel()
 
-    app = FastAPI(title="NorthCX", lifespan=lifespan)
+    # The interactive API docs are off: they would describe the API to anyone who can reach the server.
+    app = FastAPI(title="NorthCX", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+    limits = access.limits
+
+    def too_many(retry: float, what: str) -> JSONResponse:
+        r = _err(429, "rate_limited", f"Too many {what}; retry in {max(1, round(retry))} s")
+        r.headers["Retry-After"] = str(max(1, round(retry)))
+        return r
+
+    async def record(request: Request | None, action: str, target: str = "", outcome: str = "success", **detail: Any) -> None:
+        """Write an audit entry for the caller. A failure to record is raised: a privileged action must not go unrecorded."""
+        who: Identity = getattr(request.state, "identity", OPEN_IDENTITY) if request is not None else OPEN_IDENTITY
+        try:
+            await audit.append(AuditEntry(actor=who.name, role=who.role, key_id=who.key_id, action=action, target=target,
+                                          outcome=outcome, detail=detail))
+        except Exception:
+            log.exception("AUDIT FAILURE: could not record %s on %s", action, target)
+            raise
+
+    def actor(request: Request, claimed: str | None) -> str:
+        """Who is acting. With authentication it is the key's name; a name in the body is only trusted without it."""
+        who: Identity = request.state.identity
+        return (claimed.strip() if claimed and claimed.strip() else "anonymous") if who.open_mode else who.name
 
     @app.middleware("http")
-    async def auth(request: Request, call_next):
-        if api_key and request.url.path.startswith("/v1/") and request.headers.get("authorization") != f"Bearer {api_key}":
-            return _err(401, "unauthorized", "Missing or invalid API key")
+    async def guard(request: Request, call_next):
+        method, path = request.method, request.url.path
+        if (method, path) in PUBLIC_ROUTES or not path.startswith("/v1/"):
+            return await call_next(request)
+        perm = permission_for(method, path)
+        if perm is None:  # an unlisted route is refused, never served
+            return _err(404, "not_found", "No such endpoint")
+        ip = request.client.host if request.client else "unknown"
+        if await access.enabled():
+            header = request.headers.get("authorization", "")
+            ident = await access.authenticate(header[7:] if header.startswith("Bearer ") else None)
+            if ident is None:
+                if limits and not access.limiter.allow(f"authfail:{ip}", limits.auth_failures_per_minute)[0]:
+                    return too_many(60, "failed sign-in attempts")
+                if access.limiter.allow(f"authlog:{ip}", 6)[0]:  # sampled, so guessing cannot flood the log
+                    await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target=path,
+                                                  outcome="denied", detail={"client": ip}))
+                return _err(401, "unauthorized", "Missing or invalid API key")
+        else:
+            ident = OPEN_IDENTITY
+        request.state.identity = ident
+        if limits:
+            ok, retry = access.limiter.allow(f"key:{ident.key_id or ip}", limits.per_key_per_minute)
+            if not ok:
+                return too_many(retry, "requests")
+        if perm != "authenticated" and not ident.can(perm):
+            await record(request, "auth.denied", f"{method} {path}", "denied", permission=perm)
+            return _err(403, "forbidden", f"The '{ident.role}' role cannot do this (needs {perm})")
         return await call_next(request)
 
     @app.exception_handler(RequestValidationError)
@@ -125,6 +227,10 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
     @app.post("/v1/agents/{agent_id}/chat")
     async def chat(agent_id: str, body: ChatBody) -> Any:
+        if limits:
+            ok, retry = access.limiter.allow(f"session:{body.session_id}", limits.chat_per_session_per_minute)
+            if not ok:
+                return too_many(retry, "messages in this conversation")
         try:
             agent = await provider.get(agent_id)
         except AgentUnavailable as e:
@@ -168,15 +274,17 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return {"approvals": [a.__dict__ for a in await runtime.approvals.list(state)]}
 
     @app.post("/v1/approvals/{approval_id}/decision")
-    async def decide(approval_id: str, body: DecisionBody) -> Any:
+    async def decide(approval_id: str, body: DecisionBody, request: Request) -> Any:
         """Record the decision, run the action if approved, and continue the conversation. The customer receives the
         outcome through the outbox (and the webhook, if configured)."""
         try:
-            res = await flow.resolve(agents, approval_id, body.approved, body.by, body.note)
+            res = await flow.resolve(agents, approval_id, body.approved, actor(request, body.by), body.note)
         except KeyError:
             return _err(404, "not_found", "Unknown approval")
         except ValueError as e:
             return _err(409, "conflict", str(e))
+        await record(request, "approval.decide", approval_id, tool=res.approval.tool, approved=body.approved,
+                     state=res.approval.state, note=bool(body.note), follow_up=res.run.status if res.run else "none")
         out = dict(res.approval.__dict__)
         out["resume"] = ({"reply": res.run.reply, "status": res.run.status, "traceId": res.run.trace_id}
                          if res.run else {"error": res.error})
@@ -185,8 +293,9 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return out
 
     @app.post("/v1/approvals/expire")
-    async def expire(body: ExpireBody) -> Any:
+    async def expire(body: ExpireBody, request: Request) -> Any:
         done = await flow.expire_stale(agents, body.older_than_seconds)
+        await record(request, "approval.expire", "", older_than_seconds=body.older_than_seconds, approvals=[a.id for a in done])
         return {"expired": [a.id for a in done]}
 
     def handoff_json(h: Any, full: bool = False) -> dict[str, Any]:
@@ -208,9 +317,11 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return handoff_json(h, full=True) if h else _err(404, "not_found", "Unknown handoff")
 
     @app.post("/v1/handoffs/{handoff_id}/resolve")
-    async def resolve_handoff(handoff_id: str, body: ResolveBody) -> Any:
+    async def resolve_handoff(handoff_id: str, body: ResolveBody, request: Request) -> Any:
         try:
-            return handoff_json(await runtime.handoffs.resolve(handoff_id, body.by, body.note))
+            done = await runtime.handoffs.resolve(handoff_id, actor(request, body.by), body.note)
+            await record(request, "handoff.resolve", handoff_id, trigger=done.trigger, note=bool(body.note))
+            return handoff_json(done)
         except KeyError:
             return _err(404, "not_found", "Unknown handoff")
         except ValueError as e:
@@ -236,7 +347,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
              "judge": s.judge is not None, "digest": s.digest()} for s in sim.scenarios]}
 
     @app.post("/v1/simulations/runs")
-    async def sim_run(body: SimRunBody) -> Any:
+    async def sim_run(body: SimRunBody, request: Request) -> Any:
         sim = need_sim()
         if isinstance(sim, JSONResponse):
             return sim
@@ -255,6 +366,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(409, "busy", str(e))
         except ValueError as e:
             return _err(400, "bad_request", str(e))
+        await record(request, "simulation.run", run.id, mode=run.mode, passed=run.passed, counts=run.counts,
+                     agent=body.agent, version=body.version)
         return run_json(run)
 
     @app.get("/v1/simulations/runs")
@@ -292,6 +405,53 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                         "covered": g.covered, "reasons": g.reasons, "runIds": g.run_ids})
         return {"gates": out}
 
+    # ---------------- identity, keys and audit ----------------
+    @app.get("/v1/me")
+    async def me(request: Request) -> Any:
+        who: Identity = request.state.identity
+        return {"name": who.name, "role": who.role, "openMode": who.open_mode, "keyId": who.key_id,
+                "permissions": sorted(who.permissions)}
+
+    def key_json(k: Any) -> dict[str, Any]:
+        return {"id": k.key_id, "prefix": k.prefix, "name": k.name, "role": k.role, "createdBy": k.created_by,
+                "createdAt": k.created_at, "expiresAt": k.expires_at, "revokedAt": k.revoked_at, "revokedBy": k.revoked_by,
+                "lastUsedAt": k.last_used_at, "active": k.active()}
+
+    @app.get("/v1/keys")
+    async def list_keys() -> Any:
+        return {"roles": {r: sorted(p) for r, p in ROLES.items()}, "keys": [key_json(k) for k in await access.keys.list()]}
+
+    @app.post("/v1/keys", status_code=201)
+    async def create_key(body: KeyBody, request: Request) -> Any:
+        try:
+            key, secret = await access.issue(body.name, body.role, actor(request, None), body.expires_in_days)
+        except ValueError as e:
+            return _err(400, "bad_request", str(e))
+        await record(request, "key.create", key.prefix, name=key.name, role=key.role, expires=key.expires_at)
+        return JSONResponse({**key_json(key), "key": secret}, status_code=201)  # the only time the secret is shown
+
+    @app.post("/v1/keys/{key_id}/revoke")
+    async def revoke_key(key_id: str, request: Request) -> Any:
+        try:
+            key = await access.revoke(key_id, actor(request, None))
+        except KeyError:
+            return _err(404, "not_found", "Unknown key")
+        except ValueError as e:
+            return _err(409, "conflict", str(e))
+        await record(request, "key.revoke", key.prefix, name=key.name, role=key.role)
+        return key_json(key)
+
+    @app.get("/v1/audit")
+    async def audit_log(limit: int = 100, before: int | None = None, actor_name: str | None = None, action: str | None = None) -> Any:
+        rows = await audit.list(max(1, min(limit, 500)), before, actor_name, action)
+        return {"entries": [{"id": e.id, "at": e.at, "actor": e.actor, "role": e.role, "keyId": e.key_id, "action": e.action,
+                             "target": e.target, "outcome": e.outcome, "detail": e.detail} for e in rows]}
+
+    @app.get("/v1/audit/verify")
+    async def audit_verify() -> Any:
+        v = await audit.verify()
+        return {"ok": v.ok, "checked": v.checked, "brokenAt": v.broken_at, "reason": v.reason, "head": v.head}
+
     # ---------------- versions and releases ----------------
     def need_rel() -> ReleaseService | JSONResponse:
         return releases or _err(501, "not_configured", "Versions and releases are not configured on this server")
@@ -322,7 +482,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return _err(400, "bad_request", str(e))
 
     @app.post("/v1/agents/{agent_id}/versions", status_code=201)
-    async def create_version(agent_id: str, body: VersionBody) -> Any:
+    async def create_version(agent_id: str, body: VersionBody, request: Request) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
             return svc
@@ -338,9 +498,10 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                 spec = parse_spec(body.spec_yaml)
             else:
                 spec = AgentSpec.model_validate(body.spec)
-            v = await svc.create_version(agent_id, spec, body.by, body.note)
+            v = await svc.create_version(agent_id, spec, actor(request, body.by), body.note)
         except (SpecError, InvalidSpec, Conflict, ValueError) as e:
             return rel_error(e if isinstance(e, (InvalidSpec, Conflict)) else InvalidSpec(str(e)))
+        await record(request, "version.create", f"{agent_id}@{v.number}", digest=v.digest[:12])
         return JSONResponse(version_json(v, full=True), status_code=201)
 
     @app.get("/v1/agents/{agent_id}/versions")
@@ -375,24 +536,33 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return {"from": a, "to": b, **diff_specs(va.spec, vb.spec)}
 
     @app.post("/v1/agents/{agent_id}/releases")
-    async def publish(agent_id: str, body: PublishBody) -> Any:
+    async def publish(agent_id: str, body: PublishBody, request: Request) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
             return svc
         try:
-            return release_json(await svc.publish(agent_id, body.version, body.by, body.note))
-        except (NotFound, Conflict, GateBlocked) as e:
+            rel = await svc.publish(agent_id, body.version, actor(request, body.by), body.note)
+        except GateBlocked as e:  # an attempt to release something unproven is itself worth recording
+            await record(request, "release.publish", f"{agent_id}@{body.version}", "blocked", reasons=e.reasons[:10])
             return rel_error(e)
-
-    @app.post("/v1/agents/{agent_id}/rollback")
-    async def rollback(agent_id: str, body: RollbackBody) -> Any:
-        svc = need_rel()
-        if isinstance(svc, JSONResponse):
-            return svc
-        try:
-            return release_json(await svc.rollback(agent_id, body.by, body.note, body.to_version))
         except (NotFound, Conflict) as e:
             return rel_error(e)
+        await record(request, "release.publish", f"{agent_id}@{rel.number}", previous=rel.previous_number, gate=rel.gate,
+                     note=bool(body.note))
+        return release_json(rel)
+
+    @app.post("/v1/agents/{agent_id}/rollback")
+    async def rollback(agent_id: str, body: RollbackBody, request: Request) -> Any:
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        try:
+            rel = await svc.rollback(agent_id, actor(request, body.by), body.note, body.to_version)
+        except (NotFound, Conflict) as e:
+            return rel_error(e)
+        await record(request, "release.rollback", f"{agent_id}@{rel.number if rel.number else 'spec-file'}",
+                     previous=rel.previous_number, note=bool(body.note))
+        return release_json(rel)
 
     @app.get("/v1/agents/{agent_id}/releases")
     async def release_history(agent_id: str) -> Any:

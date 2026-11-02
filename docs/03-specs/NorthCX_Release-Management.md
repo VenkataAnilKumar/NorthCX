@@ -56,4 +56,4 @@ Agent behaviour changes whenever instructions, tools, policies or knowledge chan
 - A conversation in progress continues with whatever version is live when the next message arrives; it is not pinned to the version it started on.
 - An approval resolved after a release or rollback is executed and described by the live agent, which re-validates the held input and re-checks supervisors.
 - There is one environment, `production`. Dev and staging, promotion between them, and staged rollout are Phase 3 and 4.
-- Anyone with an API key can publish or roll back until roles arrive (sprint 11); `by` is a free-text name until then.
+- Publishing and rolling back need the release manager or admin role; the release records the key's name (a typed name is only used in open mode), and every attempt, including those blocked by the gate, is in the audit log.

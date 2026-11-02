@@ -36,4 +36,5 @@ Status: Draft. Summary of the Feature Catalog by capability. State: Built / Plan
 | Export, metrics, insights, alerts | Observability | O3-O10 | 3-6 | Planned |
 | Studio | Web app | U1-U8 | 4 | Planned |
 | API key auth | Server | P1 | 1 | Built |
-| Roles, audit, limits, containers, webhooks | Platform | P2-P8 | 2-4 | Planned |
+| Roles, keys, audit log, rate limits | Access control | P2-P4 | 2 | Built and tested |
+| Containers, secrets handling, webhooks | Platform | P7, P8, T7 | 2-3 | Planned (signed approval webhooks built) |

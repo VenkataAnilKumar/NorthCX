@@ -145,6 +145,36 @@ class ReleaseRow(Base):
     __table_args__ = (Index("ix_releases_agent_env", "agent_id", "environment", "seq"),)
 
 
+class ApiKeyRow(Base):
+    __tablename__ = "api_keys"
+    key_id: Mapped[str] = mapped_column(String(8), primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    role: Mapped[str] = mapped_column(String(32), nullable=False)
+    key_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    expires_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    revoked_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    revoked_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    last_used_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class AuditRow(Base):
+    __tablename__ = "audit_log"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    at: Mapped[float] = mapped_column(Float, nullable=False)
+    actor: Mapped[str] = mapped_column(String(200), nullable=False)
+    role: Mapped[str] = mapped_column(String(32), nullable=False)
+    key_id: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    target: Mapped[str] = mapped_column(String(300), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(16), nullable=False)
+    detail: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    prev_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    __table_args__ = (Index("ix_audit_actor", "actor", "id"), Index("ix_audit_action", "action", "id"))
+
+
 class OutboxRow(Base):
     __tablename__ = "outbox"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)

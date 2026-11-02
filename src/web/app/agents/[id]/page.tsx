@@ -6,6 +6,7 @@ import {
   rollbackAgent, runForVersion, versionGate, type AgentVersion, type Gate, type VersionDiff,
 } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
+import { useMe } from "@/lib/me";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
 
@@ -27,7 +28,8 @@ function DiffView({ d }: { d: VersionDiff }) {
   );
 }
 
-function VersionRow({ agent, v, liveNumber, by, note, onChanged }: { agent: string; v: AgentVersion; liveNumber: number | null; by: string; note: string; onChanged: () => void }) {
+function VersionRow({ agent, v, liveNumber, by, note, onChanged }: { agent: string; v: AgentVersion; liveNumber: number | null; by: string | undefined; note: string; onChanged: () => void }) {
+  const { can } = useMe();
   const [gate, setGate] = useState<Gate | null>(null);
   const [diff, setDiff] = useState<VersionDiff | null>(null);
   const [spec, setSpec] = useState<string | null>(null);
@@ -56,9 +58,9 @@ function VersionRow({ agent, v, liveNumber, by, note, onChanged }: { agent: stri
           <span className="text-muted">{gate.covered} of {gate.required} required scenarios passed for this version</span></p>
       )}
       <div className="mt-3 flex flex-wrap gap-2 text-sm">
-        <button disabled={busy !== null} onClick={() => act("run", () => runForVersion(agent, v.number), "Scenarios finished; the gate above is up to date.")}
+        <button disabled={busy !== null || !can("simulations:run")} onClick={() => act("run", () => runForVersion(agent, v.number), "Scenarios finished; the gate above is up to date.")}
           className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40 disabled:opacity-50">{busy === "run" ? "Running…" : "Run scenarios"}</button>
-        {!v.live && <button disabled={busy !== null} onClick={() => act("publish", () => publishVersion(agent, v.number, by || "release-manager", note || undefined), `Version ${v.number} is now live.`)}
+        {!v.live && <button disabled={busy !== null || !can("releases:publish")} title={can("releases:publish") ? undefined : "Your role cannot publish"} onClick={() => act("publish", () => publishVersion(agent, v.number, by, note || undefined), `Version ${v.number} is now live.`)}
           className="rounded-lg bg-primary px-3 py-1.5 font-medium text-primary-text disabled:opacity-50">{busy === "publish" ? "Publishing…" : "Publish"}</button>}
         <button disabled={busy !== null} onClick={async () => { setSpec(spec === null ? (await getVersionDetail(agent, v.number)).specYaml ?? "" : null); }}
           className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">{spec === null ? "View spec" : "Hide spec"}</button>
@@ -86,6 +88,7 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
   const live = useLoad(() => getLive(id), [id, tick]);
   const versions = useLoad(() => listVersions(id), [id, tick]);
   const releases = useLoad(() => listReleases(id), [id, tick]);
+  const { can, askForName } = useMe();
   const [by, setBy] = useState("dev");
   const [note, setNote] = useState("");
   const [yamlText, setYamlText] = useState<string | null>(null);
@@ -100,12 +103,12 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
 
   async function save(e: React.FormEvent) {
     e.preventDefault(); setFormErr(null); setCreated(null);
-    try { const v = await createVersion(id, yamlText ?? "", by.trim() || "dev", note.trim() || undefined); setCreated(`Saved as version ${v.number}.`); setNote(""); refresh(); }
+    try { const v = await createVersion(id, yamlText ?? "", askForName ? by.trim() || "dev" : undefined, note.trim() || undefined); setCreated(`Saved as version ${v.number}.`); setNote(""); refresh(); }
     catch (err) { setFormErr((err as Error).message); }
   }
   async function rollback() {
     setRollErr(null);
-    try { await rollbackAgent(id, by.trim() || "on-call", note.trim() || undefined); refresh(); }
+    try { await rollbackAgent(id, askForName ? by.trim() || "on-call" : undefined, note.trim() || undefined); refresh(); }
     catch (err) { setRollErr((err as Error).message); }
   }
 
@@ -115,8 +118,10 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
       <p className="mb-2 text-sm"><Link className="text-primary underline" href="/agents">← Agents</Link></p>
       <PageHeader title={`${id}: versions and releases`} subtitle="A version is a saved copy of the agent's spec. It can go live only after every required scenario has passed for that exact version.">
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <label htmlFor="by">Your name</label>
-          <input id="by" value={by} onChange={(e) => setBy(e.target.value)} className="w-28 rounded-lg border border-border bg-surface px-2 py-1.5" />
+          {askForName && (<>
+            <label htmlFor="by">Your name</label>
+            <input id="by" value={by} onChange={(e) => setBy(e.target.value)} className="w-28 rounded-lg border border-border bg-surface px-2 py-1.5" />
+          </>)}
           <label htmlFor="note">Note</label>
           <input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" className="w-44 rounded-lg border border-border bg-surface px-2 py-1.5" />
         </div>
@@ -128,7 +133,7 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
           {l.release && <p className="text-xs text-muted">{l.release.action === "rollback" ? "Rolled back" : "Published"} by {l.release.by} · {formatTime(l.release.createdAt)}{l.release.note ? ` · “${l.release.note}”` : ""}</p>}
         </div>
         <div>
-          <button onClick={rollback} disabled={!l.release} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-border/40 disabled:opacity-50">Roll back</button>
+          <button onClick={rollback} disabled={!l.release || !can("releases:rollback")} title={can("releases:rollback") ? undefined : "Your role cannot roll back"} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-border/40 disabled:opacity-50">Roll back</button>
           {rollErr && <p role="alert" className="mt-1 text-sm text-[var(--bad)]">{rollErr}</p>}
         </div>
       </section>
@@ -138,7 +143,7 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
           <h2 className="mb-2 font-medium">Versions</h2>
           {versions.loading && !versions.data ? <Loading /> : !versions.data?.length ? <Empty>No versions yet. Save one with the form.</Empty> : (
             <ul className="space-y-3">{versions.data.map((v) => (
-              <VersionRow key={v.id} agent={id} v={v} liveNumber={l.version} by={by} note={note} onChanged={refresh} />))}</ul>
+              <VersionRow key={v.id} agent={id} v={v} liveNumber={l.version} by={askForName ? by.trim() || "release-manager" : undefined} note={note} onChanged={refresh} />))}</ul>
           )}
         </section>
         <div className="space-y-6">
@@ -148,7 +153,7 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
             <label htmlFor="spec" className="sr-only">Agent spec</label>
             <textarea id="spec" value={yamlText ?? ""} onChange={(e) => setYamlText(e.target.value)} spellCheck={false} rows={14}
               className="w-full rounded-lg border border-border bg-bg p-2 font-mono text-xs" />
-            <button className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text">Save as new version</button>
+            <button disabled={!can("versions:create")} className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text disabled:opacity-50">Save as new version</button>
             {created && <p role="status" className="mt-2 text-sm text-[var(--ok)]">{created}</p>}
             {formErr && <p role="alert" className="mt-2 break-words text-sm text-[var(--bad)]">{formErr}</p>}
           </form>

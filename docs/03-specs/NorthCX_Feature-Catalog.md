@@ -135,15 +135,15 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | U5 | Approval queue | P1 | 4 | Planned |
 | U6 | Knowledge management | P1 | 4 | Planned |
 | U7 | Publish workflow with required checks | P1 | 4 | Early version built (versions page: save, run scenarios, publish, roll back) |
-| U8 | Role-based views | P1 | 4 | Planned |
+| U8 | Role-based views | P1 | 4 | Early version built (navigation, buttons and forms follow the signed-in role) |
 
 ## 11. Security, administration and platform
 | ID | Feature | Pri | Phase | State |
 |---|---|---|---|---|
 | P1 | Bearer API key auth | P0 | 1 | Built |
-| P2 | Roles and scoped keys | P0 | 2 | Planned |
-| P3 | Audit log | P0 | 2 | Planned |
-| P4 | Rate limiting | P1 | 2 | Planned |
+| P2 | Roles and scoped keys | P0 | 2 | Built: seven roles, hashed keys with expiry and revocation (not yet limited to particular agents) |
+| P3 | Audit log | P0 | 2 | Built (append-only, hash-chained) |
+| P4 | Rate limiting | P1 | 2 | Built (per process) |
 | P5 | Single sign-on for Studio | P2 | 4 | Planned |
 | P6 | Data residency options | P2 | 6 | Planned |
 | P7 | Self-hosting with containers | P0 | 2 | Planned |

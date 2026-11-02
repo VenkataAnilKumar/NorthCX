@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { formatTime, getHandoff, listHandoffs, resolveHandoff, type HandoffSummary } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
+import { useMe } from "@/lib/me";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
 
@@ -15,6 +16,7 @@ const who: Record<string, string> = { customer: "Customer", agent: "Agent", plat
 
 function Detail({ id, onChanged }: { id: string; onChanged: () => void }) {
   const { data, error, loading, reload } = useLoad(() => getHandoff(id), [id]);
+  const { can, askForName } = useMe();
   const [by, setBy] = useState("jo");
   const [note, setNote] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -24,7 +26,7 @@ function Detail({ id, onChanged }: { id: string; onChanged: () => void }) {
 
   async function resolve() {
     setErr(null);
-    try { await resolveHandoff(h.id, by.trim() || "agent", note.trim() || undefined); setNote(""); reload(); onChanged(); }
+    try { await resolveHandoff(h.id, askForName ? by.trim() || "agent" : undefined, note.trim() || undefined); setNote(""); reload(); onChanged(); }
     catch (e) { setErr((e as Error).message); reload(); onChanged(); }
   }
 
@@ -71,9 +73,9 @@ function Detail({ id, onChanged }: { id: string; onChanged: () => void }) {
       </div>
       {h.state === "open" ? (
         <div className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
-          <label className="text-sm">Your name <input value={by} onChange={(e) => setBy(e.target.value)} className="ml-1 w-32 rounded-lg border border-border bg-bg px-2 py-1.5" /></label>
+          {askForName && <label className="text-sm">Your name <input value={by} onChange={(e) => setBy(e.target.value)} className="ml-1 w-32 rounded-lg border border-border bg-bg px-2 py-1.5" /></label>}
           <label className="text-sm">Note <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" className="ml-1 w-56 rounded-lg border border-border bg-bg px-2 py-1.5" /></label>
-          <button onClick={resolve} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text">Mark resolved</button>
+          <button onClick={resolve} disabled={!can("handoffs:resolve")} title={can("handoffs:resolve") ? undefined : "Your role cannot resolve handoffs"} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text disabled:opacity-50">Mark resolved</button>
           {err && <ErrorBox message={err} />}
         </div>
       ) : (

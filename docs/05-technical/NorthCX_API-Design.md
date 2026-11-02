@@ -2,11 +2,17 @@
 
 Status: Draft
 
-Base path `/v1`. JSON. Optional `Authorization: Bearer <key>`.
+Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exists; see Security). Errors: `401` missing or invalid key, `403` the role lacks the permission, `429` rate limited (with `Retry-After`). `GET /` and `GET /health` are public.
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/health` | Liveness |
+| GET | `/health` | Liveness (public) |
+| GET | `/me` | The caller's name, role and permissions (any key) |
+| GET | `/keys` | Keys (never secrets) and each role's permissions (admin) (built) |
+| POST | `/keys` | `{name, role, expiresInDays?}`: create a key; the secret is returned once (admin) (built) |
+| POST | `/keys/:id/revoke` | Revoke a key at once; the last admin key is protected (admin) (built) |
+| GET | `/audit?limit=&before=&actor_name=&action=` | Audit entries, newest first (audit:read) (built) |
+| GET | `/audit/verify` | Check the hash chain; returns `ok`, `checked`, `brokenAt`, `reason`, `head` (built) |
 | POST | `/agents/:id/chat` | Send a message; body `{sessionId, message, customerId?}` |
 | GET | `/traces/:id` | Fetch a trace |
 | GET | `/traces?sessionId=` | List traces for a session |

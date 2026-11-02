@@ -12,11 +12,13 @@ form{display:flex;gap:8px;margin-top:8px}input{flex:1;padding:10px;border:1px so
 button{padding:10px 16px;border:0;border-radius:8px;background:#0b3d91;color:#fff;font:inherit;cursor:pointer}
 </style></head><body><main>
 <h1>NorthCX</h1><div id="log" aria-live="polite"></div>
-<form id="f"><input id="i" aria-label="Message" autocomplete="off" required><button>Send</button></form></main>
+<input id="k" hidden type="password" aria-label="Channel key" placeholder="Channel key" autocomplete="off" style="margin-top:8px;padding:10px;border:1px solid #b8c2d1;border-radius:8px;font:inherit"><form id="f"><input id="i" aria-label="Message" autocomplete="off" required><button>Send</button></form></main>
 <script>
-const sid=crypto.randomUUID(),log=document.getElementById('log');
+const sid=crypto.randomUUID(),log=document.getElementById('log'),k=document.getElementById('k');
+function hdr(){const h={'content-type':'application/json'};let v='';try{v=sessionStorage.getItem('ncxKey')||''}catch(e){}if(v)h.authorization='Bearer '+v;return h}
+k.onchange=()=>{try{sessionStorage.setItem('ncxKey',k.value.trim())}catch(e){}};
 function add(t,c){const d=document.createElement('div');d.className='m '+c;d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight}
 document.getElementById('f').onsubmit=async e=>{e.preventDefault();const i=document.getElementById('i'),m=i.value.trim();if(!m)return;i.value='';add(m,'u');
-try{const r=await fetch('/v1/agents/support/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sessionId:sid,message:m})});
-const j=await r.json();if(!r.ok){add(j.error?.message||'Error','s');return}add(j.reply,'a');if(j.status!=='completed')add('Status: '+j.status,'s')}catch{add('Network error','s')}};
+try{const r=await fetch('/v1/agents/support/chat',{method:'POST',headers:hdr(),body:JSON.stringify({sessionId:sid,message:m})});
+const j=await r.json();if(r.status===401){add('This server needs a key. Paste a channel key below, then send again.','s');k.hidden=false;return}if(!r.ok){add(j.error?.message||'Error','s');return}add(j.reply,'a');if(j.status!=='completed')add('Status: '+j.status,'s')}catch{add('Network error','s')}};
 </script></body></html>"""

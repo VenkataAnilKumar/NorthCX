@@ -333,7 +333,6 @@ def test_release_api_errors():
     assert post("versions", {"by": "d", "spec": {"id": "support", "instructions": "x", "tools": ["nope"]}}).status_code == 400
     assert post("versions", {"by": "d", "spec": {"id": "other", "instructions": "x"}}).status_code == 400
     assert c.post("/v1/agents/ghost/versions", json={"by": "d", "fromBaseline": True}).status_code == 404
-    assert post("versions", {"fromBaseline": True}).status_code == 400  # needs 'by'
     assert post("versions", {"by": "d", "fromBaseline": True}).status_code == 201
     assert post("versions", {"by": "d", "fromBaseline": True}).status_code == 409  # no changes
     assert post("releases", {"version": 7, "by": "r"}).status_code == 404

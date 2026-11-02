@@ -20,6 +20,14 @@ Spec files provide the baseline agent. To change what customers get, save a new 
 ## Agents and scenarios
 The server loads agent specs from `NORTHCX_AGENTS_DIR` and scenarios from `NORTHCX_SCENARIOS_DIR` (both default to the bundled examples) and exposes the simulation API and release gate. In CI, run `python -m northcx.simulation ... --record --source ci --meta commit=$SHA` with `NORTHCX_DATABASE_URL` set so each build records its result.
 
+## Access and keys
+1. Set `NORTHCX_API_KEY` to a long random value. It is the bootstrap admin key, used to create everything else; store it in a secrets manager.
+2. Set `NORTHCX_REQUIRE_AUTH=1` so the server refuses to start without any key.
+3. Sign in to the web console (Settings) with the bootstrap key, open Access and audit, and create named keys with the least role that works: a `channel` key for each customer-facing channel, `reviewer` and `release manager` keys for people, `auditor` for compliance, and a `developer` key for CI. Use expiry for keys held by systems. Then keep the bootstrap key offline and revoke people's access by revoking their keys.
+4. Without a bootstrap key, create the first admin key from a shell that has the database URL: `python -m northcx.keys create --name alice --role admin`. `list` and `revoke` also exist there.
+
+Rate limits are on by default (`NORTHCX_RATE_LIMIT_PER_MINUTE`, `NORTHCX_CHAT_PER_SESSION_PER_MINUTE`, `NORTHCX_AUTH_FAILURES_PER_MINUTE`; `NORTHCX_RATE_LIMITS=off` disables them) and are per process. Put the server behind TLS; keys and customer messages travel in clear text otherwise. Copy the `head` value from the audit integrity check to an external place regularly.
+
 ## Configuration
 Environment variables: model API key, server port, API keys for clients, database URL, trace export endpoint, retention settings. Secrets via a secrets manager.
 

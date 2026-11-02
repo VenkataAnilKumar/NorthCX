@@ -37,6 +37,9 @@ The gate rule is tested for version and scenario changes, newest-result-wins in 
 ## Release tests
 Over memory and Postgres: numbering (also concurrent), immutability, refusal of invalid, mismatched or unchanged specs, readable diffs, the gate at publish for the exact version (including a failing proof and a proof for a different version), rollback in all its forms (undo, toggle, named version, never-live version, baseline, no gate needed), live serving and caching, an unbuildable live version, agent version on traces, approvals resolved against the live agent, and the whole API flow. Mutation checks (publishing without the gate, or checking the gate for the file's digest instead of the version's) make tests fail. A browser test walks the entire flow including a restart.
 
+## Access tests
+The permission matrix is tested for every role against every kind of endpoint (allowed roles succeed, others get 403 and a denial is audited); a completeness test fails if any `/v1` route lacks a permission or the table lists a route that does not exist; identities override claimed names; keys (issue, hash-only storage, wrong character, expiry, revocation, unique names, last-admin protection, throttled last-used) over memory and Postgres; the audit chain (edits, removals, concurrent appends, pagination, filters), the database triggers and a simulated tamper by a privileged user; audit entries never contain secrets or conversation text; rate limits (bursts, refill, independence, per conversation, guessing); a restart with keys and the log in Postgres; and the key command line. Mutation checks (skipping the permission check, trusting a claimed name, accepting revoked keys) make tests fail. A browser test signs in as several roles against a Postgres-backed, authenticated server.
+
 ## Rules
 - No network in unit tests.
 - Any production failure becomes a regression scenario.

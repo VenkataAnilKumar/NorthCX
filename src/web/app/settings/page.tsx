@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { api, getApiKey, setApiKey } from "@/lib/api";
+import { getApiKey, getMe, setApiKey } from "@/lib/api";
+import { resetMe } from "@/lib/me";
 import { PageHeader } from "@/components/states";
 
 export default function Settings() {
@@ -10,9 +11,10 @@ export default function Settings() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setApiKey(key.trim());
+    resetMe();
     try {
-      await api("/v1/agents");
-      setMsg({ ok: true, text: "Connected to the backend." });
+      const me = await getMe();
+      setMsg({ ok: true, text: me.openMode ? "Connected. The server has no authentication configured (open mode)." : `Connected as ${me.name} (${me.role.replace("_", " ")}).` });
     } catch (err) {
       setMsg({ ok: false, text: `Could not connect: ${(err as Error).message}` });
     }
@@ -24,7 +26,7 @@ export default function Settings() {
       <form onSubmit={save} className="max-w-md space-y-4 rounded-xl border border-border bg-surface p-4">
         <div>
           <label htmlFor="key" className="block text-sm font-medium">API key</label>
-          <p className="mb-2 text-xs text-muted">Only needed when the backend sets NORTHCX_API_KEY. Kept in this browser tab only.</p>
+          <p className="mb-2 text-xs text-muted">Needed when the server requires keys. Create keys on the Access page. Kept in this browser tab only.</p>
           <input id="key" type="password" value={key} onChange={(e) => setKey(e.target.value)} autoComplete="off"
             className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm" />
         </div>

@@ -4,8 +4,10 @@ from pathlib import Path
 
 import uvicorn
 
-from .db import (PgApprovalStore, PgHandoffs, PgMemoryStore, PgOutbox, PgReleases, PgSimRuns, PgTraceStore, PgVersions,
-                 create_engine, database_url_from_env, migrate)
+from .access import AccessControl, InMemoryKeys, LimitConfig
+from .audit import InMemoryAudit
+from .db import (PgApprovalStore, PgAudit, PgHandoffs, PgKeys, PgMemoryStore, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
+                 PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
 from .runtime import Runtime
@@ -15,6 +17,22 @@ from .spec import BuildContext, SpecError, load_specs
 from .store import InMemoryStore
 from .trace import TraceStore
 from .versions import InMemoryReleases, InMemoryVersions, LiveAgents, ReleaseService
+
+
+def _has_keys(db_url: str, access: AccessControl) -> bool:
+    """Check for keys with a short-lived connection, before the server's event loop starts."""
+    import asyncio
+
+    from sqlalchemy.pool import NullPool
+
+    async def check() -> bool:
+        engine = create_engine(db_url, poolclass=NullPool)
+        try:
+            return await AccessControl(PgKeys(engine), os.environ.get("NORTHCX_API_KEY")).enabled()
+        finally:
+            await engine.dispose()
+
+    return asyncio.run(check())
 
 
 def main() -> None:
@@ -39,11 +57,13 @@ def main() -> None:
         store, traces, approvals = PgMemoryStore(engine), PgTraceStore(engine), PgApprovalStore(engine)
         outbox_repo, handoffs, sim_runs = PgOutbox(engine), PgHandoffs(engine), PgSimRuns(engine)
         versions_repo, releases_repo = PgVersions(engine), PgReleases(engine)
+        keys_repo, audit_repo = PgKeys(engine), PgAudit(engine)
         print("Using Postgres storage.")
     else:
         store, traces, approvals = InMemoryStore(), TraceStore(os.environ.get("NORTHCX_TRACE_DIR")), None
         outbox_repo, handoffs, sim_runs = None, None, InMemorySimRuns()
         versions_repo, releases_repo = InMemoryVersions(), InMemoryReleases()
+        keys_repo, audit_repo = InMemoryKeys(), InMemoryAudit()
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
 
     notifier = None
@@ -87,8 +107,27 @@ def main() -> None:
 
     agents = LiveAgents(baseline, release_service, build_live)
 
+    limits = None
+    if os.environ.get("NORTHCX_RATE_LIMITS", "on") != "off":
+        env = os.environ
+        limits = LimitConfig(float(env.get("NORTHCX_RATE_LIMIT_PER_MINUTE", 600)),
+                             float(env.get("NORTHCX_CHAT_PER_SESSION_PER_MINUTE", 30)),
+                             float(env.get("NORTHCX_AUTH_FAILURES_PER_MINUTE", 20)))
+    access = AccessControl(keys_repo, os.environ.get("NORTHCX_API_KEY"), limits)
+    import asyncio
+
+    if asyncio.run(access.enabled()) if db_url is None else _has_keys(db_url, access):
+        print("Authentication is ON (API keys required).")
+    elif os.environ.get("NORTHCX_REQUIRE_AUTH") == "1":
+        sys.exit("NORTHCX_REQUIRE_AUTH=1 but no API key exists. Set NORTHCX_API_KEY, or create one with "
+                 "`python -m northcx.keys create --name <name> --role admin`.")
+    else:
+        print("WARNING: authentication is OFF. Anyone who can reach this server has admin access. "
+              "Set NORTHCX_API_KEY (and NORTHCX_REQUIRE_AUTH=1) before exposing it.")
+
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
-    app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service)
+    app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
+                      access=access, audit=audit_repo)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
 
 

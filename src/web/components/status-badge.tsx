@@ -13,6 +13,7 @@ const styles: Record<string, string> = {
   passed: "bg-[var(--ok-bg)] text-[var(--ok)]",
   open: "bg-[var(--warn-bg)] text-[var(--warn)]",
   resolved: "bg-[var(--ok-bg)] text-[var(--ok)]",
+  revoked: "bg-[var(--bad-bg)] text-[var(--bad)]",
   executing: "bg-[var(--info-bg)] text-[var(--info)]",
   executed: "bg-[var(--ok-bg)] text-[var(--ok)]",
   failed: "bg-[var(--bad-bg)] text-[var(--bad)]",

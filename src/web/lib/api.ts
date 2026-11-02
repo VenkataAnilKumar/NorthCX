@@ -41,12 +41,12 @@ export const listTraces = (status?: string) =>
   api<{ traces: TraceSummary[] }>("/v1/traces").then((r) => (status ? r.traces.filter((t) => t.status === status) : r.traces));
 export const getTrace = (id: string) => api<Trace>(`/v1/traces/${id}`);
 export const listApprovals = (state?: string) => api<{ approvals: Approval[] }>(`/v1/approvals${state ? `?state=${state}` : ""}`).then((r) => r.approvals);
-export const decideApproval = (id: string, approved: boolean, by: string, note?: string) =>
-  api<Approval & { resume: Resume | null }>(`/v1/approvals/${id}/decision`, { method: "POST", body: JSON.stringify({ approved, by, ...(note ? { note } : {}) }) });
+export const decideApproval = (id: string, approved: boolean, by?: string, note?: string) =>
+  api<Approval & { resume: Resume | null }>(`/v1/approvals/${id}/decision`, { method: "POST", body: JSON.stringify({ approved, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 export const listHandoffs = (state?: string) => api<{ handoffs: HandoffSummary[] }>(`/v1/handoffs${state ? `?state=${state}` : ""}`).then((r) => r.handoffs);
 export const getHandoff = (id: string) => api<Handoff>(`/v1/handoffs/${id}`);
-export const resolveHandoff = (id: string, by: string, note?: string) =>
-  api<HandoffSummary>(`/v1/handoffs/${id}/resolve`, { method: "POST", body: JSON.stringify({ by, ...(note ? { note } : {}) }) });
+export const resolveHandoff = (id: string, by?: string, note?: string) =>
+  api<HandoffSummary>(`/v1/handoffs/${id}/resolve`, { method: "POST", body: JSON.stringify({ ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 export interface SimScenario { name: string; agent: string; required: boolean; description: string; steps: number; judge: boolean; digest: string }
 export interface SimFailure { where: string; check: string; expected: unknown; actual: unknown }
 export interface SimScenarioResult { name: string; required: boolean; passed: boolean; pass_rate: number; agent: string; notes: string[]; trials: { failures: SimFailure[] }[] }
@@ -68,18 +68,34 @@ const agentPath = (id: string) => `/v1/agents/${encodeURIComponent(id)}`;
 export const getLive = (id: string) => api<LiveInfo>(`${agentPath(id)}/live`);
 export const listVersions = (id: string) => api<{ versions: AgentVersion[] }>(`${agentPath(id)}/versions`).then((r) => r.versions);
 export const getVersionDetail = (id: string, n: number) => api<AgentVersion>(`${agentPath(id)}/versions/${n}`);
-export const createVersion = (id: string, specYaml: string, by: string, note?: string) =>
-  api<AgentVersion>(`${agentPath(id)}/versions`, { method: "POST", body: JSON.stringify({ specYaml, by, ...(note ? { note } : {}) }) });
+export const createVersion = (id: string, specYaml: string, by?: string, note?: string) =>
+  api<AgentVersion>(`${agentPath(id)}/versions`, { method: "POST", body: JSON.stringify({ specYaml, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 export const diffVersions = (id: string, a: number, b: number) => api<VersionDiff>(`${agentPath(id)}/versions/${a}/diff/${b}`);
 export const versionGate = (id: string, n: number) =>
   api<{ gates: Gate[] }>(`/v1/simulations/gate?agent=${encodeURIComponent(id)}&version=${n}`).then((r) => r.gates[0]);
 export const runForVersion = (id: string, n: number) =>
   api<SimRunSummary>("/v1/simulations/runs", { method: "POST", body: JSON.stringify({ mode: "scripted", skipJudge: true, agent: id, version: n }) });
-export const publishVersion = (id: string, version: number, by: string, note?: string) =>
-  api<ReleaseRecord>(`${agentPath(id)}/releases`, { method: "POST", body: JSON.stringify({ version, by, ...(note ? { note } : {}) }) });
-export const rollbackAgent = (id: string, by: string, note?: string) =>
-  api<ReleaseRecord>(`${agentPath(id)}/rollback`, { method: "POST", body: JSON.stringify({ by, ...(note ? { note } : {}) }) });
+export const publishVersion = (id: string, version: number, by?: string, note?: string) =>
+  api<ReleaseRecord>(`${agentPath(id)}/releases`, { method: "POST", body: JSON.stringify({ version, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
+export const rollbackAgent = (id: string, by?: string, note?: string) =>
+  api<ReleaseRecord>(`${agentPath(id)}/rollback`, { method: "POST", body: JSON.stringify({ ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 export const listReleases = (id: string) => api<{ releases: ReleaseRecord[] }>(`${agentPath(id)}/releases`).then((r) => r.releases);
+export interface Me { name: string; role: string; openMode: boolean; keyId: string | null; permissions: string[] }
+export interface KeyInfo { id: string; prefix: string; name: string; role: string; createdBy: string; createdAt: number; expiresAt: number | null; revokedAt: number | null; revokedBy: string | null; lastUsedAt: number | null; active: boolean }
+export interface AuditEntry { id: number; at: number; actor: string; role: string; keyId: string | null; action: string; target: string; outcome: string; detail: Record<string, unknown> }
+export const getMe = () => api<Me>("/v1/me");
+export const listKeys = () => api<{ roles: Record<string, string[]>; keys: KeyInfo[] }>("/v1/keys");
+export const createKey = (name: string, role: string, expiresInDays?: number) =>
+  api<KeyInfo & { key: string }>("/v1/keys", { method: "POST", body: JSON.stringify({ name, role, ...(expiresInDays ? { expiresInDays } : {}) }) });
+export const revokeKey = (id: string) => api<KeyInfo>(`/v1/keys/${id}/revoke`, { method: "POST" });
+export const listAudit = (action?: string, actor?: string, before?: number) => {
+  const q = new URLSearchParams({ limit: "100" });
+  if (action) q.set("action", action);
+  if (actor) q.set("actor_name", actor);
+  if (before) q.set("before", String(before));
+  return api<{ entries: AuditEntry[] }>(`/v1/audit?${q}`).then((r) => r.entries);
+};
+export const verifyAudit = () => api<{ ok: boolean; checked: number; brokenAt: number | null; reason: string | null; head: string | null }>("/v1/audit/verify");
 export const listOutbox = (sessionId: string, after: number) =>
   api<{ messages: OutboxMessage[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/outbox?after=${after}`).then((r) => r.messages);
 export const listAgents = () => api<{ agents: AgentInfo[] }>("/v1/agents").then((r) => r.agents);

@@ -2,11 +2,13 @@
 import { useState } from "react";
 import { decideApproval, formatTime, listApprovals, type Approval } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
+import { useMe } from "@/lib/me";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
 
 export default function Approvals() {
   const { data, error, loading, reload } = useLoad(() => listApprovals());
+  const { can, askForName } = useMe();
   const [by, setBy] = useState("reviewer");
   const [note, setNote] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -16,7 +18,7 @@ export default function Approvals() {
   async function decide(a: Approval, approved: boolean) {
     setActionError(null); setOutcome(null); setDeciding(a.id);
     try {
-      const res = await decideApproval(a.id, approved, by.trim() || "reviewer", note.trim() || undefined);
+      const res = await decideApproval(a.id, approved, askForName ? by.trim() || "reviewer" : undefined, note.trim() || undefined);
       setOutcome(res.resume?.error ? `Decision recorded, but the follow-up failed: ${res.resume.error}`
         : `${approved ? "Approved" : "Rejected"}. The customer was told: “${res.resume?.reply ?? ""}”`);
       setNote("");
@@ -30,8 +32,10 @@ export default function Approvals() {
     <>
       <PageHeader title="Approvals" subtitle="Actions held for a human decision. Approving runs the action once and the agent tells the customer; rejecting makes the agent explain.">
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="by" className="text-sm text-muted">Reviewer</label>
-          <input id="by" value={by} onChange={(e) => setBy(e.target.value)} className="w-32 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm" />
+          {askForName && (<>
+            <label htmlFor="by" className="text-sm text-muted">Reviewer</label>
+            <input id="by" value={by} onChange={(e) => setBy(e.target.value)} className="w-32 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm" />
+          </>)}
           <label htmlFor="note" className="text-sm text-muted">Note</label>
           <input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" className="w-48 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm" />
         </div>
@@ -52,8 +56,8 @@ export default function Approvals() {
                   <p className="mt-2 text-sm">{a.reason}</p>
                   <pre className="mt-2 overflow-x-auto rounded-lg bg-bg p-3 text-xs">{JSON.stringify(a.input, null, 2)}</pre>
                   <div className="mt-3 flex gap-2">
-                    <button disabled={deciding === a.id} onClick={() => decide(a, true)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text disabled:opacity-50">{deciding === a.id ? "Working…" : "Approve"}</button>
-                    <button disabled={deciding === a.id} onClick={() => decide(a, false)} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-border/40 disabled:opacity-50">Reject</button>
+                    <button disabled={deciding === a.id || !can("approvals:decide")} title={can("approvals:decide") ? undefined : "Your role cannot decide approvals"} onClick={() => decide(a, true)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text disabled:opacity-50">{deciding === a.id ? "Working…" : "Approve"}</button>
+                    <button disabled={deciding === a.id || !can("approvals:decide")} title={can("approvals:decide") ? undefined : "Your role cannot decide approvals"} onClick={() => decide(a, false)} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-border/40 disabled:opacity-50">Reject</button>
                   </div>
                 </li>))}
               </ul>

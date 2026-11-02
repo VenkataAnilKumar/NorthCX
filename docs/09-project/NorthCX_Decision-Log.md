@@ -46,4 +46,11 @@
 | 43 | The live agent is resolved from the release store on every request | Decided, built | Releases take effect on all processes at once |
 | 44 | An unbuildable live version answers 503 rather than falling back silently | Decided, built | Rollback is the recovery |
 | 45 | Conversations are not pinned to a version | Decided; revisit | Pinning arrives with environments and staged rollout |
+| 46 | One role per key; seven roles; every endpoint needs one named permission from a single table, and unlisted routes are refused | Decided, built | A test keeps the table complete |
+| 47 | Keys store only a hash; the secret is shown once | Decided, built | |
+| 48 | When authentication is on, the key's name replaces any name in the request | Decided, built | Open mode (no keys) still trusts typed names |
+| 49 | The audit log is append-only in the database and hash-chained; writing it is part of the request | Decided, built | Anchor the head hash externally to detect tail removal |
+| 50 | Rate limits are per process | Decided; revisit | A shared limiter is needed for many processes |
+| 51 | Keys are not yet limited to particular agents or environments | Decided; revisit | With environments in Phase 3 |
+| 52 | Interactive API docs are disabled | Decided | |
 | 9 | Contribution model: DCO vs CLA | Open | |

@@ -12,13 +12,13 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 | `approvals` (built) | `id` pk, `trace_id`, `session_id`, `agent_id`, `customer_id`, `tool`, `input` jsonb, `reason`, `state`, `created_at`, `decided_by`, `decided_at`, `note`, `result` jsonb | State machine in the Handoff and Approvals spec; every transition is an atomic conditional update (migration 0002 added the context, note and result columns) |
 | `outbox` (built) | `id` identity pk, `session_id`, `kind`, `payload` jsonb, `created_at`, `delivered_at`, `attempts` | Index (`session_id`, `id`); undelivered rows are retried |
 | `agents` | `id` pk, `definition` jsonb, `version`, `published_at` | For Studio, Phase 4 |
-| `api_keys` | `id` pk, `hash`, `role`, `created_at`, `revoked_at` | Store hashes only |
+| `api_keys` (built) | `key_id` pk, `name`, `role`, `key_hash`, `created_by`, `created_at`, `expires_at`, `revoked_at`, `revoked_by`, `last_used_at` | Only the SHA-256 hash of the secret is stored (migration 0006) |
 
 | `agent_versions` (built) | `id` pk, `agent_id`, `number`, `spec` jsonb, `digest`, `author`, `note`, `created_at` | Unique (`agent_id`, `number`); immutable; numbers assigned under a per-agent lock (migration 0005) |
 | `environments` | `id` pk, `agent_id`, `name`, `version_id`, `rollout_percent` | Phase 3; today the latest `releases` row for `production` is what is live |
 | `releases` (built) | `seq` identity pk, `id`, `agent_id`, `environment`, `action` (publish/rollback), `version_id` fk (null = spec file), `number`, `previous_number`, `by`, `note`, `gate` jsonb, `created_at` | Append-only; newest by `seq` is live; index (`agent_id`, `environment`, `seq`) |
 | `handoffs` (built) | `id` pk, `session_id`, `trace_id`, `agent_id`, `customer_id`, `trigger`, `reason`, `topics` jsonb, `package` jsonb, `state`, `created_at`, `resolved_by`, `resolved_at`, `note` | Indexes (`state`, `created_at`) and `session_id`; resolve is an atomic conditional update (migration 0003); `queue` arrives with routing |
-| `audit_log` | `id` pk, `actor`, `action`, `target`, `detail` jsonb, `at` | Append-only |
+| `audit_log` (built) | `id` pk (assigned under a lock, gapless), `at`, `actor`, `role`, `key_id`, `action`, `target`, `outcome`, `detail` jsonb, `prev_hash`, `hash` | Append-only: triggers refuse UPDATE, DELETE and TRUNCATE; the hash chain exposes edits made around them (migration 0006) |
 | `knowledge_sources` | `id` pk, `name`, `kind`, `updated_at`, `status` | |
 | `scenarios` | `id` pk, `suite`, `definition` jsonb, `required` bool, `origin_trace_id` | |
 | `simulation_runs` (built) | `id` pk, `created_at`, `mode`, `source`, `passed`, `seconds`, `counts` jsonb, `agent_digests` jsonb, `meta` jsonb, `results` jsonb | Index on `created_at`; results hold per-scenario digests used by the gate (migration 0004); `agent_version_id` replaces digests once versions exist |

@@ -134,5 +134,5 @@ def test_handoff_queue_api():
     assert c.post("/v1/handoffs/nope/resolve", json={"by": "x"}).status_code == 404
     assert c.get("/v1/handoffs/nope").status_code == 404
     assert [h["id"] for h in c.get("/v1/handoffs?state=open").json()["handoffs"]] == [r2["handoffId"]]
-    assert c.post(f"/v1/handoffs/{r2['handoffId']}/resolve", json={}).status_code == 400
+    assert c.post(f"/v1/handoffs/{r2['handoffId']}/resolve", json={}).json()["resolvedBy"] == "anonymous"  # open mode, no name given
     assert "legal" in c.get("/v1/agents").json()["agents"][0]["forcedTopics"]

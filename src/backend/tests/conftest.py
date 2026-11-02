@@ -52,8 +52,11 @@ def engine(db_url):
     async def clean() -> None:
         eng = create_engine(db_url, poolclass=NullPool)
         async with eng.begin() as c:
+            await c.execute(text("alter table audit_log disable trigger user"))  # the log refuses truncation; tests reset it
             await c.execute(text(
-                "truncate sessions, messages, customer_facts, traces, trace_events, approvals, outbox, handoffs, simulation_runs, releases, agent_versions restart identity cascade"))
+                "truncate sessions, messages, customer_facts, traces, trace_events, approvals, outbox, handoffs, simulation_runs, "
+                "releases, agent_versions, api_keys, audit_log restart identity cascade"))
+            await c.execute(text("alter table audit_log enable trigger user"))
         await eng.dispose()
 
     asyncio.run(clean())

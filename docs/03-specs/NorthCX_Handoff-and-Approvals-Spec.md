@@ -22,7 +22,7 @@ Transcript, customer profile and facts, actions taken with results, pending or f
 
 **The queue.** Handoffs are `open` until a person marks them `resolved` (once; a second attempt returns 409), recording who and an optional note. API: `GET /v1/handoffs?state=&sessionId=`, `GET /v1/handoffs/{id}` (with the full package), `POST /v1/handoffs/{id}/resolve`. The web console has a Handoffs page, and the chat response carries `handoffId`.
 
-**Not built yet.** Queue routing by topic, language and hours, assignment or claiming, an inbox integration, suggested replies, sentiment triggers, and return-to-agent. The package contains personal data, so access must be restricted like conversations are (roles arrive in sprint 11).
+**Not built yet.** Queue routing by topic, language and hours, assignment or claiming, an inbox integration, suggested replies, sentiment triggers, and return-to-agent. The package contains personal data; reading it needs the handoffs permission, resolving needs the reviewer or admin role, and resolutions are audited.
 
 ## Routing
 Queue by topic, language and hours (H8). Outside hours, the agent sets expectations and records a callback or ticket.
