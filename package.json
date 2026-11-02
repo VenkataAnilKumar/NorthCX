@@ -1,0 +1,25 @@
+{
+  "name": "claudesi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Open-source conversational agent platform built on the Claude API",
+  "scripts": {
+    "dev": "tsx src/server/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "sim": "tsx examples/support/run-sim.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
+    "@hono/node-server": "^2.1.6",
+    "hono": "^4.13.16",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
