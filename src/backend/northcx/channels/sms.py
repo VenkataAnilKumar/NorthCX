@@ -126,7 +126,7 @@ class SmsSession:
 
     @property
     def customer_id(self) -> str:
-        return f"phone:{self.phone}"
+        return f"phone:{self.phone}" if self.phone.startswith("+") else self.phone  # other messaging apps use their own prefix, such as tg:123
 
 
 class SmsRepo(Protocol):
@@ -233,8 +233,13 @@ class SmsChannel:
             await self.repo.record_message(sid, result.session_id or "-", "in", outcome[:32], phone if result.session_id else phone_hash(phone)[:20])
             return result
 
-    async def _handle(self, phone: str, body: str, media: int) -> InboundResult:
-        cfg, word = self.config, body.lower().strip(" .!")
+    async def _attachments(self, session_id: str, agent: Any, items: list[Any]) -> tuple[list[Any], str | None]:
+        """Files that came with a message, for channels that can carry them. The text channels here read none."""
+        return [], None
+
+    async def _handle(self, phone: str, body: str, media: int, cfg: "SmsConfig | None" = None, media_items: list[Any] | None = None) -> InboundResult:
+        cfg = cfg or self.config
+        word = re.sub(r"@\w+$", "", body.lower().strip()).strip(" ./!")
         if word in STOP_WORDS:
             await self.repo.set_opt_out(phone, True)
             return InboundResult("opted_out")
@@ -258,8 +263,6 @@ class SmsChannel:
             session.last_seen = now
             await self.repo.save_session(session)
             text = body[: cfg.max_chars]
-            if media:
-                text += f"\n\n[The text included {media} attachment(s) that were not read.]"
             if await self.rt.handoffs.list("open", session.session_id, 1):
                 msgs = await self.rt.store.load_messages(session.session_id)
                 msgs.append({"role": "user", "content": text})
@@ -272,7 +275,13 @@ class SmsChannel:
             if agent is None:
                 raise RuntimeError(f"{self.CHANNEL} agent '{cfg.agent_id}' does not exist")
             agent = await self.rt.active_agent(agent, session.session_id)
-            run = await self.rt.run(agent, session.session_id, text, session.customer_id, channel=self.CHANNEL)
+            files, note = await self._attachments(session.session_id, agent, media_items or []) if media_items else ([], None)
+            unread = media - len(files)
+            if unread > 0:
+                text += f"\n\n[The message included {unread} attachment(s) that were not read.]"
+            if note:
+                text += f"\n\n[{note}]"
+            run = await self.rt.run(agent, session.session_id, text, session.customer_id, channel=self.CHANNEL, attachments=files or None)
             await self.rt.outbox.publish(session.session_id, self.REPLY_KIND, {
                 "reply": run.reply, "status": run.status, "traceId": run.trace_id, "handoffId": run.handoff_id})
             return InboundResult({"completed": "replied"}.get(run.status, run.status), session.session_id, trace_id=run.trace_id, handoff_id=run.handoff_id)

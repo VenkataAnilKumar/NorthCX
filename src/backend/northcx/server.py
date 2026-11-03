@@ -26,8 +26,9 @@ from .access import ROLES, SSO_CREATOR, AccessControl, Identity, LimitConfig, OP
 from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
-from .channels.sms import SmsChannel, parse_form
-from .channels.whatsapp import WhatsAppChannel
+from .channels.sms import SmsChannel, parse_form, phone_hash
+from .channels.telegram import TelegramChannel
+from .channels.whatsapp import TemplateRefused, WhatsAppChannel
 from .templates import Template, TemplateError, render
 from .alerts import AlertManager
 from .journeys import SYSTEM as JOURNEY_SYSTEM, DraftError, JourneySpec, draft_prompt, parse_draft, scenarios as journey_scenarios_list, scenarios_yaml as journey_scenarios_yaml
@@ -117,6 +118,14 @@ class CrawlBody(BaseModel):
 
 class ScheduleBody(CrawlBody):
     every_hours: float = Field(alias="everyHours")
+
+
+class TemplateSendBody(BaseModel):
+    phone_id: str | None = Field(default=None, alias="phoneId", max_length=20)
+    to: str = Field(min_length=8, max_length=16)
+    template: str = Field(min_length=1, max_length=100, pattern=r"^[a-z0-9_]+$")
+    params: list[str] = Field(default_factory=list, max_length=10)
+    model_config = {"populate_by_name": True}
 
 
 class EnabledBody(BaseModel):
@@ -344,6 +353,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/builder/refine", "versions:create"),
     ("POST", r"/v1/builder/transcribe", "versions:create"),
     ("GET", r"/v1/residency", "audit:read"),
+    ("POST", r"/v1/channels/whatsapp/templates/send", "channel:inbound"),
     ("POST", r"/v1/agents/[^/]+/journeys/scenarios", "simulations:run"),
     ("GET", r"/v1/trace-export", "traces:read"),
     ("GET", r"/v1/traces/[^/]+/exports", "traces:read"),
@@ -414,7 +424,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
-               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None, residency: dict | None = None, crawl_scheduler: CrawlScheduler | None = None, transcriber: HttpTranscriber | None = None,
+               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None, telegram: TelegramChannel | None = None, residency: dict | None = None, crawl_scheduler: CrawlScheduler | None = None, transcriber: HttpTranscriber | None = None,
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
@@ -449,8 +459,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         runtime.privacy.idempotency = idem
         if email is not None:
             runtime.privacy.email = email.repo
-        if sms is not None or whatsapp is not None:
-            runtime.privacy.sms = (sms or whatsapp).repo
+        if sms is not None or whatsapp is not None or telegram is not None:
+            runtime.privacy.sms = (sms or whatsapp or telegram).repo
     provider = as_provider(agents)
     if runtime.agent_resolver is None:
         runtime.agent_resolver = provider.get  # lets agents pass a conversation to a specialist
@@ -1975,6 +1985,54 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(400, "bad_request", str(e))
         except Exception:
             log.exception("whatsapp inbound failed")
+            return _err(500, "internal", "Could not process the message; it can be delivered again")
+        return {"status": "ok"}
+
+    # ---------------- Telegram ----------------
+    @app.post("/v1/channels/whatsapp/templates/send")
+    async def whatsapp_template(body: TemplateSendBody, request: Request) -> Any:
+        """Send an approved WhatsApp template (for example to reach someone after the 24-hour window). Only to people who already messaged that number or are on the opt-in list."""
+        if whatsapp is None:
+            return _err(501, "not_configured", "The WhatsApp channel is not configured")
+        who: Identity = request.state.identity
+        if not access.limiter.allow(f"watemplate:{who.key_id or 'open'}", 60)[0]:
+            return too_many(60, "template messages")
+        try:
+            mid = await whatsapp.send_template(body.phone_id, body.to, body.template, body.params)
+        except TemplateRefused as e:
+            return _err(403, "not_allowed", str(e))
+        except Exception as e:
+            from .channels.sms import PermanentSendError
+            if isinstance(e, PermanentSendError):
+                return _err(422, "refused_by_provider", str(e))
+            log.exception("whatsapp template failed")
+            return _err(502, "provider_unavailable", "WhatsApp could not be reached; try again")
+        await record(request, "whatsapp.template", body.template, to=phone_hash(body.to)[:12])
+        return {"sent": True, "messageId": mid}
+
+    @app.post("/channels/telegram/webhook")
+    async def telegram_inbound(request: Request) -> Any:
+        """Public webhook for the Telegram bot. Authenticated by the secret token registered with setWebhook, never by an API key."""
+        if telegram is None:
+            return _err(501, "not_configured", "The Telegram channel is not configured")
+        ip = request.client.host if request.client else "unknown"
+        raw = b""
+        async for chunk in request.stream():
+            raw += chunk
+            if len(raw) > 262144:
+                return _err(413, "too_large", "Request is too large")
+        if not telegram.authentic(request.headers.get("x-telegram-bot-api-secret-token", "")):
+            if limits and not access.limiter.allow(f"smsfail:{ip}", limits.auth_failures_per_minute)[0]:
+                return too_many(60, "unsigned requests")
+            if access.limiter.allow(f"smslog:{ip}", 6)[0]:
+                await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/telegram/webhook", outcome="denied", detail={"client": ip}))
+            return _err(403, "forbidden", "Invalid secret")
+        try:
+            await telegram.receive_body(raw)
+        except ValueError as e:
+            return _err(400, "bad_request", str(e))
+        except Exception:
+            log.exception("telegram inbound failed")
             return _err(500, "internal", "Could not process the message; it can be delivered again")
         return {"status": "ok"}
 

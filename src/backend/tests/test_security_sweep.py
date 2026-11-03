@@ -22,7 +22,7 @@ from northcx.versions import InMemoryReleases, InMemoryVersions, ReleaseService
 KEY = "boot" * 10
 # The only /v1 routes a customer's chat token may use (/v1/me just describes the caller's own identity).
 TOKEN_ROUTES = {("GET", "/v1/me"), ("POST", "/v1/me/logout"), ("PUT", "/v1/sessions/x/attachments"), ("POST", "/v1/sessions/x/feedback"), ("POST", "/v1/agents/x/chat"), ("POST", "/v1/agents/x/chat/stream"), ("GET", "/v1/sessions/x/outbox")}
-OUTSIDE_V1_PUBLIC = {("POST", "/channels/sms/twilio"), ("POST", "/channels/whatsapp/meta"), ("GET", "/channels/whatsapp/meta"), ("GET", "/auth/sso/config"), ("GET", "/auth/sso/login"), ("GET", "/auth/sso/callback"), ("GET", "/sdk/northcx-widget.js"), ("GET", "/sdk/northcx-client.js")}  # authenticated by the provider's signature instead
+OUTSIDE_V1_PUBLIC = {("POST", "/channels/sms/twilio"), ("POST", "/channels/whatsapp/meta"), ("GET", "/channels/whatsapp/meta"), ("POST", "/channels/telegram/webhook"), ("GET", "/auth/sso/config"), ("GET", "/auth/sso/login"), ("GET", "/auth/sso/callback"), ("GET", "/sdk/northcx-widget.js"), ("GET", "/sdk/northcx-client.js")}  # authenticated by the provider's signature instead
 
 
 def build():

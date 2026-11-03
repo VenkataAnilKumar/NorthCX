@@ -97,10 +97,11 @@ FLOWS: list[tuple[str, str, str, str | None]] = [
     ("Attachment scanner", "NORTHCX_ATTACHMENT_SCAN_URL", "Files customers upload", None),
     ("Email (SMTP)", "NORTHCX_SMTP_URL", "Replies to customers", None),
     ("SMS provider", "NORTHCX_SMS_NUMBER", "Texts to and from customers, phone numbers", "api.twilio.com"),
+    ("Telegram", "NORTHCX_TELEGRAM_TOKEN", "Messages to and from customers, Telegram user ids", "api.telegram.org"),
     ("WhatsApp", "NORTHCX_WHATSAPP_PHONE_ID", "Messages to and from customers, phone numbers", "graph.facebook.com"),
     ("Single sign-on provider", "NORTHCX_SSO_ISSUER", "Staff sign-in only", None),
 ]
-OVERRIDES = {"NORTHCX_WHATSAPP_PHONE_ID": "NORTHCX_WHATSAPP_API_URL"}  # a switch whose address can be overridden
+OVERRIDES = {"NORTHCX_WHATSAPP_PHONE_ID": "NORTHCX_WHATSAPP_API_URL", "NORTHCX_TELEGRAM_TOKEN": "NORTHCX_TELEGRAM_API_URL"}  # a switch whose address can be overridden
 
 
 def host_of(value: str) -> str | None:

@@ -7,6 +7,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
+### Added (messaging)
+- Telegram channel; WhatsApp now supports several numbers (an agent each), incoming pictures and documents through the attachment checks, and approved templates sent only to people who wrote in first or opted in.
+
 ### Added (agent building)
 - Automatic test scenarios, refinement of a draft by instruction, and audio transcription (operator-configured service) when building an agent.
 
