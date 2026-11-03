@@ -13,7 +13,7 @@ Send = Callable[[dict[str, Any]], Awaitable[None]]
 
 DEFAULT_LIMIT = 1 * 1024 * 1024
 # Endpoints that legitimately take more: (path prefix, bytes)
-LARGER = (("/v1/sessions/", 11 * 1024 * 1024, "/attachments"), ("/v1/knowledge/", 11 * 1024 * 1024, "/import"), ("/v1/knowledge/", 4 * 1024 * 1024, ""), ("/v1/channels/email/inbound", 1_100_000, ""))
+LARGER = (("/v1/sessions/", 11 * 1024 * 1024, "/attachments"), ("/v1/knowledge/", 11 * 1024 * 1024, "/import"), ("/v1/knowledge/", 4 * 1024 * 1024, ""), ("/v1/builder/transcribe", 26 * 1024 * 1024, ""), ("/v1/channels/email/inbound", 1_100_000, ""))
 
 
 def limit_for(method: str, path: str) -> int:

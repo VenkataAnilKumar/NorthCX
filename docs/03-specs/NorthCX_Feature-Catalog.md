@@ -12,7 +12,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | A5 | Journeys: scenario blueprints with goals, guardrails and required steps | P1 | 4 | Built (journeys inside the agent spec: goal, steps tied to tools, rules, done-when, hand-off conditions; strict ordering enforced; progress measured from tools used; test scenarios generated) |
 | A6 | Journeys described in plain language and converted to definitions | P2 | 4 | Built (model drafts a checked definition for review; never saved by itself; needs a live model) |
 | A7 | Templates for common support intents | P1 | 3 | Built (four templates with scenarios; API; gallery page planned) |
-| A8 | Agent-assisted building: generate an agent from procedures, transcripts or call recordings | P2 | 6 | Built for procedures and transcripts (reviewable draft, masked, checked); recordings need a transcript first |
+| A8 | Agent-assisted building: generate an agent from procedures, transcripts or call recordings | P2 | 6 | Built (reviewable draft from procedures, transcripts and, with a transcription service, recordings; masked, checked; refinement by instruction; automatic test scenarios) |
 | A9 | Per-agent model choice and settings | P0 | 1 | Built |
 | A10 | Brand voice and tone settings | P1 | 3 | Built (forbidden phrases are enforced) |
 

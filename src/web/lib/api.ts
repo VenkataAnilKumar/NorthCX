@@ -235,6 +235,19 @@ export const draftAgent = (body: { agentId: string; goal: string; sources: { kin
 export interface ResidencyFlow { name: string; kind: string; host: string | null; data: string; region: string | null; status: "ok" | "unmapped" | "not_allowed" | "unchecked" }
 export interface Residency { configured: boolean; region: string | null; allowedRegions: string[]; strict: boolean; flows: ResidencyFlow[]; compliant: boolean; problems: string[]; note: string }
 export const getResidency = () => api<Residency>("/v1/residency");
+export interface ScenarioDraft { scenarios: Record<string, unknown>[]; scenariosYaml: string; checked: string[]; needLiveModel: string[]; warnings: string[]; note: string }
+export interface Refined { specYaml: string; spec: Record<string, unknown>; changes: string[]; warnings: string[]; notes: string[]; note: string }
+export const draftScenarios = (spec: string, examples: string[]) => api<ScenarioDraft>("/v1/builder/scenarios", { method: "POST", body: JSON.stringify({ spec, examples }) });
+export const refineAgent = (current: string, instruction: string) => api<Refined>("/v1/builder/refine", { method: "POST", body: JSON.stringify({ current, instruction }) });
+export async function transcribeRecording(file: File): Promise<{ text: string; characters: number; note: string }> {
+  const headers = new Headers({ "content-type": "application/octet-stream" });
+  const key = getApiKey();
+  if (key) headers.set("authorization", `Bearer ${key}`);
+  const res = await fetch("/api/northcx/v1/builder/transcribe", { method: "POST", headers, body: file });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, body?.error?.message ?? `Transcription failed (${res.status})`);
+  return body;
+}
 export const getFailures = (hours: number, agent?: string, env?: string) => api<{ causes: FailureCause[] }>(`/v1/insights/failures?${windowQuery(hours, agent, env)}`).then((r) => r.causes);
 export const getGaps = (hours: number, agent?: string, env?: string) => api<Gaps>(`/v1/insights/gaps?${windowQuery(hours, agent, env)}`);
 export const getAlerts = () => api<AlertStatus>("/v1/alerts");

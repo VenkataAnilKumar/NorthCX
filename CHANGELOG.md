@@ -7,6 +7,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
+### Added (agent building)
+- Automatic test scenarios, refinement of a draft by instruction, and audio transcription (operator-configured service) when building an agent.
+
 ### Added (insights, filters and charts)
 - Analytics questions can filter by language, channel, hand-off, queue and rating, find individual conversations (masked, permission-checked) and draw charts. Turns now record their channel.
 

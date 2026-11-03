@@ -44,7 +44,9 @@ from .voice import CallRepo, CallSession, InMemoryCalls, VoiceConfig
 from .attachments import MAX_BYTES, MAX_PER_MESSAGE, AttachmentError, AttachmentRepo, InMemoryAttachments, Scanner, accept as accept_attachment, check_accepted
 from .handoffs import PERSON_PREFIX, return_note, transcript
 from .analytics_qa import ask as ask_insights
-from .builder import BuildError, draft_agent
+from .builder import BuildError, draft_agent, refine_agent
+from .scenario_draft import draft_scenarios
+from .transcribe import HttpTranscriber, TranscribeError
 from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .simulation.managed import parse_definition
 from .regression import RegressionRunner, scenario_from_traces
@@ -125,6 +127,16 @@ class BuilderSource(BaseModel):
     kind: str
     name: str = Field(default="", max_length=80)
     text: str = Field(min_length=1, max_length=20000)
+
+
+class ScenarioDraftBody(BaseModel):
+    spec: str = Field(min_length=10, max_length=60000)
+    examples: list[str] = Field(default_factory=list, max_length=8)
+
+
+class RefineBody(BaseModel):
+    current: str = Field(min_length=10, max_length=60000)
+    instruction: str = Field(min_length=5, max_length=1000)
 
 
 class BuilderBody(BaseModel):
@@ -328,6 +340,9 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/attachments/[^/]+", "traces:read"),
     ("POST", r"/v1/agents/[^/]+/journeys/draft", "versions:create"),
     ("POST", r"/v1/builder/draft", "versions:create"),
+    ("POST", r"/v1/builder/scenarios", "versions:create"),
+    ("POST", r"/v1/builder/refine", "versions:create"),
+    ("POST", r"/v1/builder/transcribe", "versions:create"),
     ("GET", r"/v1/residency", "audit:read"),
     ("POST", r"/v1/agents/[^/]+/journeys/scenarios", "simulations:run"),
     ("GET", r"/v1/trace-export", "traces:read"),
@@ -399,7 +414,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
-               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None, residency: dict | None = None, crawl_scheduler: CrawlScheduler | None = None,
+               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None, residency: dict | None = None, crawl_scheduler: CrawlScheduler | None = None, transcriber: HttpTranscriber | None = None,
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
@@ -1168,6 +1183,74 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(502, "model_unavailable", "The model could not be reached; try again")
         await record(request, "builder.draft", body.agent_id, sources=len(body.sources), warnings=len(out["warnings"]))
         return out
+
+    @app.post("/v1/builder/scenarios")
+    async def builder_scenarios(body: ScenarioDraftBody, request: Request) -> Any:
+        """Test scenarios for a drafted agent: platform-guarantee tests that are run against the draft, and question tests that need a live model. Saves nothing."""
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        who: Identity = request.state.identity
+        if not access.limiter.allow(f"builder:{who.key_id or 'open'}", 5)[0]:
+            return too_many(60, "agent drafts")
+        try:
+            spec = parse_spec(body.spec)
+        except SpecError as e:
+            return _err(400, "bad_request", str(e)[:400])
+        try:
+            out = await draft_scenarios(runtime.llm, svc.registry, spec, body.examples)
+        except ValueError as e:
+            return _err(422, "unusable_draft", str(e))
+        except Exception:
+            log.exception("scenario draft failed")
+            return _err(502, "model_unavailable", "The model could not be reached; try again")
+        await record(request, "builder.scenarios", spec.id, checked=len(out["checked"]), needLiveModel=len(out["needLiveModel"]))
+        return out
+
+    @app.post("/v1/builder/refine")
+    async def builder_refine(body: RefineBody, request: Request) -> Any:
+        """Revise a draft after an instruction ("never promise delivery dates"). Same limits as a first draft; settings the model may not set are carried over untouched."""
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        who: Identity = request.state.identity
+        if not access.limiter.allow(f"builder:{who.key_id or 'open'}", 5)[0]:
+            return too_many(60, "agent drafts")
+        try:
+            out = await refine_agent(runtime.llm, svc.registry, body.current, body.instruction)
+        except BuildError as e:
+            return _err(422, "unusable_draft", str(e))
+        except Exception:
+            log.exception("agent refine failed")
+            return _err(502, "model_unavailable", "The model could not be reached; try again")
+        await record(request, "builder.refine", out["spec"]["id"], changes=len(out["changes"]), warnings=len(out["warnings"]))
+        return out
+
+    @app.post("/v1/builder/transcribe")
+    async def builder_transcribe(request: Request, language: str | None = None) -> Any:
+        """Turn a recording (the request body is the audio file) into transcript text with the operator's transcription service. Nothing is stored."""
+        if transcriber is None:
+            return _err(501, "not_configured", "Transcription is not configured: set NORTHCX_TRANSCRIBE_URL and NORTHCX_TRANSCRIBE_MODEL")
+        who: Identity = request.state.identity
+        if not access.limiter.allow(f"transcribe:{who.key_id or 'open'}", 5)[0]:
+            return too_many(60, "transcriptions")
+        if language is not None and not re.fullmatch(r"[a-z]{2,3}", language):
+            return _err(400, "bad_request", "language must be a short code such as en")
+        cap = 25 * 1024 * 1024
+        declared = request.headers.get("content-length")
+        if declared and declared.isdigit() and int(declared) > cap:
+            return _err(413, "too_large", "The recording is too large")
+        data = b""
+        async for chunk in request.stream():
+            data += chunk
+            if len(data) > cap:
+                return _err(413, "too_large", "The recording is too large")
+        try:
+            text_ = await transcriber.transcribe(data, language)
+        except TranscribeError as e:
+            return _err(422, "unusable_recording", str(e))
+        await record(request, "builder.transcribe", "recording", size=len(data))
+        return {"text": text_, "characters": len(text_), "note": "Read it before using it: transcripts can contain mistakes. Personal details are masked when it is used to draft an agent."}
 
     @app.post("/v1/agents/{agent_id}/journeys/draft")
     async def journey_draft(agent_id: str, body: JourneyDraftBody, request: Request) -> Any:

@@ -37,6 +37,7 @@ from .llm import DEFAULT_MODEL
 from .memory import InMemoryMemories, memory_tools
 from .residency import ResidencyError, build_report, parse_policy
 from .crawl_schedule import CrawlScheduler, InMemorySchedules
+from .transcribe import HttpTranscriber
 from .embeddings import EmbeddingIndexer, HttpEmbedder, HybridKnowledge, parse_source_models
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
@@ -384,6 +385,13 @@ def run() -> None:
         if hasattr(knowledge_repo.store, "ann_threshold") and os.environ.get("NORTHCX_ANN_THRESHOLD"):
             knowledge_repo.store.ann_threshold = int(os.environ["NORTHCX_ANN_THRESHOLD"])
         print(f"Meaning-based knowledge search is ON (model {embedder.model}); passages are sent to the embeddings endpoint you configured.")
+    transcriber = None
+    if os.environ.get("NORTHCX_TRANSCRIBE_URL"):
+        try:
+            transcriber = HttpTranscriber(os.environ["NORTHCX_TRANSCRIBE_URL"], os.environ.get("NORTHCX_TRANSCRIBE_MODEL", ""), env_or_file("NORTHCX_TRANSCRIBE_API_KEY") or None)
+        except ValueError as e:
+            sys.exit(str(e))
+        print("Recording transcription is ON; uploaded recordings are sent to the transcription service you configured.")
     crawler = crawl_scheduler = None
     if os.environ.get("NORTHCX_CRAWL_HOSTS"):
         try:
@@ -426,7 +434,7 @@ def run() -> None:
     print(f"NorthCX {__version__}")
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
-                      access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo, crawler=crawler, crawl_scheduler=crawl_scheduler,
+                      access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo, crawler=crawler, crawl_scheduler=crawl_scheduler, transcriber=transcriber,
                       regression=regression, residency=residency, whatsapp=WhatsAppChannel(runtime, agents, sms_repo, wa_provider, wa_config) if wa_provider else None, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
                       attachment_scanner=attachment_scanner, cors_origins=cors_origins, voice=voice_cfg, calls=call_repo,
                       insights=insights_service, alerts=alert_manager,

@@ -93,6 +93,7 @@ FLOWS: list[tuple[str, str, str, str | None]] = [
     ("Human inbox webhook", "NORTHCX_INBOX_WEBHOOK_URL", "Hand-off packages: transcript, customer profile, summary", None),
     ("Chatwoot helpdesk", "NORTHCX_CHATWOOT_URL", "Hand-off packages and agent-assist suggestions", None),
     ("Customer context service", "NORTHCX_CONTEXT_URL", "Customer identifier", None),
+    ("Transcription service", "NORTHCX_TRANSCRIBE_URL", "Recordings uploaded to build agents", None),
     ("Attachment scanner", "NORTHCX_ATTACHMENT_SCAN_URL", "Files customers upload", None),
     ("Email (SMTP)", "NORTHCX_SMTP_URL", "Replies to customers", None),
     ("SMS provider", "NORTHCX_SMS_NUMBER", "Texts to and from customers, phone numbers", "api.twilio.com"),
