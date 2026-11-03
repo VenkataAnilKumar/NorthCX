@@ -34,6 +34,7 @@ from .sso import Sso, SsoError
 from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms, rollout_json
 from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
 from .assist import AssistError
+from . import __version__
 from .hardening import BodyLimit, SecurityHeaders
 from .voice import CallRepo, CallSession, InMemoryCalls, VoiceConfig
 from .attachments import MAX_BYTES, MAX_PER_MESSAGE, AttachmentError, AttachmentRepo, InMemoryAttachments, Scanner, accept as accept_attachment, check_accepted
@@ -1659,7 +1660,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def me(request: Request) -> Any:
         who: Identity = request.state.identity
         return {"name": who.name, "role": who.role, "openMode": who.open_mode, "keyId": who.key_id,
-                "permissions": sorted(who.permissions)}
+                "permissions": sorted(who.permissions), "serverVersion": __version__}
 
     @app.post("/v1/me/logout")
     async def logout(request: Request) -> Any:

@@ -6,6 +6,7 @@ from pathlib import Path
 import uvicorn
 
 from .access import AccessControl, InMemoryKeys, LimitConfig
+from . import __version__
 from .assist import AssistService
 from .voice import InMemoryCalls, VoiceConfig
 from .attachments import HttpScanner, InMemoryAttachments
@@ -364,6 +365,7 @@ def run() -> None:
         except ValueError as e:
             sys.exit(str(e))
 
+    print(f"NorthCX {__version__}")
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,

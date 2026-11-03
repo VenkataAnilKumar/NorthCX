@@ -12,11 +12,11 @@ NorthCX is an open-source customer-experience agent platform built on the Claude
 | `02-market/` | Competitive-Analysis |
 | `03-specs/` | Feature-Catalog, Feature-Spec, Handoff-and-Approvals-Spec, Release-Management, Non-Functional-Requirements, User-Stories, User-Journey |
 | `04-ai-architecture/` | Agent-Runtime, Agent-Capability-Matrix, Guardrails-and-Supervisors, Knowledge-and-Memory, Simulation-and-Evals, Data-Flow |
-| `05-technical/` | System-Architecture, Tech-Stack-Decisions, Build-vs-Adopt, Code-Reuse-Policy, Channels-and-Voice, Integrations, API-Design, Database-Schema, Observability, Repo-Structure, Reliability-and-Cost |
-| `06-security/` | Security-and-Compliance, Licenses |
+| `05-technical/` | System-Architecture, Tech-Stack-Decisions, Build-vs-Adopt, Code-Reuse-Policy, Channels-and-Voice, Voice, Client-SDK, Integrations, API-Design, Database-Schema, Observability, Repo-Structure, Reliability-and-Cost |
+| `06-security/` | Security-and-Compliance, Threat-Model, Security-Review, Licenses |
 | `07-design/` | Studio-UI-Spec, Design-System |
-| `08-implementation/` | Implementation-Phases, Sprint-Plan, Roadmap, Phase-Plan, Implementation-Checklist, Deployment-Guide, Testing-Strategy |
-| `09-project/` | Glossary, Decision-Log, Contributing |
+| `08-implementation/` | Implementation-Phases, Sprint-Plan, Roadmap, Phase-Plan, Implementation-Checklist, Deployment-Guide, Testing-Strategy, Performance |
+| `09-project/` | Glossary, Decision-Log, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |
 
 All documents are drafts. Each is named `NorthCX_<Name>.md`.
 

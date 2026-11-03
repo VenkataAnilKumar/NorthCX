@@ -48,4 +48,5 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 ## Phase 6
 - [ ] Agent-assisted building, natural-language analytics, load testing, data residency (A8, O8, Q12, P6)
 - [x] Security review and threat model (independent penetration test still to do)
-- [ ] Licence choice, contribution guide, v1.0
+- [x] Licence choice (Apache-2.0), contribution guide, code of conduct, changelog, dependency licence check
+- [ ] v1.0.0 (release candidate `1.0.0-rc.1` tagged; final after penetration test and real-model pass)
