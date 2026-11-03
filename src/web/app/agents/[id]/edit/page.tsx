@@ -87,6 +87,7 @@ function Editor({ id, initial, catalog }: { id: string; initial: Spec; catalog: 
   const topics: { name: string; patterns: string[]; reply?: string }[] = spec.forced_handoff ?? [];
   const voice = spec.voice ?? {};
   const styles: Record<string, string> = spec.channel_styles ?? {};
+  const accepted: string[] = spec.attachments ?? [];
   const languages: string[] = spec.languages ?? [];
   const LANGS: Record<string, string> = { en: "English", es: "Spanish", fr: "French", de: "German", pt: "Portuguese", it: "Italian", nl: "Dutch", ru: "Russian", ja: "Japanese", zh: "Chinese", ko: "Korean", ar: "Arabic", hi: "Hindi" };
   const setLanguages = (l: string[]) => set("languages", l.length ? l : null);
@@ -160,6 +161,12 @@ function Editor({ id, initial, catalog }: { id: string; initial: Spec; catalog: 
         </Section>
         <Section title="Journeys" hint="How a kind of conversation should go: a goal, steps tied to tools, rules, and when to hand over. Describe one in plain words and the model drafts it for you to review.">
           <JourneyEditor agent={id} journeys={spec.journeys ?? []} tools={Array.from(new Set([...tools, ...catalog.tools.map((t) => t.name)]))} onChange={(j) => set("journeys", j)} />
+        </Section>
+        <Section title="Attachments" hint="What customers may attach. Nothing is accepted unless ticked. Text files are checked like a typed message; pictures and PDFs reach the model as they are (personal data in them is not masked).">
+          <div className="flex flex-wrap gap-4 text-sm">
+            {([["image", "Pictures (PNG, JPEG, GIF, WebP)"], ["pdf", "PDF files"], ["text", "Plain text files"]] as const).map(([k, label]) => (
+              <label key={k}><input type="checkbox" checked={accepted.includes(k)} onChange={(e) => set("attachments", e.target.checked ? [...accepted, k] : accepted.filter((x) => x !== k))} /> {label}</label>))}
+          </div>
         </Section>
         <Section title="Languages" hint="Languages this agent is written and tested for. It detects what the customer writes in and replies in the same language; anything else gets the default and an offer of a person. Leave empty for no language handling.">
           <div className="flex flex-wrap gap-3 text-sm">

@@ -81,7 +81,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | C7 | Embeddable SDK for mobile and web apps | P2 | 5 | Planned |
 | C8 | One agent definition across channels with channel-specific style | P1 | 3 | Built (per-channel style text in the agent spec) |
 | C9 | Identity verification per channel | P1 | 3 | Partly built: the company's server vouches for the customer by minting the chat token with that customer's id; one-time-code verification planned |
-| C10 | Attachments (images, documents) | P2 | 5 | Planned |
+| C10 | Attachments (images, documents) | P2 | 5 | Built (pictures, PDFs and plain text, enabled per agent, checked by content, size-limited, optionally scanned, kept with the conversation and erased with it; the web test console can attach files; customer-facing upload UI comes with the client SDK) |
 
 ## 7. Knowledge and memory
 | ID | Feature | Pri | Phase | State |

@@ -32,6 +32,7 @@ from .sso import Sso, SsoError
 from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms, rollout_json
 from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
 from .assist import AssistError
+from .attachments import MAX_BYTES, MAX_PER_MESSAGE, AttachmentError, AttachmentRepo, InMemoryAttachments, Scanner, accept as accept_attachment, check_accepted
 from .handoffs import PERSON_PREFIX, return_note, transcript
 from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .simulation.managed import parse_definition
@@ -57,6 +58,7 @@ class ChatBody(BaseModel):
     customer_id: str | None = Field(default=None, alias="customerId", max_length=200)
     channel: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_-]{1,19}$")
     environment: str | None = Field(default=None, pattern=r"^(dev|staging|production)$")  # internal keys only; customers always get production
+    attachments: list[str] = Field(default_factory=list, max_length=5)  # ids returned by the attachment upload
     model_config = {"populate_by_name": True}
 
 
@@ -259,6 +261,9 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/sessions/[^/]+/feedback", "feedback:send"),
     ("GET", r"/v1/regression", "simulations:read"),
     ("GET", r"/v1/sessions/.+/scenario-draft", "simulations:run"),
+    ("PUT", r"/v1/sessions/[^/]+/attachments", "chat:send"),
+    ("GET", r"/v1/sessions/[^/]+/attachments", "traces:read"),
+    ("GET", r"/v1/attachments/[^/]+", "traces:read"),
     ("POST", r"/v1/agents/[^/]+/journeys/draft", "versions:create"),
     ("POST", r"/v1/agents/[^/]+/journeys/scenarios", "simulations:run"),
     ("GET", r"/v1/trace-export", "traces:read"),
@@ -331,7 +336,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None,
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
-               alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None) -> FastAPI:
+               alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
+               attachments: AttachmentRepo | None = None, attachment_scanner: Scanner | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -343,6 +349,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     fb = feedback or InMemoryFeedback()
     tag_repo = tags or InMemoryTags()
     review_repo = reviews or InMemoryReviews()
+    attachment_repo = attachments or InMemoryAttachments()
+    runtime.privacy.attachments = attachment_repo
     insight = insights or InsightsService(InMemoryInsightsSource(runtime, fb))
     privacy = PrivacyService(runtime.privacy)
     if isinstance(runtime.privacy, InMemoryPrivacy):
@@ -529,6 +537,63 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                 return _err(403, "forbidden", f"The '{who.role}' role cannot use the {body.environment} environment (needs simulations:run)")
         return None
 
+    async def load_attachments(body: ChatBody, agent: Any) -> list[Any] | JSONResponse:
+        """The files a message refers to: they must belong to this conversation and be of a kind the agent accepts."""
+        if not body.attachments:
+            return []
+        found = []
+        for aid in dict.fromkeys(body.attachments):
+            a = await attachment_repo.get(aid)
+            if a is None or a.session_id != body.session_id:
+                return _err(400, "bad_request", "Unknown attachment for this conversation")
+            found.append(a)
+        try:
+            check_accepted(found, agent.attachments)
+        except AttachmentError as e:
+            return _err(400, "attachment_not_accepted", str(e))
+        return found
+
+    @app.put("/v1/sessions/{session_id}/attachments", status_code=201)
+    async def upload_attachment(session_id: str, request: Request, filename: str | None = None) -> Any:
+        """Upload one file (the request body is the file itself). It is identified by its content, size-limited, optionally scanned, and kept with the conversation."""
+        who: Identity = request.state.identity
+        if who.session_id is not None and who.session_id != session_id:
+            await record(request, "auth.denied", f"PUT /v1/sessions/{session_id}/attachments", "denied", reason="outside the token's scope")
+            return _err(403, "forbidden", "This chat token cannot be used for that conversation")
+        if not access.limiter.allow(f"upload:{session_id}", 20)[0]:
+            return too_many(60, "uploads")
+        cap = max(MAX_BYTES.values())
+        declared = request.headers.get("content-length")
+        if declared and declared.isdigit() and int(declared) > cap:
+            return _err(413, "too_large", "The file is too large")
+        data = b""
+        async for chunk in request.stream():
+            data += chunk
+            if len(data) > cap:
+                return _err(413, "too_large", "The file is too large")
+        try:
+            a = await accept_attachment(attachment_repo, session_id, filename, data, who.name, attachment_scanner)
+        except AttachmentError as e:
+            await record(request, "attachment.refused", customer_ref(session_id), "denied", reason=str(e)[:120])
+            return _err(400, "attachment_refused", str(e))
+        await record(request, "attachment.upload", customer_ref(session_id), kind=a.kind, size=a.size, sha256=a.sha256[:16])
+        return a.meta()
+
+    @app.get("/v1/sessions/{session_id}/attachments")
+    async def list_attachments(session_id: str) -> Any:
+        return {"attachments": [a.meta() for a in await attachment_repo.for_session(session_id)]}
+
+    @app.get("/v1/attachments/{attachment_id}")
+    async def download_attachment(attachment_id: str, request: Request) -> Any:
+        """The file itself, for people reviewing a conversation. Served so a browser cannot run or render it."""
+        a = await attachment_repo.get(attachment_id)
+        if a is None:
+            return _err(404, "not_found", "Unknown attachment")
+        await record(request, "attachment.download", customer_ref(a.session_id), kind=a.kind)
+        return Response(a.data, media_type=a.media_type, headers={
+            "Content-Disposition": f'attachment; filename="{a.name}"', "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "sandbox; default-src 'none'", "Cache-Control": "no-store"})
+
     @app.post("/v1/agents/{agent_id}/chat/stream")
     async def chat_stream(agent_id: str, body: ChatBody, request: Request) -> Any:
         """Server-sent events: `progress` while tools run, then the reply in `delta` pieces, then `done`.
@@ -572,9 +637,13 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             if agent is None:
                 return _err(404, "not_found", "Unknown agent")
 
+        files = await load_attachments(body, agent)
+        if isinstance(files, JSONResponse):
+            return files
+
         async def work() -> None:
             try:
-                r = await runtime.run(agent, body.session_id, body.message, customer_id, progress=lambda e: queue.put_nowait(("progress", e)),
+                r = await runtime.run(agent, body.session_id, body.message, customer_id, attachments=files or None, progress=lambda e: queue.put_nowait(("progress", e)),
                                       channel=body.channel or ("web" if who.session_id else None))
                 queue.put_nowait(("result", r))
             except Exception:
@@ -631,7 +700,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             if not valid_key(ikey):
                 return _err(400, "bad_idempotency_key", "Idempotency-Key must be 1-200 visible ASCII characters")
             scope = scope_hash(who.key_id or who.name, agent_id, body.session_id, ikey)
-            out = await idem.begin(scope, request_hash([body.message, customer_id, environment]), session_id=body.session_id)
+            out = await idem.begin(scope, request_hash([body.message, customer_id, environment, sorted(body.attachments)]), session_id=body.session_id)
             if out.state == "replay":
                 return JSONResponse(out.response, headers={"Idempotent-Replay": "true"})
             if out.state == "conflict":
@@ -651,7 +720,13 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                 await idem.abandon(scope)
             return _err(404, "not_found", "Unknown agent")
         try:
-            r = await runtime.run(agent, body.session_id, body.message, customer_id, channel=body.channel or ("web" if who.session_id else None), environment=environment)
+            files = await load_attachments(body, agent)
+            if isinstance(files, JSONResponse):
+                if scope:
+                    await idem.abandon(scope)
+                return files
+            r = await runtime.run(agent, body.session_id, body.message, customer_id, channel=body.channel or ("web" if who.session_id else None), environment=environment,
+                                  attachments=files or None)
         except Exception:
             if scope:
                 await idem.abandon(scope)

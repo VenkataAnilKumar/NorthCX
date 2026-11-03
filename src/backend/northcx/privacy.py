@@ -107,6 +107,9 @@ class InMemoryPrivacy:
         items[:] = [m for m in items if m.session_id != session_id]
         n["outbox"] = before - len(items)
         n["routes"] = await rt.routes.erase_session(session_id)
+        att = getattr(self, "attachments", None)
+        if att is not None:
+            n["attachments"] = await att.erase_session(session_id)
         ro = getattr(self, "rollouts", None)
         if ro is not None:
             n["rolloutAssignments"] = await ro.erase_session(session_id)

@@ -15,6 +15,7 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .agent import Agent, Tool
+from .attachments import KINDS as ATTACHMENT_KINDS
 from .transfers import RouteSpec, check_routes
 from .journeys import JourneySpec, to_skill as journey_skill
 from .skills import FLEXIBILITY, Skill, SkillError, SkillOrder, parse_skill, skill_to_dict, ToolScope, ToolScopeRule, render_skill, render_voice
@@ -93,6 +94,7 @@ class AgentSpec(BaseModel):
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
     channel_styles: dict[str, str] = Field(default_factory=dict)
     journeys: list[JourneySpec] = Field(default_factory=list, max_length=20)
+    attachments: list[str] = Field(default_factory=list)  # attachment kinds accepted: image, pdf, text. Empty: none
     routes: list[RouteSpec] = Field(default_factory=list, max_length=8)  # specialists this agent may pass a conversation to
     languages: list[str] = Field(default_factory=list)  # supported languages (first is the default); empty means no language handling
     skills: list[SkillRef] = Field(default_factory=list)
@@ -123,6 +125,14 @@ class AgentSpec(BaseModel):
                 raise ValueError(f"style for '{k}' must be 1-1000 characters")
         return v
 
+    @field_validator("attachments")
+    @classmethod
+    def _attachments(cls, v: list[str]) -> list[str]:
+        bad = [k for k in v if k not in ATTACHMENT_KINDS]
+        if bad or len(set(v)) != len(v):
+            raise ValueError(f"attachments can list each of {', '.join(ATTACHMENT_KINDS)} once")
+        return v
+
     @field_validator("languages")
     @classmethod
     def _languages(cls, v: list[str]) -> list[str]:
@@ -142,6 +152,8 @@ class AgentSpec(BaseModel):
         for key in ("skills", "voice", "tool_scopes", "skill_snapshots"):
             if not data[key]:
                 del data[key]  # keeps digests of specs written before these fields existed
+        if not data["attachments"]:
+            del data["attachments"]  # keeps digests of specs written before this field existed
         if not data["routes"]:
             del data["routes"]  # keeps digests of specs written before this field existed
         if not data["journeys"]:
@@ -358,6 +370,7 @@ class Registry:
                 languages=list(spec.languages),
                 journeys=list(spec.journeys),
                 routes=list(spec.routes),
+                attachments=list(spec.attachments),
                 tools=[self._tools[t] for t in self._all_tools(spec)],
                 guardrails=[self._make("guardrail", self._guardrails[g.name], g, ctx) for g in spec.guardrails] + self._enforcers(spec),
                 input_guardrails=[self._make("input guardrail", self._input_guardrails[g.name], g, ctx) for g in spec.input_guardrails],

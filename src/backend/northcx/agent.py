@@ -74,6 +74,7 @@ class Agent:
     model: str | None = None
     max_steps: int = 8
     channel_styles: dict[str, str] = field(default_factory=dict)  # per-channel writing style, e.g. {"sms": "Two short sentences"}
+    attachments: list[str] = field(default_factory=list)  # kinds of attachment this agent accepts: image, pdf, text. Empty: none
     routes: list[Any] = field(default_factory=list)  # RouteSpec objects: specialists this agent may pass a conversation to
     journeys: list[Any] = field(default_factory=list)  # JourneySpec objects; progress through them is recorded on each trace
     languages: list[str] = field(default_factory=list)  # languages the agent supports; the first is the default. Empty: no language handling

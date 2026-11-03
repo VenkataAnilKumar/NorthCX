@@ -13,7 +13,7 @@ function summary(e: TraceEvent): string {
   const d = e.data;
   switch (e.type) {
     case "user":
-    case "system": return String(d.message ?? "");
+    case "system": return String(d.message ?? "") + (Array.isArray(d.attachments) && d.attachments.length ? `  📎 ${(d.attachments as { name: string }[]).map((x) => x.name).join(", ")}` : "");
     case "tool_call": return `${d.name}(${JSON.stringify(d.input)})`;
     case "tool_result": return `${d.name} → ${JSON.stringify(d.output)}`;
     case "forced_topic": return `Always goes to a person: ${(d.topics as string[] | undefined)?.join(", ") ?? ""}`;

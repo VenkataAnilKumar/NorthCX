@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { chatStream, type EnvName, getTrace, listAgents, listOutbox, statusLabel, type Trace } from "@/lib/api";
+import { chatStream, uploadAttachment, type AttachmentInfo, type EnvName, getTrace, listAgents, listOutbox, statusLabel, type Trace } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { useMe } from "@/lib/me";
 import { ErrorBox, Loading, PageHeader } from "@/components/states";
@@ -54,12 +54,21 @@ export default function TestConsole() {
     return () => { stop = true; clearInterval(id); };
   }, [sessionId]);
 
+  const [pending, setPending] = useState<AttachmentInfo[]>([]);
+  async function attach(list: FileList | null) {
+    if (!list?.length) return;
+    setError(null);
+    try { const added: AttachmentInfo[] = []; for (const f of Array.from(list).slice(0, 5)) added.push(await uploadAttachment(sessionId, f)); setPending((p) => [...p, ...added].slice(0, 5)); }
+    catch (err) { setError((err as Error).message); }
+  }
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const message = input.trim();
     if (!message || busy) return;
-    setInput(""); setError(null); setBusy(true);
-    setTurns((t) => [...t, { from: "user", text: message }]);
+    const files = pending;
+    setInput(""); setPending([]); setError(null); setBusy(true);
+    setTurns((t) => [...t, { from: "user", text: files.length ? `${message}\n📎 ${files.map((f) => f.name).join(", ")}` : message }]);
     setWorking("Thinking…");
     let started = false;
     try {
@@ -72,7 +81,7 @@ export default function TestConsole() {
             : [...t, { from: "agent", text: piece }]);
           started = true;
         },
-      }, environment);
+      }, environment, files.map((f) => f.id));
       setTurns((t) => {
         const turn: Turn = { from: "agent", text: r.reply, status: r.status, handoffId: r.handoffId };
         return started ? [...t.slice(0, -1), turn] : [...t, turn];
@@ -124,7 +133,11 @@ export default function TestConsole() {
             <div ref={endRef} />
           </div>
           {error && <div className="px-4 pb-2"><ErrorBox message={error} /></div>}
+          {pending.length > 0 && <p className="px-4 pb-1 text-xs text-muted" role="status">Attached: {pending.map((f) => f.name).join(", ")}</p>}
           <form onSubmit={send} className="flex gap-2 border-t border-border p-3">
+            <label className="cursor-pointer self-center rounded-lg border border-border px-2 py-2 text-sm hover:bg-border/40" title="Attach a picture, PDF or text file (if the agent accepts them)">
+              <span aria-hidden>📎</span><span className="sr-only">Attach a file</span>
+              <input type="file" className="sr-only" multiple accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain" onChange={(e) => { void attach(e.target.files); e.target.value = ""; }} /></label>
             <label htmlFor="msg" className="sr-only">Message</label>
             <input id="msg" value={input} onChange={(e) => setInput(e.target.value)} autoComplete="off" placeholder="Type a message"
               className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm" />

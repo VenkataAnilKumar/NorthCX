@@ -157,11 +157,11 @@ export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenera
 }
 
 /** Like `chat`, but reports tool progress and reply text as it arrives. Resolves with the final result. */
-export async function chatStream(agentId: string, sessionId: string, message: string, h: StreamHandlers = {}, environment?: EnvName): Promise<ChatReply> {
+export async function chatStream(agentId: string, sessionId: string, message: string, h: StreamHandlers = {}, environment?: EnvName, attachments: string[] = []): Promise<ChatReply> {
   const headers = new Headers({ "content-type": "application/json" });
   const key = getApiKey();
   if (key) headers.set("authorization", `Bearer ${key}`);
-  const res = await fetch(`/api/northcx/v1/agents/${agentId}/chat/stream`, { method: "POST", headers, body: JSON.stringify({ sessionId, message, ...(environment && environment !== "production" ? { environment } : {}) }) });
+  const res = await fetch(`/api/northcx/v1/agents/${agentId}/chat/stream`, { method: "POST", headers, body: JSON.stringify({ sessionId, message, ...(environment && environment !== "production" ? { environment } : {}), ...(attachments.length ? { attachments } : {}) }) });
   if (!res.ok || !res.body) {
     const body = await res.json().catch(() => ({}));
     throw new ApiError(res.status, body?.error?.message ?? `Request failed (${res.status})`, body?.error?.reasons ?? []);
@@ -302,3 +302,26 @@ export const journeyScenarios = (agent: string, journey: Journey) =>
 
 export const replyToCustomer = (id: string, text: string) => api<{ sent: boolean }>(`/v1/handoffs/${id}/reply`, { method: "POST", body: JSON.stringify({ text }) });
 export const suggestHelp = (id: string) => api<{ assist: Assist }>(`/v1/handoffs/${id}/assist`, { method: "POST" }).then((r) => r.assist);
+
+export interface AttachmentInfo { id: string; name: string; kind: "image" | "pdf" | "text"; mediaType: string; size: number; sha256: string; createdAt: number }
+export async function uploadAttachment(sessionId: string, file: File): Promise<AttachmentInfo> {
+  const headers = new Headers({ "content-type": "application/octet-stream" });
+  const key = getApiKey();
+  if (key) headers.set("authorization", `Bearer ${key}`);
+  const res = await fetch(`/api/northcx/v1/sessions/${encodeURIComponent(sessionId)}/attachments?filename=${encodeURIComponent(file.name)}`, { method: "PUT", headers, body: file });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, body?.error?.message ?? `Upload failed (${res.status})`);
+  return body as AttachmentInfo;
+}
+/** Fetches the file with the session key and opens it as a download (a plain link could not send the key). */
+export async function downloadAttachment(a: { id: string; name: string }): Promise<void> {
+  const headers = new Headers();
+  const key = getApiKey();
+  if (key) headers.set("authorization", `Bearer ${key}`);
+  const res = await fetch(`/api/northcx/v1/attachments/${a.id}`, { headers });
+  if (!res.ok) throw new ApiError(res.status, "Could not download the file");
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement("a");
+  link.href = url; link.download = a.name; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}

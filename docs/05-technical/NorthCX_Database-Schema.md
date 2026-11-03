@@ -23,6 +23,7 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 | `inbox_events` (built) | `id` pk, `handoff_id`, `connector`, `event` (created/resolved), `created_at`, `attempts`, `last_attempt_at`, `delivered_at`, `external_ref`, `error` | Delivery queue to helpdesks; retried with back-off up to 12 attempts; erased with the hand-off |
 | `trace_exports` (built) | `id` pk, `trace_id`, `exporter`, `created_at`, `attempts`, `last_attempt_at`, `delivered_at`, `error` | Queue of traces to send to observability backends; retried with back-off up to 12 attempts; erased with the conversation |
 | `conversation_feedback` (built) | `session_id` pk, `rating` 1-5, `comment`, `created_at` | One rating per conversation; erased with it |
+| `attachments` (built) | `id` pk, `session_id`, `name`, `kind`, `media_type`, `size`, `sha256`, `data` (bytes), `uploaded_by`, `created_at` | At most 20 files and 40 MB per conversation; erased with it |
 | `session_routes` (built) | `session_id` pk, `agent_id`, `updated_at` | Which agent a conversation is currently with after transfers; erased with it |
 | `rollouts` (built) | `id` pk, `agent_id`, `environment`, `candidate_number`, `control_number` (null: spec file), `percent`, `state` (active, promoted, aborted), `started_by`, `ended_by`, times | At most one active per agent and environment (partial unique index) |
 | `rollout_assignments` (built) | (`rollout_id`, `session_id`) pk, `arm` | Fixes each conversation's arm; erased with the conversation |

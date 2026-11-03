@@ -16,6 +16,7 @@ from .approvals import ApprovalRepo, ApprovalStore
 from .monitor import Monitor
 from .summarize import Compactor
 from .context import CachedContext
+from .attachments import build_content
 from .inbox import InboxDispatcher
 from .transfers import MAX_TRANSFERS_PER_TURN, TRANSFER, InMemorySessionRoutes, handover_note, transfer_spec
 from .journeys import progress as journey_progress, used_tools as journey_tools
@@ -87,7 +88,7 @@ class Runtime:
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
                   trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None,
-                  channel: str | None = None, environment: str = "production") -> RunResult:
+                  channel: str | None = None, environment: str = "production", attachments: list[Any] | None = None) -> RunResult:
         """`trusted=True` is for messages the platform itself writes (for example an approval outcome); they skip
         the customer input checks and are traced as `system` events."""
         trace = Trace(agent.id, session_id, agent_version=agent.version, environment=environment)
@@ -112,6 +113,7 @@ class Runtime:
                 company_context = got.facts
                 facts = {**facts, **got.facts}  # the company's systems are the source of truth
                 trace.add("context", status=got.status, keys=sorted(got.facts), dropped=got.dropped)
+        kept_texts: dict[int, str] = {}
         ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets)
         pending: list[dict[str, Any]] = []
 
@@ -154,6 +156,9 @@ class Runtime:
             if messages and messages[-1]["role"] == "user":
                 messages.append({"role": "assistant", "content": reply})
             reply = self.secrets.redact_text(reply)
+            for i, kept in kept_texts.items():  # pictures and files are sent to the model for this turn only; history keeps a note of what was attached
+                if i < len(messages):
+                    messages[i]["content"] = kept
             if messages and messages[-1]["role"] == "assistant" and isinstance(messages[-1]["content"], str):
                 messages[-1]["content"] = reply
             if agent.journeys:
@@ -193,8 +198,18 @@ class Runtime:
             if res.text is not None:
                 message = res.text
 
-        messages.append({"role": "user", "content": message})
-        trace.add("system" if trusted else "user", message=message)
+        user_index: int | None = None
+        if attachments and not trusted:
+            blocks, kept_text, withheld = await build_content(message, attachments, agent.input_guardrails)
+            for w in withheld:
+                trace.add("guardrail", guardrail="attachment", reason=w, stage="input")
+            user_index = len(messages)
+            messages.append({"role": "user", "content": blocks})
+            kept_texts[user_index] = kept_text
+            trace.add("user", message=message, attachments=[a.meta() for a in attachments])
+        else:
+            messages.append({"role": "user", "content": message})
+            trace.add("system" if trusted else "user", message=message)
 
         # Topics that must always go to a person are decided here, before the model can answer.
         if not trusted:

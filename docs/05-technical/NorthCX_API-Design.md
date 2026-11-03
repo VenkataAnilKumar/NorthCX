@@ -92,6 +92,8 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | GET | `/skills` | Skills available to agents, with their steps and tools (built) |
 | GET | `/insights/overview`, `/insights/timeseries`, `/insights/failures`, `/insights/gaps` | Metrics with numerator, denominator and period; `from`, `to` (epoch seconds, default last 7 days, at most 366), `agent`, `environment`; timeseries takes `bucket=hour|day` (`insights:read`) (built) |
 | POST | `/sessions/{id}/feedback` | `{rating 1-5, comment?}`: a customer's rating (chat token for its own conversation, channel or API key); a second rating replaces the first (`feedback:send`) (built) |
+| PUT | `/sessions/{id}/attachments` | `filename` query, the file as the request body: checks, stores and returns its id and details (`chat:send`; a customer's chat token only for its own conversation); chat requests then pass `attachments: [ids]` (built) |
+| GET | `/sessions/{id}/attachments`, `/attachments/{id}` | list a conversation's files; download one served as an attachment with `nosniff` and a sandbox policy (`traces:read`) (built) |
 | POST | `/handoffs/{id}/reply` | `text`: a person's message to the customer, delivered through the outbox as kind `person_reply` (`handoffs:resolve`) (built) |
 | POST | `/handoffs/{id}/assist` | draft suggestions for the person handling the hand-off, stored with it; 20 per minute per key (`handoffs:resolve`) (built) |
 | POST | `/agents/{id}/journeys/draft` | `description`: a journey drafted by the model from plain language, checked against the agent's tools; 10 per minute per key; needs `versions:create` (built) |

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import dataclasses
 import uuid
 from typing import Callable, Union
 
@@ -44,7 +46,7 @@ class ScriptedLLM:
         self.requests: list[LLMRequest] = []
 
     async def complete(self, req: LLMRequest) -> LLMResponse:
-        self.requests.append(req)
+        self.requests.append(dataclasses.replace(req, messages=copy.deepcopy(req.messages)))  # as sent: the runtime keeps changing its own list
         if not self.script:
             raise RuntimeError("ScriptedLLM: script exhausted")
         nxt = self.script.pop(0)

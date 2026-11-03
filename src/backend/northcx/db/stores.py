@@ -18,6 +18,7 @@ from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entrie
 from ..handoffs import Handoff
 from ..monitor import Finding
 from ..simulation.managed import ManagedScenario
+from ..attachments import Attachment
 from ..reviews import Review
 from ..rollout import Rollout
 from ..versions import Conflict
@@ -652,6 +653,38 @@ class PgScenarios(_Base):
             return (await s.execute(text("delete from managed_scenarios where name = :n returning name"), {"n": name})).first() is not None
 
 
+class PgAttachments(_Base):
+    @staticmethod
+    def _a(r: Any) -> Attachment:
+        return Attachment(r.session_id, r.name, r.kind, r.media_type, r.size, r.sha256, bytes(r.data), r.uploaded_by, r.id, r.created_at)
+
+    async def add(self, a: Attachment) -> Attachment:
+        async with self._sm.begin() as s:
+            await s.execute(text("insert into attachments (id, session_id, name, kind, media_type, size, sha256, data, uploaded_by, created_at) "
+                                 "values (:id, :s, :n, :k, :m, :z, :h, :d, :u, :t)"),
+                            {"id": a.id, "s": a.session_id, "n": a.name, "k": a.kind, "m": a.media_type, "z": a.size, "h": a.sha256, "d": a.data, "u": a.uploaded_by, "t": a.created_at})
+        return a
+
+    async def get(self, attachment_id: str) -> Attachment | None:
+        async with self._sm() as s:
+            r = (await s.execute(text("select * from attachments where id = :id"), {"id": attachment_id})).first()
+        return self._a(r) if r else None
+
+    async def for_session(self, session_id: str) -> list[Attachment]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from attachments where session_id = :s order by created_at"), {"s": session_id})).all()
+        return [self._a(r) for r in rows]
+
+    async def usage(self, session_id: str) -> tuple[int, int]:
+        async with self._sm() as s:
+            r = (await s.execute(text("select count(*), coalesce(sum(size), 0) from attachments where session_id = :s"), {"s": session_id})).one()
+        return int(r[0]), int(r[1])
+
+    async def erase_session(self, session_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from attachments where session_id = :s"), {"s": session_id})).rowcount
+
+
 class PgSessionRoutes(_Base):
     async def get(self, session_id: str) -> str | None:
         async with self._sm() as s:
@@ -1068,6 +1101,7 @@ class PgPrivacy(_Base):
                 "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
                 "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,
             }
+            out["attachments"] = (await s.execute(text("delete from attachments where session_id = :s"), p)).rowcount
             out["routes"] = (await s.execute(text("delete from session_routes where session_id = :s"), p)).rowcount
             out["rolloutAssignments"] = (await s.execute(text("delete from rollout_assignments where session_id = :s"), p)).rowcount
             out["reviews"] = (await s.execute(text("delete from conversation_reviews where session_id = :s"), p)).rowcount
