@@ -44,6 +44,7 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_RERUN_ON_KNOWLEDGE` (`off`, `scripted`, `live`), `NORTHCX_RERUN_DEBOUNCE_SECONDS` | Re-run scenarios tagged `knowledge` after knowledge changes; failures raise a critical monitoring finding | off; 60 s |
 | `NORTHCX_SKILLS_DIR` | Directory of skill files (YAML) added to the registry at start-up | none |
 | `NORTHCX_CONNECTORS_DIR`, `NORTHCX_CONNECTOR_HOSTS` | Directory of connector files (tools defined as data) and the comma-separated hosts they may call; a connector whose host is not listed is refused at start-up | none |
+| `NORTHCX_TEMPLATES_DIR` | Directory of extra agent templates (YAML); a template with the id of a built-in one replaces it | built-in four |
 | `NORTHCX_LANGFUSE_URL`, `NORTHCX_LANGFUSE_PUBLIC_KEY`, `NORTHCX_LANGFUSE_SECRET_KEY` (`_FILE`) | Export traces to Langfuse | off |
 | `NORTHCX_OTLP_ENDPOINT`, `NORTHCX_OTLP_HEADERS` (`_FILE`; `name=value,name=value`) | Export traces over OpenTelemetry OTLP/HTTP to any compatible backend | off |
 | `NORTHCX_TRACE_EXPORT_CONTENT` (`none`, `masked`, `full`), `NORTHCX_TRACE_EXPORT_SAMPLE` (0 to 1), `NORTHCX_ENVIRONMENT` | What exported traces contain (default `masked`), the fraction exported (default 1), and the environment label (default `production`) | masked; all; production |

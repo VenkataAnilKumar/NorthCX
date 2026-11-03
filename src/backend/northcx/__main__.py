@@ -10,6 +10,7 @@ from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
 from .trace_export import ExportService, InMemoryExports, LangfuseExporter, OtlpExporter, Redactor
 from .regression import RegressionRunner
 from .connectors import ConnectorError, allowed_hosts_from, load_connectors
+from .templates import LIBRARY, TemplateError, load_templates
 from .skills import SkillError, load_skills
 from .routing import RoutingError, load_router
 from .config import load_context_provider, load_registry
@@ -232,7 +233,7 @@ def run() -> None:
             baseline[i] = reg.build(s, BuildContext(llm=llm))
             baseline[i].digest = s.digest()
         scenarios = load_scenarios(scenarios_dir) if Path(scenarios_dir).exists() else []
-    except (SpecError, ScenarioError, SkillError, ConnectorError) as e:
+    except (SpecError, ScenarioError, SkillError, ConnectorError, TemplateError) as e:
         sys.exit(f"Invalid configuration: {e}")
 
     simulations = None
@@ -289,6 +290,7 @@ def run() -> None:
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
                       regression=regression, skills=reg.skill_info(),
+                      templates=load_templates(LIBRARY, *([os.environ["NORTHCX_TEMPLATES_DIR"]] if os.environ.get("NORTHCX_TEMPLATES_DIR") else [])),
                       sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,
                       retention_days=float(os.environ["NORTHCX_RETENTION_DAYS"]) if os.environ.get("NORTHCX_RETENTION_DAYS") else None,
                       email=EmailChannel(runtime, agents, email_repo, email_config) if email_config else None)

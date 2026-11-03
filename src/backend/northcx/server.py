@@ -20,6 +20,7 @@ from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
 from .channels.sms import SmsChannel, parse_form
+from .templates import Template, TemplateError, render
 from .regression import RegressionRunner, scenario_from_traces
 from .simulation.scenario import ScenarioError
 from .privacy import InMemoryPrivacy, PrivacyService, customer_ref
@@ -68,6 +69,14 @@ class PromoteBody(BaseModel):
     to: str
     by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
+
+
+class TemplateBody(BaseModel):
+    agent_id: str = Field(alias="agentId", min_length=2, max_length=40)
+    params: dict[str, Any] = Field(default_factory=dict)
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
+    model_config = {"populate_by_name": True}
 
 
 class DecisionBody(BaseModel):
@@ -179,6 +188,10 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/traces/[^/]+/exports", "traces:read"),
     ("GET", r"/v1/traces", "traces:read"),
     ("GET", r"/v1/traces/[^/]+", "traces:read"),
+    ("GET", r"/v1/templates", "agents:read"),
+    ("GET", r"/v1/templates/[^/]+", "agents:read"),
+    ("POST", r"/v1/templates/[^/]+/render", "versions:create"),
+    ("POST", r"/v1/templates/[^/]+/create-version", "versions:create"),
     ("GET", r"/v1/skills", "agents:read"),
     ("GET", r"/v1/agents", "agents:read"),
     ("GET", r"/v1/agents/[^/]+/live", "agents:read"),
@@ -223,7 +236,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
                retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None,
-               skills: list[Any] | None = None) -> FastAPI:
+               skills: list[Any] | None = None, templates: dict[str, Template] | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -523,6 +536,55 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if scope:
             await idem.complete(scope, result)
         return result
+
+    # ---- templates ----
+    def find_template(template_id: str) -> Template | JSONResponse:
+        return (templates or {}).get(template_id) or _err(404, "not_found", "Unknown template")
+
+    def rendered_json(r: Any) -> dict[str, Any]:
+        return {"specYaml": r.spec_yaml, "scenariosYaml": r.scenarios_yaml, "scenarios": len(r.scenarios), "missingTools": r.missing_tools, "warnings": r.warnings}
+
+    @app.get("/v1/templates")
+    async def list_templates() -> Any:
+        return {"templates": [t.info() for t in (templates or {}).values()]}
+
+    @app.get("/v1/templates/{template_id}")
+    async def get_template(template_id: str) -> Any:
+        t = find_template(template_id)
+        return t if isinstance(t, JSONResponse) else t.info()
+
+    @app.post("/v1/templates/{template_id}/render")
+    async def render_template(template_id: str, body: TemplateBody) -> Any:
+        """Fill in a template without saving anything: the agent spec, its scenarios, and what this deployment is missing."""
+        t = find_template(template_id)
+        if isinstance(t, JSONResponse):
+            return t
+        try:
+            return rendered_json(render(t, body.agent_id, body.params, releases.registry if releases else None))
+        except TemplateError as e:
+            return _err(400, "bad_request", str(e))
+
+    @app.post("/v1/templates/{template_id}/create-version", status_code=201)
+    async def template_version(template_id: str, body: TemplateBody, request: Request) -> Any:
+        """Save the rendered agent as a version (it still needs its scenarios and the release gate before it can go live)."""
+        t = find_template(template_id)
+        if isinstance(t, JSONResponse):
+            return t
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        try:
+            r = render(t, body.agent_id, body.params, svc.registry)
+        except TemplateError as e:
+            return _err(400, "bad_request", str(e))
+        if r.missing_tools:
+            return _err(400, "missing_tools", r.warnings[-1] if r.warnings else "This deployment lacks tools the template needs")
+        try:
+            v = await svc.create_version(body.agent_id, r.spec, actor(request, body.by), body.note or f"from template {t.id}")
+        except (InvalidSpec, Conflict) as e:
+            return rel_error(e)
+        await record(request, "template.create_version", f"{body.agent_id}@{v.number}", template=t.id)
+        return JSONResponse({**version_json(v, full=True), **rendered_json(r)}, status_code=201)
 
     @app.get("/v1/skills")
     async def list_skills() -> Any:

@@ -1,0 +1,22 @@
+id: human-triage
+title: Triage and hand-off
+intent: Collect the details, then pass to a person
+description: Greets the customer, collects the details a person needs, and hands the conversation over. For teams that want people to resolve everything.
+parameters:
+  company_name: {description: Your company name, default: our team}
+  details: {description: What to collect before handing off, default: "the customer's name, what happened, and any order or account number"}
+spec:
+  instructions: |
+    You are the front desk for {{company_name}}. You do not resolve problems yourself.
+    Ask short questions to collect {{details}}, then call handoff_to_human with a one-sentence summary as the reason.
+    If the customer asks for a person at any point, hand off immediately.
+  guardrails: [no_card_numbers]
+  input_guardrails: [pii_detection, prompt_injection]
+scenarios:
+  - name: "{{agent_id}}-hands-off-when-asked"
+    model:
+      - tool_call: {name: handoff_to_human, input: {reason: Customer asked for a person}}
+    turns:
+      - say: Let me talk to a real person
+        expect: {status: escalated}
+    expect: {handoff: {trigger: agent_handoff}}

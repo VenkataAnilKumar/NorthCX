@@ -11,7 +11,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | A4 | Adjustable workflow flexibility (strict steps to free-form) per skill | P1 | 3 | Built (strict is enforced, guided and free are advice) |
 | A5 | Journeys: scenario blueprints with goals, guardrails and required steps | P1 | 4 | Planned |
 | A6 | Journeys described in plain language and converted to definitions | P2 | 4 | Planned |
-| A7 | Templates for common support intents | P1 | 3 | Planned |
+| A7 | Templates for common support intents | P1 | 3 | Built (four templates with scenarios; API; gallery page planned) |
 | A8 | Agent-assisted building: generate an agent from procedures, transcripts or call recordings | P2 | 6 | Planned |
 | A9 | Per-agent model choice and settings | P0 | 1 | Built |
 | A10 | Brand voice and tone settings | P1 | 3 | Built (forbidden phrases are enforced) |

@@ -1,0 +1,39 @@
+id: returns-and-refunds
+title: Returns and refunds
+intent: I want to return this / I want my money back
+description: Handles return questions and refund requests; refunds above the approval limit wait for a person.
+parameters:
+  company_name: {description: Your company name, default: our store}
+  return_window_days: {description: How many days after delivery a return is allowed, default: "30"}
+  order_tool: {description: The tool that looks up an order, default: lookup_order}
+  refund_tool: {description: The tool that issues a refund, default: issue_refund}
+  approval_limit: {description: Refunds above this amount need a person (configure the same limit on the tool), default: "100"}
+requires: {tools: ["{{order_tool}}", "{{refund_tool}}"]}
+spec:
+  instructions: |
+    You are the returns assistant for {{company_name}}. Returns are accepted within {{return_window_days}} days of delivery.
+    Look the order up with {{order_tool}} first. Only refund delivered orders, and never more than the order total.
+    Refunds above {{approval_limit}} are held for a person; tell the customer plainly that a teammate will confirm, and do not promise the outcome.
+    If the order is outside the return window, explain the policy kindly and offer a person.
+  tools: ["{{order_tool}}", "{{refund_tool}}"]
+  guardrails: [no_card_numbers]
+  input_guardrails: [pii_detection, prompt_injection]
+  output_guardrails: [tool_output_injection]
+  forced_handoff:
+    - {name: legal, patterns: ['\b(lawyer|attorney|lawsuit|sue|suing|legal action)\b']}
+    - {name: safety, patterns: ['\b(injur(ed|y)|unsafe|caught fire|burn(ed|t)|hospital)\b']}
+scenarios:
+  - name: "{{agent_id}}-looks-before-refunding"
+    model:
+      - tool_call: {name: "{{order_tool}}", input: {order_id: "1042"}}
+      - tool_call: {name: "{{refund_tool}}", input: {order_id: "1042", amount: 20}}
+      - text: Your refund of 20 has been issued.
+    turns:
+      - say: Please refund 20 for order 1042, the strap was damaged
+        expect: {status: completed, tools_called: ["{{order_tool}}", "{{refund_tool}}"], reply_includes: [refund]}
+  - name: "{{agent_id}}-safety-reports-go-to-a-person"
+    model: []
+    turns:
+      - say: The charger caught fire and I was injured
+        expect: {status: escalated, tools_not_called: ["{{refund_tool}}"]}
+    expect: {max_model_calls: 0, handoff: {trigger: forced_topic, topics: [safety]}}

@@ -1,0 +1,26 @@
+id: knowledge-faq
+title: Help-centre answers
+intent: How do I... / What is your policy on...
+description: Answers questions only from your own documents, cites them, and hands off when the documents do not cover the question.
+parameters:
+  company_name: {description: Your company name, default: our company}
+  tone: {description: How the assistant should sound, default: "clear and friendly"}
+requires: {tools: [search_knowledge]}
+spec:
+  instructions: |
+    You answer questions for {{company_name}} using only the help-centre documents you can search with search_knowledge.
+    Search before every answer. Use only what the results say, cite them as [1], [2], and mention when a source is marked out of date.
+    If the results do not answer the question, say so and offer to connect the customer with a person. Never guess policies, prices or dates.
+  tools: [search_knowledge]
+  voice: {tone: "{{tone}}", guidelines: ["Keep answers short and concrete"]}
+  guardrails: [no_card_numbers]
+  input_guardrails: [pii_detection, prompt_injection]
+  output_guardrails: [tool_output_injection]
+scenarios:
+  - name: "{{agent_id}}-searches-then-cites"
+    model:
+      - tool_call: {name: search_knowledge, input: {query: refund policy}}
+      - text: "Refunds are paid within 5 business days [1]."
+    turns:
+      - say: How long do refunds take?
+        expect: {status: completed, tools_called: [search_knowledge], reply_includes: ["[1]"]}
