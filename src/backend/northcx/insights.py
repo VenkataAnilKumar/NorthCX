@@ -40,6 +40,7 @@ class TurnFacts:
     last_reply: str = ""
     language: str | None = None  # what the customer wrote in, when the agent handles languages
     journeys: dict[str, bool | None] = field(default_factory=dict)  # journeys reached this turn -> completed (None: cannot be told)
+    channel: str | None = None  # web, sms, whatsapp, email, voice ...: where the customer wrote from, when the turn recorded it
 
 
 @dataclass
@@ -72,6 +73,8 @@ def facts_from_trace(t: Trace) -> TurnFacts:
             said.append(str(d.get("message", "")))
             if not f.first_message:
                 f.first_message = str(d.get("message", ""))
+            if d.get("channel") and not f.channel:
+                f.channel = str(d["channel"])[:20]
         elif e.type == "journey":
             f.journeys[str(d.get("name"))] = d.get("completed")
         elif e.type == "language":
@@ -185,6 +188,57 @@ def compute(turns: list[TurnFacts], handoffs: list[HandoffFacts], feedback: list
         out["estimatedCost"] = {"amount": round(tokens / 1e6 * price_per_million_tokens, 4), "perConversation": round(tokens / 1e6 * price_per_million_tokens / len(sessions), 5) if sessions else None,
                                 "basis": f"{price_per_million_tokens} per million tokens (blended)"}
     return out
+
+
+@dataclass
+class Filters:
+    """Narrow figures to conversations (sessions) with these properties. Every field is optional; all given must hold."""
+    language: str | None = None
+    channel: str | None = None
+    handed_off: bool | None = None
+    queue: str | None = None
+    min_rating: int | None = None
+    max_rating: int | None = None
+
+    def any(self) -> bool:
+        return any(v is not None for v in (self.language, self.channel, self.handed_off, self.queue, self.min_rating, self.max_rating))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {k: v for k, v in (("language", self.language), ("channel", self.channel), ("handedOff", self.handed_off), ("queue", self.queue),
+                                  ("minRating", self.min_rating), ("maxRating", self.max_rating)) if v is not None}
+
+
+def apply_filters(turns: list[TurnFacts], handoffs: list[HandoffFacts], feedback: list[FeedbackFacts], f: Filters | None) -> tuple[list[TurnFacts], list[HandoffFacts], list[FeedbackFacts]]:
+    if f is None or not f.any():
+        return turns, handoffs, feedback
+    lang: dict[str, str] = {}
+    chan: dict[str, str] = {}
+    for t in sorted(turns, key=lambda t: t.started_at):
+        if t.language:
+            lang[t.session_id] = t.language
+        if t.channel and t.session_id not in chan:
+            chan[t.session_id] = t.channel
+    handed = {h.session_id for h in handoffs}
+    queues: dict[str, set[str]] = {}
+    for h in handoffs:
+        queues.setdefault(h.session_id, set()).add(h.queue or "general")
+    rating = {x.session_id: x.rating for x in feedback}
+    keep = set()
+    for sid in {t.session_id for t in turns}:
+        if f.language is not None and lang.get(sid) != f.language:
+            continue
+        if f.channel is not None and chan.get(sid) != f.channel:
+            continue
+        if f.handed_off is not None and (sid in handed) != f.handed_off:
+            continue
+        if f.queue is not None and f.queue not in queues.get(sid, set()):
+            continue
+        if f.min_rating is not None and (sid not in rating or rating[sid] < f.min_rating):
+            continue
+        if f.max_rating is not None and (sid not in rating or rating[sid] > f.max_rating):
+            continue
+        keep.add(sid)
+    return [t for t in turns if t.session_id in keep], [h for h in handoffs if h.session_id in keep], [x for x in feedback if x.session_id in keep]
 
 
 def timeseries(turns: list[TurnFacts], since: float, until: float, bucket: str = "day") -> list[dict[str, Any]]:
@@ -352,14 +406,18 @@ class InsightsService:
         turns = await self.source.turns(since, until, agent, environment, MAX_TURNS)
         return turns, await self.source.handoffs(since, until), await self.source.feedback(since, until)
 
-    async def overview(self, since: float, until: float, agent: str | None = None, environment: str = "production") -> dict[str, Any]:
+    async def overview(self, since: float, until: float, agent: str | None = None, environment: str = "production", filters: Filters | None = None) -> dict[str, Any]:
         turns, handoffs, feedback = await self._load(since, until, agent, environment)
+        turns, handoffs, feedback = apply_filters(turns, handoffs, feedback, filters)
         out = compute(turns, handoffs, feedback, since, until, self.price)
         out.update({"agent": agent, "environment": environment, "truncated": len(turns) >= MAX_TURNS})
         return out
 
-    async def series(self, since: float, until: float, bucket: str, agent: str | None = None, environment: str = "production") -> list[dict[str, Any]]:
-        turns = await self.source.turns(since, until, agent, environment, MAX_TURNS)
+    async def series(self, since: float, until: float, bucket: str, agent: str | None = None, environment: str = "production", filters: Filters | None = None) -> list[dict[str, Any]]:
+        if filters is not None and filters.any():
+            turns, handoffs, feedback = apply_filters(*await self._load(since, until, agent, environment), filters)
+        else:
+            turns = await self.source.turns(since, until, agent, environment, MAX_TURNS)
         return timeseries(turns, since, until, bucket)
 
     async def failure_analysis(self, since: float, until: float, agent: str | None = None, environment: str = "production") -> list[dict[str, Any]]:
@@ -367,8 +425,10 @@ class InsightsService:
         return failures(turns, handoffs)
 
     async def search(self, since: float, until: float, tags: TagRepo, q: str = "", status: str | None = None, tag: str | None = None,
-                     handed_off: bool | None = None, agent: str | None = None, environment: str = "production", limit: int = 50, language: str | None = None) -> list[dict[str, Any]]:
+                     handed_off: bool | None = None, agent: str | None = None, environment: str = "production", limit: int = 50, language: str | None = None,
+                     filters: Filters | None = None) -> list[dict[str, Any]]:
         turns, handoffs, feedback = await self._load(since, until, agent, environment)
+        turns, handoffs, feedback = apply_filters(turns, handoffs, feedback, filters)
         sessions = list({t.session_id for t in turns})
         return search_conversations(turns, handoffs, feedback, await tags.for_sessions(sessions), q, status, tag, handed_off, limit, language)
 

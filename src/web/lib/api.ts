@@ -221,7 +221,13 @@ export const getSeries = (hours: number, agent?: string, env?: string) => {
   q.set("bucket", hours <= 48 ? "hour" : "day");
   return api<{ bucket: string; points: SeriesPoint[] }>(`/v1/insights/timeseries?${q}`);
 };
-export interface AskAnswer { answerable: boolean; answer: string; plan?: { metric: string; days: number; offsetDays: number; agent: string | null; compare: boolean; trend: boolean }; supported?: string[] }
+export interface AskAnswer {
+  answerable: boolean; answer: string; supported?: string[]; kind?: string; label?: string; value?: number | null;
+  plan?: { metric: string | null; days: number; offsetDays: number; agent: string | null; compare: boolean; trend: boolean; filters?: Record<string, string | number | boolean>; find?: { q: string; status: string | null } };
+  series?: { bucket: "hour" | "day"; points: { start: number; value: number | null }[] };
+  rows?: { name: string; count: number }[];
+  conversations?: { sessionId: string; firstMessage: string; lastStatus: string; language: string | null; handedOff: boolean; rating: number | null; endedAt: number; turns: number; lastReply: string }[];
+}
 export const askInsights = (question: string, environment?: string) => api<AskAnswer>("/v1/insights/ask", { method: "POST", body: JSON.stringify({ question, ...(environment ? { environment } : {}) }) });
 export interface AgentDraft { specYaml: string; spec: Record<string, unknown>; warnings: string[]; notes: string[]; examples: string[]; note: string; sources: { kind: string; name: string; characters: number }[] }
 export const draftAgent = (body: { agentId: string; goal: string; sources: { kind: string; name: string; text: string }[] }) =>

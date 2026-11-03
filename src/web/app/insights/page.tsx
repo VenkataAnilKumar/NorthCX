@@ -4,6 +4,7 @@ import { useState } from "react";
 import { askInsights, formatTime, getAlerts, getFailures, getGaps, getOverview, getReviewQuality, getSeries, type AskAnswer, type Ratio, type SeriesPoint } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
+import { BarList, ConversationList, LineChart } from "@/components/answer-charts";
 
 const PERIODS = [{ label: "24 hours", hours: 24 }, { label: "7 days", hours: 24 * 7 }, { label: "30 days", hours: 24 * 30 }];
 const pct = (r: Ratio) => (r.value === null ? "–" : `${(r.value * 100).toFixed(r.value < 0.1 ? 1 : 0)}%`);
@@ -31,7 +32,10 @@ function AskBox({ env }: { env: string }) {
       {res && (
         <div role="status" className="mt-3 text-sm">
           <p className={res.answerable ? "" : "text-[var(--warn)]"}>{res.answer}</p>
-          {p && <p className="mt-1 text-xs text-muted">Read as: {p.metric.replaceAll("_", " ")}, {p.days} day{p.days === 1 ? "" : "s"}{p.offsetDays ? `, ending ${p.offsetDays} days ago` : ""}{p.agent ? `, agent ${p.agent}` : ""}{p.compare ? ", compared with the period before" : ""}{p.trend ? ", over time" : ""}.</p>}
+          {res.series && <LineChart label={res.label ?? "Figure"} points={res.series.points} bucket={res.series.bucket} />}
+          {res.rows && res.rows.length > 0 && <BarList label={res.label ?? "Breakdown"} rows={res.rows} />}
+          {res.conversations && res.conversations.length > 0 && <ConversationList rows={res.conversations} />}
+          {p && <p className="mt-1 text-xs text-muted">Read as: {p.find ? `find conversations${p.find.q ? ` about “${p.find.q}”` : ""}${p.find.status ? ` that ended ${p.find.status.replace("_", " ")}` : ""}` : (p.metric ?? "").replaceAll("_", " ")}, {p.days} day{p.days === 1 ? "" : "s"}{p.offsetDays ? `, ending ${p.offsetDays} days ago` : ""}{p.agent ? `, agent ${p.agent}` : ""}{p.filters && Object.keys(p.filters).length ? `, only ${Object.entries(p.filters).map(([k, v]) => `${k}=${v}`).join(", ")}` : ""}{p.compare ? ", compared with the period before" : ""}{p.trend ? ", over time" : ""}.</p>}
           {res.supported && <p className="mt-1 text-xs text-muted">Figures I can answer about: {res.supported.join(", ")}.</p>}
         </div>)}
     </section>

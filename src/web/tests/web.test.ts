@@ -347,3 +347,16 @@ describe("knowledge calls", () => {
     expect(JSON.parse(String(calls[5][1]?.body))).toEqual({ id: "help", name: "Help", staleAfterDays: 30 });
   });
 });
+
+describe("answer charts", () => {
+  it("draw a line chart with a table fallback and ranked bars with written numbers", async () => {
+    const { LineChart, BarList, ConversationList } = await import("@/components/answer-charts");
+    const line = renderToStaticMarkup(createElement(LineChart, { label: "Conversations", bucket: "day", points: [{ start: 0, value: 5 }, { start: 86400, value: 9 }, { start: 172800, value: null }] }));
+    expect(line).toContain('role="img"'); expect(line).toContain("Show as a table"); expect(line).toContain("highest 9"); expect(line).toContain("–");
+    expect(renderToStaticMarkup(createElement(LineChart, { label: "x", bucket: "hour", points: [{ start: 0, value: 0 }] }))).toContain("<path");  // all zeros and one point do not break
+    const bars = renderToStaticMarkup(createElement(BarList, { label: "Hand-offs", rows: [{ name: "customer_asked", count: 12 }, { name: "low_confidence", count: 6 }] }));
+    expect(bars).toContain("customer_asked"); expect(bars).toContain(">12<"); expect(bars).toContain("width:50%");
+    const list = renderToStaticMarkup(createElement(ConversationList, { rows: [{ sessionId: "s 1", firstMessage: "Where is it", lastStatus: "needs_approval", language: "en", handedOff: true, rating: 2, endedAt: 1 }] }));
+    expect(list).toContain("/conversations/s%201"); expect(list).toContain("reached a person"); expect(list).toContain("rated 2");
+  });
+});

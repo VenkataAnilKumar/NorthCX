@@ -7,6 +7,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
+### Added (insights, filters and charts)
+- Analytics questions can filter by language, channel, hand-off, queue and rating, find individual conversations (masked, permission-checked) and draw charts. Turns now record their channel.
+
 ### Added (knowledge, scale and freshness)
 - Scheduled re-crawls, an automatic approximate (HNSW) index for large knowledge bases, and an optional embedding model per source.
 

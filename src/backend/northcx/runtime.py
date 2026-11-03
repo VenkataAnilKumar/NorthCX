@@ -206,10 +206,10 @@ class Runtime:
             user_index = len(messages)
             messages.append({"role": "user", "content": blocks})
             kept_texts[user_index] = kept_text
-            trace.add("user", message=message, attachments=[a.meta() for a in attachments])
+            trace.add("user", message=message, attachments=[a.meta() for a in attachments], channel=channel)
         else:
             messages.append({"role": "user", "content": message})
-            trace.add("system" if trusted else "user", message=message)
+            trace.add("system" if trusted else "user", message=message, channel=channel)
 
         # Topics that must always go to a person are decided here, before the model can answer.
         if not trusted:

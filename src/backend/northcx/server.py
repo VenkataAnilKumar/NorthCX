@@ -1011,7 +1011,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if not access.limiter.allow(f"insights-ask:{who.key_id or 'open'}", 15)[0]:
             return too_many(60, "questions")
         try:
-            out = await ask_insights(runtime.llm, insight, body.question, [a.id for a in await provider.all()], body.environment)
+            out = await ask_insights(runtime.llm, insight, body.question, [a.id for a in await provider.all()], body.environment, tags=tag_repo, can_list=who.can("traces:read"))
         except Exception:
             log.exception("insights question failed")
             return _err(502, "model_unavailable", "The model could not be reached; try again")
