@@ -177,6 +177,13 @@ class SimulationRunner:
         rt = Runtime(rec, store, traces, approvals, Outbox(), handoffs, dry_run=self.cfg.dry_run)
         flow = ApprovalFlow(rt)
         agents = {agent.id: agent}
+
+        async def resolve_agent(agent_id: str, environment: str, session_id: str):
+            try:
+                return self.agent_factory(agent_id, rec)
+            except Exception:
+                return None
+        rt.agent_resolver = resolve_agent
         sid = f"sim-{sc.name}-{index}"
         if sc.facts:
             if not sc.customer_id:
@@ -198,7 +205,7 @@ class SimulationRunner:
             d = StepData()
             if isinstance(step, Say):
                 where = f"step {n} (say {step.say[:40]!r})"
-                r = await rt.run(agent, sid, step.say, sc.customer_id)
+                r = await rt.run(await rt.active_agent(agent, sid), sid, step.say, sc.customer_id)
                 d.status, d.reply = r.status, r.reply
                 d.tools = r.trace.tools_called()
                 d.guardrails = [e.data.get("guardrail", "") for e in r.trace.events if e.type == "guardrail"]
@@ -221,7 +228,7 @@ class SimulationRunner:
                     msg = await customer.next_message(reply) if customer else (lines[i] if i < len(lines) else None)
                     if msg is None:
                         break
-                    r = await rt.run(agent, sid, msg, sc.customer_id)
+                    r = await rt.run(await rt.active_agent(agent, sid), sid, msg, sc.customer_id)
                     said += 1
                     reply = r.reply
                     d.status, d.reply = r.status, r.reply

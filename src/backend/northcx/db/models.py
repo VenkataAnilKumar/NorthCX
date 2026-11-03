@@ -253,6 +253,13 @@ class ManagedScenarioRow(Base):
     __table_args__ = (Index("ix_managed_scenarios_agent", "agent_id"),)
 
 
+class SessionRouteRow(Base):
+    __tablename__ = "session_routes"
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class RolloutRow(Base):
     __tablename__ = "rollouts"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

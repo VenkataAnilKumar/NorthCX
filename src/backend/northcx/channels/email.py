@@ -401,6 +401,7 @@ class EmailChannel:
                 raise RuntimeError(str(e)) from e
             if agent is None:
                 raise RuntimeError(f"email agent '{cfg.agent_id}' does not exist")
+            agent = await self.rt.active_agent(agent, session.session_id)
             text = f"Subject: {mail.subject}\n\n{mail.text}" if new else mail.text
             if mail.attachments:
                 text += f"\n\n[The email had {len(mail.attachments)} attachment(s) that were not read.]"

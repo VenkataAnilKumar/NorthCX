@@ -1,4 +1,5 @@
 "use client";
+import { listAgents } from "@/lib/api";
 import { JourneyEditor } from "@/components/journey-editor";
 import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
@@ -53,6 +54,9 @@ function ConfigBox({ name, value, onChange }: { name: string; value: Record<stri
 function Editor({ id, initial, catalog }: { id: string; initial: Spec; catalog: Catalog }) {
   const { can, askForName } = useMe();
   const [spec, setSpec] = useState<Spec>(initial);
+  const [others, setOthers] = useState<string[]>([]);
+  useEffect(() => { listAgents().then((a) => setOthers(a.map((x) => x.id).filter((x) => x !== id))).catch(() => setOthers([])); }, [id]);
+  const routes: { agent: string; when: string }[] = spec.routes ?? [];
   const [preview, setPreview] = useState<SpecPreview | null>(null);
   const [note, setNote] = useState("");
   const [by, setBy] = useState("dev");
@@ -143,6 +147,16 @@ function Editor({ id, initial, catalog }: { id: string; initial: Spec; catalog: 
                   {catalog.flexibility.map((f) => <option key={f}>{f}</option>)}</select></label>}
               </div>);
           })}
+        </Section>
+        <Section title="Specialist agents" hint="Other agents this one may pass a conversation to, and when. The conversation then continues with the specialist, in the same turn and for later messages.">
+          {routes.map((r, i) => (
+            <div key={r.agent} className="flex gap-2 text-sm"><code className="self-center">{r.agent}</code>
+              <input aria-label={`When to pass to ${r.agent}`} value={r.when} onChange={(e) => set("routes", routes.map((x, k) => (k === i ? { ...x, when: e.target.value } : x)))} className={input} />
+              <button type="button" onClick={() => set("routes", routes.filter((_, k) => k !== i))} className="rounded-lg border border-border px-2 hover:bg-border/40">Remove</button></div>))}
+          <form className="flex gap-2 text-sm" onSubmit={(e) => { e.preventDefault(); const v = String(new FormData(e.currentTarget).get("specialist") ?? ""); if (v && !routes.some((r) => r.agent === v)) set("routes", [...routes, { agent: v, when: "Describe when to pass the conversation on" }]); }}>
+            <label className="sr-only" htmlFor="newroute">Specialist agent</label>
+            <select id="newroute" name="specialist" className={`${input} w-48`}><option value="">Choose an agent…</option>{others.filter((o) => !routes.some((r) => r.agent === o)).map((o) => <option key={o}>{o}</option>)}</select>
+            <button className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">Add</button></form>
         </Section>
         <Section title="Journeys" hint="How a kind of conversation should go: a goal, steps tied to tools, rules, and when to hand over. Describe one in plain words and the model drafts it for you to review.">
           <JourneyEditor agent={id} journeys={spec.journeys ?? []} tools={Array.from(new Set([...tools, ...catalog.tools.map((t) => t.name)]))} onChange={(j) => set("journeys", j)} />

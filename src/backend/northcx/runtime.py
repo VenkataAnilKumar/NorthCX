@@ -17,6 +17,7 @@ from .monitor import Monitor
 from .summarize import Compactor
 from .context import CachedContext
 from .inbox import InboxDispatcher
+from .transfers import MAX_TRANSFERS_PER_TURN, TRANSFER, InMemorySessionRoutes, handover_note, transfer_spec
 from .journeys import progress as journey_progress, used_tools as journey_tools
 from .language import choose as choose_language, conversation_language, instruction as language_instruction
 from .trace_export import ExportService
@@ -64,6 +65,8 @@ class Runtime:
                  context: CachedContext | None = None, memories: MemoryService | None = None, router: Router | None = None,
                  inbox: InboxDispatcher | None = None, exports: ExportService | None = None):
         self.llm, self.store, self.traces = llm, store, traces
+        self.routes = InMemorySessionRoutes()  # which agent each conversation is currently with (after transfers)
+        self.agent_resolver: Any = None  # async (agent_id, environment, session_id) -> Agent | None; set by the server
         self.assist: Any = None  # AssistService: suggestions for the people who take over (set by the server)
         self.assist_auto = False  # generate them as soon as a hand-off is created
         self._background: set[Any] = set()
@@ -137,7 +140,8 @@ class Runtime:
             language_block = language_instruction(choice)
             trace.add("language", detected=choice.detected, replyIn=choice.reply_in, supported=choice.supported)
         system = agent.instructions + style_block + language_block + facts_block + memory_block + f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}."
-        tools = [t.spec() for t in agent.tools] + [HANDOFF_SPEC]
+        tools = [t.spec() for t in agent.tools] + [HANDOFF_SPEC] + ([transfer_spec(agent.routes)] if agent.routes else [])
+        transfers = 0
 
         async def finish(reply: str, status: str, trigger: str | None = None, reason: str = "",
                          topics: list[str] | None = None) -> RunResult:
@@ -254,6 +258,7 @@ class Runtime:
                 continue
 
             results: list[dict] = []
+            pending_transfer = None
             for use in uses:
                 trace.add("tool_call", name=use["name"], input=use["input"])
                 if progress:
@@ -269,6 +274,24 @@ class Runtime:
                     close_out(uses, results)
                     return await finish("I'm connecting you with a teammate who can take it from here.", "escalated",
                                         "agent_handoff", str(use["input"].get("reason", "")))
+                if use["name"] == TRANSFER and agent.routes:
+                    target_id = str(use["input"].get("agent", ""))
+                    allowed = any(rt.agent == target_id for rt in agent.routes)
+                    if not allowed or transfers >= MAX_TRANSFERS_PER_TURN or self.agent_resolver is None:
+                        results.append(self._err(use, "That transfer is not available." if not allowed else "The conversation cannot be passed on again right now."))
+                        continue
+                    try:
+                        target = await self.agent_resolver(target_id, environment, session_id)
+                    except Exception:
+                        target = None
+                    if target is None:
+                        results.append(self._err(use, f"The '{target_id}' agent is not available."))
+                        continue
+                    reason = self.secrets.redact_text(str(use["input"].get("reason", "")))
+                    trace.add("transfer", **{"from": agent.id, "to": target.id, "reason": reason})
+                    results.append({"type": "tool_result", "tool_use_id": use["id"], "content": f"Passed to the {target.id} agent, who now continues the conversation."})
+                    pending_transfer = (target, reason)
+                    continue
                 tool = next((t for t in agent.tools if t.name == use["name"]), None)
                 if tool is None:
                     results.append(self._err(use, f"Unknown tool {use['name']}"))
@@ -313,6 +336,16 @@ class Runtime:
                     trace.add("error", tool=use["name"], error=msg)
                     results.append(self._err(use, f"Tool error: {msg}"))
             messages.append({"role": "user", "content": results})
+            if pending_transfer is not None:  # carry on in this same turn as the specialist
+                target, why = pending_transfer
+                transfers += 1
+                source = agent.id
+                agent = target
+                trace.agent_id = target.id
+                await self.routes.set(session_id, target.id)
+                system = (agent.instructions + style_block + language_block + facts_block + memory_block + handover_note(source, why)
+                          + f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}.")
+                tools = [t.spec() for t in agent.tools] + [HANDOFF_SPEC] + ([transfer_spec(agent.routes)] if agent.routes else [])
         return await finish(FALLBACK, "escalated", "step_limit", f"No final answer after {agent.max_steps} steps")
 
     async def _screen_output(self, agent: Agent, tool: str, out: Any, trace: Trace) -> Any:
@@ -346,6 +379,17 @@ class Runtime:
         if withheld:
             return {"withheld": "The result of this tool was withheld by policy. Do not act on it; hand off to a person if you cannot continue."}
         return screened
+
+    async def active_agent(self, entry: Agent, session_id: str, environment: str = "production") -> Agent:
+        """The agent this conversation is currently with: the one it was last passed to, else the one asked for."""
+        routed = await self.routes.get(session_id)
+        if routed is None or routed == entry.id or self.agent_resolver is None:
+            return entry
+        try:
+            found = await self.agent_resolver(routed, environment, session_id)
+        except Exception:
+            found = None
+        return found or entry
 
     async def add_assist(self, h: Handoff) -> dict[str, Any] | None:
         """Draft help for the person who takes this hand-off, store it with the hand-off and tell the inbox. Failures never affect the customer."""

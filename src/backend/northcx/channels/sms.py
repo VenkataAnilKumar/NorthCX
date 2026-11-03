@@ -260,6 +260,7 @@ class SmsChannel:
                 raise RuntimeError(str(e)) from e
             if agent is None:
                 raise RuntimeError(f"SMS agent '{cfg.agent_id}' does not exist")
+            agent = await self.rt.active_agent(agent, session.session_id)
             run = await self.rt.run(agent, session.session_id, text, session.customer_id, channel="sms")
             await self.rt.outbox.publish(session.session_id, "sms_reply", {
                 "reply": run.reply, "status": run.status, "traceId": run.trace_id, "handoffId": run.handoff_id})

@@ -652,6 +652,22 @@ class PgScenarios(_Base):
             return (await s.execute(text("delete from managed_scenarios where name = :n returning name"), {"n": name})).first() is not None
 
 
+class PgSessionRoutes(_Base):
+    async def get(self, session_id: str) -> str | None:
+        async with self._sm() as s:
+            return (await s.execute(text("select agent_id from session_routes where session_id = :s"), {"s": session_id})).scalar_one_or_none()
+
+    async def set(self, session_id: str, agent_id: str) -> None:
+        async with self._sm.begin() as s:
+            await s.execute(text("insert into session_routes (session_id, agent_id, updated_at) values (:s, :a, :t) "
+                                 "on conflict (session_id) do update set agent_id = excluded.agent_id, updated_at = excluded.updated_at"),
+                            {"s": session_id, "a": agent_id, "t": time.time()})
+
+    async def erase_session(self, session_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from session_routes where session_id = :s"), {"s": session_id})).rowcount
+
+
 class PgRollouts(_Base):
     @staticmethod
     def _r(r: Any) -> Rollout:
@@ -1052,6 +1068,7 @@ class PgPrivacy(_Base):
                 "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
                 "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,
             }
+            out["routes"] = (await s.execute(text("delete from session_routes where session_id = :s"), p)).rowcount
             out["rolloutAssignments"] = (await s.execute(text("delete from rollout_assignments where session_id = :s"), p)).rowcount
             out["reviews"] = (await s.execute(text("delete from conversation_reviews where session_id = :s"), p)).rowcount
             out["tags"] = (await s.execute(text("delete from conversation_tags where session_id = :s"), p)).rowcount

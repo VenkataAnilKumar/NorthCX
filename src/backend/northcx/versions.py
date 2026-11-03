@@ -214,6 +214,11 @@ class ReleaseService:
                 problems.append(str(e))
         if problems:
             return {"valid": False, "problems": problems}
+        if spec.routes:
+            known = set(self.baselines) | set(await self.releases.agents_with_releases())
+            problems += [f"Route to unknown agent '{r.agent}' (known: {', '.join(sorted(known)) or 'none'})" for r in spec.routes if r.agent not in known]
+        if problems:
+            return {"valid": False, "problems": problems}
         pinned = self.registry.pin_skills(spec)
         latest = await self.versions.list(agent_id)
         v, rel, _ = await self.resolve(agent_id, PRODUCTION)

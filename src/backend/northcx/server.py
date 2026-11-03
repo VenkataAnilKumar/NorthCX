@@ -358,6 +358,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if sms is not None:
             runtime.privacy.sms = sms.repo
     provider = as_provider(agents)
+    if runtime.agent_resolver is None:
+        runtime.agent_resolver = provider.get  # lets agents pass a conversation to a specialist
     agents = provider  # everything below resolves agents through the provider
     flow = ApprovalFlow(runtime)
 
@@ -549,6 +551,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                 return too_many(retry, "messages in this conversation")
         try:
             agent = await provider.get(agent_id, "production", body.session_id)
+            if agent is not None:
+                agent = await runtime.active_agent(agent, body.session_id)
         except AgentUnavailable as e:
             return _err(503, "agent_unavailable", str(e))
         if agent is None:
@@ -561,6 +565,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if environment != "production":
             try:
                 agent = await provider.get(agent_id, environment, body.session_id)
+                if agent is not None:
+                    agent = await runtime.active_agent(agent, body.session_id, environment)
             except AgentUnavailable as e:
                 return _err(503, "agent_unavailable", str(e))
             if agent is None:
@@ -634,6 +640,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                 return _err(409, "request_in_progress", "A request with this Idempotency-Key is still being processed; retry shortly")
         try:
             agent = await provider.get(agent_id, environment, body.session_id)
+            if agent is not None:
+                agent = await runtime.active_agent(agent, body.session_id, environment)
         except AgentUnavailable as e:
             if scope:
                 await idem.abandon(scope)

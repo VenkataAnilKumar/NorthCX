@@ -28,6 +28,7 @@ Built in `src/web`: Access and audit page (keys, audit log, integrity check), id
 - **Conversations (U4):** filters, tags, failure causes, open trace, create regression scenario.
 - **Approvals (U5):** queue with age and risk, payload, context, approve/reject with note.
 - **Knowledge (U6):** sources, freshness, test queries with citations.
+- **Specialist agents (R8, built):** a section in the editor to choose which agents this one may pass conversations to and when; the trace shows each transfer.
 - **Hand-off collaboration (H6/H7, built):** suggested help, a reply box and a hand-back checkbox on each open hand-off.
 - **Journeys (A5/A6, built):** editor section to write or draft a journey, tie steps to tools, choose strictness, and create test scenarios; Insights show journeys reached and completed.
 - **Single sign-on (P5, built):** a 'Sign in with single sign-on' button on Settings when configured, a landing page that stores the session, and Sign out.

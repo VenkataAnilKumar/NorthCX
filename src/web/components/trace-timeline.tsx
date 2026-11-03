@@ -2,11 +2,11 @@ import type { TraceEvent } from "@/lib/api";
 
 const labels: Record<string, string> = {
   user: "Customer message", system: "Platform notice", llm: "Model call", tool_call: "Tool call", tool_result: "Tool result",
-  guardrail: "Guardrail", forced_topic: "Forced topic", approval: "Approval requested", handoff: "Handoff", reply: "Reply", error: "Error",
+  guardrail: "Guardrail", forced_topic: "Forced topic", approval: "Approval requested", handoff: "Handoff", reply: "Reply", error: "Error", transfer: "Passed to another agent", held: "Held for a person", journey: "Journey progress", language: "Language",
 };
 const tone: Record<string, string> = {
   guardrail: "border-[var(--warn)]", forced_topic: "border-[var(--warn)]", approval: "border-[var(--info)]", handoff: "border-[var(--warn)]", error: "border-[var(--bad)]",
-  reply: "border-[var(--ok)]",
+  reply: "border-[var(--ok)]", transfer: "border-[var(--info)]", held: "border-[var(--warn)]",
 };
 
 function summary(e: TraceEvent): string {
@@ -20,6 +20,10 @@ function summary(e: TraceEvent): string {
     case "guardrail": return `${d.guardrail}: ${d.reason}`;
     case "approval": return `${d.tool}: ${d.reason}`;
     case "handoff": return String(d.reason ?? "");
+    case "transfer": return `${d.from} → ${d.to}: ${d.reason}`;
+    case "held": return "A person has this conversation; the agent did not answer";
+    case "journey": return `${d.name}: ${d.completed === true ? "completed" : d.completed === false ? `${d.stepsDone} of ${d.steps} steps` : "reached"}`;
+    case "language": return `${d.detected ?? "unclear"} → replying in ${d.replyIn}${d.supported ? "" : " (not supported)"}`;
     case "reply": return `${d.reply} (${d.status})`;
     case "error": return String(d.error ?? "");
     case "llm": return `step ${d.step} · ${d.stop_reason}`;

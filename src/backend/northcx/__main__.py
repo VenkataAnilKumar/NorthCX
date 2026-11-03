@@ -32,7 +32,7 @@ from .memory import InMemoryMemories, memory_tools
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgReviews, PgRollouts, PgScenarios, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgReviews, PgRollouts, PgScenarios, PgSessionRoutes, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -228,6 +228,8 @@ def run() -> None:
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
                                  if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),
                       ledger=UsageLedger(int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None))
+    if db_url:
+        runtime.routes = PgSessionRoutes(engine)
     assist_mode = os.environ.get("NORTHCX_ASSIST", "").strip() or "on-demand"
     if assist_mode not in ("off", "on-demand", "auto"):
         sys.exit("NORTHCX_ASSIST must be off, on-demand or auto")

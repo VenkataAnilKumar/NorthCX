@@ -15,6 +15,7 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .agent import Agent, Tool
+from .transfers import RouteSpec, check_routes
 from .journeys import JourneySpec, to_skill as journey_skill
 from .skills import FLEXIBILITY, Skill, SkillError, SkillOrder, parse_skill, skill_to_dict, ToolScope, ToolScopeRule, render_skill, render_voice
 from .policies import FACTORIES as POLICY_FACTORIES
@@ -92,6 +93,7 @@ class AgentSpec(BaseModel):
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
     channel_styles: dict[str, str] = Field(default_factory=dict)
     journeys: list[JourneySpec] = Field(default_factory=list, max_length=20)
+    routes: list[RouteSpec] = Field(default_factory=list, max_length=8)  # specialists this agent may pass a conversation to
     languages: list[str] = Field(default_factory=list)  # supported languages (first is the default); empty means no language handling
     skills: list[SkillRef] = Field(default_factory=list)
     voice: VoiceSpec | None = None
@@ -140,6 +142,8 @@ class AgentSpec(BaseModel):
         for key in ("skills", "voice", "tool_scopes", "skill_snapshots"):
             if not data[key]:
                 del data[key]  # keeps digests of specs written before these fields existed
+        if not data["routes"]:
+            del data["routes"]  # keeps digests of specs written before this field existed
         if not data["journeys"]:
             del data["journeys"]  # keeps digests of specs written before this field existed
         if not data["languages"]:
@@ -285,6 +289,7 @@ class Registry:
             for t in sk.tool_names():
                 if t not in self._tools:
                     problems.append(f"Skill '{ref}' needs the tool '{t}', which is not registered")
+        problems += [p for p in check_routes(spec.id, spec.routes)]
         jn = [j.name for j in spec.journeys]
         if len(set(jn)) != len(jn):
             problems.append("Duplicate journey names")
@@ -352,6 +357,7 @@ class Registry:
                 channel_styles=dict(spec.channel_styles),
                 languages=list(spec.languages),
                 journeys=list(spec.journeys),
+                routes=list(spec.routes),
                 tools=[self._tools[t] for t in self._all_tools(spec)],
                 guardrails=[self._make("guardrail", self._guardrails[g.name], g, ctx) for g in spec.guardrails] + self._enforcers(spec),
                 input_guardrails=[self._make("input guardrail", self._input_guardrails[g.name], g, ctx) for g in spec.input_guardrails],
