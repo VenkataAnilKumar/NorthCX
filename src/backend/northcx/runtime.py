@@ -15,6 +15,7 @@ from .monitor import Monitor
 from .summarize import Compactor
 from .context import CachedContext
 from .inbox import InboxDispatcher
+from .trace_export import ExportService
 from .routing import DEFAULT_ROUTER, Route, Router
 from .memory import MemoryService, render_block
 from .privacy import InMemoryPrivacy
@@ -56,7 +57,7 @@ class Runtime:
                  secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None,
                  ledger: UsageLedger | None = None, privacy: Any = None, compactor: Compactor | None = None,
                  context: CachedContext | None = None, memories: MemoryService | None = None, router: Router | None = None,
-                 inbox: InboxDispatcher | None = None):
+                 inbox: InboxDispatcher | None = None, exports: ExportService | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
@@ -69,6 +70,7 @@ class Runtime:
         self.memories = memories
         self.router = router or DEFAULT_ROUTER
         self.inbox = inbox
+        self.exports = exports
         self.privacy = privacy if privacy is not None else InMemoryPrivacy(self)
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
@@ -137,6 +139,11 @@ class Runtime:
             safe = self.secrets.redact(messages)  # the model's own turns too
             await self.store.save_messages(session_id, safe)
             await self.traces.save(trace)
+            if self.exports is not None and not self.dry_run:  # queued; delivery happens in the background
+                try:
+                    await self.exports.enqueue(trace)
+                except Exception:
+                    pass
             handoff_id = None
             if status == "escalated":
                 handoff_id = (await self.create_handoff(

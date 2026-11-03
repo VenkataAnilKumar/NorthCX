@@ -116,8 +116,8 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 |---|---|---|---|---|
 | O1 | Per-run traces | P0 | 1 | Built |
 | O2 | Trace API | P0 | 1 | Built |
-| O3 | Trace export to an external backend | P1 | 3 | Planned |
-| O4 | Redaction before export | P1 | 3 | Planned |
+| O3 | Trace export to an external backend | P1 | 3 | Built (Langfuse and OTLP, queued and retried) |
+| O4 | Redaction before export | P1 | 3 | Built (none, masked, full; sampling) |
 | O5 | Metrics: resolution, escalation, guardrail blocks, tool errors, latency, cost | P1 | 4 | Planned |
 | O6 | Containment rate, satisfaction score, intent gaps | P1 | 4 | Planned |
 | O7 | Workflow failure analysis | P1 | 4 | Planned |

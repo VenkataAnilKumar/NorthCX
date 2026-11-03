@@ -16,6 +16,7 @@ from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
 from ..monitor import Finding
+from ..trace_export import MAX_ATTEMPTS as EXPORT_MAX_ATTEMPTS, ExportJob
 from ..inbox import MAX_ATTEMPTS, InboxEvent
 from ..channels.sms import SmsSession, phone_hash
 from ..memory import MAX_PER_CUSTOMER, Memory, check_note, text_hash
@@ -573,6 +574,48 @@ class PgKnowledge(_Base):
         return out
 
 
+class PgExports(_Base):
+    @staticmethod
+    def _j(r: Any) -> ExportJob:
+        return ExportJob(r.trace_id, r.exporter, r.id, r.created_at, r.attempts, r.last_attempt_at, r.delivered_at, r.error)
+
+    async def enqueue(self, jobs: list[ExportJob]) -> None:
+        if not jobs:
+            return
+        async with self._sm.begin() as s:
+            await s.execute(text("insert into trace_exports (id, trace_id, exporter, created_at) values (:id, :t, :e, :c)"),
+                            [{"id": j.id, "t": j.trace_id, "e": j.exporter, "c": j.created_at} for j in jobs])
+
+    async def pending(self, limit: int = 100) -> list[ExportJob]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from trace_exports where delivered_at is null and attempts < :m order by created_at, id limit :n"),
+                                    {"m": EXPORT_MAX_ATTEMPTS, "n": limit})).all()
+        return [self._j(r) for r in rows]
+
+    async def record(self, job_id: str, delivered: bool, error: str | None, at: float) -> None:
+        async with self._sm.begin() as s:
+            await s.execute(text("update trace_exports set attempts = attempts + 1, last_attempt_at = :t, error = :err, "
+                                 "delivered_at = case when :d then :t else delivered_at end where id = :i"),
+                            {"t": at, "err": None if delivered else error, "d": delivered, "i": job_id})
+
+    async def for_trace(self, trace_id: str) -> list[ExportJob]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from trace_exports where trace_id = :t order by created_at, id"), {"t": trace_id})).all()
+        return [self._j(r) for r in rows]
+
+    async def erase_traces(self, trace_ids: list[str]) -> int:
+        if not trace_ids:
+            return 0
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from trace_exports where trace_id = any(:ids)"), {"ids": trace_ids})).rowcount
+
+    async def counts(self) -> dict[str, int]:
+        async with self._sm() as s:
+            r = (await s.execute(text("select count(*) filter (where delivered_at is null and attempts < :m) as pending, count(*) filter (where delivered_at is not null) as delivered, "
+                                      "count(*) filter (where delivered_at is null and attempts >= :m) as failed from trace_exports"), {"m": EXPORT_MAX_ATTEMPTS})).one()
+        return {"pending": int(r.pending), "delivered": int(r.delivered), "failed": int(r.failed)}
+
+
 class PgInbox(_Base):
     @staticmethod
     def _e(r: Any) -> InboxEvent:
@@ -770,6 +813,7 @@ class PgPrivacy(_Base):
                 "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
                 "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,
             }
+            out["exports"] = (await s.execute(text("delete from trace_exports where trace_id in (select id from traces where session_id = :s)"), p)).rowcount
             out["inbox"] = (await s.execute(text("delete from inbox_events where handoff_id in (select id from handoffs where session_id = :s)"), p)).rowcount
             out["email"] = ((await s.execute(text("delete from email_messages where session_id = :s"), p)).rowcount
                             + (await s.execute(text("delete from email_sessions where session_id = :s"), p)).rowcount)

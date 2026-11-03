@@ -237,6 +237,19 @@ class KnowledgeChunkRow(Base):
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
+class TraceExportRow(Base):
+    __tablename__ = "trace_exports"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    trace_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    exporter: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    last_attempt_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    delivered_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    error: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    __table_args__ = (Index("ix_trace_exports_trace", "trace_id"), Index("ix_trace_exports_pending", "delivered_at", "created_at"))
+
+
 class InboxEventRow(Base):
     __tablename__ = "inbox_events"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)

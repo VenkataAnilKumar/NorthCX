@@ -45,17 +45,18 @@ class PIIDetection(InputGuardrail):
             else:
                 raise TypeError(f"custom_patterns['{name}'] must be a str or re.Pattern, got {type(pat).__name__}")
 
-    async def check_input(self, text: str) -> InputResult:
+    def mask(self, text: str) -> tuple[str, list[str]]:
+        """Mask every PII match; returns the masked text and the kinds found. Used for input checks and trace export."""
         detected: list[str] = []
         masked = text
 
-        def mask(m: "re.Match[str]") -> str:
+        def mask_(m: "re.Match[str]") -> str:
             return "*" * len(m.group(0))
 
         for name, pat in self.patterns.items():
             if pat.search(masked):
                 detected.append(name)
-                masked = pat.sub(mask, masked)
+                masked = pat.sub(mask_, masked)
         if self.card:
             def mask_card(m: "re.Match[str]") -> str:
                 digits = re.sub(r"\D", "", m.group(0))
@@ -65,6 +66,10 @@ class PIIDetection(InputGuardrail):
             if after != masked:
                 detected.append("Credit Card")
                 masked = after
+        return masked, detected
+
+    async def check_input(self, text: str) -> InputResult:
+        masked, detected = self.mask(text)
         if not detected:
             return InputResult(True)
         if self.mask_pii:

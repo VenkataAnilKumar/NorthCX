@@ -162,6 +162,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/knowledge/search", "knowledge:read"),
     ("GET", r"/v1/monitor/findings", "monitor:read"),
     ("GET", r"/v1/monitor/summary", "monitor:read"),
+    ("GET", r"/v1/trace-export", "traces:read"),
+    ("GET", r"/v1/traces/[^/]+/exports", "traces:read"),
     ("GET", r"/v1/traces", "traces:read"),
     ("GET", r"/v1/traces/[^/]+", "traces:read"),
     ("GET", r"/v1/agents", "agents:read"),
@@ -247,6 +249,17 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                         pass
 
             task = asyncio.create_task(sweep())
+        export_task = None
+        if runtime.exports is not None:
+            async def export_loop() -> None:
+                while True:
+                    await asyncio.sleep(10)
+                    try:
+                        await runtime.exports.flush(traces)
+                    except Exception:
+                        log.exception("trace export pass failed")
+
+            export_task = asyncio.create_task(export_loop())
         inbox_task = None
         if runtime.inbox is not None:
             async def inbox_loop() -> None:
@@ -273,7 +286,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
             retention = asyncio.create_task(retain())
         yield
-        for t in (task, flusher, retention, inbox_task):
+        for t in (task, flusher, retention, inbox_task, export_task):
             if t:
                 t.cancel()
 
@@ -469,6 +482,22 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if scope:
             await idem.complete(scope, result)
         return result
+
+    @app.get("/v1/trace-export")
+    async def trace_export_status() -> Any:
+        """Whether export is on, where traces go, what content is sent, and how deliveries are doing."""
+        x = runtime.exports
+        if x is None:
+            return {"configured": False}
+        return {"configured": True, "exporters": sorted(x.exporters), "content": x.redactor.mode, "sample": x.sample, "environment": x.environment,
+                **await x.repo.counts()}
+
+    @app.get("/v1/traces/{trace_id}/exports")
+    async def trace_exports(trace_id: str) -> Any:
+        if await traces.get(trace_id) is None:
+            return _err(404, "not_found", "Unknown trace")
+        jobs = await runtime.exports.repo.for_trace(trace_id) if runtime.exports is not None else []
+        return {"configured": runtime.exports is not None, "deliveries": [j.to_dict() for j in jobs]}
 
     @app.get("/v1/traces/{trace_id}")
     async def get_trace(trace_id: str) -> Any:

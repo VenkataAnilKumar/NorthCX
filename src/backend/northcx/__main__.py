@@ -7,6 +7,7 @@ import uvicorn
 from .access import AccessControl, InMemoryKeys, LimitConfig
 from .tokens import TokenSigner, derive_secret
 from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
+from .trace_export import ExportService, InMemoryExports, LangfuseExporter, OtlpExporter, Redactor
 from .routing import RoutingError, load_router
 from .config import load_context_provider, load_registry
 from .context import CachedContext, HttpContextProvider
@@ -20,7 +21,7 @@ from .memory import InMemoryMemories, memory_tools
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -95,6 +96,7 @@ def run() -> None:
         monitor_repo, idem_repo = PgMonitor(engine), PgIdempotency(engine)
         knowledge_repo = PgKnowledge(engine)
         privacy_backend = PgPrivacy(engine)
+        export_repo = PgExports(engine)
         inbox_repo = PgInbox(engine)
         memory_repo = PgMemories(engine)
         print("Using Postgres storage.")
@@ -108,6 +110,7 @@ def run() -> None:
         monitor_repo, idem_repo = InMemoryMonitor(), InMemoryIdempotency()
         knowledge_repo = InMemoryKnowledge()
         privacy_backend = None  # the runtime builds the in-memory one
+        export_repo = InMemoryExports()
         inbox_repo = InMemoryInbox()
         memory_repo = InMemoryMemories()
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
@@ -177,13 +180,26 @@ def run() -> None:
         sys.exit(f"Configuration error: {e}")
     if connectors:
         inbox = InboxDispatcher(inbox_repo, connectors)
+    exports = None
+    exporters = []
+    try:
+        if os.environ.get("NORTHCX_LANGFUSE_URL"):
+            exporters.append(LangfuseExporter(os.environ["NORTHCX_LANGFUSE_URL"], os.environ.get("NORTHCX_LANGFUSE_PUBLIC_KEY", ""),
+                                              env_or_file("NORTHCX_LANGFUSE_SECRET_KEY") or ""))
+        if os.environ.get("NORTHCX_OTLP_ENDPOINT"):
+            exporters.append(OtlpExporter(os.environ["NORTHCX_OTLP_ENDPOINT"], OtlpExporter.parse_headers(env_or_file("NORTHCX_OTLP_HEADERS") or "")))
+        if exporters:
+            exports = ExportService(export_repo, exporters, Redactor(os.environ.get("NORTHCX_TRACE_EXPORT_CONTENT", "masked")),
+                                    float(os.environ.get("NORTHCX_TRACE_EXPORT_SAMPLE", 1)), os.environ.get("NORTHCX_ENVIRONMENT", "production"))
+    except ValueError as e:
+        sys.exit(f"Configuration error: {e}")
     router = None
     if os.environ.get("NORTHCX_ROUTING_FILE"):
         try:
             router = load_router(os.environ["NORTHCX_ROUTING_FILE"])
         except RoutingError as e:
             sys.exit(f"Invalid routing file: {e}")
-    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, router=router, inbox=inbox, context=context_source,
+    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, router=router, inbox=inbox, exports=exports, context=context_source,
                       memories=memory_repo if os.environ.get("NORTHCX_MEMORY", "1") != "0" else None,
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
                                  if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),
