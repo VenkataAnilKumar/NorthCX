@@ -86,3 +86,6 @@
 | 82 | SMS is a public webhook authenticated by the provider's signature over a configured public URL (never the request's Host); the sender number is the customer identity | Decided, built | Provider behind a two-method interface |
 | 83 | STOP opt-outs persist by one-way hash through erasure; messages with no conversation are recorded under a hash, not the number | Decided, built | |
 | 84 | Channel-specific style lives in the agent spec (`channel_styles`), one agent across channels | Decided, built | Replaces a shared channel-adapter refactor for now; email and SMS share patterns, not code |
+| 82 | SMS is a public webhook authenticated by the provider's signature over a configured public URL (never the request's Host); the sender number is the customer identity | Decided, built | Provider behind a two-method interface |
+| 83 | STOP opt-outs persist by one-way hash through erasure; messages with no conversation are recorded under a hash, not the number | Decided, built | |
+| 84 | Channel-specific style lives in the agent spec (`channel_styles`), one agent across channels | Decided, built | Replaces a shared channel-adapter refactor for now; email and SMS share patterns, not code |
