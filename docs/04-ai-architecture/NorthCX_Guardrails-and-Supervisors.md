@@ -23,8 +23,22 @@ Personal data exposure, unauthorised commitments (refunds, discounts), unsupport
 
 ## Planned extensions (S7-S11)
 - **Forced-handoff topics (built, Phase 2):** a list in the agent spec (name, case-insensitive regular expressions, optional reply). A customer message that matches any topic goes straight to a person: the model is never called, the match is traced (`forced_topic`), and the handoff records which topics matched. Platform-written notices are not checked. Matching is deterministic and blunt: patterns need word boundaries to avoid false hits ("issue" contains "sue"), a false positive costs a human visit rather than a wrong answer, and patterns are limited to 300 characters. Model-based topic detection is a later option.
-- **Input checks (Phase 3):** injection and abuse detection on customer messages and tool output.
+- **Input checks (built):** injection screening and abuse detection on customer messages, and screening of tool output. See "Abuse detection" below.
 - **PII detection and redaction (Phase 3):** in replies and in exported traces.
 - **Full coverage monitoring (Phase 3):** every conversation scored, not a sample.
 - **Policy library (Phase 3):** reusable policies, each with passing and blocking scenarios.
 - **Per-tool argument policies:** limits such as maximum amounts by customer tier.
+
+## Abuse detection (S8) — as built
+Add `abuse_detection` to an agent's `input_guardrails` (optionally with `config`). It reads the conversation itself, so it stores nothing:
+
+| What it notices | What happens |
+|---|---|
+| A threat of violence | The conversation goes to a person at once (trigger `abuse`), with a calm line, and the model is not called |
+| Abusive language | The first messages are answered normally; the agent is told for that turn to stay calm, not match the tone, say what it can help with and offer a person. From the third abusive message in the conversation (`max_strikes`, default 3) it goes to a person |
+| The same message sent again and again | After `repeat_limit` (default 3) the agent is told not to repeat itself and to offer a person; after twice that, it goes to a person |
+| A burst of messages | More than `burst_limit` (default 8) in `burst_seconds` (default 60) gets a polite "please slow down" reply without calling the model; nothing is handed off |
+
+Settings: `max_strikes`, `repeat_limit`, `burst_limit`, `burst_seconds`, `extra_terms` (your own words or phrases, at most 200), and `hand_off: false` to only warn the agent and never hand off. Each noticing is recorded in the trace as an `abuse` event (kinds and strike count, never counted as a guardrail block) and sent as the `conversation.abuse` status event.
+
+**Honest limits.** It is a short word list and a few patterns: it misses subtle abuse, sarcasm and other languages unless you add terms, and it cannot judge tone, so it is deliberately cautious about handing off (ordinary anger such as "I'm furious" is not abuse). The burst counter is kept per server process. The shipped templates do not include it; add it where your channels attract abuse.

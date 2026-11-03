@@ -23,6 +23,7 @@ from .policies import FACTORIES as POLICY_FACTORIES
 from .guardrails import Guardrail, InputGuardrail, OutputGuardrail, LLMPolicy, NoCardNumbers
 from .handoffs import ForcedTopic
 from .safety import PIIDetection, PromptInjection, ToolOutputInjection, ToolOutputPII
+from .safety.abuse import AbuseDetection
 from .types import LLM
 
 SPEC_VERSION = 1
@@ -399,6 +400,7 @@ def default_registry() -> Registry:
 
     r.guardrail("llm_policy", llm_policy)
     r.input_guardrail("pii_detection", lambda cfg, ctx: PIIDetection(**cfg))
+    r.input_guardrail("abuse_detection", lambda cfg, ctx: AbuseDetection(**cfg))
     r.input_guardrail("prompt_injection", lambda cfg, ctx: PromptInjection(**cfg))
     r.output_guardrail("tool_output_injection", lambda cfg, ctx: ToolOutputInjection(**cfg))
     r.output_guardrail("tool_output_pii", lambda cfg, ctx: ToolOutputPII(**cfg))

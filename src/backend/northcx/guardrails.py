@@ -49,15 +49,25 @@ class InputResult:
     allow: bool
     reason: str = ""
     text: str | None = None  # replacement text when the input was sanitised
+    reply: str | None = None  # what to say instead when the message is not passed on (default: the standard hand-over line)
+    status: str = "escalated"  # escalated (to a person) or completed (answered without the model, no hand-off) when not allowed
+    trigger: str | None = None  # why it reached a person (see handoffs.TRIGGERS); default input_blocked
+    note: str | None = None  # a hint for the agent for this turn only, when the message is allowed
+    kinds: list[str] = field(default_factory=list)  # what was noticed (for monitoring)
+    strikes: int = 0
 
 
 class InputGuardrail:
     """Checks (and may rewrite) the customer's message before the agent sees it."""
 
     name = "input-guardrail"
+    needs_context = False  # true for checks that look at the conversation so far (session id, what the customer wrote earlier)
 
     async def check_input(self, text: str) -> InputResult:
         return InputResult(True)
+
+    async def check_input_ctx(self, text: str, session_id: str, earlier: list[str]) -> InputResult:
+        return await self.check_input(text)
 
 
 class OutputGuardrail:

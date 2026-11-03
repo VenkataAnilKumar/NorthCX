@@ -25,6 +25,7 @@ EVENTS: dict[str, str] = {
     "approval.requested": "A tool call is waiting for a person's approval",
     "approval.decided": "A person approved or rejected a tool call",
     "approval.expired": "An approval was not decided in time and the conversation was handed to a person",
+    "conversation.abuse": "Abusive language, a threat, repeated messages or a burst was noticed in a conversation (kinds and strikes only)",
     "conversation.rated": "A customer rated a conversation (the rating only, not the comment)",
     "alert.fired": "A monitoring alert rule started firing",
     "version.created": "A new agent version was saved",

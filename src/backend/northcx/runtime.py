@@ -193,15 +193,26 @@ class Runtime:
             return RunResult(reply, status, trace, pending, handoff_id)
 
         # Input guardrails run before the agent sees the message.
+        earlier = [m["content"] for m in messages if m["role"] == "user" and isinstance(m["content"], str) and not m["content"].startswith("[")] if any(
+            getattr(g, "needs_context", False) for g in agent.input_guardrails) else []
+        turn_notes: list[str] = []
         for g in ([] if trusted else agent.input_guardrails):
-            res = await g.check_input(message)
-            if res.reason:
+            res = await g.check_input_ctx(message, session_id, earlier) if getattr(g, "needs_context", False) else await g.check_input(message)
+            if res.kinds:
+                trace.add("abuse", kinds=res.kinds, strikes=res.strikes, blocked=not res.allow)
+                if "burst" not in res.kinds:
+                    await self._event("conversation.abuse", {"kinds": ",".join(res.kinds), "strikes": res.strikes, "handedOff": not res.allow and res.status == "escalated"}, session_id, trace)
+            if res.reason and not (res.kinds and res.allow):
                 trace.add("guardrail", guardrail=g.name, reason=res.reason, stage="input")
             if not res.allow:
                 messages.append({"role": "user", "content": "[message withheld by input policy]"})
-                return await finish(FALLBACK, "escalated", "input_blocked", res.reason)
+                return await finish(res.reply or FALLBACK, res.status, res.trigger or "input_blocked", res.reason)
             if res.text is not None:
                 message = res.text
+            if res.note:
+                turn_notes.append(res.note)
+        if turn_notes:
+            system += "\n\n" + " ".join(turn_notes)
 
         user_index: int | None = None
         if attachments and not trusted:
@@ -456,6 +467,8 @@ class Runtime:
         """The customer wrote while a person has the conversation. Their message is kept (after the input checks) and the person sees it;
         the agent does not answer."""
         for g in agent.input_guardrails:
+            if getattr(g, "needs_context", False):
+                continue  # (checks that follow the conversation have nothing to add while a person is handling it)
             res = await g.check_input(message)
             if res.reason:
                 trace.add("guardrail", guardrail=g.name, reason=res.reason, stage="input")

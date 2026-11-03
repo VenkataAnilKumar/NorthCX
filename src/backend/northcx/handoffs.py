@@ -19,6 +19,7 @@ TRIGGERS = {
     "agent_handoff": "The agent handed the conversation to a person",
     "forced_topic": "The message matched a topic that always goes to a person",
     "input_blocked": "The customer's message was blocked by an input policy",
+    "abuse": "The conversation involved abusive language, threats or repeated spam",
     "supervisor_rejections": "The agent's replies were repeatedly rejected by supervisors",
     "step_limit": "The agent could not finish within its step limit",
     "model_error": "The model could not be reached",
