@@ -85,6 +85,7 @@ class Runtime:
         self.exports = exports
         self.privacy = privacy if privacy is not None else InMemoryPrivacy(self)
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
+        self.events: Any = None  # status events (events.py), when configured
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
                   trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None,
@@ -326,6 +327,7 @@ class Runtime:
                     saved = await self.approvals.add(trace_id=trace.id, session_id=session_id, agent_id=agent.id,
                                                      customer_id=customer_id, tool=use["name"], input=use["input"],
                                                      reason=reason)
+                    await self._event("approval.requested", {"approvalId": saved.id, "tool": use["name"], "agent": agent.id}, session_id, trace)
                     pending.append({"id": saved.id, "tool": use["name"], "input": use["input"], "reason": reason})
                     results.append(self._err(use, "Pending human approval; not executed."))
                     close_out(uses, results)
@@ -481,6 +483,8 @@ class Runtime:
         added = await self.handoffs.add(Handoff(
             session_id=session_id, trace_id=trace.id, agent_id=agent_id, customer_id=customer_id, trigger=trigger,
             reason=reason, topics=topics, package=package, queue=route.queue, after_hours=not route.open_now))
+        await self._event("handoff.created", {"handoffId": added.id, "trigger": trigger, "queue": route.queue, "agent": agent_id, "afterHours": not route.open_now,
+                                               "topics": ",".join(topics)[:200]}, session_id, trace)
         if self.assist is not None and self.assist_auto and trace.environment == "production" and not self.dry_run:
             task = asyncio.ensure_future(self.add_assist(added))
             self._background.add(task)
@@ -491,6 +495,12 @@ class Runtime:
             except Exception:
                 trace.add("error", stage="inbox", error="could not queue the hand-off for the inbox")
         return added
+
+    async def _event(self, type_: str, data: dict[str, Any], session_id: str, trace: Any) -> None:
+        """Tell other systems something happened (real conversations only; simulations and tests are not events)."""
+        feed = getattr(self, "events", None)
+        if feed is not None and trace.environment == "production" and not self.dry_run:
+            await feed.emit(type_, data, session_id)
 
     async def execute_tool(self, tool: Any, data: Any, ctx: ToolContext) -> tuple[Any, bool]:
         """Run a tool, or in dry-run mode simulate it if it is a write. Returns (result, was_simulated)."""

@@ -126,6 +126,7 @@ class AlertManager:
                  clock: Callable[[], float] = time.time, sleep: Callable[[float], Any] = asyncio.sleep):
         self.insights, self.monitor, self.rules, self.notifier, self.clock = insights, monitor_repo, rules or list(DEFAULT_RULES), notifier, clock
         self.sleep = sleep
+        self.feed: Any = None  # status events (events.py), when configured
         self.active: dict[str, ActiveAlert] = {}
         self.events: list[dict[str, Any]] = []
         self.last_run: float | None = None
@@ -175,6 +176,8 @@ class AlertManager:
                                             rule.severity if event == "alert.fired" else "info", detail, "-", "-", "-")])
         except Exception:
             log.exception("could not record alert finding")
+        if event == "alert.fired" and getattr(self, "feed", None) is not None:
+            await self.feed.emit("alert.fired", {"rule": rule.name, "metric": rule.metric, "severity": rule.severity, "value": value, "threshold": rule.threshold})
         if self.notifier is None:
             e["delivery"] = {"status": "not_configured", "attempts": 0}
         else:

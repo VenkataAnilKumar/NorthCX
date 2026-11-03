@@ -37,6 +37,7 @@ from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms
 from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
 from .assist import AssistError
 from . import __version__
+from .events import EVENTS, EventFeed, EventingAudit
 from .crawler import Crawler, CrawlConfig, CrawlRefused
 from .crawl_schedule import CrawlScheduler
 from .ingest import IngestError, extract as extract_file
@@ -353,6 +354,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/builder/refine", "versions:create"),
     ("POST", r"/v1/builder/transcribe", "versions:create"),
     ("GET", r"/v1/residency", "audit:read"),
+    ("GET", r"/v1/events", "audit:read"),
+    ("GET", r"/v1/events/types", "audit:read"),
     ("POST", r"/v1/channels/whatsapp/templates/send", "channel:inbound"),
     ("POST", r"/v1/agents/[^/]+/journeys/scenarios", "simulations:run"),
     ("GET", r"/v1/trace-export", "traces:read"),
@@ -424,7 +427,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
-               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None, telegram: TelegramChannel | None = None, residency: dict | None = None, crawl_scheduler: CrawlScheduler | None = None, transcriber: HttpTranscriber | None = None,
+               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None, telegram: TelegramChannel | None = None, residency: dict | None = None, crawl_scheduler: CrawlScheduler | None = None, transcriber: HttpTranscriber | None = None, events: EventFeed | None = None,
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
@@ -436,6 +439,9 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         secret = derive_secret(None, api_key) or secrets.token_bytes(32)
         access.signer = TokenSigner(secret)
     audit = audit or InMemoryAudit()
+    if events is not None:
+        runtime.events = events
+        audit = EventingAudit(audit, events)  # staff actions become events as they are recorded
     idem = idempotency or InMemoryIdempotency()
     kb = knowledge or InMemoryKnowledge()
     if crawler is not None and crawler.on_change is None and regression is not None:
@@ -1072,6 +1078,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if not await traces.summaries(session_id, 1):
             return _err(404, "not_found", "Unknown conversation")
         new = await fb.add(session_id, body.rating, body.comment.strip())
+        if events is not None:
+            await events.emit("conversation.rated", {"rating": body.rating, "replaced": not new}, session_id)
         return JSONResponse({"saved": True, "replaced": not new}, status_code=201)
 
     @app.get("/v1/reviews/queue")
@@ -1168,6 +1176,17 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def regression_status() -> Any:
         """Whether simulations re-run when the knowledge changes, and how the last re-run went."""
         return regression.status() if regression is not None else {"enabled": False}
+
+    @app.get("/v1/events/types")
+    async def event_types() -> Any:
+        return {"enabled": events is not None, "types": [{"type": k, "description": v, "subscribed": events is not None and k in events.types} for k, v in EVENTS.items()]}
+
+    @app.get("/v1/events")
+    async def event_feed(after: int = 0, limit: int = 100) -> Any:
+        """The same events the webhook sends, for receivers that would rather poll. `after` is the id of the last event already seen."""
+        if events is None:
+            return _err(501, "not_configured", "Status events are not configured: set NORTHCX_EVENTS_WEBHOOK_URL (and NORTHCX_EVENTS_WEBHOOK_SECRET)")
+        return {"events": await events.listing(max(0, after), limit)}
 
     @app.get("/v1/residency")
     async def residency_report() -> Any:

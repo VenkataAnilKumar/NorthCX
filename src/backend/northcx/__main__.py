@@ -39,6 +39,7 @@ from .memory import InMemoryMemories, memory_tools
 from .residency import ResidencyError, build_report, parse_policy
 from .crawl_schedule import CrawlScheduler, InMemorySchedules
 from .transcribe import HttpTranscriber
+from .events import EVENTS, EventFeed, EventWebhook
 from .embeddings import EmbeddingIndexer, HttpEmbedder, HybridKnowledge, parse_source_models
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
@@ -194,6 +195,23 @@ def run() -> None:
         from .notify import CompositeNotifier
 
         notifier = CompositeNotifier(*[n for n in (notifier, sms_notifier) if n])
+    event_types = None
+    if os.environ.get("NORTHCX_EVENTS_WEBHOOK_URL"):
+        ev_secret = env_or_file("NORTHCX_EVENTS_WEBHOOK_SECRET")
+        if not ev_secret or len(ev_secret) < 16:
+            sys.exit("NORTHCX_EVENTS_WEBHOOK_URL needs NORTHCX_EVENTS_WEBHOOK_SECRET (or _FILE) of at least 16 characters; receivers use it to verify each call")
+        wanted = [x.strip() for x in os.environ.get("NORTHCX_EVENTS", "").split(",") if x.strip()]
+        if wanted and (set(wanted) - set(EVENTS)):
+            sys.exit("NORTHCX_EVENTS names unknown event type(s): " + ", ".join(sorted(set(wanted) - set(EVENTS))) + ". Known: " + ", ".join(EVENTS))
+        event_types = set(wanted) or set(EVENTS)
+        try:
+            ev_hook = EventWebhook(os.environ["NORTHCX_EVENTS_WEBHOOK_URL"], ev_secret, types=event_types)
+        except Exception as e:
+            sys.exit(f"Events: {e}")
+        from .notify import CompositeNotifier
+
+        notifier = CompositeNotifier(*[n for n in (notifier, ev_hook) if n])
+        print(f"Status events are ON ({len(event_types)} types) and are sent to the events webhook.")
     wa_provider = wa_config = None
     wa_templates: dict[str, str] = {}
     wa_optin: set[str] = set()
@@ -456,10 +474,13 @@ def run() -> None:
             sys.exit("Residency is strict and some destinations are not in an allowed region; fix the residency file or the configuration above.")
         print(f"Data residency: deployment region '{residency_policy.region}', data may go to: {', '.join(residency_policy.allowed)}.")
 
+    event_feed = EventFeed(runtime.outbox, event_types) if event_types is not None else None
+    if event_feed is not None and alert_manager is not None:
+        alert_manager.feed = event_feed
     print(f"NorthCX {__version__}")
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
-                      access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo, crawler=crawler, crawl_scheduler=crawl_scheduler, transcriber=transcriber,
+                      access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo, crawler=crawler, crawl_scheduler=crawl_scheduler, transcriber=transcriber, events=event_feed,
                       regression=regression, residency=residency, telegram=TelegramChannel(runtime, agents, sms_repo, tg_provider, tg_config) if tg_provider else None, whatsapp=WhatsAppChannel(runtime, agents, sms_repo, wa_provider, wa_config, attachment_repo, attachment_scanner, wa_templates, wa_optin) if wa_provider else None, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
                       attachment_scanner=attachment_scanner, cors_origins=cors_origins, voice=voice_cfg, calls=call_repo,
                       insights=insights_service, alerts=alert_manager,

@@ -49,6 +49,8 @@ class WebhookNotifier:
         self._client = client or httpx.AsyncClient(timeout=timeout, follow_redirects=False)
 
     async def deliver(self, message: OutboxMessage) -> None:
+        if message.kind.startswith("event:"):  # status events have their own webhook (events.py)
+            return
         body = json.dumps({"id": message.id, "sessionId": message.session_id, "kind": message.kind,
                            "payload": message.payload, "createdAt": message.created_at}, sort_keys=True).encode()
         last: Exception | None = None

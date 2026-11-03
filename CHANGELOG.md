@@ -7,6 +7,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
+### Added (status events)
+- Signed status-event webhook and a pollable feed (`/v1/events`) for hand-offs, approvals, alerts, ratings, releases, key changes, knowledge changes and erasures. Events never contain message text.
+
 ### Added (messaging)
 - Telegram channel; WhatsApp now supports several numbers (an agent each), incoming pictures and documents through the attachment checks, and approved templates sent only to people who wrote in first or opted in.
 

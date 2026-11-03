@@ -132,3 +132,26 @@ tools:
 - **Refining by conversation.** `POST /v1/builder/refine` takes the current definition and an instruction (“never promise delivery dates”) and returns a revised draft with a list of what changed. The same field limits and registry checks apply every round; settings the model may not set (model choice, limits, voice, routes, scopes) are carried over exactly as the author had them.
 - **Test scenarios.** `POST /v1/builder/scenarios` takes a definition and the typical questions. Two kinds come back, and the difference is stated: platform-guarantee tests (each forced hand-off topic goes to a person without the model; a prompt-injection attempt is stopped and never reaches a write tool) are run against the draft here and only the passing ones are returned; question tests (typical customer questions with the tools the model expects to be called or not called and a judge rubric) need a live model, are optional until reviewed, and have not been run. Everything is checked with the real scenario parser; nothing is saved.
 - **Not done:** speaker separation in recordings, saving drafts and tests in one step (copy them into a version and the scenario editor), and running the question tests (they need a live model).
+
+## Status events (P8)
+
+Set `NORTHCX_EVENTS_WEBHOOK_URL` and `NORTHCX_EVENTS_WEBHOOK_SECRET` and NorthCX sends a small signed JSON call whenever something happens that another system may care about. The same events can be polled from `GET /v1/events?after=<last id>` (role: auditor or admin), and `GET /v1/events/types` lists the types and which are subscribed.
+
+| Type | When |
+|---|---|
+| `handoff.created` | a conversation was put in a hand-off queue (`handoffId`, `trigger`, `queue`, `agent`, `afterHours`, `topics`) |
+| `handoff.resolved` | a person resolved a hand-off |
+| `approval.requested` | a tool call is waiting for approval (`approvalId`, `tool`, `agent`) |
+| `approval.decided`, `approval.expired` | a person decided, or the approval timed out and the conversation was handed to a person |
+| `conversation.rated` | a customer rated a conversation (`rating`; the comment is never sent) |
+| `alert.fired` | an alert rule started firing (`rule`, `metric`, `severity`, `value`, `threshold`) |
+| `version.created`, `release.published`, `release.rolled_back`, `rollout.changed` | agent lifecycle changes by staff |
+| `key.created`, `key.revoked` | API key changes (ids and names, never keys) |
+| `knowledge.changed` | a knowledge document or source was added, changed, imported or removed |
+| `privacy.erased` | a conversation or customer was erased |
+
+**Envelope.** `{id, type, createdAt, sessionId, data}`, sent with the same headers as reply webhooks: `x-northcx-timestamp`, `x-northcx-signature` (HMAC-SHA256 of `timestamp.body` with your secret; reject calls older than five minutes) and `x-northcx-event`. `id` is stable, so a receiver can ignore a call it has already seen. Delivery is at least once: a failed call is retried with back-off (30 seconds doubling to an hour, twelve tries) and stays visible in the feed.
+
+**What events never contain.** Message text, replies, tool inputs and outputs, ratings' comments, API keys, phone numbers or email addresses: only ids, tool, queue and agent names, counts and outcomes, and only short plain values (nothing nested). Staff-action events are built from the audit record of the same action, so the feed cannot disagree with the audit log. Simulations and tests emit nothing.
+
+**Not included:** every conversation start or end (use the polling traces API or insights), and per-message events.

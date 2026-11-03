@@ -88,6 +88,7 @@ FLOWS: list[tuple[str, str, str, str | None]] = [
     ("Embeddings service", "NORTHCX_EMBEDDINGS_URL", "Knowledge text and customers' questions", None),
     ("Trace export (Langfuse)", "NORTHCX_LANGFUSE_URL", "Traces, redacted as configured", None),
     ("Trace export (OpenTelemetry)", "NORTHCX_OTLP_ENDPOINT", "Traces, redacted as configured", None),
+    ("Status event webhook", "NORTHCX_EVENTS_WEBHOOK_URL", "Event notices: ids, tool and queue names, outcomes (no message text)", None),
     ("Reply and status webhook", "NORTHCX_WEBHOOK_URL", "Replies, approval results, hand-off notices", None),
     ("Alert webhook", "NORTHCX_ALERT_WEBHOOK_URL", "Alert summaries (no conversation text)", None),
     ("Human inbox webhook", "NORTHCX_INBOX_WEBHOOK_URL", "Hand-off packages: transcript, customer profile, summary", None),
