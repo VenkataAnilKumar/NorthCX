@@ -189,6 +189,7 @@ class ReleaseService:
             self.registry.build(spec, BuildContext(llm=_NullLLM()))
         except SpecError as e:
             raise InvalidSpec(str(e)) from e
+        spec = self.registry.pin_skills(spec)
         existing = await self.versions.list(agent_id)
         if existing and existing[0].digest == spec.digest():
             raise Conflict(f"No changes since version {existing[0].number}")

@@ -73,6 +73,11 @@ def parse_skill(data: Any, source: str = "") -> Skill:
     return Skill(name, str(data.get("description", "")).strip()[:300], instructions, tuple(steps), tuple(tools))
 
 
+def skill_to_dict(s: Skill) -> dict[str, Any]:
+    return {"name": s.name, "description": s.description, "instructions": s.instructions,
+            "steps": [{"purpose": x.purpose, **({"tool": x.tool} if x.tool else {}), "required": x.required} for x in s.steps], "tools": list(s.tools)}
+
+
 def load_skills(path: str | Path) -> list[Skill]:
     p = Path(path)
     files = [p] if p.is_file() else sorted(f for f in p.glob("*") if f.suffix in (".yaml", ".yml", ".json"))

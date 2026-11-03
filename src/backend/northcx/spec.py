@@ -15,7 +15,7 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .agent import Agent, Tool
-from .skills import FLEXIBILITY, Skill, SkillOrder, ToolScope, ToolScopeRule, render_skill, render_voice
+from .skills import FLEXIBILITY, Skill, SkillError, SkillOrder, parse_skill, skill_to_dict, ToolScope, ToolScopeRule, render_skill, render_voice
 from .policies import FACTORIES as POLICY_FACTORIES
 from .guardrails import Guardrail, InputGuardrail, OutputGuardrail, LLMPolicy, NoCardNumbers
 from .handoffs import ForcedTopic
@@ -90,6 +90,7 @@ class AgentSpec(BaseModel):
     skills: list[SkillRef] = Field(default_factory=list)
     voice: VoiceSpec | None = None
     tool_scopes: dict[str, ToolScopeSpec] = Field(default_factory=dict)
+    skill_snapshots: dict[str, dict[str, Any]] = Field(default_factory=dict)  # the exact skill text a version was proven with
     tools: list[str] = Field(default_factory=list)
     guardrails: list[ComponentRef] = Field(default_factory=list)
     input_guardrails: list[ComponentRef] = Field(default_factory=list)
@@ -125,7 +126,7 @@ class AgentSpec(BaseModel):
         data = self.model_dump(mode="json")
         if data.get("max_run_tokens") is None:
             del data["max_run_tokens"]  # keeps digests of specs written before this field existed
-        for key in ("skills", "voice", "tool_scopes"):
+        for key in ("skills", "voice", "tool_scopes", "skill_snapshots"):
             if not data[key]:
                 del data[key]  # keeps digests of specs written before these fields existed
         if not data["channel_styles"]:
@@ -183,6 +184,27 @@ class Registry:
     def skill_names(self) -> list[str]:
         return sorted(self._skills)
 
+    def skill_for(self, spec: AgentSpec, name: str) -> Skill | None:
+        """The skill as this spec means it: the snapshot it was pinned with, else the currently registered one."""
+        snap = spec.skill_snapshots.get(name)
+        if snap is not None:
+            try:
+                return parse_skill(snap, f"snapshot of skill '{name}'")
+            except SkillError:
+                return None
+        return self._skills.get(name)
+
+    def pin_skills(self, spec: AgentSpec, overwrite: bool = False) -> AgentSpec:
+        """Copy the text of every skill the spec uses into the spec, so editing a skill file later cannot silently change
+        (or invalidate the proof for) a version that was already tested and released."""
+        if not spec.skills:
+            return spec
+        snaps = dict(spec.skill_snapshots)
+        for r in spec.skills:
+            if r.name in self._skills and (overwrite or r.name not in snaps):
+                snaps[r.name] = skill_to_dict(self._skills[r.name])
+        return spec.model_copy(update={"skill_snapshots": snaps})
+
     def skill_info(self) -> list[Skill]:
         return [self._skills[n] for n in self.skill_names()]
 
@@ -222,7 +244,7 @@ class Registry:
         if len(set(refs)) != len(refs):
             problems.append("Duplicate skill references")
         for ref in dict.fromkeys(refs):
-            sk = self._skills.get(ref)
+            sk = self.skill_for(spec, ref)
             if sk is None:
                 problems.append(f"Unknown skill '{ref}' (known: {', '.join(self.skill_names()) or 'none'})")
                 continue
@@ -236,7 +258,7 @@ class Registry:
 
     def _all_tools(self, spec: AgentSpec) -> list[str]:
         """The spec's tools plus those its skills need (each once)."""
-        extra = [t for r in spec.skills for t in self._skills[r.name].tool_names()]
+        extra = [t for r in spec.skills for t in self.skill_for(spec, r.name).tool_names()]
         return list(dict.fromkeys(list(spec.tools) + extra))
 
     def _compose(self, spec: AgentSpec) -> str:
@@ -244,12 +266,12 @@ class Registry:
         parts = [spec.instructions.rstrip()]
         if spec.voice:
             parts.append(render_voice(spec.voice.tone, spec.voice.guidelines, spec.voice.avoid_phrases, spec.voice.sign_off))
-        parts += [render_skill(self._skills[r.name], r.flexibility) for r in spec.skills]
+        parts += [render_skill(self.skill_for(spec, r.name), r.flexibility) for r in spec.skills]
         return "\n\n".join(parts) + ("\n" if spec.instructions.endswith("\n") else "")
 
     def _enforcers(self, spec: AgentSpec) -> list[Guardrail]:
         """Guardrails that turn skills, voice and tool scopes from advice into rules."""
-        out: list[Guardrail] = [SkillOrder(self._skills[r.name]) for r in spec.skills if r.flexibility == "strict" and self._skills[r.name].steps]
+        out: list[Guardrail] = [SkillOrder(self.skill_for(spec, r.name)) for r in spec.skills if r.flexibility == "strict" and self.skill_for(spec, r.name).steps]
         if spec.voice and spec.voice.avoid_phrases:
             out.append(POLICY_FACTORIES["forbidden_phrases"]({"phrases": spec.voice.avoid_phrases, "reason": "Reply uses wording the brand voice forbids."}, None))
         if spec.tool_scopes:

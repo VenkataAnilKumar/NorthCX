@@ -184,3 +184,36 @@ def test_api_lists_skills_for_viewers():
     assert body["skills"][1]["steps"][0] == {"purpose": "Look up the order and confirm its status and total", "tool": "lookup_order", "required": True}
     chan = asyncio.new_event_loop().run_until_complete(ac.issue("c", "channel", "root"))[1]
     assert c.get("/v1/skills", headers={"authorization": f"Bearer {chan}"}).status_code == 403
+
+
+# ---- skill text is pinned into versions ----
+def test_pinning_copies_the_skill_text_into_the_spec_and_changes_the_digest():
+    reg = registry()
+    s = spec(skills=[{"name": "refund_flow", "flexibility": "strict"}])
+    pinned = reg.pin_skills(s)
+    assert pinned.skill_snapshots["refund_flow"]["steps"][0]["tool"] == "lookup_order" and pinned.digest() != s.digest()
+    assert reg.pin_skills(pinned).digest() == pinned.digest()  # pinning twice changes nothing
+    assert reg.pin_skills(spec()).skill_snapshots == {} and "skill_snapshots" not in spec().canonical()
+
+
+def test_editing_a_skill_file_does_not_change_a_pinned_version_but_does_change_the_spec_files_digest():
+    from northcx.skills import Skill, SkillStep
+    reg = registry()
+    pinned = reg.pin_skills(spec(skills=[{"name": "order_status", "flexibility": "strict"}]))
+    old_digest = pinned.digest()
+    reg._skills["order_status"] = Skill("order_status", "d", "COMPLETELY DIFFERENT TEXT", (SkillStep("do something else", "issue_refund"),))  # the file was edited
+    a = reg.build(pinned, BuildContext())
+    assert "COMPLETELY DIFFERENT" not in a.instructions and "Look up the order" in a.instructions  # the version keeps what it was proven with
+    assert [t.name for t in a.tools] == ["lookup_order"]
+    repinned = reg.pin_skills(spec(skills=[{"name": "order_status", "flexibility": "strict"}]), overwrite=True)
+    assert repinned.digest() != old_digest  # a spec file that follows the skill file gets a new digest, so earlier proof no longer matches
+
+
+async def test_versions_are_created_pinned_and_a_forged_snapshot_must_still_be_a_valid_skill():
+    from northcx.versions import InMemoryReleases, InMemoryVersions, ReleaseService
+    reg = registry()
+    svc = ReleaseService(InMemoryVersions(), InMemoryReleases(), reg, {})
+    v = await svc.create_version("a", spec(skills=[{"name": "refund_flow", "flexibility": "strict"}]), "dev")
+    assert v.spec["skill_snapshots"]["refund_flow"]["name"] == "refund_flow"
+    bad = spec(skills=[{"name": "ghost"}], skill_snapshots={"ghost": {"name": "ghost"}})  # no instructions: not a skill
+    assert any("Unknown skill 'ghost'" in p for p in reg.validate(bad))

@@ -222,7 +222,7 @@ def run() -> None:
                 if t.name not in reg.tool_names():
                     reg.tool(t)
         print(f"Tool secrets available: {', '.join(secrets.names()) or 'none'}")
-        specs = {s.id: s for s in load_specs(specs_dir)}
+        specs = {s.id: reg.pin_skills(s, overwrite=True) for s in load_specs(specs_dir)}  # spec files follow the skill files; the digest includes them
         baseline = {}
         for i, s in specs.items():  # agents defined by spec files; they serve until a version is released
             baseline[i] = reg.build(s, BuildContext(llm=llm))
