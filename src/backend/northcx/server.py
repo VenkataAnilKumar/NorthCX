@@ -15,16 +15,19 @@ from contextlib import asynccontextmanager
 
 from fastapi import Query, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
+from urllib.parse import urlencode
+
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
-from .access import ROLES, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
+from .access import ROLES, SSO_CREATOR, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
 from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
 from .channels.sms import SmsChannel, parse_form
 from .templates import Template, TemplateError, render
 from .alerts import AlertManager
+from .sso import Sso, SsoError
 from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms, rollout_json
 from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
 from .handoffs import transcript
@@ -200,6 +203,7 @@ def _err(status: int, code: str, message: str) -> JSONResponse:
 # Every /v1 route must appear here. A route that is not listed is refused (a test checks the table against the app).
 ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/me", "authenticated"),
+    ("POST", r"/v1/me/logout", "authenticated"),
     ("POST", r"/v1/chat-tokens", "chat:mint"),
     ("POST", r"/v1/channels/email/inbound", "channel:inbound"),
     ("POST", r"/v1/agents/[^/]+/chat", "chat:send"),
@@ -306,7 +310,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None,
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
-               alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None) -> FastAPI:
+               alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -1359,6 +1363,68 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         who: Identity = request.state.identity
         return {"name": who.name, "role": who.role, "openMode": who.open_mode, "keyId": who.key_id,
                 "permissions": sorted(who.permissions)}
+
+    @app.post("/v1/me/logout")
+    async def logout(request: Request) -> Any:
+        """End a single-sign-on session now. Other kinds of key are left alone (revoke those on the Access page)."""
+        who: Identity = request.state.identity
+        key = await access.keys.get(who.key_id) if who.key_id else None
+        if key is None or key.created_by != SSO_CREATOR or not key.active():
+            return {"revoked": False}
+        await access.revoke(key.key_id, who.name)
+        await record(request, "sso.logout", who.name)
+        return {"revoked": True}
+
+    # ---------------- single sign-on (outside /v1: the identity provider, not a key, vouches for the person) ----------------
+    SSO_COOKIE = "northcx_sso"
+    secure_cookie = bool(sso and sso.cfg.redirect_uri.startswith("https://"))
+
+    @app.get("/auth/sso/config")
+    async def sso_config() -> Any:
+        return {"enabled": sso is not None, "loginUrl": "/auth/sso/login" if sso else None}
+
+    async def sso_failed(request: Request, e: SsoError) -> RedirectResponse:
+        ip = request.client.host if request.client else "unknown"
+        await audit.append(AuditEntry(actor="unknown", role="none", action="sso.denied", target="login", outcome="denied", detail={"client": ip, "reason": e.detail[:200]}))
+        resp = RedirectResponse(f"{sso.cfg.landing}?{urlencode({'error': str(e)})}", status_code=303)
+        resp.delete_cookie(SSO_COOKIE, path="/")
+        return resp
+
+    @app.get("/auth/sso/login")
+    async def sso_login(request: Request) -> Any:
+        if sso is None:
+            return _err(404, "not_found", "Single sign-on is not configured")
+        ip = request.client.host if request.client else "unknown"
+        if not access.limiter.allow(f"sso:{ip}", 20)[0]:
+            return too_many(60, "sign-in attempts")
+        try:
+            url, cookie = await sso.begin()
+        except SsoError as e:
+            return await sso_failed(request, e)
+        resp = RedirectResponse(url, status_code=303)
+        resp.set_cookie(SSO_COOKIE, cookie, max_age=600, httponly=True, samesite="lax", secure=secure_cookie, path="/")
+        return resp
+
+    @app.get("/auth/sso/callback")
+    async def sso_callback(request: Request, code: str | None = None, state: str | None = None, error: str | None = None) -> Any:
+        if sso is None:
+            return _err(404, "not_found", "Single sign-on is not configured")
+        ip = request.client.host if request.client else "unknown"
+        if not access.limiter.allow(f"sso:{ip}", 20)[0]:
+            return too_many(60, "sign-in attempts")
+        if error:
+            return await sso_failed(request, SsoError("The identity provider did not complete the sign-in", f"provider error: {error[:60]}"))
+        try:
+            login = await sso.finish(code, state, request.cookies.get(SSO_COOKIE))
+            key, token = await access.issue_session(login.email, login.role, sso.cfg.session_hours)
+        except SsoError as e:
+            return await sso_failed(request, e)
+        await audit.append(AuditEntry(actor=login.email, role=login.role, action="sso.login", target=f"ncx_{key.key_id}", outcome="ok",
+                                      detail={"subject": login.subject, "client": ip, "expiresAt": key.expires_at}))
+        resp = RedirectResponse(f"{sso.cfg.landing}#token={token}", status_code=303)  # in the fragment, so it is never sent to a server or logged
+        resp.delete_cookie(SSO_COOKIE, path="/")
+        resp.headers["cache-control"] = "no-store"
+        return resp
 
     def key_json(k: Any) -> dict[str, Any]:
         return {"id": k.key_id, "prefix": k.prefix, "name": k.name, "role": k.role, "createdBy": k.created_by,

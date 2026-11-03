@@ -5,6 +5,7 @@ from pathlib import Path
 import uvicorn
 
 from .access import AccessControl, InMemoryKeys, LimitConfig
+from .sso import Sso, config_from_env as sso_config_from_env
 from .tokens import TokenSigner, derive_secret
 from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
 from .trace_export import ExportService, InMemoryExports, LangfuseExporter, OtlpExporter, Redactor
@@ -315,10 +316,21 @@ def run() -> None:
         print("WARNING: authentication is OFF. Anyone who can reach this server has admin access. "
               "Set NORTHCX_API_KEY (and NORTHCX_REQUIRE_AUTH=1) before exposing it.")
 
+    sso = None
+    try:
+        sso_cfg = sso_config_from_env(os.environ, env_or_file("NORTHCX_SSO_CLIENT_SECRET") or "")
+    except (ValueError, ConfigError) as e:
+        sys.exit(f"Single sign-on: {e}")
+    if sso_cfg is not None:
+        if not (os.environ.get("NORTHCX_API_KEY") or db_url):
+            sys.exit("Single sign-on needs API-key authentication: set NORTHCX_API_KEY (people sign in for a session key with a role)")
+        sso = Sso(sso_cfg, token_secret)
+        print(f"Single sign-on is ON ({sso_cfg.issuer}); sessions last {sso_cfg.session_hours:g} hours.")
+
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
-                      regression=regression, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service,
+                      regression=regression, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso,
                       insights=insights_service, alerts=alert_manager,
                       templates=load_templates(LIBRARY, *([os.environ["NORTHCX_TEMPLATES_DIR"]] if os.environ.get("NORTHCX_TEMPLATES_DIR") else [])),
                       sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,

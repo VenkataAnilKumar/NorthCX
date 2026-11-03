@@ -92,6 +92,8 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | GET | `/skills` | Skills available to agents, with their steps and tools (built) |
 | GET | `/insights/overview`, `/insights/timeseries`, `/insights/failures`, `/insights/gaps` | Metrics with numerator, denominator and period; `from`, `to` (epoch seconds, default last 7 days, at most 366), `agent`, `environment`; timeseries takes `bucket=hour|day` (`insights:read`) (built) |
 | POST | `/sessions/{id}/feedback` | `{rating 1-5, comment?}`: a customer's rating (chat token for its own conversation, channel or API key); a second rating replaces the first (`feedback:send`) (built) |
+| GET | `/auth/sso/config`, `/auth/sso/login`, `/auth/sso/callback` | outside `/v1`, no key: start and finish a single sign-on (built) |
+| POST | `/me/logout` | end the caller's single-sign-on session (other keys are untouched) (built) |
 | POST | `/agents/{id}/rollouts` | `version`, `percent` (1-99), `environment` (staging or production), `note`: start a staged rollout; blocked unless the candidate passes the checklist; production needs `releases:publish` (built) |
 | GET | `/agents/{id}/rollouts` | history including the active one (`versions:read`) (built) |
 | PUT | `/agents/{id}/rollouts/{rid}/percent` | change the share for new conversations (built) |

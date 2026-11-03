@@ -286,3 +286,7 @@ export const getReviewContext = (id: string) => api<ReviewContext>(`/v1/sessions
 export const saveReview = (id: string, body: { verdict: string; handoff: string; failures: string[]; note: string }) =>
   api<{ saved: boolean; replaced: boolean }>(`/v1/sessions/${encodeURIComponent(id)}/review`, { method: "PUT", body: JSON.stringify(body) });
 export const getReviewQuality = () => api<ReviewQuality>("/v1/insights/review-quality");
+
+export const getSsoConfig = () =>
+  fetch("/api/northcx/auth/sso/config").then((r) => (r.ok ? (r.json() as Promise<{ enabled: boolean; loginUrl: string | null }>) : { enabled: false, loginUrl: null })).catch(() => ({ enabled: false, loginUrl: null }));
+export const signOut = () => api<{ revoked: boolean }>("/v1/me/logout", { method: "POST" });

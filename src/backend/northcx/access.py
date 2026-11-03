@@ -29,6 +29,7 @@ ROLES: dict[str, frozenset[str]] = {
 INTERNAL_ROLES: dict[str, frozenset[str]] = {
     "customer_session": frozenset({"chat:send", "outbox:read", "feedback:send"}),  # a chat token: limited further to its own conversation
 }
+SSO_CREATOR = "sso"
 NAME_RE = re.compile(r"^[A-Za-z0-9 _.@-]{1,80}$")
 
 
@@ -244,12 +245,23 @@ class AccessControl:
         self._has_keys = True
         return key, f"{key.prefix}_{secret}"
 
+    async def issue_session(self, display: str, role: str, hours: float) -> tuple[ApiKey, str]:
+        """A short-lived key for a person who signed in through the identity provider. It is an ordinary key in every other way
+        (role, audit, revocation, expiry), recorded as created by 'sso'."""
+        if role not in ROLES or role == "channel":
+            raise ValueError(f"Cannot sign in with the '{role}' role")
+        secret = secrets.token_urlsafe(32)
+        key = ApiKey(("sso: " + display)[:80], role, secrets.token_hex(4), hash_secret(secret), SSO_CREATOR, expires_at=time.time() + hours * 3600)
+        await self.keys.create(key)
+        self._has_keys = True
+        return key, f"{key.prefix}_{secret}"
+
     async def revoke(self, key_id: str, by: str) -> ApiKey:
         keys = await self.keys.list()
         target = next((k for k in keys if k.key_id == key_id), None)
         if target is None:
             raise KeyError(key_id)
-        others = [k for k in keys if k.key_id != key_id and k.role == "admin" and k.active()]
+        others = [k for k in keys if k.key_id != key_id and k.role == "admin" and k.active() and k.created_by != SSO_CREATOR]  # a sign-in session expires; it is not a lasting way in
         if target.role == "admin" and target.active() and not others and not self.configured_keys:
             raise ValueError("This is the last active admin key; create another admin key first")
         return await self.keys.revoke(key_id, by)
