@@ -78,6 +78,11 @@ jobs:
         run: |
           curl --fail --silent http://127.0.0.1:3000/ready
           curl --fail --silent --output /dev/null http://127.0.0.1:3001/
+          for path in templates skills routing trace-export regression monitor/summary agents/support/environments; do
+            curl --fail --silent --output /dev/null -H "authorization: Bearer $KEY" "http://127.0.0.1:3000/v1/$path" || { echo "FAILED: /v1/$path"; exit 1; }
+          done
+          curl --fail --silent --output /dev/null -H "authorization: Bearer $KEY" -H 'content-type: application/json' \
+            -d '{"sessionId":"ci","message":"where is order 1042?"}' http://127.0.0.1:3000/v1/agents/support/chat
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/v1/agents)" = "401"
           curl --fail --silent -H "authorization: Bearer $KEY" http://127.0.0.1:3001/api/northcx/v1/me | grep -q '"role":"admin"'
           curl --fail --silent -X POST -H "authorization: Bearer $KEY" -H 'content-type: application/json' \

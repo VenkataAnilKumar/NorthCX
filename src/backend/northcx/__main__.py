@@ -30,7 +30,7 @@ from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgHandoffs, P
 from .llm import AnthropicLLM
 from .outbox import Outbox
 from .runtime import Runtime
-from .secrets import ConfigError, SecretStore, env_or_file
+from .secrets import ConfigError, SecretStore, env_or_file, normalise_environment
 from .server import create_app
 from .simulation import InMemorySimRuns, ScenarioError, SimulationService, load_scenarios
 from .spec import BuildContext, SpecError, load_specs
@@ -56,6 +56,7 @@ def _has_keys(db_url: str, access: AccessControl) -> bool:
 
 
 def main() -> None:
+    normalise_environment()  # blank settings (as Docker Compose passes them) mean "not set"
     try:
         run()
     except ConfigError as e:

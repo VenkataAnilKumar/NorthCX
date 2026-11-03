@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import inspect
 import json
 from dataclasses import dataclass, field, replace
@@ -30,6 +31,7 @@ from .types import LLM, LLMRequest, Message, text_of
 
 HANDOFF = "handoff_to_human"
 MAX_REWRITES = 2
+log = logging.getLogger("northcx.runtime")
 FALLBACK = "Let me connect you with a teammate who can help."
 HANDOFF_SPEC = {
     "name": HANDOFF,
@@ -144,7 +146,7 @@ class Runtime:
                 try:
                     await self.exports.enqueue(trace)
                 except Exception:
-                    pass
+                    log.exception("could not queue trace %s for export", trace.id)
             handoff_id = None
             if status == "escalated":
                 handoff_id = (await self.create_handoff(

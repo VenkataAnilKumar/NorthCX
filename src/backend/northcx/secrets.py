@@ -16,6 +16,16 @@ class ConfigError(ValueError):
     pass
 
 
+def normalise_environment(env: "os._Environ[str] | dict[str, str] | None" = None) -> list[str]:
+    """Treat NORTHCX_* variables that are set but empty as not set. Docker Compose passes every listed variable through, as an empty
+    string when the operator left it blank, and an empty value must mean "use the default", not "use the empty string"."""
+    env = os.environ if env is None else env
+    empty = [k for k, v in env.items() if k.startswith("NORTHCX_") and not v.strip()]
+    for k in empty:
+        del env[k]
+    return empty
+
+
 def env_or_file(name: str, env: Mapping[str, str] | None = None, default: str | None = None) -> str | None:
     """`NAME`, or the contents of the file named by `NAME_FILE`. Setting both is an error (it is ambiguous)."""
     env = os.environ if env is None else env

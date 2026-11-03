@@ -276,7 +276,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                     try:
                         await flow.expire_stale(agents, approval_ttl_seconds)
                     except Exception:  # keep sweeping; a failed pass is retried on the next tick
-                        pass
+                        log.exception("approval expiry pass failed")
 
             task = asyncio.create_task(sweep())
         export_task = None
