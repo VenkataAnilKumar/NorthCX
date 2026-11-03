@@ -42,6 +42,7 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_INBOX_WEBHOOK_URL`, `NORTHCX_INBOX_WEBHOOK_SECRET` (`_FILE`), `NORTHCX_PUBLIC_CONSOLE_URL` | Push every hand-off (with its package) and its resolution to a helpdesk as signed webhooks; the console URL becomes a link in the payload | off |
 | `NORTHCX_STRICT_PROMOTION` | `1` = production accepts only versions that have been live in staging | off |
 | `NORTHCX_RERUN_ON_KNOWLEDGE` (`off`, `scripted`, `live`), `NORTHCX_RERUN_DEBOUNCE_SECONDS` | Re-run scenarios tagged `knowledge` after knowledge changes; failures raise a critical monitoring finding | off; 60 s |
+| `NORTHCX_SKILLS_DIR` | Directory of skill files (YAML) added to the registry at start-up | none |
 | `NORTHCX_LANGFUSE_URL`, `NORTHCX_LANGFUSE_PUBLIC_KEY`, `NORTHCX_LANGFUSE_SECRET_KEY` (`_FILE`) | Export traces to Langfuse | off |
 | `NORTHCX_OTLP_ENDPOINT`, `NORTHCX_OTLP_HEADERS` (`_FILE`; `name=value,name=value`) | Export traces over OpenTelemetry OTLP/HTTP to any compatible backend | off |
 | `NORTHCX_TRACE_EXPORT_CONTENT` (`none`, `masked`, `full`), `NORTHCX_TRACE_EXPORT_SAMPLE` (0 to 1), `NORTHCX_ENVIRONMENT` | What exported traces contain (default `masked`), the fraction exported (default 1), and the environment label (default `production`) | masked; all; production |

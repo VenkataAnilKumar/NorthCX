@@ -1,0 +1,10 @@
+name: refund_flow
+description: Check the order before refunding it.
+instructions: |
+  Handle refund requests carefully. Never promise a refund before you have looked at the order.
+  If the order is not delivered, explain the status instead of refunding.
+steps:
+  - purpose: Look up the order and confirm its status and total
+    tool: lookup_order
+  - purpose: Refund the delivered order for the amount the customer is owed
+    tool: issue_refund

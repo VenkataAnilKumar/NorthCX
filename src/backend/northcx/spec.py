@@ -15,6 +15,7 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .agent import Agent, Tool
+from .skills import FLEXIBILITY, Skill, SkillOrder, ToolScope, ToolScopeRule, render_skill, render_voice
 from .policies import FACTORIES as POLICY_FACTORIES
 from .guardrails import Guardrail, InputGuardrail, OutputGuardrail, LLMPolicy, NoCardNumbers
 from .handoffs import ForcedTopic
@@ -50,6 +51,34 @@ class ForcedTopicSpec(BaseModel):
         return v
 
 
+class SkillRef(BaseModel):
+    name: str
+    flexibility: str = "guided"
+    model_config = {"extra": "forbid"}
+
+    @field_validator("flexibility")
+    @classmethod
+    def _known(cls, v: str) -> str:
+        if v not in FLEXIBILITY:
+            raise ValueError(f"flexibility must be one of {', '.join(FLEXIBILITY)}")
+        return v
+
+
+class VoiceSpec(BaseModel):
+    tone: str = Field(default="", max_length=200)
+    guidelines: list[str] = Field(default_factory=list, max_length=12)
+    avoid_phrases: list[str] = Field(default_factory=list, max_length=30)  # also enforced: a reply containing one is rejected
+    sign_off: str | None = Field(default=None, max_length=200)
+    model_config = {"extra": "forbid"}
+
+
+class ToolScopeSpec(BaseModel):
+    requires_customer: bool = False
+    facts: dict[str, list[str]] = Field(default_factory=dict)
+    channels: list[str] = Field(default_factory=list)
+    model_config = {"extra": "forbid"}
+
+
 class AgentSpec(BaseModel):
     spec_version: int = SPEC_VERSION
     id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9_.-]+$")
@@ -58,6 +87,9 @@ class AgentSpec(BaseModel):
     max_steps: int = Field(default=8, ge=1, le=50)
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
     channel_styles: dict[str, str] = Field(default_factory=dict)
+    skills: list[SkillRef] = Field(default_factory=list)
+    voice: VoiceSpec | None = None
+    tool_scopes: dict[str, ToolScopeSpec] = Field(default_factory=dict)
     tools: list[str] = Field(default_factory=list)
     guardrails: list[ComponentRef] = Field(default_factory=list)
     input_guardrails: list[ComponentRef] = Field(default_factory=list)
@@ -93,6 +125,9 @@ class AgentSpec(BaseModel):
         data = self.model_dump(mode="json")
         if data.get("max_run_tokens") is None:
             del data["max_run_tokens"]  # keeps digests of specs written before this field existed
+        for key in ("skills", "voice", "tool_scopes"):
+            if not data[key]:
+                del data[key]  # keeps digests of specs written before these fields existed
         if not data["channel_styles"]:
             del data["channel_styles"]  # keeps digests of specs written before this field existed
         if not data["output_guardrails"]:
@@ -122,6 +157,7 @@ class Registry:
         self._guardrails: dict[str, GuardrailFactory] = {}
         self._input_guardrails: dict[str, InputFactory] = {}
         self._output_guardrails: dict[str, OutputFactory] = {}
+        self._skills: dict[str, Skill] = {}
 
     def tool(self, tool: Tool) -> Tool:
         if tool.name in self._tools:
@@ -137,6 +173,18 @@ class Registry:
 
     def output_guardrail(self, name: str, factory: "OutputFactory") -> None:
         self._output_guardrails[name] = factory
+
+    def skill(self, skill: Skill) -> Skill:
+        if skill.name in self._skills:
+            raise SpecError(f"Skill '{skill.name}' is already registered")
+        self._skills[skill.name] = skill
+        return skill
+
+    def skill_names(self) -> list[str]:
+        return sorted(self._skills)
+
+    def skill_info(self) -> list[Skill]:
+        return [self._skills[n] for n in self.skill_names()]
 
     def output_guardrail_names(self) -> list[str]:
         return sorted(self._output_guardrails)
@@ -170,7 +218,44 @@ class Registry:
         for g in spec.output_guardrails:
             if g.name not in self._output_guardrails:
                 problems.append(f"Unknown output guardrail '{g.name}' (known: {', '.join(self.output_guardrail_names()) or 'none'})")
+        refs = [s.name for s in spec.skills]
+        if len(set(refs)) != len(refs):
+            problems.append("Duplicate skill references")
+        for ref in dict.fromkeys(refs):
+            sk = self._skills.get(ref)
+            if sk is None:
+                problems.append(f"Unknown skill '{ref}' (known: {', '.join(self.skill_names()) or 'none'})")
+                continue
+            for t in sk.tool_names():
+                if t not in self._tools:
+                    problems.append(f"Skill '{ref}' needs the tool '{t}', which is not registered")
+        for t in spec.tool_scopes:
+            if t not in self._tools:
+                problems.append(f"tool_scopes names the unknown tool '{t}'")
         return problems
+
+    def _all_tools(self, spec: AgentSpec) -> list[str]:
+        """The spec's tools plus those its skills need (each once)."""
+        extra = [t for r in spec.skills for t in self._skills[r.name].tool_names()]
+        return list(dict.fromkeys(list(spec.tools) + extra))
+
+    def _compose(self, spec: AgentSpec) -> str:
+        """Instructions as the model sees them: the spec's own text, then brand voice, then each skill."""
+        parts = [spec.instructions.rstrip()]
+        if spec.voice:
+            parts.append(render_voice(spec.voice.tone, spec.voice.guidelines, spec.voice.avoid_phrases, spec.voice.sign_off))
+        parts += [render_skill(self._skills[r.name], r.flexibility) for r in spec.skills]
+        return "\n\n".join(parts) + ("\n" if spec.instructions.endswith("\n") else "")
+
+    def _enforcers(self, spec: AgentSpec) -> list[Guardrail]:
+        """Guardrails that turn skills, voice and tool scopes from advice into rules."""
+        out: list[Guardrail] = [SkillOrder(self._skills[r.name]) for r in spec.skills if r.flexibility == "strict" and self._skills[r.name].steps]
+        if spec.voice and spec.voice.avoid_phrases:
+            out.append(POLICY_FACTORIES["forbidden_phrases"]({"phrases": spec.voice.avoid_phrases, "reason": "Reply uses wording the brand voice forbids."}, None))
+        if spec.tool_scopes:
+            out.append(ToolScope({t: ToolScopeRule(s.requires_customer, {k: list(v) for k, v in s.facts.items()}, list(s.channels))
+                                  for t, s in spec.tool_scopes.items()}))
+        return out
 
     def build(self, spec: AgentSpec, ctx: BuildContext | None = None) -> Agent:
         problems = self.validate(spec)
@@ -180,13 +265,13 @@ class Registry:
         try:
             return Agent(
                 id=spec.id,
-                instructions=spec.instructions,
+                instructions=self._compose(spec),
                 model=spec.model,
                 max_steps=spec.max_steps,
                 max_run_tokens=spec.max_run_tokens,
                 channel_styles=dict(spec.channel_styles),
-                tools=[self._tools[t] for t in spec.tools],
-                guardrails=[self._guardrails[g.name](g.config, ctx) for g in spec.guardrails],
+                tools=[self._tools[t] for t in self._all_tools(spec)],
+                guardrails=[self._guardrails[g.name](g.config, ctx) for g in spec.guardrails] + self._enforcers(spec),
                 input_guardrails=[self._input_guardrails[g.name](g.config, ctx) for g in spec.input_guardrails],
                 output_guardrails=[self._output_guardrails[g.name](g.config, ctx) for g in spec.output_guardrails],
                 forced_handoffs=[ForcedTopic(t.name, t.patterns, **({"reply": t.reply} if t.reply else {}))

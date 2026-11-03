@@ -39,3 +39,24 @@ Status: Draft. Describes the runtime semantics, implemented and tested in the Ty
 - A blocked tool call is not retried with guidance beyond the error result.
 - Parallel tool execution is sequential.
 - Streaming responses are not supported.
+
+
+## Skills, workflow flexibility, brand voice and tool scopes (A3, A4, A10, T6) — as built
+
+**Skills.** A skill is a YAML file: `name`, `instructions`, an ordered list of `steps` (each with a `purpose`, an optional `tool` that completes it, and `required`), and optional extra `tools`. Skills are loaded from `NORTHCX_SKILLS_DIR` (or registered in code) and an agent spec lists the ones it has:
+
+```yaml
+skills:
+  - {name: refund_flow, flexibility: strict}
+  - {name: order_status}          # flexibility defaults to guided
+```
+
+The agent's instructions are composed at build time: the spec's own text, then the brand voice, then one section per skill. The tools a skill needs are added to the agent's tools (each once), and a spec that lists a skill whose tool is not registered is refused with every problem listed. `GET /v1/skills` shows what is available.
+
+**Flexibility (A4).** `strict`: the order is enforced. A step's tool is refused until the earlier *required* steps' tools have been used somewhere in the conversation (earlier turns count), and the refusal tells the agent what to do first. `guided`: the agent is told to follow the steps unless the situation calls for something else; nothing is enforced. `free`: the steps are suggestions. Steps without a tool cannot be enforced, only requested.
+
+**Brand voice (A10).** `voice: {tone, guidelines, avoid_phrases, sign_off}`. Tone, guidelines and sign-off are added to the instructions. `avoid_phrases` are also enforced: a reply containing one (whole words, any case) is rejected and the agent is asked to rewrite it.
+
+**Tool scopes (T6).** `tool_scopes: {issue_refund: {requires_customer: true, facts: {tier: [gold, platinum]}, channels: [web, email]}}` limits a tool by who is asking and where: only identified customers, only customers whose fact has one of the listed values (stored facts, plus values from the company's systems when customer context is configured), only on listed channels. Scopes are checked again when an approved action runs, so a customer whose status changed while the approval waited is refused. A tool listed in the spec but not in `tool_scopes` is unrestricted; the agent's `tools` list remains the first limit.
+
+Specs that use none of these keep their digests. These rules complement approvals and the policy library; they do not replace them.

@@ -7,14 +7,14 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 |---|---|---|---|---|
 | A1 | Agent defined by natural-language goals and policies | P0 | 1 | Built |
 | A2 | Agents as code (version-controlled definitions, YAML spec) | P0 | 1-2 | Built |
-| A3 | Reusable skills composed into workflows (for example triage, respond, confirm) | P1 | 3 | Planned |
-| A4 | Adjustable workflow flexibility (strict steps to free-form) per skill | P1 | 3 | Planned |
+| A3 | Reusable skills composed into workflows (for example triage, respond, confirm) | P1 | 3 | Built (skill files, composed into the agent; step lists) |
+| A4 | Adjustable workflow flexibility (strict steps to free-form) per skill | P1 | 3 | Built (strict is enforced, guided and free are advice) |
 | A5 | Journeys: scenario blueprints with goals, guardrails and required steps | P1 | 4 | Planned |
 | A6 | Journeys described in plain language and converted to definitions | P2 | 4 | Planned |
 | A7 | Templates for common support intents | P1 | 3 | Planned |
 | A8 | Agent-assisted building: generate an agent from procedures, transcripts or call recordings | P2 | 6 | Planned |
 | A9 | Per-agent model choice and settings | P0 | 1 | Built |
-| A10 | Brand voice and tone settings | P1 | 3 | Planned |
+| A10 | Brand voice and tone settings | P1 | 3 | Built (forbidden phrases are enforced) |
 
 ## 2. Runtime
 | ID | Feature | Pri | Phase | State |
@@ -38,7 +38,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | T3 | Approval rules per tool and per input | P0 | 1 | Built |
 | T4 | Idempotency keys and retries for writes | P1 | 3 | Built |
 | T5 | Connector library (orders, billing, accounts, helpdesk) | P1 | 3 | Planned |
-| T6 | Tool permissions per agent and per customer scope | P1 | 3 | Planned |
+| T6 | Tool permissions per agent and per customer scope | P1 | 3 | Built (customer, facts and channel scopes) |
 | T7 | Secrets management for tool credentials | P0 | 2 | Built (environment or mounted files, scrubbed from everything stored) |
 | T8 | Tool sandbox or dry-run mode for testing | P1 | 2 | Built (write tools are simulated in simulations) |
 

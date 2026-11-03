@@ -9,6 +9,7 @@ from .tokens import TokenSigner, derive_secret
 from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
 from .trace_export import ExportService, InMemoryExports, LangfuseExporter, OtlpExporter, Redactor
 from .regression import RegressionRunner
+from .skills import SkillError, load_skills
 from .routing import RoutingError, load_router
 from .config import load_context_provider, load_registry
 from .context import CachedContext, HttpContextProvider
@@ -211,6 +212,9 @@ def run() -> None:
     scenarios_dir = os.environ.get("NORTHCX_SCENARIOS_DIR") or str(examples_dir / "scenarios")
     try:
         reg = registry()
+        if os.environ.get("NORTHCX_SKILLS_DIR"):
+            for sk in load_skills(os.environ["NORTHCX_SKILLS_DIR"]):
+                reg.skill(sk)
         if "search_knowledge" not in reg.tool_names():
             reg.tool(knowledge_tool(knowledge_repo))
         if runtime.memories is not None:
@@ -224,7 +228,7 @@ def run() -> None:
             baseline[i] = reg.build(s, BuildContext(llm=llm))
             baseline[i].digest = s.digest()
         scenarios = load_scenarios(scenarios_dir) if Path(scenarios_dir).exists() else []
-    except (SpecError, ScenarioError) as e:
+    except (SpecError, ScenarioError, SkillError) as e:
         sys.exit(f"Invalid configuration: {e}")
 
     simulations = None
@@ -280,7 +284,7 @@ def run() -> None:
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
-                      regression=regression,
+                      regression=regression, skills=reg.skill_info(),
                       sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,
                       retention_days=float(os.environ["NORTHCX_RETENTION_DAYS"]) if os.environ.get("NORTHCX_RETENTION_DAYS") else None,
                       email=EmailChannel(runtime, agents, email_repo, email_config) if email_config else None)

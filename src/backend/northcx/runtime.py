@@ -106,6 +106,7 @@ class Runtime:
             if facts
             else ""
         )
+        ginfo = {"customer_id": customer_id, "facts": dict(facts), "channel": channel}
         memory_block = ""
         if self.memories is not None and customer_id and not self.dry_run and not trusted:
             try:
@@ -214,7 +215,7 @@ class Runtime:
 
             if not uses:
                 reply = text_of(res.content)
-                blocked = await self._check(agent, "reply", reply, session_id, messages, trace)
+                blocked = await self._check(agent, "reply", reply, session_id, messages, trace, ginfo)
                 if blocked is None:
                     if rewrite_from >= 0:  # drop rejected drafts and supervisor feedback
                         del messages[rewrite_from : len(messages) - 1]
@@ -253,7 +254,7 @@ class Runtime:
                 except ValidationError as e:
                     results.append(self._err(use, f"Invalid input: {e}"))
                     continue
-                blocked = await self._check(agent, "tool", (use["name"], use["input"]), session_id, messages, trace)
+                blocked = await self._check(agent, "tool", (use["name"], use["input"]), session_id, messages, trace, ginfo)
                 if blocked:
                     results.append(self._err(use, f"Blocked by policy: {blocked}"))
                     continue
@@ -361,8 +362,9 @@ class Runtime:
     def _err(use: dict, content: str) -> dict:
         return {"type": "tool_result", "tool_use_id": use["id"], "content": content, "is_error": True}
 
-    async def _check(self, agent: Agent, kind: str, payload: Any, session_id: str, messages: list[Message], trace: Trace) -> str | None:
-        gctx = GuardrailContext(session_id, messages)
+    async def _check(self, agent: Agent, kind: str, payload: Any, session_id: str, messages: list[Message], trace: Trace,
+                     info: dict[str, Any] | None = None) -> str | None:
+        gctx = GuardrailContext(session_id, messages, **(info or {}))
         for g in agent.guardrails:
             try:
                 v = await (g.check_reply(payload, gctx) if kind == "reply" else g.check_tool_call(payload[0], payload[1], gctx))

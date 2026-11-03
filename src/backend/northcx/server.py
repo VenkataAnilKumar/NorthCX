@@ -179,6 +179,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/traces/[^/]+/exports", "traces:read"),
     ("GET", r"/v1/traces", "traces:read"),
     ("GET", r"/v1/traces/[^/]+", "traces:read"),
+    ("GET", r"/v1/skills", "agents:read"),
     ("GET", r"/v1/agents", "agents:read"),
     ("GET", r"/v1/agents/[^/]+/live", "agents:read"),
     ("GET", r"/v1/agents/[^/]+/versions", "versions:read"),
@@ -221,7 +222,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
-               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None) -> FastAPI:
+               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None,
+               skills: list[Any] | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -521,6 +523,13 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if scope:
             await idem.complete(scope, result)
         return result
+
+    @app.get("/v1/skills")
+    async def list_skills() -> Any:
+        """The skills agents can use, with their steps."""
+        return {"skills": [{"name": s.name, "description": s.description, "instructions": s.instructions, "tools": s.tool_names(),
+                            "steps": [{"purpose": x.purpose, "tool": x.tool, "required": x.required} for x in s.steps]} for s in (skills or [])],
+                "flexibility": ["strict", "guided", "free"]}
 
     @app.get("/v1/regression")
     async def regression_status() -> Any:

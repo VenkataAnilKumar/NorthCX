@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from northcx.agent import Agent, Tool
 from northcx.guardrails import Guardrail
+from northcx.skills import load_skills
 from northcx.spec import BuildContext, Registry, default_registry, load_spec
 
 SPEC_PATH = Path(__file__).with_name("support.yaml")
@@ -61,6 +62,8 @@ def registry() -> Registry:
     r.tool(Tool("issue_refund", "Refund a delivered order. Amount must not exceed the order total.", RefundInput, _refund,
                 requires_approval=lambda d: f"Refund over {REFUND_APPROVAL_LIMIT} needs approval" if d.amount > REFUND_APPROVAL_LIMIT else None,
                 effect="write", dry_run_result=_refund_dry_run))
+    for skill in load_skills(Path(__file__).parent / "skills"):
+        r.skill(skill)
     return r
 
 

@@ -1,0 +1,6 @@
+name: order_status
+description: Answer where an order is.
+instructions: Answer order-status questions from the order system, never from memory. Give the status and, if delivered, say so plainly.
+steps:
+  - purpose: Look up the order
+    tool: lookup_order

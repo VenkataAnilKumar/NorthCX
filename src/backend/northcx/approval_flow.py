@@ -83,7 +83,9 @@ class ApprovalFlow:
             return await done(False, {"error": f"input is no longer valid: {e.error_count()} problem(s)"})
         trace = Trace(agent.id, claimed.session_id)
         blocked = await self.rt._check(agent, "tool", (claimed.tool, claimed.input), claimed.session_id,
-                                       await self.rt.store.load_messages(claimed.session_id), trace)
+                                       await self.rt.store.load_messages(claimed.session_id), trace,
+                                       {"customer_id": claimed.customer_id,
+                                        "facts": await self.rt.store.get_facts(claimed.customer_id) if claimed.customer_id else {}})
         if blocked:
             return await done(False, {"error": f"blocked by policy: {blocked}"})
         try:
