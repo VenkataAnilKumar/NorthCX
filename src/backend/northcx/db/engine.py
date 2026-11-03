@@ -46,4 +46,19 @@ def migrate(url: str, revision: str = "head") -> None:
 
 
 def downgrade(url: str, revision: str = "base") -> None:
+    if revision == "base":  # the meaning-search table is created on demand (not by a migration), so a full teardown must remove it first
+        import asyncio
+        from sqlalchemy import text
+
+        async def drop() -> None:
+            from sqlalchemy.ext.asyncio import create_async_engine
+            from sqlalchemy.pool import NullPool
+            eng = create_async_engine(url if "+asyncpg" in url else url.replace("postgresql://", "postgresql+asyncpg://", 1), poolclass=NullPool)
+            async with eng.begin() as c:
+                await c.execute(text("drop table if exists knowledge_embeddings"))
+            await eng.dispose()
+        try:
+            asyncio.run(drop())
+        except Exception:
+            pass
     command.downgrade(alembic_config(url), revision)

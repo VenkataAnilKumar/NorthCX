@@ -610,6 +610,62 @@ class PgKnowledge(_Base):
                                r.source_updated_at or r.ingested_at, is_stale(d, r.stale_after_days, now)))
         return out
 
+    # ---- meaning-based search (pgvector); see embeddings.py. Created on demand, so deployments without it never need the extension ----
+    async def ensure_semantic(self) -> None:
+        async with self._sm.begin() as s:
+            try:
+                await s.execute(text("create extension if not exists vector"))
+            except Exception as e:
+                raise KnowledgeError("meaning-based search needs the pgvector extension; use a Postgres image that includes it (see the Deployment Guide) "
+                                     "or ask a database administrator to run: CREATE EXTENSION vector") from e
+            await s.execute(text("create table if not exists knowledge_embeddings (chunk_id bigint primary key references knowledge_chunks(id) on delete cascade, "
+                                 "model text not null, embedding vector not null, created_at double precision not null)"))
+            await s.execute(text("create index if not exists ix_knowledge_embeddings_model on knowledge_embeddings (model)"))
+
+    async def pending_chunks(self, model: str, limit: int) -> list[tuple[Any, str]]:
+        async with self._ro() as s:
+            rows = (await s.execute(text(
+                "select c.id, d.title, c.heading, c.body from knowledge_chunks c join knowledge_documents d on d.id = c.document_id "
+                "left join knowledge_embeddings e on e.chunk_id = c.id and e.model = :m where e.chunk_id is null order by c.id limit :n"), {"m": model, "n": limit})).all()
+        return [(r.id, f"{r.title}\n{r.heading}\n{r.body}".strip()) for r in rows]
+
+    async def save_embeddings(self, model: str, items: list[tuple[Any, list[float]]]) -> int:
+        now = time.time()
+        async with self._sm.begin() as s:
+            for ref, vec in items:
+                await s.execute(text(
+                    "insert into knowledge_embeddings (chunk_id, model, embedding, created_at) select :c, :m, cast(:v as vector), :t where exists (select 1 from knowledge_chunks where id = :c) "
+                    "on conflict (chunk_id) do update set model = excluded.model, embedding = excluded.embedding, created_at = excluded.created_at"),
+                    {"c": ref, "m": model, "v": "[" + ",".join(repr(float(x)) for x in vec) + "]", "t": now})
+        return len(items)
+
+    async def embedding_counts(self, model: str) -> tuple[int, int]:
+        async with self._ro() as s:
+            r = (await s.execute(text("select (select count(*) from knowledge_embeddings where model = :m) as done, (select count(*) from knowledge_chunks) as total"), {"m": model})).one()
+        return int(r.done), int(r.total)
+
+    async def clear_embeddings(self) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from knowledge_embeddings"))).rowcount
+
+    async def semantic_search(self, vec: list[float], model: str, limit: int, source_id: str | None = None, now: float | None = None) -> list[Passage]:
+        q = ("select c.heading, c.body, d.id as doc_id, d.source_id, d.title, d.url, d.source_updated_at, d.ingested_at, d.content_hash, d.external_id, d.chunks, "
+             "s.stale_after_days, 1 - (e.embedding <=> cast(:v as vector)) as sim from knowledge_embeddings e join knowledge_chunks c on c.id = e.chunk_id "
+             "join knowledge_documents d on d.id = c.document_id join knowledge_sources s on s.id = d.source_id where e.model = :m and vector_dims(e.embedding) = :dim")
+        params: dict[str, Any] = {"v": "[" + ",".join(repr(float(x)) for x in vec) + "]", "m": model, "dim": len(vec), "n": limit}
+        if source_id:
+            q += " and d.source_id = :s"
+            params["s"] = source_id
+        q += " order by e.embedding <=> cast(:v as vector), c.id limit :n"
+        async with self._ro() as s:
+            rows = (await s.execute(text(q), params)).all()
+        out = []
+        for r in rows:
+            d = Document(r.source_id, r.external_id, r.title, r.url, r.content_hash, r.chunks, r.source_updated_at, r.ingested_at, id=r.doc_id)
+            out.append(Passage(r.doc_id, r.source_id, r.title, r.url, r.heading, r.body, round(float(r.sim), 4), r.source_updated_at or r.ingested_at,
+                               is_stale(d, r.stale_after_days, now), "meaning"))
+        return out
+
 
 class PgFeedback(_Base):
     async def add(self, session_id: str, rating: int, comment: str, at: float | None = None) -> bool:

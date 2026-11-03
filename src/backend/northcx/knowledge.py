@@ -70,6 +70,7 @@ class Passage:
     score: float
     updated_at: float
     stale: bool
+    via: str = "keyword"  # keyword | meaning | both: which kind of search found it
 
 
 @dataclass
@@ -167,6 +168,7 @@ class InMemoryKnowledge:
         self.sources: dict[str, Source] = {}
         self.docs: dict[tuple[str, str], Document] = {}
         self.passages: dict[str, list[tuple[str, str, list[str]]]] = {}  # doc id -> [(heading, text, tokens)]
+        self.vectors: dict[tuple[str, int], tuple[str, list[float]]] = {}  # (doc id, passage number) -> (model, embedding)
 
     async def create_source(self, source: Source) -> Source:
         if not valid_id(source.id):
@@ -200,6 +202,8 @@ class InMemoryKnowledge:
         doc = Document(source_id, external_id, title.strip(), url, h, len(parts), source_updated_at, now, id=old.id if old else uuid.uuid4().hex, text=text)
         self.docs[(source_id, external_id)] = doc
         self.passages[doc.id] = [(hd, tx, tokens(f"{hd} {tx} {title}")) for hd, tx in parts]
+        for key in [k for k in self.vectors if k[0] == doc.id]:
+            del self.vectors[key]
         return UpsertResult(doc, "updated" if old else "created")
 
     async def get_document(self, source_id, external_id):
@@ -210,6 +214,8 @@ class InMemoryKnowledge:
         doc = self.docs.pop((source_id, external_id), None)
         if doc:
             self.passages.pop(doc.id, None)
+            for key in [k for k in self.vectors if k[0] == doc.id]:
+                del self.vectors[key]
         return doc is not None
 
     async def delete_source(self, source_id: str) -> int:
@@ -255,6 +261,48 @@ class InMemoryKnowledge:
         scored.sort(key=lambda x: -x[0])
         return [Passage(d.id, d.source_id, d.title, d.url, hd, tx, round(s, 4), d.source_updated_at or d.ingested_at,
                         is_stale(d, self.sources[d.source_id].stale_after_days, now)) for s, d, hd, tx in scored[:limit]]
+
+
+    # ---- meaning-based search support (see embeddings.py) ----
+    async def pending_chunks(self, model: str, limit: int) -> list[tuple[Any, str]]:
+        out: list[tuple[Any, str]] = []
+        for d in self.docs.values():
+            for i, (hd, tx, _) in enumerate(self.passages.get(d.id, [])):
+                if self.vectors.get((d.id, i), ("", []))[0] != model:
+                    out.append(((d.id, i), f"{d.title}\n{hd}\n{tx}".strip()))
+                    if len(out) >= limit:
+                        return out
+        return out
+
+    async def save_embeddings(self, model: str, items: list[tuple[Any, list[float]]]) -> int:
+        for ref, vec in items:
+            if ref[0] in self.passages and ref[1] < len(self.passages[ref[0]]):
+                self.vectors[ref] = (model, vec)
+        return len(items)
+
+    async def embedding_counts(self, model: str) -> tuple[int, int]:
+        total = sum(len(v) for v in self.passages.values())
+        return sum(1 for m, _ in self.vectors.values() if m == model), total
+
+    async def clear_embeddings(self) -> int:
+        n = len(self.vectors)
+        self.vectors.clear()
+        return n
+
+    async def semantic_search(self, vec: list[float], model: str, limit: int, source_id: str | None = None, now: float | None = None) -> list[Passage]:
+        def cos(a: list[float], b: list[float]) -> float:
+            if len(a) != len(b):
+                return 0.0
+            na, nb = math.sqrt(sum(x * x for x in a)), math.sqrt(sum(x * x for x in b))
+            return sum(x * y for x, y in zip(a, b)) / (na * nb) if na and nb else 0.0
+        by_id = {d.id: d for d in self.docs.values() if not source_id or d.source_id == source_id}
+        scored = []
+        for (doc_id, i), (m, v) in self.vectors.items():
+            if m == model and doc_id in by_id and i < len(self.passages.get(doc_id, [])):
+                scored.append((cos(vec, v), by_id[doc_id], self.passages[doc_id][i]))
+        scored.sort(key=lambda x: -x[0])
+        return [Passage(d.id, d.source_id, d.title, d.url, hd, tx, round(s, 4), d.source_updated_at or d.ingested_at,
+                        is_stale(d, self.sources[d.source_id].stale_after_days, now), "meaning") for s, d, (hd, tx, _) in scored[:limit]]
 
 
 class SearchInput(BaseModel):

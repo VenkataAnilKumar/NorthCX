@@ -264,7 +264,10 @@ export const getScenarioDraft = (sessionId: string) => api<{ yaml: string; scena
 
 export interface KnowledgeSource { id: string; name: string; staleAfterDays: number | null; createdAt: number }
 export interface KnowledgeDoc { id: string; sourceId: string; externalId: string; title: string; url: string | null; chunks: number; sourceUpdatedAt: number | null; ingestedAt: number; stale: boolean }
-export interface Passage { documentId: string; sourceId: string; title: string; url: string | null; section: string; text: string; score: number; updatedAt: number; stale: boolean }
+export interface Passage { documentId: string; sourceId: string; title: string; url: string | null; section: string; text: string; score: number; updatedAt: number; stale: boolean; via?: "keyword" | "meaning" | "both" }
+export interface IndexStatus { enabled: boolean; model?: string; indexed?: number; passages?: number; pending?: number; lastRun?: number | null; lastError?: string | null }
+export const getIndexStatus = () => api<IndexStatus>("/v1/knowledge/index");
+export const rebuildIndex = () => api<{ cleared: number }>("/v1/knowledge/index/rebuild", { method: "POST" });
 export const listKnowledgeSources = () => api<{ sources: KnowledgeSource[] }>("/v1/knowledge/sources").then((r) => r.sources);
 export const createKnowledgeSource = (id: string, name: string, staleAfterDays?: number) =>
   api<KnowledgeSource>("/v1/knowledge/sources", { method: "POST", body: JSON.stringify({ id, name, ...(staleAfterDays ? { staleAfterDays } : {}) }) });

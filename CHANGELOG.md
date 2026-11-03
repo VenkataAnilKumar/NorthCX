@@ -8,6 +8,7 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
 ### Added (knowledge)
+- Optional meaning-based knowledge search: configure any embeddings service (`NORTHCX_EMBEDDINGS_URL`/`_MODEL`); passages are embedded in the background into pgvector, results merge keyword and meaning rankings, and search falls back to keywords if the service fails. The shipped compose file now uses a Postgres image with pgvector.
 - Import PDF, HTML, Markdown and text files into the knowledge base; crawl listed websites (robots.txt, sitemap, limits, pruning) from the API or Studio.
 
 ### Changed

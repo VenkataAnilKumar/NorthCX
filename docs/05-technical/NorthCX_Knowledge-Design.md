@@ -49,3 +49,14 @@ Deleting a document removes its passages immediately and leaves an audit entry. 
 
 ## Not in this step
 Word and other Office formats, connectors to document systems, embeddings (meaning-based ranking is planned next).
+
+## Meaning-based search (hybrid)
+
+Keyword search misses a customer who writes "money back" when the policy says "reimbursement". When the operator sets `NORTHCX_EMBEDDINGS_URL` and `NORTHCX_EMBEDDINGS_MODEL`, NorthCX also searches by meaning and merges both rankings. It is off by default and never required.
+
+- **The embedding service is yours to choose.** NorthCX ships no model. It calls `POST <url>/embeddings` with `{"model", "input": [...]}` and expects `{"data": [{"index", "embedding": [...]}]}` (the shape most hosted and self-hosted servers share). Passage text, and each customer question, are sent to that address and nowhere else; self-hosting keeps them inside your network. The address must be https (http for localhost), carry no credentials in the URL, and is never followed through redirects.
+- **Storage** is pgvector in the same Postgres: a `knowledge_embeddings` table created on first start (cascade-deleted with its passage). With the in-memory store (development) vectors are kept in memory. The vector size is whatever the model returns; vectors of another size are ignored at query time.
+- **Indexing is background work.** Saving a document never waits for, or fails because of, the embedding service. A worker embeds passages that have no vector for the current model (retrying with back-off, at most 10 minutes between tries) and is woken whenever a document changes. Changing the model name makes every passage pending again; `POST /v1/knowledge/index/rebuild` forces a full redo. `GET /v1/knowledge/index` reports model, indexed/pending counts, last run and last error (no addresses or response text).
+- **Ranking** runs the keyword and the meaning search in parallel and merges them by reciprocal rank fusion, so exact terms (order numbers, product codes) still win while paraphrases are found. Meaning matches below a similarity of 0.25 are dropped. Each result says how it was found (`keyword`, `meaning` or `both`).
+- **Fallback.** If the embedding service is slow (4 s), down or answers badly, the search is keyword-only and the conversation never sees an error.
+- **Not done:** an approximate-nearest-neighbour index (searches scan the vectors; fine to tens of thousands of passages), per-source models, re-ranking models.

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createKnowledgeSource, importKnowledgeFile, listCrawls, startCrawl, type CrawlJob, deleteKnowledgeDoc, deleteKnowledgeSource, formatTime, getKnowledgeDoc, listKnowledgeDocs, listKnowledgeSources, putKnowledgeDoc, searchKnowledge, type KnowledgeDoc, type Passage } from "@/lib/api";
+import { createKnowledgeSource, importKnowledgeFile, listCrawls, startCrawl, type CrawlJob, deleteKnowledgeDoc, deleteKnowledgeSource, formatTime, getKnowledgeDoc, listKnowledgeDocs, listKnowledgeSources, putKnowledgeDoc, searchKnowledge, getIndexStatus, rebuildIndex, type KnowledgeDoc, type Passage } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { useMe } from "@/lib/me";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
@@ -20,10 +20,11 @@ function Try({ source }: { source: string }) {
       <p className="mb-2 text-sm text-muted">See what the agent would find for a customer’s question. Nothing found here means it would hand off or say it does not know.</p>
       <form onSubmit={go} className="flex gap-2"><label className="sr-only" htmlFor="kq">Question</label><input id="kq" value={q} onChange={(e) => setQ(e.target.value)} placeholder="How long do refunds take?" className={input} /><button disabled={q.trim().length < 2} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text disabled:opacity-50">Search</button></form>
       {err && <p role="alert" className="mt-2 text-sm text-[var(--bad)]">{err}</p>}
+      <MeaningStatus />
       {found && (found.length === 0 ? <p className="mt-3 text-sm text-[var(--warn)]">Nothing relevant was found. A customer asking this would not get an answer from the documents.</p> : (
         <ol className="mt-3 space-y-2 text-sm">{found.map((p, i) => (
           <li key={i} className="rounded-lg border border-border p-3"><p className="font-medium">[{i + 1}] {p.title}{p.section ? ` › ${p.section}` : ""} {p.stale && <span className="ml-1 rounded bg-[var(--warn-bg)] px-1.5 text-xs text-[var(--warn)]">out of date</span>}</p>
-            <p className="mt-1 whitespace-pre-wrap text-muted">{p.text}</p><p className="mt-1 text-xs text-muted">Updated {formatTime(p.updatedAt)}</p></li>))}</ol>))}
+            <p className="mt-1 whitespace-pre-wrap text-muted">{p.text}</p><p className="mt-1 text-xs text-muted">Updated {formatTime(p.updatedAt)}{p.via ? ` · found by ${p.via === "both" ? "words and meaning" : p.via === "meaning" ? "meaning" : "words"}` : ""}</p></li>))}</ol>))}
     </section>
   );
 }
@@ -75,6 +76,20 @@ function DocForm({ sources, initial, onDone }: { sources: { id: string; name: st
       <div className="flex items-center gap-3"><button disabled={!source || !ext || !title || !text} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-text disabled:opacity-50">Save document</button>
         {msg && <span role="status" className="text-sm text-muted">{msg}</span>}</div>
     </form>
+  );
+}
+
+function MeaningStatus() {
+  const st = useLoad(getIndexStatus, []);
+  const [msg, setMsg] = useState<string | null>(null);
+  const s = st.data;
+  if (!s) return null;
+  if (!s.enabled) return <p className="mt-2 text-xs text-muted">Search matches words only. An administrator can switch on meaning-based search (see the Deployment Guide).</p>;
+  return (
+    <p className="mt-2 text-xs text-muted" role="status">
+      Meaning-based search is on ({s.model}): {s.indexed} of {s.passages} passages ready{s.pending ? `, ${s.pending} still being prepared` : ""}.{s.lastError ? ` Last problem: ${s.lastError}. Search is using words only until it recovers.` : ""}{" "}
+      <button type="button" className="underline" onClick={async () => { try { await rebuildIndex(); setMsg("Rebuilding."); st.reload(); } catch (x) { setMsg((x as Error).message); } }}>Rebuild</button>{msg ? ` ${msg}` : ""}
+    </p>
   );
 }
 

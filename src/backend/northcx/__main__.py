@@ -34,6 +34,7 @@ from .summarize import Compactor
 from .reliability import ReliableLLM, UsageLedger
 from .llm import DEFAULT_MODEL
 from .memory import InMemoryMemories, memory_tools
+from .embeddings import EmbeddingIndexer, HttpEmbedder, HybridKnowledge
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
@@ -350,6 +351,15 @@ def run() -> None:
     for o in cors_origins:
         if o == "*" or not re.fullmatch(r"https://[A-Za-z0-9.-]+(:\d+)?|http://(localhost|127\.0\.0\.1)(:\d+)?", o):
             sys.exit(f"NORTHCX_CORS_ORIGINS: '{o}' must be an https origin such as https://www.example.com (no wildcards, no paths)")
+    if os.environ.get("NORTHCX_EMBEDDINGS_URL"):
+        try:
+            embedder = HttpEmbedder(os.environ["NORTHCX_EMBEDDINGS_URL"], os.environ.get("NORTHCX_EMBEDDINGS_MODEL", ""), os.environ.get("NORTHCX_EMBEDDINGS_API_KEY") or None,
+                                    int(os.environ["NORTHCX_EMBEDDINGS_DIMENSIONS"]) if os.environ.get("NORTHCX_EMBEDDINGS_DIMENSIONS") else None)
+        except ValueError as e:
+            sys.exit(str(e))
+        knowledge_repo = HybridKnowledge(knowledge_repo, embedder)
+        knowledge_repo.indexer = EmbeddingIndexer(knowledge_repo.store, embedder)
+        print(f"Meaning-based knowledge search is ON (model {embedder.model}); passages are sent to the embeddings endpoint you configured.")
     crawler = None
     if os.environ.get("NORTHCX_CRAWL_HOSTS"):
         try:

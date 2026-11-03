@@ -262,6 +262,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/knowledge/documents", "knowledge:read"),
     ("GET", r"/v1/knowledge/sources/[^/]+/documents/.+", "knowledge:read"),
     ("GET", r"/v1/knowledge/search", "knowledge:read"),
+    ("GET", r"/v1/knowledge/index", "knowledge:read"),
+    ("POST", r"/v1/knowledge/index/rebuild", "knowledge:write"),
     ("POST", r"/v1/knowledge/sources/[^/]+/crawl", "knowledge:write"),
     ("POST", r"/v1/knowledge/sources/[^/]+/import", "knowledge:write"),
     ("GET", r"/v1/knowledge/crawls", "knowledge:read"),
@@ -473,7 +475,12 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                         log.exception("retention sweep failed")
 
             retention = asyncio.create_task(retain())
+        indexer = getattr(kb, "indexer", None)
+        if indexer is not None:
+            indexer.start()
         yield
+        if indexer is not None:
+            await indexer.stop()
         for t in (task, flusher, retention, inbox_task, export_task, alert_task):
             if t:
                 t.cancel()
@@ -1316,7 +1323,22 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def kb_search(q: str, source: str | None = None, limit: int = 5) -> Any:
         found = await kb.search(q, max(1, min(limit, 20)), source)
         return {"passages": [{"documentId": p.document_id, "sourceId": p.source_id, "title": p.title, "url": p.url, "section": p.heading,
-                              "text": p.text, "score": p.score, "updatedAt": p.updated_at, "stale": p.stale} for p in found]}
+                              "text": p.text, "score": p.score, "updatedAt": p.updated_at, "stale": p.stale, "via": p.via} for p in found]}
+
+    @app.get("/v1/knowledge/index")
+    async def kb_index() -> Any:
+        idx = getattr(kb, "indexer", None)
+        return await idx.status() if idx is not None else {"enabled": False}
+
+    @app.post("/v1/knowledge/index/rebuild", status_code=202)
+    async def kb_index_rebuild(request: Request) -> Any:
+        """Throws away every stored embedding and re-embeds all passages in the background (use after changing the embedding model)."""
+        idx = getattr(kb, "indexer", None)
+        if idx is None:
+            return _err(501, "not_configured", "Meaning-based search is not configured: set NORTHCX_EMBEDDINGS_URL and NORTHCX_EMBEDDINGS_MODEL")
+        n = await idx.rebuild()
+        await record(request, "knowledge.index.rebuild", "knowledge", cleared=n)
+        return {"cleared": n}
 
     @app.post("/v1/alerts/test")
     async def alert_test(request: Request) -> Any:
