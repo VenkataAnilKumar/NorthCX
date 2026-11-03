@@ -28,6 +28,7 @@ Built in `src/web`: Access and audit page (keys, audit log, integrity check), id
 - **Conversations (U4):** filters, tags, failure causes, open trace, create regression scenario.
 - **Approvals (U5):** queue with age and risk, payload, context, approve/reject with note.
 - **Knowledge (U6):** sources, freshness, test queries with citations.
+- **Customer widget (C7, built):** `<northcx-chat>`, documented in `05-technical/NorthCX_Client-SDK.md`.
 - **Attachments (C10, built):** a paperclip in the test console; the trace shows what was attached.
 - **Specialist agents (R8, built):** a section in the editor to choose which agents this one may pass conversations to and when; the trace shows each transfer.
 - **Hand-off collaboration (H6/H7, built):** suggested help, a reply box and a hand-back checkbox on each open hand-off.

@@ -11,12 +11,14 @@ import time
 import uuid
 
 import yaml
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import Query, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from urllib.parse import urlencode
 
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -319,6 +321,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/audit", "audit:read"),
     ("GET", r"/v1/audit/verify", "audit:read"),
 ]
+STATIC_DIR = Path(__file__).parent / "static"
+SDK_FILES = {n: STATIC_DIR / n for n in ("northcx-widget.js", "northcx-client.js")}
 PUBLIC_ROUTES = {("GET", "/"), ("GET", "/health"), ("GET", "/ready")}
 _COMPILED = [(m, re.compile(p), perm) for m, p, perm in ROUTE_PERMISSIONS]
 log = logging.getLogger("northcx.server")
@@ -337,7 +341,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
-               attachments: AttachmentRepo | None = None, attachment_scanner: Scanner | None = None) -> FastAPI:
+               attachments: AttachmentRepo | None = None, attachment_scanner: Scanner | None = None, cors_origins: list[str] | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -504,9 +508,21 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(403, "forbidden", f"The '{ident.role}' role cannot do this (needs {perm})")
         return await call_next(request)
 
+    if cors_origins:  # websites allowed to call the chat API from a browser (the SDK); added last so it answers preflight requests before the key check
+        app.add_middleware(CORSMiddleware, allow_origins=cors_origins, allow_methods=["GET", "POST", "PUT", "OPTIONS"], allow_credentials=False, max_age=600,
+                           allow_headers=["authorization", "content-type", "idempotency-key"], expose_headers=["retry-after", "idempotent-replay"])
+
     @app.exception_handler(RequestValidationError)
     async def bad_request(request: Request, exc: RequestValidationError):
         return _err(400, "bad_request", str(exc.errors()))
+
+    @app.get("/sdk/{name}")
+    async def sdk_file(name: str) -> Any:
+        """The browser SDK and the drop-in <northcx-chat> widget, so a site can load them from the same place it calls."""
+        f = SDK_FILES.get(name)
+        if f is None:
+            return _err(404, "not_found", "No such file")
+        return Response(f.read_bytes(), media_type="text/javascript; charset=utf-8", headers={"Cache-Control": "public, max-age=3600", "X-Content-Type-Options": "nosniff"})
 
     @app.get("/", response_class=HTMLResponse)
     async def widget() -> str:

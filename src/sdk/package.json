@@ -1,0 +1,21 @@
+{
+  "name": "northcx-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser and app client for NorthCX chat: sessions, streaming replies, attachments, person replies, ratings, and a drop-in <northcx-chat> widget. No runtime dependencies.",
+  "type": "module",
+  "main": "dist/northcx-client.js",
+  "types": "dist/types/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && vite build && node scripts/stamp.mjs",
+    "typecheck": "tsc --noEmit",
+    "e2e": "node e2e/smoke.mjs",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "jsdom": "^30.1.3",
+    "typescript": "^5.9.0",
+    "vitest": "^5.1.0"
+  }
+}

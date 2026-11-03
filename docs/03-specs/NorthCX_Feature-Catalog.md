@@ -78,7 +78,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | C4 | SMS and messaging apps | P1 | 3 | SMS built (Twilio-compatible); messaging apps planned |
 | C5 | Voice (phone) | P2 | 5 | Planned |
 | C6 | Voice: multilingual, language switching, barge-in | P2 | 5 | Planned |
-| C7 | Embeddable SDK for mobile and web apps | P2 | 5 | Planned |
+| C7 | Embeddable SDK for mobile and web apps | P2 | 5 | Built for the web (dependency-free client with streaming, retries, token renewal, uploads, teammate replies and ratings, plus a drop-in `<northcx-chat>` widget); native iOS and Android SDKs not built (the REST calls are documented) |
 | C8 | One agent definition across channels with channel-specific style | P1 | 3 | Built (per-channel style text in the agent spec) |
 | C9 | Identity verification per channel | P1 | 3 | Partly built: the company's server vouches for the customer by minting the chat token with that customer's id; one-time-code verification planned |
 | C10 | Attachments (images, documents) | P2 | 5 | Built (pictures, PDFs and plain text, enabled per agent, checked by content, size-limited, optionally scanned, kept with the conversation and erased with it; the web test console can attach files; customer-facing upload UI comes with the client SDK) |

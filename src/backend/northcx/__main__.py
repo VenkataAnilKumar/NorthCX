@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -339,6 +340,10 @@ def run() -> None:
         sso = Sso(sso_cfg, token_secret)
         print(f"Single sign-on is ON ({sso_cfg.issuer}); sessions last {sso_cfg.session_hours:g} hours.")
 
+    cors_origins = [o.strip().rstrip("/") for o in os.environ.get("NORTHCX_CORS_ORIGINS", "").split(",") if o.strip()]
+    for o in cors_origins:
+        if o == "*" or not re.fullmatch(r"https://[A-Za-z0-9.-]+(:\d+)?|http://(localhost|127\.0\.0\.1)(:\d+)?", o):
+            sys.exit(f"NORTHCX_CORS_ORIGINS: '{o}' must be an https origin such as https://www.example.com (no wildcards, no paths)")
     attachment_scanner = None
     if os.environ.get("NORTHCX_ATTACHMENT_SCAN_URL"):
         try:
@@ -350,7 +355,7 @@ def run() -> None:
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
                       regression=regression, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
-                      attachment_scanner=attachment_scanner,
+                      attachment_scanner=attachment_scanner, cors_origins=cors_origins,
                       insights=insights_service, alerts=alert_manager,
                       templates=load_templates(LIBRARY, *([os.environ["NORTHCX_TEMPLATES_DIR"]] if os.environ.get("NORTHCX_TEMPLATES_DIR") else [])),
                       sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,
