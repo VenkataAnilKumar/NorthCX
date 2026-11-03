@@ -103,7 +103,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | Q3 | Judge-model scoring with calibration | P1 | 2 | Judge and agreement check built; not yet calibrated with a real model |
 | Q4 | CI gate on required scenarios | P0 | 2 | Built: CI step, stored runs and gate rule; enforced at promotion in sprint 10 |
 | Q5 | Regression scenarios from production traces | P1 | 3 | Built (draft endpoint with masking and warnings; review before use) |
-| Q6 | Simulated customers with personas, including adversarial ones | P1 | 3 | Planned |
+| Q6 | Simulated customers with personas, including adversarial ones | P1 | 3 | Built (8 personas; fixed-line attack suites in CI; model-played customers in live runs, not yet run against a real model) |
 | Q7 | Re-run simulations when knowledge or policies change | P1 | 3 | Built for knowledge changes (policies are covered by the release gate); live mode needed to notice changed answers |
 | Q8 | Agent versioning and change history | P0 | 2 | Built |
 | Q9 | Environments (dev, staging, production) and promotion | P1 | 3 | Built (API, test console selector, promote buttons on the versions page) |

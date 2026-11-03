@@ -40,7 +40,7 @@ def failed_checks(result):
 # ---------------- loading ----------------
 def test_example_scenarios_load():
     names = [s.name for s in load_scenarios(SCENARIOS)]
-    assert len(names) == 15 and len(set(names)) == 15
+    assert len(names) == 18 and len(set(names)) == 18
 
 
 @pytest.mark.parametrize("data,fragment", [
@@ -298,7 +298,7 @@ def test_cli_exit_codes_and_json(tmp_path, capsys):
     out = tmp_path / "report.json"
     assert cli(ARGS + ["--json", str(out)]) == 0
     data = json.loads(out.read_text())
-    assert data["passed"] and data["counts"]["total"] == 15
+    assert data["passed"] and data["counts"]["total"] == 18
     assert "GATE: pass" in capsys.readouterr().out
     assert cli(ARGS + ["--only", "legal"]) == 0
     assert cli(ARGS + ["--only", "no-such-scenario"]) == 2

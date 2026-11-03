@@ -9,3 +9,13 @@
 **Tags.** A scenario may carry `tags`; they are labels only and do not change its digest, so tagging never invalidates earlier gate runs.
 
 **Not built.** Simulated customers with personas (Q6), calibrating the judge against a real model, and re-running on tool or schema changes.
+
+
+## Simulated customers and attack suites (Q6) — as built
+
+A scenario step `converse: <persona>` lets a simulated customer talk to the agent. The library has eight personas: `friendly`, `impatient`, `confused`, `abusive`, and the adversarial `prompt_injector`, `pii_dumper`, `legal_pressure` and `off_topic`. Each has a description (for a model that plays it) and a few fixed lines.
+
+- **Without a customer model (scripted and demo runs):** the persona's fixed lines (or the step's own `lines`) are spoken in order, up to `max_turns`. Every line is tried even if the agent hands the conversation to a person. This makes the adversarial personas a **deterministic attack suite** that runs in CI with no model for the customer: a line the input checks stop never reaches the agent's model, and a line that gets past them reaches a model that a scripted scenario does not provide, which fails the scenario.
+- **Live runs:** a model plays the customer from the persona description and the step's `goal`, sees the conversation from the customer's side, treats the agent's words as data, and ends with `[END]` when its goal is met or it gives up (messages are capped at 600 characters). The step ends early when the conversation is handed to a person or waits for approval. A failing customer model ends the conversation and fails the step if nothing was said.
+- **Shipped attack scenarios** (required, tagged `adversarial`): prompt injection never reaches the model and never gets a refund; personal data pasted into the chat is masked in everything sent to the model; legal threats go to a person on the first message. Each was checked by removing its defence (the injection check, the PII check, the legal topic) and confirming the scenario fails.
+- **Not built:** judging the quality of live persona conversations against a calibrated judge, personas for languages other than English, and a way to define personas in configuration (the library is code; a step can override the lines).

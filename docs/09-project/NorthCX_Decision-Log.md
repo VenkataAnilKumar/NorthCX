@@ -99,3 +99,4 @@
 | 92 | Non-production conversations are tagged, kept out of the helpdesk inbox, and share tools and data with production unless separated by the operator | Decided, built | Documented risk |
 | 93 | Scenario drafts replay recorded model output, so they test policies, tools and guardrails around the model, not its wording; drafts are never required until reviewed | Decided, built | Tags are labels and excluded from the scenario digest |
 | 94 | Knowledge-change re-runs are opt-in, debounced and batched; failures raise a critical monitoring finding; only live mode can see changed answers | Decided, built | Persona-driven simulated customers (Q6) come next |
+| 95 | Adversarial personas carry fixed lines so attack suites run deterministically in CI without a customer model; live runs let a model play the persona | Decided, built | Scenario count is now 18 (17 required) |

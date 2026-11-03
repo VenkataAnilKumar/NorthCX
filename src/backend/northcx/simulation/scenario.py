@@ -82,7 +82,18 @@ class ExpireApprovals(_Strict):
     expect: StepExpect | None = None
 
 
-Step = Say | Decide | ExpireApprovals
+class Converse(_Strict):
+    """A simulated customer talks to the agent. A library persona (or an inline one) is played by a model in live mode; in other
+    modes its fixed lines are used."""
+
+    converse: str = Field(min_length=1)  # persona name from the library
+    goal: str = "Get help with an order."
+    max_turns: int = Field(default=6, ge=1, le=20)
+    lines: list[str] | None = None  # overrides the persona's fixed lines (for runs without a customer model)
+    expect: StepExpect | None = None
+
+
+Step = Say | Decide | ExpireApprovals | Converse
 
 
 class ModelResponse(_Strict):
@@ -129,11 +140,15 @@ class Scenario(_Strict):
 
     @model_validator(mode="after")
     def _steps_make_sense(self) -> "Scenario":
-        if not any(isinstance(t, Say) for t in self.turns):
-            raise ValueError("a scenario needs at least one 'say' step")
+        if not any(isinstance(t, (Say, Converse)) for t in self.turns):
+            raise ValueError("a scenario needs at least one 'say' or 'converse' step")
         first = self.turns[0]
-        if not isinstance(first, Say):
-            raise ValueError("the first step must be a 'say'")
+        if not isinstance(first, (Say, Converse)):
+            raise ValueError("the first step must be a 'say' or 'converse'")
+        from .personas import LIBRARY
+        for t in self.turns:
+            if isinstance(t, Converse) and t.converse not in LIBRARY:
+                raise ValueError(f"unknown persona '{t.converse}' (available: {', '.join(sorted(LIBRARY))})")
         return self
 
 

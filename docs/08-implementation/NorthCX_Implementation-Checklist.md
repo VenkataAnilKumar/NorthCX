@@ -16,7 +16,7 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 ## Phase 2
 - [x] Agent spec, registries and the example agent as a spec (W1); CI workflow and restricted-path check
 - [x] Apache-2.0 licence
-- [x] Simulation runner, scenario format, 15 example scenarios, command line, judge and agreement check (Q2, part of Q3)
+- [x] Simulation runner, scenario format, 18 example scenarios (3 adversarial), command line, judge and agreement check (Q2, part of Q3)
 - [x] CI runs the scripted suite and fails on a required scenario (first part of Q4)
 - [x] Stored simulation runs, release-gate rule, simulation API and web page, CI records its run (sprint 9)
 - [x] Gate enforced when publishing a version (sprint 10)

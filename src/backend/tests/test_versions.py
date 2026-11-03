@@ -125,7 +125,7 @@ async def test_publishing_requires_the_gate_for_that_exact_version(env):
     await env.prove(v1)
     rel = await env.svc.publish("support", 1, "rel-mgr", "first release")
     assert (rel.action, rel.number, rel.by, rel.previous_number) == ("publish", 1, "rel-mgr", None)
-    assert rel.gate["satisfied"] and rel.gate["covered"] == rel.gate["required"] == 14 and rel.gate["runIds"]
+    assert rel.gate["satisfied"] and rel.gate["covered"] == rel.gate["required"] == 17 and rel.gate["runIds"]
     v2 = await env.new_version(max_steps=6)  # a different spec has not been proven by v1's run
     with pytest.raises(GateBlocked):
         await env.svc.publish("support", 2, "rel", None)
@@ -245,7 +245,7 @@ async def test_simulation_against_a_spec_runs_only_that_agents_scenarios_with_it
     sim = Env(InMemoryVersions(), InMemoryReleases()).sim
     spec = edited(max_steps=5)
     run = await sim.run("scripted", skip_judge=True, spec=spec)
-    assert run.agent_digests == {"support": spec.digest()} and run.counts["total"] == 15 and run.meta == {"agent": "support"}
+    assert run.agent_digests == {"support": spec.digest()} and run.counts["total"] == 18 and run.meta == {"agent": "support"}
     assert (await sim.gate_for("support", spec.digest())).satisfied
     assert not (await sim.gate("support")).satisfied  # the spec file's own digest was not proven by this run
     no_builder = SimulationService(SCEN, lambda a, l: build_agent(BASE, l), InMemorySimRuns(), {"support": BASE.digest()})

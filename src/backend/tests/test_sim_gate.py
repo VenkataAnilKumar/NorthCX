@@ -114,7 +114,7 @@ async def test_service_records_runs_and_the_gate_follows():
     svc = service()
     assert not (await svc.gate("support")).satisfied  # nothing run yet
     run = await svc.run("scripted", skip_judge=True)
-    assert run.passed and run.counts["total"] == 15 and run.agent_digests == {"support": DIGEST}
+    assert run.passed and run.counts["total"] == 18 and run.agent_digests == {"support": DIGEST}
     assert (await svc.runs.get(run.id)).id == run.id
     g = await svc.gate("support")
     assert g.satisfied and g.run_ids == [run.id]
@@ -126,7 +126,7 @@ async def test_service_validates_requests():
         await svc.run("live")
     with pytest.raises(ValueError, match="no scenario"):
         await svc.run("scripted", only="nothing-like-this")
-    partial = await svc.run("scripted", only="legal", skip_judge=True)
+    partial = await svc.run("scripted", only="legal-threat-always", skip_judge=True)
     assert partial.counts["total"] == 1
     assert not (await svc.gate("support")).satisfied  # one scenario is not enough
 
@@ -158,17 +158,17 @@ def client(svc=None, api_key=None):
 def test_simulation_api_end_to_end():
     c = client(service())
     scen = c.get("/v1/simulations/scenarios").json()
-    assert len(scen["scenarios"]) == 15 and scen["modes"] == ["scripted", "demo"]
+    assert len(scen["scenarios"]) == 18 and scen["modes"] == ["scripted", "demo"]
     assert any(s["name"] == "order-lookup" and s["required"] for s in scen["scenarios"])
     gate0 = c.get("/v1/simulations/gate").json()["gates"][0]
     assert gate0["satisfied"] is False and gate0["covered"] == 0 and gate0["agentDigest"] == DIGEST
     r = c.post("/v1/simulations/runs", json={"skipJudge": True})
     assert r.status_code == 200
     run = r.json()
-    assert run["passed"] and run["counts"]["total"] == 15 and run["source"] == "api" and "results" not in run
+    assert run["passed"] and run["counts"]["total"] == 18 and run["source"] == "api" and "results" not in run
     assert [x["id"] for x in c.get("/v1/simulations/runs").json()["runs"]] == [run["id"]]
     detail = c.get(f"/v1/simulations/runs/{run['id']}").json()
-    assert len(detail["results"]) == 15 and all(x["passed"] for x in detail["results"])
+    assert len(detail["results"]) == 18 and all(x["passed"] for x in detail["results"])
     gate = c.get("/v1/simulations/gate?agent=support").json()["gates"][0]
     assert gate["satisfied"] and gate["covered"] == gate["required"] and gate["runIds"] == [run["id"]]
 

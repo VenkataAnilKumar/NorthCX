@@ -20,7 +20,8 @@ from ..trace import TraceStore
 from ..types import LLM, LLMRequest, LLMResponse
 from .judge import Judge
 from .report import Failure, ScenarioResult, SuiteResult, TrialResult
-from .scenario import Decide, ExpireApprovals, FinalExpect, Say, Scenario, StepExpect
+from .personas import SimulatedCustomer, get_persona
+from .scenario import Converse, Decide, ExpireApprovals, FinalExpect, Say, Scenario, StepExpect
 
 AgentFactory = Callable[[str, LLM], Agent]
 
@@ -204,6 +205,35 @@ class SimulationRunner:
                 d.handoff = await handoffs.get(r.handoff_id) if r.handoff_id else None
                 trace_ids.append(r.trace_id)
                 model_calls += sum(e.type == "llm" for e in r.trace.events)
+            elif isinstance(step, Converse):
+                where = f"step {n} (converse as {step.converse})"
+                persona = get_persona(step.converse)
+                live_customer = self.cfg.mode == "live" and step.lines is None and self.cfg.live_llm is not None
+                lines = list(step.lines if step.lines is not None else persona.lines)
+                if not live_customer and not lines:
+                    failures.append(Failure(where, "customer", "fixed lines or a live model to play the customer", "neither available"))
+                    last = d
+                    continue
+                customer = SimulatedCustomer(self.cfg.live_llm, persona, step.goal) if live_customer else None
+                reply: str | None = None
+                said = 0
+                for i in range(step.max_turns):
+                    msg = await customer.next_message(reply) if customer else (lines[i] if i < len(lines) else None)
+                    if msg is None:
+                        break
+                    r = await rt.run(agent, sid, msg, sc.customer_id)
+                    said += 1
+                    reply = r.reply
+                    d.status, d.reply = r.status, r.reply
+                    d.tools += r.trace.tools_called()
+                    d.guardrails += [e.data.get("guardrail", "") for e in r.trace.events if e.type == "guardrail"]
+                    d.handoff = await handoffs.get(r.handoff_id) if r.handoff_id else d.handoff
+                    trace_ids.append(r.trace_id)
+                    model_calls += sum(e.type == "llm" for e in r.trace.events)
+                    if customer and r.status in ("escalated", "needs_approval"):
+                        break  # a person takes over; a model-played customer would only talk to a wall
+                if said == 0:
+                    failures.append(Failure(where, "customer", "at least one message", "the simulated customer said nothing"))
             elif isinstance(step, Decide):
                 where = f"step {n} ({step.decide})"
                 pending = [a for a in await approvals.list("pending") if a.session_id == sid and (not step.tool or a.tool == step.tool)]
