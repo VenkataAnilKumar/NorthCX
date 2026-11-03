@@ -28,6 +28,7 @@ from .routing import RoutingError, load_router
 from .config import load_context_provider, load_registry
 from .context import CachedContext, HttpContextProvider
 from .audit import InMemoryAudit
+from .channels.whatsapp import WhatsAppChannel, WhatsAppNotifier, WhatsAppProvider
 from .channels.sms import InMemorySmsRepo, SmsChannel, SmsConfig, SmsNotifier, TwilioProvider, valid_number
 from .channels.email import EmailChannel, EmailConfig, EmailNotifier, InMemoryEmailRepo, SmtpSender
 from .summarize import Compactor
@@ -189,6 +190,21 @@ def run() -> None:
         from .notify import CompositeNotifier
 
         notifier = CompositeNotifier(*[n for n in (notifier, sms_notifier) if n])
+    wa_provider = wa_config = None
+    if os.environ.get("NORTHCX_WHATSAPP_PHONE_ID"):
+        try:
+            wa_provider = WhatsAppProvider(env_or_file("NORTHCX_WHATSAPP_TOKEN") or "", env_or_file("NORTHCX_WHATSAPP_APP_SECRET") or "",
+                                           env_or_file("NORTHCX_WHATSAPP_VERIFY_TOKEN") or "", base_url=os.environ.get("NORTHCX_WHATSAPP_API_URL") or "https://graph.facebook.com/v21.0")
+            if not os.environ["NORTHCX_WHATSAPP_PHONE_ID"].isdigit():
+                raise ValueError("NORTHCX_WHATSAPP_PHONE_ID is the numeric phone number id from the WhatsApp business dashboard")
+        except ValueError as e:
+            sys.exit(f"Configuration error: {e}")
+        wa_config = SmsConfig(os.environ["NORTHCX_WHATSAPP_PHONE_ID"], os.environ.get("NORTHCX_WHATSAPP_AGENT", "support"),
+                              max_replies_per_number_per_hour=int(os.environ.get("NORTHCX_WHATSAPP_MAX_REPLIES_PER_HOUR", 20)), max_chars=2000,
+                              help_text="Send your question and our assistant will help. Reply STOP to unsubscribe.")
+        from .notify import CompositeNotifier
+
+        notifier = CompositeNotifier(*[n for n in (notifier, WhatsAppNotifier(sms_repo, wa_provider, wa_config)) if n])
     context_source = None
     try:
         provider = None
@@ -387,7 +403,7 @@ def run() -> None:
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo, crawler=crawler,
-                      regression=regression, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
+                      regression=regression, whatsapp=WhatsAppChannel(runtime, agents, sms_repo, wa_provider, wa_config) if wa_provider else None, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
                       attachment_scanner=attachment_scanner, cors_origins=cors_origins, voice=voice_cfg, calls=call_repo,
                       insights=insights_service, alerts=alert_manager,
                       templates=load_templates(LIBRARY, *([os.environ["NORTHCX_TEMPLATES_DIR"]] if os.environ.get("NORTHCX_TEMPLATES_DIR") else [])),

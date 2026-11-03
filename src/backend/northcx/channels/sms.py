@@ -71,6 +71,10 @@ class SmsSendError(RuntimeError):
     pass
 
 
+class PermanentSendError(SmsSendError):
+    """The provider refused this message for good (for example a closed reply window); retrying would never succeed."""
+
+
 class TwilioProvider:
     """Twilio-compatible: webhook signature is HMAC-SHA1 of the URL plus the sorted form fields; sending uses the Messages API."""
 
@@ -172,6 +176,7 @@ class InMemorySmsRepo:
 
 
 class SmsNotifier:
+    SPLIT = 1500
     """Delivers outbox messages that belong to SMS conversations (replies, approval results, hand-off notices) as texts."""
 
     def __init__(self, repo: SmsRepo, provider: SmsProvider, config: SmsConfig):
@@ -180,7 +185,7 @@ class SmsNotifier:
     async def deliver(self, message: OutboxMessage) -> None:
         session = await self.repo.get_session(message.session_id)
         body = message.payload.get("reply")
-        if session is None or not body:
+        if session is None or not body or session.our_number != self.config.from_number:  # another channel's conversation
             return
         key = f"outbox:{message.id}:{message.session_id}"
         if await self.repo.has_message(key):
@@ -188,12 +193,18 @@ class SmsNotifier:
         if await self.repo.is_opted_out(session.phone):
             await self.repo.record_message(key, session.session_id, "out", "opted_out", session.phone)
             return
-        for i, part in enumerate(split_sms(body)):
-            await self.provider.send(session.phone, self.config.from_number, part)  # raises on failure, so the outbox retries
+        try:
+            for part in split_sms(body, self.SPLIT):
+                await self.provider.send(session.phone, self.config.from_number, part)  # raises on failure, so the outbox retries
+        except PermanentSendError:
+            await self.repo.record_message(key, session.session_id, "out", "undeliverable", session.phone)  # retrying cannot help
+            return
         await self.repo.record_message(key, session.session_id, "out", "sent", session.phone)
 
 
 class SmsChannel:
+    CHANNEL, PREFIX, REPLY_KIND = "sms", "sms-", "sms_reply"
+
     def __init__(self, runtime: Runtime, agents: Any, repo: SmsRepo, provider: SmsProvider, config: SmsConfig):
         self.rt, self.agents, self.repo, self.provider, self.config = runtime, as_provider(agents), repo, provider, config
         self._locks: dict[str, asyncio.Lock] = {}
@@ -243,7 +254,7 @@ class SmsChannel:
         async with self._lock(f"phone:{phone}"):
             session = await self.repo.latest_session(phone, cfg.from_number)
             if session is None or now - session.last_seen > cfg.session_idle_hours * 3600:
-                session = SmsSession(f"sms-{uuid.uuid4().hex}", phone, cfg.from_number)
+                session = SmsSession(f"{self.PREFIX}{uuid.uuid4().hex}", phone, cfg.from_number)
             session.last_seen = now
             await self.repo.save_session(session)
             text = body[: cfg.max_chars]
@@ -259,9 +270,9 @@ class SmsChannel:
             except AgentUnavailable as e:
                 raise RuntimeError(str(e)) from e
             if agent is None:
-                raise RuntimeError(f"SMS agent '{cfg.agent_id}' does not exist")
+                raise RuntimeError(f"{self.CHANNEL} agent '{cfg.agent_id}' does not exist")
             agent = await self.rt.active_agent(agent, session.session_id)
-            run = await self.rt.run(agent, session.session_id, text, session.customer_id, channel="sms")
-            await self.rt.outbox.publish(session.session_id, "sms_reply", {
+            run = await self.rt.run(agent, session.session_id, text, session.customer_id, channel=self.CHANNEL)
+            await self.rt.outbox.publish(session.session_id, self.REPLY_KIND, {
                 "reply": run.reply, "status": run.status, "traceId": run.trace_id, "handoffId": run.handoff_id})
             return InboundResult({"completed": "replied"}.get(run.status, run.status), session.session_id, trace_id=run.trace_id, handoff_id=run.handoff_id)

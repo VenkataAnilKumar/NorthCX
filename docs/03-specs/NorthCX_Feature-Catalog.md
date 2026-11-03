@@ -75,7 +75,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | C1 | HTTP chat API | P0 | 1 | Built |
 | C2 | Web chat widget | P0 | 1 | Built (demo page; uses chat tokens) |
 | C3 | Email | P1 | 3 | Planned |
-| C4 | SMS and messaging apps | P1 | 3 | SMS built (Twilio-compatible); messaging apps planned |
+| C4 | SMS and messaging apps | P1 | 3 | SMS built (Twilio-compatible); WhatsApp built (Meta Cloud API); other messaging apps, templates and media planned |
 | C5 | Voice (phone) | P2 | 5 | Built as the conversation side with a provider-neutral WebSocket bridge protocol (disclosure, recording consent, speakable replies, keypad, hand-off to a phone queue or callback, silence, call records); no telephony or speech provider included and not tested on a real line |
 | C6 | Voice: multilingual, language switching, barge-in | P2 | 5 | Built (barge-in that keeps only what the caller heard, per-utterance language detection with mid-call switching, platform phrases in four languages) |
 | C7 | Embeddable SDK for mobile and web apps | P2 | 5 | Built for the web (dependency-free client with streaming, retries, token renewal, uploads, teammate replies and ratings, plus a drop-in `<northcx-chat>` widget); native iOS and Android SDKs not built (the REST calls are documented) |

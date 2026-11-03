@@ -27,6 +27,7 @@ from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
 from .channels.sms import SmsChannel, parse_form
+from .channels.whatsapp import WhatsAppChannel
 from .templates import Template, TemplateError, render
 from .alerts import AlertManager
 from .journeys import SYSTEM as JOURNEY_SYSTEM, DraftError, JourneySpec, draft_prompt, parse_draft, scenarios as journey_scenarios_list, scenarios_yaml as journey_scenarios_yaml
@@ -362,7 +363,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
-               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None,
+               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None,
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
@@ -397,8 +398,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         runtime.privacy.idempotency = idem
         if email is not None:
             runtime.privacy.email = email.repo
-        if sms is not None:
-            runtime.privacy.sms = sms.repo
+        if sms is not None or whatsapp is not None:
+            runtime.privacy.sms = (sms or whatsapp).repo
     provider = as_provider(agents)
     if runtime.agent_resolver is None:
         runtime.agent_resolver = provider.get  # lets agents pass a conversation to a specialist
@@ -1742,6 +1743,44 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             log.exception("sms inbound failed")
             return _err(500, "internal", "Could not process the message; it can be delivered again")
         return Response(content="<Response></Response>", media_type="text/xml")  # replies go out through the outbox
+
+    # ---------------- WhatsApp ----------------
+    @app.get("/channels/whatsapp/meta")
+    async def whatsapp_verify(request: Request) -> Any:
+        """One-time webhook check by Meta: echoes the challenge only when the shared verify token matches."""
+        q = request.query_params
+        if whatsapp is None:
+            return _err(501, "not_configured", "The WhatsApp channel is not configured")
+        challenge = q.get("hub.challenge", "")
+        if q.get("hub.mode") != "subscribe" or not whatsapp.provider.valid_verify_token(q.get("hub.verify_token", "")) or not re.fullmatch(r"[0-9A-Za-z_.~-]{1,200}", challenge):
+            return _err(403, "forbidden", "Verification failed")
+        return Response(content=challenge, media_type="text/plain")
+
+    @app.post("/channels/whatsapp/meta")
+    async def whatsapp_inbound(request: Request) -> Any:
+        """Public webhook for WhatsApp. Authenticated by the body signature, never by an API key."""
+        if whatsapp is None:
+            return _err(501, "not_configured", "The WhatsApp channel is not configured")
+        ip = request.client.host if request.client else "unknown"
+        raw = b""
+        async for chunk in request.stream():
+            raw += chunk
+            if len(raw) > 262144:
+                return _err(413, "too_large", "Request is too large")
+        if not whatsapp.authentic(raw, request.headers.get("x-hub-signature-256", "")):
+            if limits and not access.limiter.allow(f"smsfail:{ip}", limits.auth_failures_per_minute)[0]:
+                return too_many(60, "unsigned requests")
+            if access.limiter.allow(f"smslog:{ip}", 6)[0]:
+                await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/whatsapp/meta", outcome="denied", detail={"client": ip}))
+            return _err(403, "forbidden", "Invalid signature")
+        try:
+            await whatsapp.receive_body(raw)
+        except ValueError as e:
+            return _err(400, "bad_request", str(e))
+        except Exception:
+            log.exception("whatsapp inbound failed")
+            return _err(500, "internal", "Could not process the message; it can be delivered again")
+        return {"status": "ok"}
 
     # ---------------- chat tokens ----------------
     @app.post("/v1/chat-tokens", status_code=201)

@@ -10,7 +10,7 @@ An adapter translates a channel message to `POST /v1/agents/:id/chat {sessionId,
 |---|---|---|
 | Web chat widget | 1 | Served by the API server |
 | Email | 3 | Via inbox integration; thread ID maps to session |
-| SMS / WhatsApp | 3 | Via inbox integration; opt-in and template rules apply |
+| SMS / WhatsApp | 3 | SMS and WhatsApp built; opt-in and template rules apply |
 | Voice | 5 | Built as a WebSocket protocol for a telephony bridge; see `NorthCX_Voice.md` |
 
 ## Voice requirements
@@ -68,3 +68,12 @@ An agent spec can list the languages it supports, for example `languages: [en, e
 Known codes: en, es, fr, de, pt, it, nl, ru, ja, zh, ko, ar, hi. The detected language is recorded on the trace, shown on hand-off packages, broken down in Insights (with containment per language) and searchable (`language` filter).
 
 Limits: fixed platform messages (the model-failure fallback, after-hours notices) and forced-topic replies are written by the operator, so write them in the languages you support (a forced-topic pattern is a regular expression and can list words from several languages). Detection is weakest for very short text and for closely related languages written without accents.
+
+## WhatsApp channel — as built (C4)
+
+`POST /channels/whatsapp/meta` receives Meta Cloud API webhook calls; `GET` on the same address answers Meta's one-time verification (it echoes the challenge only when `hub.verify_token` matches `NORTHCX_WHATSAPP_VERIFY_TOKEN`, and only for a plain alphanumeric challenge). Neither uses an API key: every POST must carry a valid `X-Hub-Signature-256` (HMAC-SHA256 of the exact body with the app secret); failures are rate limited per address and audited like SMS.
+
+- It runs on the same engine as SMS, so everything below applies unchanged: one conversation per phone number (idle after 24 hours by default), duplicate deliveries ignored, STOP/START/HELP words, a per-number hourly reply limit, a person who has taken over keeps the conversation (customer messages are held for them), hand-offs, privacy export/erase, and agent `channel_styles` under the key `whatsapp`. A person who uses both SMS and WhatsApp is the same customer (`phone:+…`) and shares memory; an opt-out applies to both.
+- Text, buttons and list replies are read; images, audio, documents and other media are not, and the agent is told an attachment arrived. Delivery receipts and reactions are ignored.
+- Replies go out through the outbox like every other channel and are split at 3,500 characters. Meta only allows free-form replies within 24 hours of the customer's last message: a refusal (any 4xx other than rate limiting) is recorded as `undeliverable` and not retried; network errors, 5xx and 429 are retried.
+- Not built: approved message templates for starting conversations, media, multiple WhatsApp numbers on one server, other messaging apps (the provider is a small interface: `valid_body_signature`, `send`).
