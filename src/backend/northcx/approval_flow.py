@@ -38,7 +38,7 @@ class ApprovalFlow:
         Raises KeyError for an unknown approval and ValueError if it was already decided."""
         a = await self.rt.approvals.decide(approval_id, approved, by, note)
         try:
-            agent = await as_provider(agents).get(a.agent_id)
+            agent = await as_provider(agents).get(a.agent_id, "production", a.session_id)
             problem = f"agent '{a.agent_id}' is not available"
         except AgentUnavailable as e:
             agent, problem = None, str(e)

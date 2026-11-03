@@ -251,7 +251,7 @@ async def test_sms_and_email_channels_pass_their_names():
     a.channel_styles = {"sms": "Be brief"}
 
     class P:
-        async def get(self, i):
+        async def get(self, i, *_):
             return a
 
     ch.agents = P()

@@ -6,6 +6,7 @@ import time
 import uuid
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
@@ -18,6 +19,8 @@ from ..handoffs import Handoff
 from ..monitor import Finding
 from ..simulation.managed import ManagedScenario
 from ..reviews import Review
+from ..rollout import Rollout
+from ..versions import Conflict
 from ..insights import MAX_TAGS, FeedbackFacts, HandoffFacts, TurnFacts, facts_from_trace
 from ..trace_export import MAX_ATTEMPTS as EXPORT_MAX_ATTEMPTS, ExportJob
 from ..inbox import MAX_ATTEMPTS, InboxEvent
@@ -643,6 +646,62 @@ class PgScenarios(_Base):
             return (await s.execute(text("delete from managed_scenarios where name = :n returning name"), {"n": name})).first() is not None
 
 
+class PgRollouts(_Base):
+    @staticmethod
+    def _r(r: Any) -> Rollout:
+        return Rollout(r.agent_id, r.environment, r.candidate_number, r.control_number, r.percent, r.started_by, r.note, r.state, r.ended_by, r.ended_at, r.id, r.started_at)
+
+    @staticmethod
+    def _p(r: Rollout) -> dict[str, Any]:
+        return {"id": r.id, "a": r.agent_id, "e": r.environment, "cn": r.candidate_number, "ctl": r.control_number, "p": r.percent, "st": r.state,
+                "by": r.started_by, "note": r.note, "eby": r.ended_by, "sa": r.started_at, "ea": r.ended_at}
+
+    async def add(self, r: Rollout) -> None:
+        try:
+            async with self._sm.begin() as s:
+                await s.execute(text("insert into rollouts (id, agent_id, environment, candidate_number, control_number, percent, state, started_by, note, ended_by, started_at, ended_at) "
+                                     "values (:id, :a, :e, :cn, :ctl, :p, :st, :by, :note, :eby, :sa, :ea)"), self._p(r))
+        except IntegrityError as e:
+            raise Conflict(f"A rollout is already running for {r.agent_id} in {r.environment}") from e
+
+    async def save(self, r: Rollout) -> None:
+        async with self._sm.begin() as s:
+            await s.execute(text("update rollouts set percent = :p, state = :st, ended_by = :eby, ended_at = :ea where id = :id"), self._p(r))
+
+    async def _one(self, where: str, params: dict[str, Any]) -> Rollout | None:
+        async with self._sm() as s:
+            row = (await s.execute(text(f"select * from rollouts where {where}"), params)).first()
+        return self._r(row) if row else None
+
+    async def active(self, agent_id: str, environment: str) -> Rollout | None:
+        return await self._one("agent_id = :a and environment = :e and state = 'active'", {"a": agent_id, "e": environment})
+
+    async def get(self, rollout_id: str) -> Rollout | None:
+        return await self._one("id = :id", {"id": rollout_id})
+
+    async def history(self, agent_id: str, limit: int = 50) -> list[Rollout]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from rollouts where agent_id = :a order by started_at desc limit :n"), {"a": agent_id, "n": limit})).all()
+        return [self._r(r) for r in rows]
+
+    async def assign(self, rollout_id: str, session_id: str, arm: str) -> str:
+        async with self._sm.begin() as s:
+            await s.execute(text("insert into rollout_assignments (rollout_id, session_id, arm) values (:r, :s, :a) on conflict do nothing"), {"r": rollout_id, "s": session_id, "a": arm})
+            return (await s.execute(text("select arm from rollout_assignments where rollout_id = :r and session_id = :s"), {"r": rollout_id, "s": session_id})).scalar_one()
+
+    async def arm_sessions(self, rollout_id: str, limit: int = 5000) -> dict[str, list[str]]:
+        out: dict[str, list[str]] = {"control": [], "candidate": []}
+        async with self._sm() as s:
+            for arm in out:
+                rows = (await s.execute(text("select session_id from rollout_assignments where rollout_id = :r and arm = :a limit :n"), {"r": rollout_id, "a": arm, "n": limit})).all()
+                out[arm] = [r[0] for r in rows]
+        return out
+
+    async def erase_session(self, session_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from rollout_assignments where session_id = :s"), {"s": session_id})).rowcount
+
+
 class PgReviews(_Base):
     @staticmethod
     def _r(r: Any) -> Review:
@@ -987,6 +1046,7 @@ class PgPrivacy(_Base):
                 "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
                 "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,
             }
+            out["rolloutAssignments"] = (await s.execute(text("delete from rollout_assignments where session_id = :s"), p)).rowcount
             out["reviews"] = (await s.execute(text("delete from conversation_reviews where session_id = :s"), p)).rowcount
             out["tags"] = (await s.execute(text("delete from conversation_tags where session_id = :s"), p)).rowcount
             out["feedback"] = (await s.execute(text("delete from conversation_feedback where session_id = :s"), p)).rowcount

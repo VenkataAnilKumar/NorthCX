@@ -6,6 +6,7 @@ import {
   rollbackAgent, runForVersion, versionGate, type AgentVersion, type Gate, type VersionDiff,
 } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
+import { RolloutPanel } from "@/components/rollout-panel";
 import { useMe } from "@/lib/me";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
@@ -173,6 +174,8 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
           </ul>
           {envErr && <p role="alert" className="mt-2 text-sm text-[var(--bad)]">{envErr}</p>}
         </section>)}
+      <RolloutPanel agent={id} versions={(versions.data ?? []).map((v) => v.number)} tick={tick} onChanged={refresh} />
+
       <section aria-label="Live" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4">
         <div>
           <p className="text-sm text-muted">Serving customers now</p>

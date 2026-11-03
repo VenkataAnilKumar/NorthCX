@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, Computed, DateTime, Float, ForeignKey, Identity, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import BigInteger, Computed, DateTime, Float, ForeignKey, Identity, Index, Integer, String, Text, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -251,6 +251,31 @@ class ManagedScenarioRow(Base):
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     __table_args__ = (Index("ix_managed_scenarios_agent", "agent_id"),)
+
+
+class RolloutRow(Base):
+    __tablename__ = "rollouts"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    environment: Mapped[str] = mapped_column(String(16), nullable=False)
+    candidate_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    control_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    percent: Mapped[int] = mapped_column(Integer, nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    started_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    ended_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    started_at: Mapped[float] = mapped_column(Float, nullable=False)
+    ended_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    __table_args__ = (Index("uq_rollouts_active", "agent_id", "environment", unique=True, postgresql_where=text("state = 'active'")),)
+
+
+class RolloutAssignmentRow(Base):
+    __tablename__ = "rollout_assignments"
+    rollout_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    arm: Mapped[str] = mapped_column(String(16), nullable=False)
+    __table_args__ = (Index("ix_rollout_assign_session", "session_id"),)
 
 
 class ReviewRow(Base):

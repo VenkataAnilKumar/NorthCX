@@ -255,7 +255,7 @@ class SmsChannel:
                 await self.rt.store.save_messages(session.session_id, msgs)
                 return InboundResult("held_for_person", session.session_id, "a person is handling this conversation")
             try:
-                agent = await self.agents.get(cfg.agent_id)
+                agent = await self.agents.get(cfg.agent_id, "production", session.session_id)
             except AgentUnavailable as e:
                 raise RuntimeError(str(e)) from e
             if agent is None:

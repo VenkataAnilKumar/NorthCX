@@ -108,7 +108,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | Q8 | Agent versioning and change history | P0 | 2 | Built |
 | Q9 | Environments (dev, staging, production) and promotion | P1 | 3 | Built (API, test console selector, promote buttons on the versions page) |
 | Q10 | Rollback to a prior version | P0 | 2 | Built |
-| Q11 | Staged rollout and A/B experiments | P2 | 4 | Planned |
+| Q11 | Staged rollout and A/B experiments | P2 | 4 | Built (staged rollout of a proven candidate to a share of new conversations with sticky arms, side-by-side comparison, promote or stop; automatic stop rules and multi-arm tests still planned) |
 | Q12 | Load and cost testing | P2 | 6 | Planned |
 
 ## 9. Observability and insights
@@ -134,7 +134,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | U4 | Conversation review and failure tagging | P1 | 4 | Built |
 | U5 | Approval queue | P1 | 4 | Planned |
 | U6 | Knowledge management | P1 | 4 | Built (sources, documents with editing, freshness, try-a-question) |
-| U7 | Publish workflow with required checks | P1 | 4 | Built (checklist of required checks and warnings per version and environment; staged rollout percentage still planned under Q11) |
+| U7 | Publish workflow with required checks | P1 | 4 | Built (checklist of required checks and warnings per version and environment; staged rollout built under Q11) |
 | U8 | Role-based views | P1 | 4 | Early version built (navigation, buttons and forms follow the signed-in role) |
 
 ## 11. Security, administration and platform

@@ -498,7 +498,7 @@ def test_a_failure_inside_the_agent_asks_the_sender_to_deliver_again():
     ch.agents = {"get": None}
 
     class Broken:
-        async def get(self, agent_id):
+        async def get(self, agent_id, environment="production", session_id=None):
             raise RuntimeError("model unreachable")
         async def all(self):
             return []
@@ -506,5 +506,5 @@ def test_a_failure_inside_the_agent_asks_the_sender_to_deliver_again():
     ch.agents = Broken()
     r = c.post("/v1/channels/email/inbound", content=mail(), headers=H("boot" * 10))
     assert r.status_code == 500 and r.json()["error"]["code"] == "internal" and "unreachable" not in r.text
-    ch.agents = type("Ok", (), {"get": staticmethod(lambda i: asyncio.sleep(0, support_agent())), "all": staticmethod(lambda: asyncio.sleep(0, []))})()
+    ch.agents = type("Ok", (), {"get": staticmethod(lambda i, *a: asyncio.sleep(0, support_agent())), "all": staticmethod(lambda: asyncio.sleep(0, []))})()
     assert c.post("/v1/channels/email/inbound", content=mail(), headers=H("boot" * 10)).json()["status"] == "replied"  # the retry works: nothing was lost

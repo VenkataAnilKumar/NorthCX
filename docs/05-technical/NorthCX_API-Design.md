@@ -92,6 +92,12 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | GET | `/skills` | Skills available to agents, with their steps and tools (built) |
 | GET | `/insights/overview`, `/insights/timeseries`, `/insights/failures`, `/insights/gaps` | Metrics with numerator, denominator and period; `from`, `to` (epoch seconds, default last 7 days, at most 366), `agent`, `environment`; timeseries takes `bucket=hour|day` (`insights:read`) (built) |
 | POST | `/sessions/{id}/feedback` | `{rating 1-5, comment?}`: a customer's rating (chat token for its own conversation, channel or API key); a second rating replaces the first (`feedback:send`) (built) |
+| POST | `/agents/{id}/rollouts` | `version`, `percent` (1-99), `environment` (staging or production), `note`: start a staged rollout; blocked unless the candidate passes the checklist; production needs `releases:publish` (built) |
+| GET | `/agents/{id}/rollouts` | history including the active one (`versions:read`) (built) |
+| PUT | `/agents/{id}/rollouts/{rid}/percent` | change the share for new conversations (built) |
+| POST | `/agents/{id}/rollouts/{rid}/promote` | publish the candidate to everyone through the normal gate (built) |
+| POST | `/agents/{id}/rollouts/{rid}/abort` | stop; everyone keeps the current version (production needs `releases:rollback`) (built) |
+| GET | `/agents/{id}/rollouts/{rid}/comparison` | the same measures for control and candidate with sample sizes (`insights:read`) (built) |
 | GET | `/agents/{id}/versions/{n}/checklist` | `environment`: required checks (pass, fail, warn, info) with details, a change summary against what is live, and `ready` (`versions:read`) (built) |
 | GET | `/reviews/queue` | `agent`, `environment`, `includeReviewed`, `sample`, `limit`: conversations worth reviewing with reasons (`traces:read`) (built) |
 | GET | `/sessions/{id}/transcript` | transcript, traces, hand-offs, rating, tags and existing review (`traces:read`) (built) |

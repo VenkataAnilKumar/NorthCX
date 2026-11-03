@@ -174,6 +174,8 @@ class ReleaseService:
         self.versions, self.releases, self.registry = versions, releases, registry
         self.baselines, self.simulations = baselines, simulations
         self.strict_promotion = strict_promotion  # production only accepts versions that were live in staging
+        self.rollouts: Any = None  # the repository, set by RolloutService;
+        self.rollout_service: Any = None  # set by RolloutService; a running rollout freezes publishing and rollback in its environment
         self._lock = asyncio.Lock()
 
     def baseline(self, agent_id: str) -> AgentSpec | None:
@@ -245,7 +247,11 @@ class ReleaseService:
             return None
         return await self.simulations.gate_for(version.agent_id, version.digest)
 
-    async def publish(self, agent_id: str, number: int, by: str, note: str | None = None, environment: str = PRODUCTION) -> Release:
+    async def _no_rollout(self, agent_id: str, environment: str) -> None:
+        if self.rollouts is not None and await self.rollouts.active(agent_id, environment) is not None:
+            raise Conflict(f"A rollout is running for {agent_id} in {environment}; promote or abort it first")
+
+    async def publish(self, agent_id: str, number: int, by: str, note: str | None = None, environment: str = PRODUCTION, during_rollout: bool = False) -> Release:
         """Release a version to an environment. Dev is for trying things and needs no proof; staging and production need the release
         gate for that exact version, and in strict mode production only accepts what was live in staging."""
         check_environment(environment)
@@ -253,6 +259,8 @@ class ReleaseService:
             v = await self.versions.get_number(agent_id, number)
             if v is None:
                 raise NotFound(f"Agent '{agent_id}' has no version {number}")
+            if not during_rollout:
+                await self._no_rollout(agent_id, environment)
             live_v, live_rel = await self.live(agent_id, environment)
             if live_v is not None and live_v.id == v.id:
                 raise Conflict(f"Version {number} is already live in {environment}")
@@ -284,6 +292,8 @@ class ReleaseService:
 
         add("permission", "You may release to this environment", "pass" if permitted else "fail",
             "" if permitted else f"Releasing to {environment} needs the release permission")
+        if self.rollouts is not None and await self.rollouts.active(agent_id, environment) is not None:
+            add("no_rollout", "No rollout is running here", "fail", "A rollout is running; promote or abort it first")
         live_v, _ = await self.live(agent_id, environment)
         if live_v is not None and live_v.id == v.id:
             add("not_live", "Not already live here", "fail", f"Version {number} is already live in {environment}")
@@ -339,6 +349,7 @@ class ReleaseService:
         """Restore a version that was live before in this environment (or the baseline spec file). No gate: it already ran there."""
         check_environment(environment)
         async with self._lock:
+            await self._no_rollout(agent_id, environment)
             history = await self.releases.list(agent_id, environment)
             if not history:
                 raise Conflict("Nothing has been released, so there is nothing to roll back")
@@ -372,22 +383,33 @@ class LiveAgents:
         self.baseline, self.service, self.build = baseline, service, build
         self._cache: dict[str, Agent] = {}
 
-    async def get(self, agent_id: str, environment: str = PRODUCTION) -> Agent | None:
-        version, rel, _ = await self.service.resolve(agent_id, environment)
-        if rel is None or rel.version_id is None:
-            return self.baseline.get(agent_id)
-        if version is None:
-            raise AgentUnavailable(f"The live version of '{agent_id}' is missing from the version store")
+    def _load(self, version: AgentVersion) -> Agent:
         cached = self._cache.get(version.id)
         if cached is not None:
             return cached
         try:
             agent = self.build(AgentSpec.model_validate(version.spec))
         except Exception as e:  # for example a tool the spec names was removed from the code
-            raise AgentUnavailable(f"The live version {version.number} of '{agent_id}' cannot be loaded: {e}") from e
+            raise AgentUnavailable(f"Version {version.number} of '{version.agent_id}' cannot be loaded: {e}") from e
         agent.version, agent.digest = version.number, version.digest
         self._cache[version.id] = agent
         return agent
+
+    async def get(self, agent_id: str, environment: str = PRODUCTION, session_id: str | None = None) -> Agent | None:
+        rs = self.service.rollout_service
+        if session_id is not None and rs is not None:
+            picked = await rs.choose(agent_id, environment, session_id)
+            if picked is not None and picked[1] == "candidate":
+                cand = await self.service.versions.get_number(agent_id, picked[0].candidate_number)
+                if cand is None:
+                    raise AgentUnavailable(f"The candidate version {picked[0].candidate_number} of '{agent_id}' is missing from the version store")
+                return self._load(cand)
+        version, rel, _ = await self.service.resolve(agent_id, environment)
+        if rel is None or rel.version_id is None:
+            return self.baseline.get(agent_id)
+        if version is None:
+            raise AgentUnavailable(f"The live version of '{agent_id}' is missing from the version store")
+        return self._load(version)
 
     async def all(self) -> list[Agent]:
         ids = sorted(set(self.baseline) | set(await self.service.releases.agents_with_releases()))

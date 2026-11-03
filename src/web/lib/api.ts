@@ -90,6 +90,17 @@ export interface Checklist { agent: string; version: number; environment: string
   changes: { identical: boolean; instructionsChanged: boolean; toolsAdded: string[]; toolsRemoved: string[]; otherChanged: string[]; guardrailsChanged: string[] } | null }
 export const getChecklist = (id: string, version: number, environment: EnvName = "production") =>
   api<Checklist>(`${agentPath(id)}/versions/${version}/checklist?environment=${environment}`);
+export interface Rollout { id: string; agentId: string; environment: string; candidateVersion: number; controlVersion: number | null; percent: number; state: "active" | "promoted" | "aborted"; startedBy: string; startedAt: number; endedAt: number | null; note: string | null }
+export interface ArmStats { assigned: number; conversations: number; containmentRate: Ratio; escalationRate: Ratio; guardrailBlockRate: Ratio; toolErrorRate: Ratio; satisfaction: number | null; ratings: number; tokensPerConversation: number | null; reviewed: number; judgedCorrect: Ratio }
+export interface RolloutComparison { rollout: Rollout; arms: { control: ArmStats; candidate: ArmStats }; enoughData: boolean; note: string; versions: { control: number | null; candidate: number } }
+export const listRollouts = (id: string) => api<{ rollouts: Rollout[] }>(`${agentPath(id)}/rollouts`).then((r) => r.rollouts);
+export const startRollout = (id: string, version: number, percent: number) =>
+  api<Rollout>(`${agentPath(id)}/rollouts`, { method: "POST", body: JSON.stringify({ version, percent }) });
+export const setRolloutPercent = (id: string, rid: string, percent: number) =>
+  api<Rollout>(`${agentPath(id)}/rollouts/${rid}/percent`, { method: "PUT", body: JSON.stringify({ percent }) });
+export const promoteRollout = (id: string, rid: string) => api<Rollout>(`${agentPath(id)}/rollouts/${rid}/promote`, { method: "POST" });
+export const abortRollout = (id: string, rid: string) => api<Rollout>(`${agentPath(id)}/rollouts/${rid}/abort`, { method: "POST" });
+export const getRolloutComparison = (id: string, rid: string) => api<RolloutComparison>(`${agentPath(id)}/rollouts/${rid}/comparison`);
 export const rollbackAgent = (id: string, by?: string, note?: string) =>
   api<ReleaseRecord>(`${agentPath(id)}/rollback`, { method: "POST", body: JSON.stringify({ ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 export type EnvName = "dev" | "staging" | "production";
