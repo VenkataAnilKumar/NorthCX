@@ -1,0 +1,11 @@
+# Data residency policy. Point NORTHCX_RESIDENCY_FILE at a copy of this file.
+region: eu                 # where this deployment runs
+allowed_regions: [eu]      # data may only be sent to destinations in these regions (default: just `region`)
+strict: true               # true: refuse to start if a destination is outside them or not listed below; false: print warnings
+hosts:                     # which host is in which region (your claim: use each provider's regional endpoint)
+  - match: db.internal.example.com
+    region: eu
+  - match: "*.eu.example.com"
+    region: eu
+  - match: api.eu.anthropic.example   # the model provider's endpoint in your region (set ANTHROPIC_BASE_URL to it)
+    region: eu

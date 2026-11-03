@@ -315,6 +315,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/attachments/[^/]+", "traces:read"),
     ("POST", r"/v1/agents/[^/]+/journeys/draft", "versions:create"),
     ("POST", r"/v1/builder/draft", "versions:create"),
+    ("GET", r"/v1/residency", "audit:read"),
     ("POST", r"/v1/agents/[^/]+/journeys/scenarios", "simulations:run"),
     ("GET", r"/v1/trace-export", "traces:read"),
     ("GET", r"/v1/traces/[^/]+/exports", "traces:read"),
@@ -385,7 +386,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
-               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None,
+               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None, residency: dict | None = None,
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
@@ -1125,6 +1126,11 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def regression_status() -> Any:
         """Whether simulations re-run when the knowledge changes, and how the last re-run went."""
         return regression.status() if regression is not None else {"enabled": False}
+
+    @app.get("/v1/residency")
+    async def residency_report() -> Any:
+        """Where this deployment keeps data and where it sends it, checked against the residency file (evidence for a data-processing agreement)."""
+        return residency or {"configured": False, "flows": [], "compliant": False, "problems": [], "note": "Residency is not reported by this server."}
 
     @app.post("/v1/builder/draft")
     async def builder_draft(body: BuilderBody, request: Request) -> Any:

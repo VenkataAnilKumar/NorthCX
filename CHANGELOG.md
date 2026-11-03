@@ -7,6 +7,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
+### Added (residency)
+- Data residency policy (`NORTHCX_RESIDENCY_FILE`): every destination data can be sent to is checked against allowed regions at start-up (strict mode refuses to start), with a data-flow report at `/v1/residency` and in Studio.
+
 ### Added (building)
 - Draft an agent from procedures and conversation transcripts (`POST /v1/builder/draft`, Studio: Agents → Build an agent from your material): personal details masked, only safe fields taken from the model, names checked against the registry, nothing saved.
 

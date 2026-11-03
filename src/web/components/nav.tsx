@@ -16,6 +16,7 @@ const items: { href: string; label: string; any?: string[] }[] = [
   { href: "/approvals", label: "Approvals" },
   { href: "/agents", label: "Agents" },
   { href: "/access", label: "Access and audit", any: ["keys:manage", "audit:read"] },
+  { href: "/residency", label: "Data residency", any: ["audit:read"] },
   { href: "/settings", label: "Settings" },
 ];
 

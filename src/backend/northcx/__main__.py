@@ -35,6 +35,7 @@ from .summarize import Compactor
 from .reliability import ReliableLLM, UsageLedger
 from .llm import DEFAULT_MODEL
 from .memory import InMemoryMemories, memory_tools
+from .residency import ResidencyError, build_report, parse_policy
 from .embeddings import EmbeddingIndexer, HttpEmbedder, HybridKnowledge
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
@@ -399,11 +400,25 @@ def run() -> None:
         except ValueError as e:
             sys.exit(str(e))
 
+    residency_policy = None
+    if os.environ.get("NORTHCX_RESIDENCY_FILE"):
+        try:
+            residency_policy = parse_policy(open(os.environ["NORTHCX_RESIDENCY_FILE"], encoding="utf-8").read())
+        except (OSError, ResidencyError) as e:
+            sys.exit(f"Residency: {e}")
+    residency = build_report(os.environ, residency_policy)
+    if residency_policy is not None:
+        for p_ in residency["problems"]:
+            print(f"Residency {'ERROR' if residency_policy.strict else 'warning'}: {p_}")
+        if residency["problems"] and residency_policy.strict:
+            sys.exit("Residency is strict and some destinations are not in an allowed region; fix the residency file or the configuration above.")
+        print(f"Data residency: deployment region '{residency_policy.region}', data may go to: {', '.join(residency_policy.allowed)}.")
+
     print(f"NorthCX {__version__}")
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo, crawler=crawler,
-                      regression=regression, whatsapp=WhatsAppChannel(runtime, agents, sms_repo, wa_provider, wa_config) if wa_provider else None, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
+                      regression=regression, residency=residency, whatsapp=WhatsAppChannel(runtime, agents, sms_repo, wa_provider, wa_config) if wa_provider else None, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
                       attachment_scanner=attachment_scanner, cors_origins=cors_origins, voice=voice_cfg, calls=call_repo,
                       insights=insights_service, alerts=alert_manager,
                       templates=load_templates(LIBRARY, *([os.environ["NORTHCX_TEMPLATES_DIR"]] if os.environ.get("NORTHCX_TEMPLATES_DIR") else [])),
