@@ -92,6 +92,7 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | GET | `/skills` | Skills available to agents, with their steps and tools (built) |
 | GET | `/insights/overview`, `/insights/timeseries`, `/insights/failures`, `/insights/gaps` | Metrics with numerator, denominator and period; `from`, `to` (epoch seconds, default last 7 days, at most 366), `agent`, `environment`; timeseries takes `bucket=hour|day` (`insights:read`) (built) |
 | POST | `/sessions/{id}/feedback` | `{rating 1-5, comment?}`: a customer's rating (chat token for its own conversation, channel or API key); a second rating replaces the first (`feedback:send`) (built) |
+| GET | `/agents/{id}/versions/{n}/checklist` | `environment`: required checks (pass, fail, warn, info) with details, a change summary against what is live, and `ready` (`versions:read`) (built) |
 | GET | `/reviews/queue` | `agent`, `environment`, `includeReviewed`, `sample`, `limit`: conversations worth reviewing with reasons (`traces:read`) (built) |
 | GET | `/sessions/{id}/transcript` | transcript, traces, hand-offs, rating, tags and existing review (`traces:read`) (built) |
 | PUT | `/sessions/{id}/review` | `verdict`, `handoff`, `failures[]`, `note`; replaces an earlier review; audited (`reviews:write`) (built) |

@@ -368,3 +368,67 @@ def test_an_unloadable_live_version_returns_503_not_a_guess():
     assert c.get("/v1/agents").status_code == 503
     assert c.post("/v1/agents/support/rollback", json={"by": "o"}).status_code == 200  # rollback is the way out
     assert c.post("/v1/agents/support/chat", json={"sessionId": "s", "message": "hi"}).status_code == 200
+
+
+# ---------------- publish checklist (U7) ----------------
+def by_key(cl):
+    return {c["key"]: c for c in cl["checks"]}
+
+
+async def test_checklist_lists_every_requirement_and_matches_what_publish_enforces(env):
+    v1 = await env.new_version()
+    cl = await env.svc.checklist("support", 1, "production")
+    k = by_key(cl)
+    assert cl["ready"] is False and k["scenarios"]["status"] == "fail" and "not run against this agent version" in k["scenarios"]["detail"]
+    assert k["valid"]["status"] == k["permission"]["status"] == k["not_live"]["status"] == "pass" and k["staged"]["status"] == "warn"
+    assert cl["changes"]["identical"] is True and cl["liveVersion"] is None  # the baseline is what is live, and this version is a snapshot of it
+    await env.prove(v1)
+    cl = await env.svc.checklist("support", 1, "production")
+    assert cl["ready"] is True and by_key(cl)["scenarios"]["status"] == "pass" and "17 of 17" in by_key(cl)["scenarios"]["detail"]
+    await env.svc.publish("support", 1, "rel", None)
+    assert by_key(await env.svc.checklist("support", 1, "production"))["not_live"]["status"] == "fail"
+    v2 = await env.new_version(max_steps=6)
+    cl = await env.svc.checklist("support", 2, "production", permitted=False, active_alerts=["error-rate (critical)"])
+    k = by_key(cl)
+    assert k["permission"]["status"] == "fail" and k["alerts"]["status"] == "warn" and "error-rate" in k["alerts"]["detail"] and cl["ready"] is False
+    assert cl["changes"]["identical"] is False and cl["changes"]["otherChanged"] == ["max_steps"] and cl["liveVersion"] == 1
+    assert by_key(await env.svc.checklist("support", 2, "dev"))["scenarios"]["status"] == "info"
+    assert (await env.svc.checklist("support", 2, "dev"))["ready"] is True
+    with pytest.raises(NotFound):
+        await env.svc.checklist("support", 99)
+    with pytest.raises(ValueError):
+        await env.svc.checklist("support", 2, "nowhere")
+    env.svc.strict_promotion = True
+    await env.prove(v2)
+    k = by_key(await env.svc.checklist("support", 2, "production"))
+    assert k["staged"]["status"] == "fail" and "production only accepts" in k["staged"]["detail"]
+    await env.svc.publish("support", 2, "rel", None, "staging")
+    assert by_key(await env.svc.checklist("support", 2, "production"))["staged"]["status"] == "pass"
+
+
+async def test_checklist_without_simulations_cannot_pass_outside_dev():
+    e = Env(InMemoryVersions(), InMemoryReleases(), with_sim=False)
+    await e.new_version()
+    cl = await e.svc.checklist("support", 1, "staging")
+    assert cl["ready"] is False and "not configured" in by_key(cl)["scenarios"]["detail"]
+
+
+def test_checklist_through_the_api_with_permissions():
+    from northcx.access import AccessControl
+    ac = AccessControl(bootstrap_key="boot" * 10)
+    e = Env(InMemoryVersions(), InMemoryReleases())
+    traces = TraceStore()
+    rt = Runtime(ScriptedLLM([text("hi")] * 5), InMemoryStore(), traces)
+    c = TestClient(create_app(rt, traces, e.live, access=ac, simulations=e.sim, releases=e.svc))
+    H = {"authorization": "Bearer " + "boot" * 10}
+    c.post("/v1/agents/support/versions", headers=H, json={"fromBaseline": True, "by": "dev"})
+    r = c.get("/v1/agents/support/versions/1/checklist", headers=H).json()
+    assert r["ready"] is False and {x["key"] for x in r["checks"]} >= {"permission", "valid", "scenarios", "staged", "alerts", "changes"}
+    assert c.get("/v1/agents/support/versions/9/checklist", headers=H).status_code == 404
+    assert c.get("/v1/agents/support/versions/1/checklist?environment=mars", headers=H).status_code == 400
+    loop = asyncio.new_event_loop()
+    key = lambda role: loop.run_until_complete(ac.issue(role, role, "root"))[1]  # noqa: E731
+    dev = {"authorization": f"Bearer {key('developer')}"}
+    assert by_key(c.get("/v1/agents/support/versions/1/checklist", headers=dev).json())["permission"]["status"] == "fail"
+    assert by_key(c.get("/v1/agents/support/versions/1/checklist?environment=dev", headers=dev).json())["permission"]["status"] == "pass"
+    assert c.get("/v1/agents/support/versions/1/checklist", headers={"authorization": f"Bearer {key('channel')}"}).status_code == 403

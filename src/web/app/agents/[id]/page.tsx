@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import {
-  ApiError, createVersion, diffVersions, formatTime, getEnvironments, getLive, promoteAgent, getVersionDetail, listReleases, listVersions, publishVersion,
+  ApiError, createVersion, getChecklist, type Checklist, diffVersions, formatTime, getEnvironments, getLive, promoteAgent, getVersionDetail, listReleases, listVersions, publishVersion,
   rollbackAgent, runForVersion, versionGate, type AgentVersion, type Gate, type VersionDiff,
 } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
@@ -36,7 +36,11 @@ function VersionRow({ agent, v, liveNumber, by, note, onChanged }: { agent: stri
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<{ message: string; reasons: string[] } | null>(null);
   const [done, setDone] = useState<string | null>(null);
-  const refreshGate = () => versionGate(agent, v.number).then(setGate).catch(() => setGate(null));
+  const [list, setList] = useState<Checklist | null>(null);
+  const refreshGate = () => {
+    getChecklist(agent, v.number).then(setList).catch(() => setList(null));
+    return versionGate(agent, v.number).then(setGate).catch(() => setGate(null));
+  };
   useEffect(() => { refreshGate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [v.number]);
 
   async function act(name: string, fn: () => Promise<unknown>, message: string) {
@@ -57,10 +61,26 @@ function VersionRow({ agent, v, liveNumber, by, note, onChanged }: { agent: stri
         <p className="mt-2 text-sm">Release gate: <StatusBadge status={gate.satisfied ? "satisfied" : "blocked"} />{" "}
           <span className="text-muted">{gate.covered} of {gate.required} required scenarios passed for this version</span></p>
       )}
+      {list && !v.live && (
+        <section aria-label={`Publish checklist for version ${v.number}`} className="mt-3 rounded-lg border border-border p-3 text-sm">
+          <h4 className="font-medium">Before publishing to production <span className="text-muted">— {list.ready ? "ready" : "not ready"}</span></h4>
+          <ul className="mt-2 space-y-1">
+            {list.checks.map((c) => (
+              <li key={c.key}>
+                <span aria-label={c.status} className={c.status === "pass" ? "text-[var(--ok)]" : c.status === "fail" ? "text-[var(--bad)]" : "text-muted"}>{c.status === "pass" ? "✓" : c.status === "fail" ? "✗" : c.status === "warn" ? "!" : "·"}</span>{" "}
+                {c.title}{c.detail && <span className="text-muted"> — {c.detail}</span>}
+              </li>
+            ))}
+          </ul>
+          {list.changes && !list.changes.identical && (
+            <p className="mt-2 text-xs text-muted">Compared with v{list.liveVersion ?? "baseline"}: {[list.changes.instructionsChanged && "instructions", list.changes.toolsAdded.length > 0 && `tools added (${list.changes.toolsAdded.join(", ")})`, list.changes.toolsRemoved.length > 0 && `tools removed (${list.changes.toolsRemoved.join(", ")})`, list.changes.guardrailsChanged.length > 0 && `checks (${list.changes.guardrailsChanged.join(", ")})`, list.changes.otherChanged.length > 0 && `settings (${list.changes.otherChanged.join(", ")})`].filter(Boolean).join("; ") || "no visible change"}</p>
+          )}
+        </section>
+      )}
       <div className="mt-3 flex flex-wrap gap-2 text-sm">
         <button disabled={busy !== null || !can("simulations:run")} onClick={() => act("run", () => runForVersion(agent, v.number), "Scenarios finished; the gate above is up to date.")}
           className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40 disabled:opacity-50">{busy === "run" ? "Running…" : "Run scenarios"}</button>
-        {!v.live && <button disabled={busy !== null || !can("releases:publish")} title={can("releases:publish") ? undefined : "Your role cannot publish"} onClick={() => act("publish", () => publishVersion(agent, v.number, by, note || undefined), `Version ${v.number} is now live.`)}
+        {!v.live && <button disabled={busy !== null || !can("releases:publish") || (list !== null && !list.ready)} title={!can("releases:publish") ? "Your role cannot publish" : list && !list.ready ? "Some required checks have not passed" : undefined} onClick={() => act("publish", () => publishVersion(agent, v.number, by, note || undefined), `Version ${v.number} is now live.`)}
           className="rounded-lg bg-primary px-3 py-1.5 font-medium text-primary-text disabled:opacity-50">{busy === "publish" ? "Publishing…" : "Publish"}</button>}
         <button disabled={busy !== null} onClick={async () => { setSpec(spec === null ? (await getVersionDetail(agent, v.number)).specYaml ?? "" : null); }}
           className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">{spec === null ? "View spec" : "Hide spec"}</button>

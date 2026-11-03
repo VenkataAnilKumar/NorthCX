@@ -85,6 +85,11 @@ export const runForVersion = (id: string, n: number) =>
   api<SimRunSummary>("/v1/simulations/runs", { method: "POST", body: JSON.stringify({ mode: "scripted", skipJudge: true, agent: id, version: n }) });
 export const publishVersion = (id: string, version: number, by?: string, note?: string) =>
   api<ReleaseRecord>(`${agentPath(id)}/releases`, { method: "POST", body: JSON.stringify({ version, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
+export interface ChecklistItem { key: string; title: string; status: "pass" | "fail" | "warn" | "info"; detail: string }
+export interface Checklist { agent: string; version: number; environment: string; ready: boolean; checks: ChecklistItem[]; liveVersion: number | null;
+  changes: { identical: boolean; instructionsChanged: boolean; toolsAdded: string[]; toolsRemoved: string[]; otherChanged: string[]; guardrailsChanged: string[] } | null }
+export const getChecklist = (id: string, version: number, environment: EnvName = "production") =>
+  api<Checklist>(`${agentPath(id)}/versions/${version}/checklist?environment=${environment}`);
 export const rollbackAgent = (id: string, by?: string, note?: string) =>
   api<ReleaseRecord>(`${agentPath(id)}/rollback`, { method: "POST", body: JSON.stringify({ ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 export type EnvName = "dev" | "staging" | "production";

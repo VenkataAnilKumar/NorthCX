@@ -270,6 +270,57 @@ class ReleaseService:
                     raise GateBlocked([f"version {number} has not been live in staging; promote it there first"])
             return await self.releases.add(Release(agent_id, "publish", by, v.id, v.number, gate_info, note, live_v.number if live_v else None, environment))
 
+    async def checklist(self, agent_id: str, number: int, environment: str = PRODUCTION, permitted: bool = True, active_alerts: list[str] | None = None) -> dict[str, Any]:
+        """Everything that must be true (and a few things worth knowing) before this version goes to this environment, in one place.
+        A check with status 'fail' blocks the release; 'warn' does not. Publishing still enforces the blocking checks itself."""
+        check_environment(environment)
+        v = await self.versions.get_number(agent_id, number)
+        if v is None:
+            raise NotFound(f"Agent '{agent_id}' has no version {number}")
+        checks: list[dict[str, Any]] = []
+
+        def add(key: str, title: str, status: str, detail: str) -> None:
+            checks.append({"key": key, "title": title, "status": status, "detail": detail})
+
+        add("permission", "You may release to this environment", "pass" if permitted else "fail",
+            "" if permitted else f"Releasing to {environment} needs the release permission")
+        live_v, _ = await self.live(agent_id, environment)
+        if live_v is not None and live_v.id == v.id:
+            add("not_live", "Not already live here", "fail", f"Version {number} is already live in {environment}")
+        else:
+            add("not_live", "Not already live here", "pass", "")
+        check = await self.preview(agent_id, v.spec)
+        add("valid", "The version builds", "pass" if check["valid"] else "fail", "; ".join(check.get("problems", [])[:5]))
+        if environment == "dev":
+            add("scenarios", "Required scenarios pass", "info", "Dev needs no proof")
+        else:
+            gate = await self.gate_for(v)
+            if gate is None:
+                add("scenarios", "Required scenarios pass", "fail", "Simulations are not configured, so the release gate cannot be checked")
+            elif gate.satisfied:
+                add("scenarios", "Required scenarios pass", "pass", f"{gate.covered} of {gate.required} required scenarios passed on this exact version")
+            else:
+                add("scenarios", "Required scenarios pass", "fail", "; ".join(gate.reasons[:5]))
+        if environment == PRODUCTION:
+            staged = any(r.number == v.number for r in await self.releases.list(agent_id, "staging", 1000))
+            if staged:
+                add("staged", "Tried in staging first", "pass", "")
+            else:
+                add("staged", "Tried in staging first", "fail" if self.strict_promotion else "warn",
+                    "Not live in staging yet" + ("; production only accepts versions that were" if self.strict_promotion else ""))
+            add("alerts", "No alerts are firing", "warn" if active_alerts else "pass", "; ".join(active_alerts or [])[:300])
+        base_v, base_rel, _ = await self.resolve(agent_id, environment)
+        base = base_v.spec if base_v else (json.loads(self.baselines[agent_id].canonical()) if agent_id in self.baselines else None)
+        summary: dict[str, Any] | None = None
+        if base is not None:
+            d = diff_specs(base, v.spec)
+            summary = {"identical": d["identical"], "instructionsChanged": d["instructions"] is not None, "toolsAdded": d["tools"]["added"],
+                       "toolsRemoved": d["tools"]["removed"], "otherChanged": sorted(d["other"]),
+                       "guardrailsChanged": sorted(k for k in ("guardrails", "input_guardrails", "output_guardrails", "forced_handoff") if any(d[k].values()))}
+            add("changes", "Changes from what is live", "info", "Identical to what is live" if d["identical"] else "Differs from what is live; see the summary")
+        return {"agent": agent_id, "version": number, "environment": environment, "ready": not any(c["status"] == "fail" for c in checks),
+                "checks": checks, "changes": summary, "liveVersion": base_v.number if base_v else None}
+
     async def promote(self, agent_id: str, to_environment: str, by: str, note: str | None = None) -> Release:
         """Release to an environment the version that is live in the one before it (dev -> staging -> production)."""
         check_environment(to_environment)

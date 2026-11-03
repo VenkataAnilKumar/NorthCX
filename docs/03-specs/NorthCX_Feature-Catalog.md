@@ -134,7 +134,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | U4 | Conversation review and failure tagging | P1 | 4 | Built |
 | U5 | Approval queue | P1 | 4 | Planned |
 | U6 | Knowledge management | P1 | 4 | Built (sources, documents with editing, freshness, try-a-question) |
-| U7 | Publish workflow with required checks | P1 | 4 | Early version built (versions page: save, run scenarios, publish, roll back) |
+| U7 | Publish workflow with required checks | P1 | 4 | Built (checklist of required checks and warnings per version and environment; staged rollout percentage still planned under Q11) |
 | U8 | Role-based views | P1 | 4 | Early version built (navigation, buttons and forms follow the signed-in role) |
 
 ## 11. Security, administration and platform

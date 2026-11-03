@@ -241,6 +241,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/agents/[^/]+/versions", "versions:read"),
     ("GET", r"/v1/agents/[^/]+/versions/[^/]+", "versions:read"),
     ("GET", r"/v1/agents/[^/]+/versions/[^/]+/diff/[^/]+", "versions:read"),
+    ("GET", r"/v1/agents/[^/]+/versions/[^/]+/checklist", "versions:read"),
     ("GET", r"/v1/agents/[^/]+/releases", "versions:read"),
     ("POST", r"/v1/agents/[^/]+/versions", "versions:create"),
     ("POST", r"/v1/agents/[^/]+/releases", "versions:create"),  # production also needs releases:publish, checked in the handler
@@ -1465,6 +1466,19 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(404, "not_found", f"Agent '{agent_id}' has no version {number}")
         live_v, _ = await svc.live(agent_id)
         return version_json(v, live_v.number if live_v else None, {r.number for r in await svc.releases.list(agent_id) if r.number}, True)
+
+    @app.get("/v1/agents/{agent_id}/versions/{number}/checklist")
+    async def version_checklist(agent_id: str, number: int, request: Request, environment: str = "production") -> Any:
+        """The publish checklist: required checks and notes for releasing this version to an environment."""
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        who: Identity = request.state.identity
+        firing = [f"{a['rule']} ({a['severity']})" for a in (alerts.status()["active"] if alerts is not None else [])]
+        try:
+            return await svc.checklist(agent_id, number, environment, environment != "production" or who.can("releases:publish"), firing)
+        except (NotFound, ValueError) as e:
+            return rel_error(e) if isinstance(e, (NotFound, Conflict)) else _err(400, "bad_request", str(e))
 
     @app.get("/v1/agents/{agent_id}/versions/{a}/diff/{b}")
     async def version_diff(agent_id: str, a: int, b: int) -> Any:

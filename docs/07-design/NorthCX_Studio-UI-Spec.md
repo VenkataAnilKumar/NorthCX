@@ -28,6 +28,7 @@ Built in `src/web`: Access and audit page (keys, audit log, integrity check), id
 - **Conversations (U4):** filters, tags, failure causes, open trace, create regression scenario.
 - **Approvals (U5):** queue with age and risk, payload, context, approve/reject with note.
 - **Knowledge (U6):** sources, freshness, test queries with citations.
+- **Publish (U7, built except rollout percentage):** the versions page shows each version's checklist and disables Publish until the blocking checks pass.
 - **Publish (U7):** change summary, diff, required checks, environment, rollout percentage, rollback.
 - **Role-based views (U8):** CX, developer, reviewer, compliance, admin.
 
