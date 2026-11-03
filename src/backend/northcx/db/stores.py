@@ -771,6 +771,27 @@ class PgSchedules(_Base):
             await s.execute(text("update crawl_schedules set last_run = :t, last_job_id = :j, last_result = :r where id = :i"), {"t": at, "j": job_id, "r": result[:300], "i": schedule_id})
 
 
+class PgVerify(_Base):
+    async def get(self, session_id: str) -> Any:
+        from ..verification import VerifyRecord
+        async with self._ro() as s:
+            r = (await s.execute(text("select * from verification_codes where session_id = :s"), {"s": session_id})).first()
+        return VerifyRecord(r.session_id, r.customer_id, r.channel, r.dest_hash, r.code_hash, r.expires_at, r.attempts, list(r.sends), r.verified_until) if r else None
+
+    async def save(self, r: Any) -> None:
+        async with self._sm.begin() as s:
+            await s.execute(text(
+                "insert into verification_codes (session_id, customer_id, channel, dest_hash, code_hash, expires_at, attempts, sends, verified_until, updated_at) "
+                "values (:s, :c, :ch, :d, :h, :e, :a, cast(:sn as jsonb), :v, :u) on conflict (session_id) do update set customer_id = excluded.customer_id, channel = excluded.channel, "
+                "dest_hash = excluded.dest_hash, code_hash = excluded.code_hash, expires_at = excluded.expires_at, attempts = excluded.attempts, sends = excluded.sends, "
+                "verified_until = excluded.verified_until, updated_at = excluded.updated_at"),
+                {"s": r.session_id, "c": r.customer_id, "ch": r.channel, "d": r.dest_hash, "h": r.code_hash, "e": r.expires_at, "a": r.attempts, "sn": json.dumps(r.sends), "v": r.verified_until, "u": time.time()})
+
+    async def erase_session(self, session_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from verification_codes where session_id = :s"), {"s": session_id})).rowcount
+
+
 class PgFeedback(_Base):
     async def add(self, session_id: str, rating: int, comment: str, at: float | None = None) -> bool:
         async with self._sm.begin() as s:

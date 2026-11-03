@@ -239,6 +239,20 @@ class KnowledgeChunkRow(Base):
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
+class VerificationCodeRow(Base):
+    __tablename__ = "verification_codes"
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    customer_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    channel: Mapped[str] = mapped_column(String(10), nullable=False)
+    dest_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    code_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    expires_at: Mapped[float] = mapped_column(Float, nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    sends: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    verified_until: Mapped[float | None] = mapped_column(Float, nullable=True)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class CrawlScheduleRow(Base):
     __tablename__ = "crawl_schedules"
     id: Mapped[str] = mapped_column(String(40), primary_key=True)

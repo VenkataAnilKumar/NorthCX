@@ -110,6 +110,9 @@ class InMemoryPrivacy:
         calls = getattr(self, "calls", None)
         if calls is not None:
             n["calls"] = await calls.erase_session(session_id)
+        verify = getattr(self, "verification", None)
+        if verify is not None:
+            n["verification"] = await verify.erase_session(session_id)
         att = getattr(self, "attachments", None)
         if att is not None:
             n["attachments"] = await att.erase_session(session_id)

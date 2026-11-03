@@ -19,6 +19,7 @@ class ToolContext:
     idempotency_key: str | None = None  # stable per approved action; tools should use it to deduplicate writes
     dry_run: bool = False  # true when the platform is testing: write tools are not executed (see Tool.effect)
     secrets: SecretStore = field(default=NO_SECRETS, repr=False)
+    facts: dict[str, str] = field(default_factory=dict)  # what the company's systems and the platform report about this customer, for this turn (read only)
 
     def secret(self, name: str) -> str:
         """A credential configured for tools (NORTHCX_SECRET_<NAME>). Never put it in a return value or a message."""

@@ -55,7 +55,7 @@ def engine(db_url):
             await c.execute(text("alter table audit_log disable trigger user"))  # the log refuses truncation; tests reset it
             await c.execute(text(
                 "truncate sessions, messages, customer_facts, traces, trace_events, approvals, outbox, handoffs, simulation_runs, "
-                "releases, agent_versions, api_keys, audit_log, email_sessions, email_messages, monitor_findings, idempotency_keys, knowledge_sources, knowledge_documents, knowledge_chunks, session_index, customer_memories, sms_sessions, sms_messages, sms_opt_outs, inbox_events, trace_exports, conversation_feedback, conversation_tags, managed_scenarios, conversation_reviews, rollouts, rollout_assignments, session_routes, attachments, voice_calls restart identity cascade"))
+                "releases, agent_versions, api_keys, audit_log, email_sessions, email_messages, monitor_findings, idempotency_keys, knowledge_sources, knowledge_documents, knowledge_chunks, session_index, customer_memories, sms_sessions, sms_messages, sms_opt_outs, inbox_events, trace_exports, conversation_feedback, conversation_tags, managed_scenarios, conversation_reviews, rollouts, rollout_assignments, session_routes, attachments, voice_calls, verification_codes, crawl_schedules restart identity cascade"))
             await c.execute(text("alter table audit_log enable trigger user"))
         await eng.dispose()
 

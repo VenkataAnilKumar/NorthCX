@@ -40,11 +40,12 @@ from .residency import ResidencyError, build_report, parse_policy
 from .crawl_schedule import CrawlScheduler, InMemorySchedules
 from .transcribe import HttpTranscriber
 from .events import EVENTS, EventFeed, EventWebhook
+from .verification import InMemoryVerify, OtpService, VerifyConfig, verification_tools
 from .embeddings import EmbeddingIndexer, HttpEmbedder, HybridKnowledge, parse_source_models
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgAttachments, PgCalls, PgReviews, PgRollouts, PgScenarios, PgSessionRoutes, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgSchedules, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgAttachments, PgCalls, PgReviews, PgRollouts, PgScenarios, PgSessionRoutes, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgSchedules, PgVerify, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -302,6 +303,32 @@ def run() -> None:
                       ledger=UsageLedger(int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None))
     if db_url:
         runtime.routes = PgSessionRoutes(engine)
+    verify_service = None
+    if os.environ.get("NORTHCX_VERIFY") == "1":
+        vsecret = derive_secret(env_or_file("NORTHCX_TOKEN_SECRET"), api_key)
+        if vsecret is None:
+            sys.exit("NORTHCX_VERIFY=1 needs NORTHCX_API_KEY or NORTHCX_TOKEN_SECRET: codes are stored as keyed hashes, and the key must be the same on every server process")
+        senders: dict[str, Any] = {}
+        if email_config is not None:
+            from email.message import EmailMessage as _Msg
+            _smtp = SmtpSender(env_or_file("NORTHCX_SMTP_URL") or "")
+
+            async def _send_email(to: str, body: str, _from: str = email_config.from_address) -> None:
+                msg = _Msg()
+                msg["From"], msg["To"], msg["Subject"] = _from, to, "Your verification code"
+                msg.set_content(body)
+                await _smtp.send(msg)
+            senders["email"] = _send_email
+        if sms_notifier is not None:
+            async def _send_sms(to: str, body: str) -> None:
+                await sms_provider.send(to, sms_config.from_number, body)
+            senders["sms"] = _send_sms
+        if not senders:
+            sys.exit("NORTHCX_VERIFY=1 needs email (NORTHCX_EMAIL_FROM and NORTHCX_SMTP_URL) or SMS (NORTHCX_SMS_NUMBER ...) so a code can be delivered")
+        verify_service = OtpService(PgVerify(engine) if db_url else InMemoryVerify(), senders, vsecret,
+                                    VerifyConfig(verified_for=float(os.environ.get("NORTHCX_VERIFY_VALID_MINUTES", 30)) * 60))
+        runtime.verification = verify_service
+        print(f"One-time-code identity checks are ON (by {', '.join(sorted(senders))}); verified conversations carry the fact identity_verified=yes for {os.environ.get('NORTHCX_VERIFY_VALID_MINUTES', 30)} minutes.")
     assist_mode = os.environ.get("NORTHCX_ASSIST", "").strip() or "on-demand"
     if assist_mode not in ("off", "on-demand", "auto"):
         sys.exit("NORTHCX_ASSIST must be off, on-demand or auto")
@@ -320,6 +347,10 @@ def run() -> None:
         if os.environ.get("NORTHCX_SKILLS_DIR"):
             for sk in load_skills(os.environ["NORTHCX_SKILLS_DIR"]):
                 reg.skill(sk)
+        if verify_service is not None:
+            for t_ in verification_tools(verify_service):
+                if t_.name not in reg.tool_names():
+                    reg.tool(t_)
         if "search_knowledge" not in reg.tool_names():
             reg.tool(knowledge_tool(knowledge_repo))
         if runtime.memories is not None:

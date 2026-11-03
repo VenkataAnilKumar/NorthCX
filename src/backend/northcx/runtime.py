@@ -86,6 +86,7 @@ class Runtime:
         self.privacy = privacy if privacy is not None else InMemoryPrivacy(self)
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
         self.events: Any = None  # status events (events.py), when configured
+        self.verification: Any = None  # one-time-code identity checks (verification.py), when configured
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
                   trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None,
@@ -114,8 +115,11 @@ class Runtime:
                 company_context = got.facts
                 facts = {**facts, **got.facts}  # the company's systems are the source of truth
                 trace.add("context", status=got.status, keys=sorted(got.facts), dropped=got.dropped)
+        facts.pop("identity_verified", None)  # only the platform can say a customer is verified; stored or reported values of that name are ignored
+        if self.verification is not None and customer_id and not self.dry_run and await self.verification.is_verified(session_id, customer_id):
+            facts["identity_verified"] = "yes"
         kept_texts: dict[int, str] = {}
-        ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets)
+        ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets, facts=dict(facts))
         pending: list[dict[str, Any]] = []
 
         facts_block = (
@@ -276,7 +280,7 @@ class Runtime:
             results: list[dict] = []
             pending_transfer = None
             for use in uses:
-                trace.add("tool_call", name=use["name"], input=use["input"])
+                trace.add("tool_call", name=use["name"], input={"code": "******"} if use["name"] == "check_verification_code" else use["input"])  # (a one-time code is not kept in traces)
                 if progress:
                     try:
                         out = progress({"type": "tool", "name": use["name"]})
@@ -347,6 +351,9 @@ class Runtime:
                     out = self.secrets.redact(json.loads(json.dumps(out, default=str)))
                     out = await self._screen_output(agent, use["name"], out, trace)
                     trace.add("tool_result", name=use["name"], output=out, **({"dry_run": True} if simulated else {}))
+                    if use["name"] == "check_verification_code" and isinstance(out, dict) and out.get("verified") is True:
+                        ginfo["facts"]["identity_verified"] = "yes"  # later calls in this same turn, and tool scopes, see the new state
+                        ctx.facts["identity_verified"] = "yes"
                     results.append({"type": "tool_result", "tool_use_id": use["id"], "content": json.dumps(out)})
                 except Exception as e:
                     msg = self.secrets.redact_text(str(e))

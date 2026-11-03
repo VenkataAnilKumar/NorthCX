@@ -7,6 +7,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
+### Added (identity verification)
+- One-time-code identity checks (`NORTHCX_VERIFY=1`): two tools send a code only to the email or phone the company reported and check it; success sets a platform-only, time-limited fact that tool scopes can require.
+
 ### Added (status events)
 - Signed status-event webhook and a pollable feed (`/v1/events`) for hand-offs, approvals, alerts, ratings, releases, key changes, knowledge changes and erasures. Events never contain message text.
 

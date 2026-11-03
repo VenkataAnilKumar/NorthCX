@@ -451,6 +451,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     review_repo = reviews or InMemoryReviews()
     attachment_repo = attachments or InMemoryAttachments()
     runtime.privacy.attachments = attachment_repo
+    if runtime.verification is not None:
+        runtime.privacy.verification = runtime.verification.repo
     call_repo = calls or InMemoryCalls()
     runtime.privacy.calls = call_repo
     insight = insights or InsightsService(InMemoryInsightsSource(runtime, fb))

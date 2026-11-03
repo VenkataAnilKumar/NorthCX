@@ -87,3 +87,15 @@ Limits: fixed platform messages (the model-failure fallback, after-hours notices
 - It runs on the same engine as SMS and WhatsApp. The customer is the Telegram user (`tg:<id>`), with no phone number involved; `/stop` and `/start` (with or without `@botname`) work as opt-out and opt-in; the hourly reply limit, duplicate handling, hand-offs, privacy export/erase and `channel_styles` (key `telegram`) all apply.
 - Photos and files are not read; the agent is told a file arrived. Replies are split at 3,500 characters. A blocked bot or deleted chat (4xx) is recorded as undeliverable and not retried; rate limits and 5xx errors are retried. The bot token is part of Telegram's request address, so it is never included in an error message or log line.
 - Not built: groups, inline mode, buttons, sending files.
+
+## One-time-code identity check — as built (C9)
+
+Your server already says who a customer is when it mints the chat token. For sensitive actions this adds a second step: the customer proves they control the email address or phone number you have on file for them.
+
+1. Report the customer's `email` and/or `phone` (international format) through the customer context hook, and set `NORTHCX_VERIFY=1` with email and/or SMS configured.
+2. Give the agent the tools `send_verification_code` and `check_verification_code` and gate the sensitive tools with a scope: `tool_scopes: {issue_refund: {facts: {identity_verified: ["yes"]}}}`. The agent is told in its instructions when to ask.
+3. The customer receives a six-digit code; the agent passes what the customer types to `check_verification_code`. If it is right, the conversation is verified for 30 minutes (configurable), including for the rest of the same turn.
+
+**Guarantees.** The agent cannot choose where the code goes: the tool has no address field and reads only the facts your systems reported. Codes come from the system random source, are stored only as a keyed hash (HMAC with the server secret, bound to the conversation and customer), are single use, expire after 10 minutes, allow 5 tries (then the code is cancelled), and sending is limited to one per minute and three per hour per conversation. Verification belongs to one conversation and one customer and lapses. The value `identity_verified` is set only by the platform: a stored fact or a context reply that claims it is ignored. The code that is sent is never in a trace, log or audit entry, and the tool call that checks a typed code is recorded with the code masked. Failures to send are reported to the agent in calm words without server details, with a suggestion to hand off to a person.
+
+**Limits.** The message in which the customer types the code is part of the conversation record like any other message (it is single use and short lived, so it is of no use afterwards). Voice, WhatsApp and Telegram conversations can be verified only through the email or SMS channel the code is sent by. Authenticator apps and passkeys are not covered.
