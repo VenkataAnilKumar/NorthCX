@@ -40,3 +40,4 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 
 Indexes on `sessions(customer_id)`, `traces(session_id)`, `approvals(state)`. Retention jobs delete old `messages` and `trace_events` by policy.
 | `managed_scenarios` (built) | `name` pk, `agent_id`, `required`, `definition` jsonb, `created_by`, `updated_by`, `created_at`, `updated_at`, `revision` | Scenarios saved by the editor; run and gated like file scenarios; a name used by a file belongs to the file |
+| `knowledge_documents.body` (built) | `text`, nullable | The document as submitted, so it can be edited; null for documents saved before this column existed |

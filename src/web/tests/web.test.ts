@@ -325,3 +325,23 @@ describe("scenario editor calls", () => {
     expect(JSON.parse(String(calls[0][1]?.body))).toEqual({ scenario: { name: "a" } });
   });
 });
+
+describe("knowledge calls", () => {
+  it("encodes document ids with slashes, and searches within a source", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => { calls.push([url, init]); return new Response(JSON.stringify({ sources: [], documents: [], passages: [], status: "created", deleted: true }), { status: 200 }); }));
+    const { listKnowledgeDocs, getKnowledgeDoc, putKnowledgeDoc, deleteKnowledgeDoc, searchKnowledge, createKnowledgeSource } = await import("@/lib/api");
+    await listKnowledgeDocs("help center", true);
+    await getKnowledgeDoc("help", "policies/returns v2");
+    await putKnowledgeDoc("help", "policies/returns", { title: "Returns", text: "x" });
+    await deleteKnowledgeDoc("help", "a/b");
+    await searchKnowledge("refund time?", "help");
+    await createKnowledgeSource("help", "Help", 30);
+    expect(calls[0][0]).toBe("/api/northcx/v1/knowledge/documents?source=help+center&stale=true");
+    expect(calls[1][0]).toBe("/api/northcx/v1/knowledge/sources/help/documents/policies/returns%20v2");
+    expect(calls[2][1]?.method).toBe("PUT");
+    expect(calls[3][1]?.method).toBe("DELETE");
+    expect(calls[4][0]).toBe("/api/northcx/v1/knowledge/search?q=refund+time%3F&source=help");
+    expect(JSON.parse(String(calls[5][1]?.body))).toEqual({ id: "help", name: "Help", staleAfterDays: 30 });
+  });
+});

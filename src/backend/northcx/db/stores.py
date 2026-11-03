@@ -502,6 +502,7 @@ class PgKnowledge(_Base):
             old = (await s.execute(text("select * from knowledge_documents where source_id = :s and external_id = :e"),
                                    {"s": source_id, "e": external_id})).first()
             if old and old.content_hash == h:
+                await s.execute(text("update knowledge_documents set body = coalesce(body, :b) where id = :i"), {"b": text_, "i": old.id})  # keep the text once we have it
                 if source_updated_at is not None:
                     await s.execute(text("update knowledge_documents set source_updated_at = :u where id = :i"), {"u": source_updated_at, "i": old.id})
                     old = (await s.execute(text("select * from knowledge_documents where id = :i"), {"i": old.id})).first()
@@ -509,12 +510,12 @@ class PgKnowledge(_Base):
             doc_id = old.id if old else uuid.uuid4().hex
             if old:
                 await s.execute(text("delete from knowledge_chunks where document_id = :i"), {"i": doc_id})
-                await s.execute(text("update knowledge_documents set title=:t, url=:u, content_hash=:h, chunks=:c, source_updated_at=:su, ingested_at=:n where id=:i"),
-                                {"t": title.strip(), "u": url, "h": h, "c": len(parts), "su": source_updated_at, "n": now, "i": doc_id})
+                await s.execute(text("update knowledge_documents set title=:t, url=:u, content_hash=:h, chunks=:c, source_updated_at=:su, ingested_at=:n, body=:b where id=:i"),
+                                {"t": title.strip(), "u": url, "h": h, "c": len(parts), "su": source_updated_at, "n": now, "i": doc_id, "b": text_})
             else:
-                await s.execute(text("insert into knowledge_documents (id, source_id, external_id, title, url, content_hash, chunks, source_updated_at, ingested_at) "
-                                     "values (:i,:s,:e,:t,:u,:h,:c,:su,:n)"),
-                                {"i": doc_id, "s": source_id, "e": external_id, "t": title.strip(), "u": url, "h": h, "c": len(parts), "su": source_updated_at, "n": now})
+                await s.execute(text("insert into knowledge_documents (id, source_id, external_id, title, url, content_hash, chunks, source_updated_at, ingested_at, body) "
+                                     "values (:i,:s,:e,:t,:u,:h,:c,:su,:n,:b)"),
+                                {"i": doc_id, "s": source_id, "e": external_id, "t": title.strip(), "u": url, "h": h, "c": len(parts), "su": source_updated_at, "n": now, "b": text_})
             if parts:
                 await s.execute(text("insert into knowledge_chunks (document_id, seq, heading, body, search_text) values (:d,:q,:h,:b,:x)"),
                                 [{"d": doc_id, "q": i, "h": hd, "b": tx, "x": f"{title} {hd} {tx}"} for i, (hd, tx) in enumerate(parts)])
@@ -524,6 +525,22 @@ class PgKnowledge(_Base):
     @staticmethod
     def _doc(r: Any) -> Document:
         return Document(r.source_id, r.external_id, r.title, r.url, r.content_hash, r.chunks, r.source_updated_at, r.ingested_at, id=r.id)
+
+    async def get_document(self, source_id: str, external_id: str):
+        async with self._sm() as s:
+            r = (await s.execute(text("select * from knowledge_documents where source_id = :s and external_id = :e"), {"s": source_id, "e": external_id})).first()
+            if r is None:
+                return None
+            if r.body is not None:
+                return self._doc(r), r.body, False
+            chunks = (await s.execute(text("select heading, body from knowledge_chunks where document_id = :i order by seq"), {"i": r.id})).all()
+        rebuilt, last = [], ""
+        for c in chunks:  # documents saved before the text was kept: put the passages back together, restoring each new heading
+            if c.heading and c.heading != last:
+                rebuilt.append("#" * min(6, c.heading.count(" > ") + 1) + " " + c.heading.split(" > ")[-1])
+            last = c.heading
+            rebuilt.append(c.body)
+        return self._doc(r), "\n\n".join(rebuilt), True
 
     async def delete(self, source_id: str, external_id: str) -> bool:
         async with self._sm.begin() as s:

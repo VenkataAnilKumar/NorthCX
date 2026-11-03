@@ -231,6 +231,27 @@ export const updateScenario = (name: string, body: { yaml?: string; scenario?: u
 export const deleteScenario = (name: string) => api<{ deleted: boolean }>(`/v1/simulations/scenarios/${encodeURIComponent(name)}`, { method: "DELETE" });
 export const getScenarioDraft = (sessionId: string) => api<{ yaml: string; scenario: Record<string, unknown>; warnings: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/scenario-draft`);
 
+export interface KnowledgeSource { id: string; name: string; staleAfterDays: number | null; createdAt: number }
+export interface KnowledgeDoc { id: string; sourceId: string; externalId: string; title: string; url: string | null; chunks: number; sourceUpdatedAt: number | null; ingestedAt: number; stale: boolean }
+export interface Passage { documentId: string; sourceId: string; title: string; url: string | null; section: string; text: string; score: number; updatedAt: number; stale: boolean }
+export const listKnowledgeSources = () => api<{ sources: KnowledgeSource[] }>("/v1/knowledge/sources").then((r) => r.sources);
+export const createKnowledgeSource = (id: string, name: string, staleAfterDays?: number) =>
+  api<KnowledgeSource>("/v1/knowledge/sources", { method: "POST", body: JSON.stringify({ id, name, ...(staleAfterDays ? { staleAfterDays } : {}) }) });
+export const deleteKnowledgeSource = (id: string) => api<{ deleted: boolean; documents: number }>(`/v1/knowledge/sources/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const listKnowledgeDocs = (source?: string, staleOnly?: boolean) => {
+  const q = new URLSearchParams();
+  if (source) q.set("source", source);
+  if (staleOnly) q.set("stale", "true");
+  return api<{ documents: KnowledgeDoc[] }>(`/v1/knowledge/documents${q.size ? `?${q}` : ""}`).then((r) => r.documents);
+};
+const docPath = (source: string, ext: string) => `/v1/knowledge/sources/${encodeURIComponent(source)}/documents/${ext.split("/").map(encodeURIComponent).join("/")}`;
+export const getKnowledgeDoc = (source: string, ext: string) => api<KnowledgeDoc & { text: string; textRebuilt: boolean }>(docPath(source, ext));
+export const putKnowledgeDoc = (source: string, ext: string, body: { title: string; text: string; url?: string; sourceUpdatedAt?: number }) =>
+  api<{ status: string; document: KnowledgeDoc }>(docPath(source, ext), { method: "PUT", body: JSON.stringify(body) });
+export const deleteKnowledgeDoc = (source: string, ext: string) => api<{ deleted: boolean }>(docPath(source, ext), { method: "DELETE" });
+export const searchKnowledge = (q: string, source?: string) =>
+  api<{ passages: Passage[] }>(`/v1/knowledge/search?${new URLSearchParams({ q, ...(source ? { source } : {}) })}`).then((r) => r.passages);
+
 export const statusLabel: Record<string, string> = {
   completed: "Completed", escalated: "Escalated", needs_approval: "Needs approval", unknown: "Unknown",
 };

@@ -223,6 +223,7 @@ class KnowledgeDocumentRow(Base):
     chunks: Mapped[int] = mapped_column(Integer, nullable=False)
     source_updated_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     ingested_at: Mapped[float] = mapped_column(Float, nullable=False)
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
     __table_args__ = (UniqueConstraint("source_id", "external_id", name="uq_knowledge_doc"),)
 
 

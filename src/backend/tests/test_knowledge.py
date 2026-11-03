@@ -228,3 +228,40 @@ def test_api_permissions():
     token = c.post("/v1/chat-tokens", json={"sessionId": "x"}, headers=H()).json()["token"]
     assert c.get("/v1/knowledge/search?q=x", headers=H(token)).status_code == 403
     assert c.get("/v1/knowledge/search?q=x").status_code == 401
+
+
+# ---- reading a document back for editing ----
+async def test_a_document_can_be_read_back_as_submitted(kb):
+    await seeded(kb)
+    doc, body, rebuilt = await kb.get_document("help", "returns")
+    assert body == POLICY and rebuilt is False and doc.title == "Returns policy"
+    await kb.upsert("help", "returns", "Returns policy", "https://shop.test/returns", POLICY + "\nExtra line.", None)
+    assert (await kb.get_document("help", "returns"))[1].endswith("Extra line.")
+    assert await kb.get_document("help", "nope") is None and await kb.get_document("nosource", "returns") is None
+    again = await kb.upsert("help", "returns", "Returns policy", "https://shop.test/returns", POLICY + "\nExtra line.", 5.0)
+    assert again.status == "unchanged" and (await kb.get_document("help", "returns"))[1].endswith("Extra line.")
+
+
+async def test_documents_saved_before_the_text_was_kept_are_rebuilt_from_their_passages(engine):
+    from northcx.db import PgKnowledge
+    from sqlalchemy import text as sql
+    kb = PgKnowledge(engine)
+    await seeded(kb)
+    async with engine.begin() as c:
+        await c.execute(sql("update knowledge_documents set body = null"))
+    doc, body, rebuilt = await kb.get_document("help", "returns")
+    assert rebuilt is True and "# Returns" in body and "## Refunds" in body and "Refunds are paid" in body and "We ship worldwide" in body
+    again = await kb.upsert("help", "returns", "Returns policy", "https://shop.test/returns", POLICY, None)
+    assert again.status == "unchanged"  # same content: nothing is re-indexed
+    assert (await kb.get_document("help", "returns"))[1:] == (POLICY, False)  # but the real text is now kept
+
+
+def test_api_returns_the_text_for_editing():
+    c, ac = api()
+    c.post("/v1/knowledge/sources", json={"id": "help", "name": "Help", "staleAfterDays": 30}, headers=H())
+    c.put("/v1/knowledge/sources/help/documents/policies/returns", json={"title": "Returns", "text": POLICY}, headers=H())
+    d = c.get("/v1/knowledge/sources/help/documents/policies/returns", headers=H()).json()
+    assert d["text"] == POLICY and d["textRebuilt"] is False and d["externalId"] == "policies/returns" and d["stale"] is False
+    assert c.get("/v1/knowledge/sources/help/documents/nope", headers=H()).status_code == 404
+    chan = asyncio.new_event_loop().run_until_complete(ac.issue("c", "channel", "root"))[1]
+    assert c.get("/v1/knowledge/sources/help/documents/policies/returns", headers=H(chan)).status_code == 403

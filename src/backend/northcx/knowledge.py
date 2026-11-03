@@ -51,6 +51,7 @@ class Document:
     source_updated_at: float | None
     ingested_at: float
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
+    text: str = ""  # the document as submitted, so an editor can show and change it; not part of listings
 
     def to_dict(self, stale_after_days: int | None = None, now: float | None = None) -> dict[str, Any]:
         return {"id": self.id, "sourceId": self.source_id, "externalId": self.external_id, "title": self.title, "url": self.url,
@@ -139,6 +140,7 @@ class KnowledgeStore(Protocol):
     async def list_sources(self) -> list[Source]: ...
     async def upsert(self, source_id: str, external_id: str, title: str, url: str | None, text: str,
                      source_updated_at: float | None, now: float | None = None) -> UpsertResult: ...
+    async def get_document(self, source_id: str, external_id: str) -> tuple[Document, str, bool] | None: ...  # (document, text, text_was_rebuilt)
     async def delete(self, source_id: str, external_id: str) -> bool: ...
     async def delete_source(self, source_id: str) -> int: ...
     async def documents(self, source_id: str | None = None, stale_only: bool = False, limit: int = 200, now: float | None = None) -> list[tuple[Document, int | None]]: ...
@@ -192,12 +194,17 @@ class InMemoryKnowledge:
         if old and old.content_hash == h:
             if source_updated_at is not None:
                 old.source_updated_at = source_updated_at  # freshness can change without the text changing
+            old.text = old.text or text
             return UpsertResult(old, "unchanged")
         parts = chunk_text(text)
-        doc = Document(source_id, external_id, title.strip(), url, h, len(parts), source_updated_at, now, id=old.id if old else uuid.uuid4().hex)
+        doc = Document(source_id, external_id, title.strip(), url, h, len(parts), source_updated_at, now, id=old.id if old else uuid.uuid4().hex, text=text)
         self.docs[(source_id, external_id)] = doc
         self.passages[doc.id] = [(hd, tx, tokens(f"{hd} {tx} {title}")) for hd, tx in parts]
         return UpsertResult(doc, "updated" if old else "created")
+
+    async def get_document(self, source_id, external_id):
+        d = self.docs.get((source_id, external_id))
+        return (d, d.text, False) if d else None
 
     async def delete(self, source_id: str, external_id: str) -> bool:
         doc = self.docs.pop((source_id, external_id), None)

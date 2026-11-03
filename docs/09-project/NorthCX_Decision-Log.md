@@ -112,3 +112,4 @@
 | 105 | Alerts are rule-based over a recent production window with minimum samples, cooldown and auto-clear; findings are the record, a signed webhook is optional | Decided, built | |
 | 106 | The Studio editor is a form over the spec with server-side live checks (preview) and a one-click path to dev; it creates versions and never bypasses the release gate | Decided, built | Scenario editor, knowledge screens and review views follow |
 | 107 | Scenarios can be saved in the database next to files; files win name clashes and are read-only in the editor; deciding which scenarios are required needs the release permission | Decided, built | Simulations are now always available, even with no scenario files |
+| 108 | Knowledge documents keep their submitted text so the editor can show and change it; documents saved earlier are rebuilt from their passages and flagged | Decided, built | Crawling and file parsing still planned |

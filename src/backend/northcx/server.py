@@ -196,6 +196,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("PUT", r"/v1/knowledge/sources/[^/]+/documents/.+", "knowledge:write"),
     ("DELETE", r"/v1/knowledge/sources/[^/]+/documents/.+", "knowledge:write"),
     ("GET", r"/v1/knowledge/documents", "knowledge:read"),
+    ("GET", r"/v1/knowledge/sources/[^/]+/documents/.+", "knowledge:read"),
     ("GET", r"/v1/knowledge/search", "knowledge:read"),
     ("GET", r"/v1/monitor/findings", "monitor:read"),
     ("GET", r"/v1/monitor/summary", "monitor:read"),
@@ -859,6 +860,15 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if regression is not None:
             regression.trigger(f"source {source_id} deleted")
         return {"deleted": True, "documents": n}
+
+    @app.get("/v1/knowledge/sources/{source_id}/documents/{external_id:path}")
+    async def kb_get_document(source_id: str, external_id: str) -> Any:
+        found = await kb.get_document(source_id, external_id)
+        if found is None:
+            return _err(404, "not_found", "Unknown document")
+        doc, body, rebuilt = found
+        src = await kb.get_source(source_id)
+        return {**doc.to_dict(src.stale_after_days if src else None), "text": body, "textRebuilt": rebuilt}
 
     @app.put("/v1/knowledge/sources/{source_id}/documents/{external_id:path}")
     async def kb_put_document(source_id: str, external_id: str, body: DocumentBody, request: Request) -> Any:
