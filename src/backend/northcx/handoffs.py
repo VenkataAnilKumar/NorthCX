@@ -24,6 +24,7 @@ TRIGGERS = {
     "model_error": "The model could not be reached",
     "approval_expired": "A held action was not approved in time",
     "budget_exceeded": "The model budget for this conversation or day was used up",
+    "customer_request": "The customer asked for a person",
 }
 OPEN, RESOLVED = "open", "resolved"
 

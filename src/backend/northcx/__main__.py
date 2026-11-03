@@ -7,6 +7,7 @@ import uvicorn
 
 from .access import AccessControl, InMemoryKeys, LimitConfig
 from .assist import AssistService
+from .voice import InMemoryCalls, VoiceConfig
 from .attachments import HttpScanner, InMemoryAttachments
 from .sso import Sso, config_from_env as sso_config_from_env
 from .tokens import TokenSigner, derive_secret
@@ -34,7 +35,7 @@ from .memory import InMemoryMemories, memory_tools
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgAttachments, PgReviews, PgRollouts, PgScenarios, PgSessionRoutes, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgAttachments, PgCalls, PgReviews, PgRollouts, PgScenarios, PgSessionRoutes, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -116,6 +117,7 @@ def run() -> None:
         review_repo = PgReviews(engine)
         rollout_repo = PgRollouts(engine)
         attachment_repo = PgAttachments(engine)
+        call_repo = PgCalls(engine)
         scenario_repo = PgScenarios(engine)
         insights_source = PgInsightsSource(engine)
         inbox_repo = PgInbox(engine)
@@ -137,6 +139,7 @@ def run() -> None:
         review_repo = InMemoryReviews()
         rollout_repo = InMemoryRollouts()
         attachment_repo = InMemoryAttachments()
+        call_repo = InMemoryCalls()
         scenario_repo = InMemoryScenarios()
         insights_source = None  # built over the runtime below
         inbox_repo = InMemoryInbox()
@@ -344,6 +347,15 @@ def run() -> None:
     for o in cors_origins:
         if o == "*" or not re.fullmatch(r"https://[A-Za-z0-9.-]+(:\d+)?|http://(localhost|127\.0\.0\.1)(:\d+)?", o):
             sys.exit(f"NORTHCX_CORS_ORIGINS: '{o}' must be an https origin such as https://www.example.com (no wildcards, no paths)")
+    voice_cfg = None
+    if os.environ.get("NORTHCX_VOICE_AGENT"):
+        try:
+            transfers = dict(p.split("=", 1) for p in os.environ.get("NORTHCX_VOICE_TRANSFER", "").replace(" ", "").split(",") if p)
+            voice_cfg = VoiceConfig(os.environ["NORTHCX_VOICE_AGENT"], os.environ.get("NORTHCX_VOICE_BRAND") or "our support line", os.environ.get("NORTHCX_VOICE_LANGUAGE") or "en",
+                                    os.environ.get("NORTHCX_VOICE_RECORDING") or "off", transfers, os.environ.get("NORTHCX_VOICE_TRUST_CALLER_ID") == "1")
+        except ValueError as e:
+            sys.exit(f"Voice: {e}")
+        print(f"Voice calls are ON for agent '{voice_cfg.agent_id}' (recording: {voice_cfg.recording}).")
     attachment_scanner = None
     if os.environ.get("NORTHCX_ATTACHMENT_SCAN_URL"):
         try:
@@ -355,7 +367,7 @@ def run() -> None:
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
                       regression=regression, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
-                      attachment_scanner=attachment_scanner, cors_origins=cors_origins,
+                      attachment_scanner=attachment_scanner, cors_origins=cors_origins, voice=voice_cfg, calls=call_repo,
                       insights=insights_service, alerts=alert_manager,
                       templates=load_templates(LIBRARY, *([os.environ["NORTHCX_TEMPLATES_DIR"]] if os.environ.get("NORTHCX_TEMPLATES_DIR") else [])),
                       sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,

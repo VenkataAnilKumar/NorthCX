@@ -19,6 +19,7 @@ from ..handoffs import Handoff
 from ..monitor import Finding
 from ..simulation.managed import ManagedScenario
 from ..attachments import Attachment
+from ..voice import CallRecord
 from ..reviews import Review
 from ..rollout import Rollout
 from ..versions import Conflict
@@ -653,6 +654,37 @@ class PgScenarios(_Base):
             return (await s.execute(text("delete from managed_scenarios where name = :n returning name"), {"n": name})).first() is not None
 
 
+class PgCalls(_Base):
+    @staticmethod
+    def _c(r: Any) -> CallRecord:
+        return CallRecord(r.call_id, r.session_id, r.agent_id, r.caller_hash, r.started_at, r.ended_at, r.outcome, r.consent, r.recorded, r.turns, r.barge_ins,
+                          list(r.languages), r.handoff_id, list(r.latency_ms))
+
+    async def save(self, c: CallRecord) -> None:
+        async with self._sm.begin() as s:
+            await s.execute(text(
+                "insert into voice_calls (call_id, session_id, agent_id, caller_hash, started_at, ended_at, outcome, consent, recorded, turns, barge_ins, languages, handoff_id, latency_ms) "
+                "values (:id, :s, :a, :h, :st, :en, :o, :c, :r, :t, :b, cast(:l as jsonb), :ho, cast(:lat as jsonb)) "
+                "on conflict (call_id) do update set ended_at = excluded.ended_at, outcome = excluded.outcome, consent = excluded.consent, recorded = excluded.recorded, "
+                "turns = excluded.turns, barge_ins = excluded.barge_ins, languages = excluded.languages, handoff_id = excluded.handoff_id, latency_ms = excluded.latency_ms"),
+                {"id": c.call_id, "s": c.session_id, "a": c.agent_id, "h": c.caller_hash, "st": c.started_at, "en": c.ended_at, "o": c.outcome, "c": c.consent, "r": c.recorded,
+                 "t": c.turns, "b": c.barge_ins, "l": json.dumps(c.languages), "ho": c.handoff_id, "lat": json.dumps(c.latency_ms)})
+
+    async def get(self, call_id: str) -> CallRecord | None:
+        async with self._sm() as s:
+            r = (await s.execute(text("select * from voice_calls where call_id = :id"), {"id": call_id})).first()
+        return self._c(r) if r else None
+
+    async def recent(self, limit: int = 50) -> list[CallRecord]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from voice_calls order by started_at desc limit :n"), {"n": limit})).all()
+        return [self._c(r) for r in rows]
+
+    async def erase_session(self, session_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from voice_calls where session_id = :s"), {"s": session_id})).rowcount
+
+
 class PgAttachments(_Base):
     @staticmethod
     def _a(r: Any) -> Attachment:
@@ -1101,6 +1133,7 @@ class PgPrivacy(_Base):
                 "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
                 "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,
             }
+            out["calls"] = (await s.execute(text("delete from voice_calls where session_id = :s"), p)).rowcount
             out["attachments"] = (await s.execute(text("delete from attachments where session_id = :s"), p)).rowcount
             out["routes"] = (await s.execute(text("delete from session_routes where session_id = :s"), p)).rowcount
             out["rolloutAssignments"] = (await s.execute(text("delete from rollout_assignments where session_id = :s"), p)).rowcount

@@ -11,7 +11,7 @@ An adapter translates a channel message to `POST /v1/agents/:id/chat {sessionId,
 | Web chat widget | 1 | Served by the API server |
 | Email | 3 | Via inbox integration; thread ID maps to session |
 | SMS / WhatsApp | 3 | Via inbox integration; opt-in and template rules apply |
-| Voice | 5 | Real-time speech-to-text and text-to-speech around the same API |
+| Voice | 5 | Built as a WebSocket protocol for a telephony bridge; see `NorthCX_Voice.md` |
 
 ## Voice requirements
 Low-latency streaming, barge-in handling, short replies, spoken confirmation for actions, DTMF fallback, and handoff to a phone queue. Latency budget to be set when voice starts.

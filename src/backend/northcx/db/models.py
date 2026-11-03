@@ -253,6 +253,25 @@ class ManagedScenarioRow(Base):
     __table_args__ = (Index("ix_managed_scenarios_agent", "agent_id"),)
 
 
+class VoiceCallRow(Base):
+    __tablename__ = "voice_calls"
+    call_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    caller_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    started_at: Mapped[float] = mapped_column(Float, nullable=False)
+    ended_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    outcome: Mapped[str] = mapped_column(String(24), nullable=False)
+    consent: Mapped[str] = mapped_column(String(16), nullable=False)
+    recorded: Mapped[bool] = mapped_column(nullable=False)
+    turns: Mapped[int] = mapped_column(Integer, nullable=False)
+    barge_ins: Mapped[int] = mapped_column(Integer, nullable=False)
+    languages: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    handoff_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    latency_ms: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    __table_args__ = (Index("ix_voice_calls_started", "started_at"), Index("ix_voice_calls_session", "session_id"))
+
+
 class AttachmentRow(Base):
     __tablename__ = "attachments"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

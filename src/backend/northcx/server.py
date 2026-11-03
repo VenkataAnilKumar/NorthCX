@@ -14,7 +14,7 @@ import yaml
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import Query, FastAPI, Request
+from fastapi import WebSocket, WebSocketDisconnect, Query, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from urllib.parse import urlencode
 
@@ -34,6 +34,7 @@ from .sso import Sso, SsoError
 from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms, rollout_json
 from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
 from .assist import AssistError
+from .voice import CallRepo, CallSession, InMemoryCalls, VoiceConfig
 from .attachments import MAX_BYTES, MAX_PER_MESSAGE, AttachmentError, AttachmentRepo, InMemoryAttachments, Scanner, accept as accept_attachment, check_accepted
 from .handoffs import PERSON_PREFIX, return_note, transcript
 from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
@@ -263,6 +264,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/sessions/[^/]+/feedback", "feedback:send"),
     ("GET", r"/v1/regression", "simulations:read"),
     ("GET", r"/v1/sessions/.+/scenario-draft", "simulations:run"),
+    ("GET", r"/v1/voice/calls", "traces:read"),
     ("PUT", r"/v1/sessions/[^/]+/attachments", "chat:send"),
     ("GET", r"/v1/sessions/[^/]+/attachments", "traces:read"),
     ("GET", r"/v1/attachments/[^/]+", "traces:read"),
@@ -341,7 +343,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
-               attachments: AttachmentRepo | None = None, attachment_scanner: Scanner | None = None, cors_origins: list[str] | None = None) -> FastAPI:
+               attachments: AttachmentRepo | None = None, attachment_scanner: Scanner | None = None, cors_origins: list[str] | None = None,
+               voice: VoiceConfig | None = None, calls: CallRepo | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -355,6 +358,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     review_repo = reviews or InMemoryReviews()
     attachment_repo = attachments or InMemoryAttachments()
     runtime.privacy.attachments = attachment_repo
+    call_repo = calls or InMemoryCalls()
+    runtime.privacy.calls = call_repo
     insight = insights or InsightsService(InMemoryInsightsSource(runtime, fb))
     privacy = PrivacyService(runtime.privacy)
     if isinstance(runtime.privacy, InMemoryPrivacy):
@@ -515,6 +520,80 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     @app.exception_handler(RequestValidationError)
     async def bad_request(request: Request, exc: RequestValidationError):
         return _err(400, "bad_request", str(exc.errors()))
+
+    @app.get("/v1/voice/calls")
+    async def voice_calls(limit: int = 50) -> Any:
+        """Recent phone calls: outcome, consent, turns, barge-ins, languages and reply latency. No audio and no phone numbers."""
+        return {"enabled": voice is not None, "calls": [c.summary() for c in await call_repo.recent(max(1, min(limit, 200)))]}
+
+    @app.websocket("/v1/voice/stream")
+    async def voice_stream(ws: WebSocket) -> None:
+        """The telephony bridge's connection for one call (JSON messages both ways; see docs/05-technical/NorthCX_Voice.md). Authenticated with a
+        channel key in the Authorization header, because the HTTP key check does not cover WebSockets."""
+        if voice is None:
+            await ws.close(code=4404)
+            return
+        ip = ws.client.host if ws.client else "unknown"
+        if not access.limiter.allow(f"voice:{ip}", 60)[0]:
+            await ws.close(code=4429)
+            return
+        if await access.enabled():
+            header = ws.headers.get("authorization", "")
+            ident, _ = await access.authenticate_detail(header[7:] if header.startswith("Bearer ") else None)
+            if ident is None:
+                await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/v1/voice/stream", outcome="denied", detail={"client": ip}))
+                await ws.close(code=4401)
+                return
+            if not ident.can("channel:inbound"):
+                await audit.append(AuditEntry(actor=ident.name, role=ident.role, action="auth.denied", target="/v1/voice/stream", outcome="denied", detail={"permission": "channel:inbound"}))
+                await ws.close(code=4403)
+                return
+        else:
+            ident = OPEN_IDENTITY
+        await ws.accept()
+
+        async def send(msg: dict[str, Any]) -> None:
+            try:
+                await ws.send_json(msg)
+            except Exception:  # the bridge went away; the call is ending anyway
+                pass
+
+        async def resolve(agent_id: str, session_id: str) -> Any:
+            return await provider.get(agent_id, "production", session_id)
+        call = CallSession(runtime, resolve, voice, call_repo, send)
+        try:
+            while True:
+                raw = await ws.receive_text()
+                if len(raw) > 65536:
+                    await ws.close(code=1009)
+                    break
+                try:
+                    msg = json.loads(raw)
+                except ValueError:
+                    continue
+                if not isinstance(msg, dict):
+                    continue
+                if msg.get("type") == "start" and call.rec is None:
+                    await call.handle(msg)
+                    await audit.append(AuditEntry(actor=ident.name, role=ident.role, action="voice.call", target=call.session_id, outcome="ok", detail={"callId": call.rec.call_id if call.rec else None}))
+                else:
+                    await call.handle(msg)
+                if call.state == "ended":
+                    break
+        except WebSocketDisconnect:
+            pass
+        finally:
+            if call._turn is not None and not call._turn.done():
+                try:
+                    await asyncio.wait_for(asyncio.shield(call._turn), 20)  # an answer in progress is still saved to the conversation
+                except Exception:
+                    pass
+            if call.state != "ended":
+                await call.handle({"type": "end", "reason": "caller_hung_up"})
+            try:
+                await ws.close()
+            except Exception:
+                pass
 
     @app.get("/sdk/{name}")
     async def sdk_file(name: str) -> Any:

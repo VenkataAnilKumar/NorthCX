@@ -395,6 +395,27 @@ class Runtime:
             return {"withheld": "The result of this tool was withheld by policy. Do not act on it; hand off to a person if you cannot continue."}
         return screened
 
+    async def escalate(self, agent: Agent, session_id: str, customer_id: str | None, message: str, trigger: str, reason: str,
+                       channel: str | None = None, environment: str = "production") -> RunResult:
+        """Hand the conversation to a person because of something the platform saw (for example a keypad press), without asking the model."""
+        trace = Trace(agent.id, session_id, agent_version=agent.version, environment=environment)
+        await self.privacy.link(session_id, customer_id)
+        messages = await self.store.load_messages(session_id)
+        existing = next(iter(await self.handoffs.list("open", session_id, 1)), None)
+        reply = HOLD_REPLY if existing else "I'm connecting you with a teammate who can take it from here."
+        messages.append({"role": "user", "content": message})
+        messages.append({"role": "assistant", "content": reply})
+        trace.add("user", message=message)
+        trace.add("handoff", reason=reason, trigger=trigger)
+        trace.add("reply", reply=reply, status="escalated")
+        safe = self.secrets.redact(messages)
+        await self.store.save_messages(session_id, safe)
+        await self.traces.save(trace)
+        handoff_id = existing.id if existing else (await self.create_handoff(agent_id=agent.id, session_id=session_id, customer_id=customer_id, trace=trace, messages=safe,
+                                                                            trigger=trigger, reason=reason, topics=[])).id
+        await self.monitor.observe(trace, "escalated", trigger)
+        return RunResult(reply, "escalated", trace, [], handoff_id)
+
     async def active_agent(self, entry: Agent, session_id: str, environment: str = "production") -> Agent:
         """The agent this conversation is currently with: the one it was last passed to, else the one asked for."""
         routed = await self.routes.get(session_id)
