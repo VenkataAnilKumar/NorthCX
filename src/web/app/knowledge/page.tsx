@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { createKnowledgeSource, deleteKnowledgeDoc, deleteKnowledgeSource, formatTime, getKnowledgeDoc, listKnowledgeDocs, listKnowledgeSources, putKnowledgeDoc, searchKnowledge, type KnowledgeDoc, type Passage } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { createKnowledgeSource, importKnowledgeFile, listCrawls, startCrawl, type CrawlJob, deleteKnowledgeDoc, deleteKnowledgeSource, formatTime, getKnowledgeDoc, listKnowledgeDocs, listKnowledgeSources, putKnowledgeDoc, searchKnowledge, type KnowledgeDoc, type Passage } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { useMe } from "@/lib/me";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
@@ -78,6 +78,57 @@ function DocForm({ sources, initial, onDone }: { sources: { id: string; name: st
   );
 }
 
+function BringIn({ sources, onDone }: { sources: { id: string; name: string }[]; onDone: () => void }) {
+  const [source, setSource] = useState(sources[0]?.id ?? "");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [url, setUrl] = useState("");
+  const [pages, setPages] = useState(50);
+  const [include, setInclude] = useState("");
+  const [prune, setPrune] = useState(false);
+  const crawls = useLoad(listCrawls, [source, msg]);
+  const running = crawls.data?.crawls.some((c) => c.state === "running");
+  useEffect(() => { if (!running) return; const t = setInterval(() => { crawls.reload(); onDone(); }, 3000); return () => clearInterval(t); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [running]);
+  const lines = (v: string) => v.split(/[\n,]/).map((x) => x.trim()).filter(Boolean);
+  async function upload(list: FileList | null) {
+    if (!list?.length || !source) return;
+    const out: string[] = [];
+    for (const f of Array.from(list).slice(0, 10)) {
+      try { const r = await importKnowledgeFile(source, f); out.push(`${f.name}: ${r.status}`); } catch (e) { out.push(`${f.name}: ${(e as Error).message}`); }
+    }
+    setMsg({ ok: true, text: out.join(" · ") }); onDone();
+  }
+  async function crawl(e: React.FormEvent) {
+    e.preventDefault(); setMsg(null);
+    try { await startCrawl(source, { url: url.trim(), maxPages: pages, maxDepth: 2, includePaths: lines(include), excludePaths: [], prune }); setMsg({ ok: true, text: "Crawl started." }); crawls.reload(); }
+    catch (err) { setMsg({ ok: false, text: (err as Error).message }); }
+  }
+  const mine: CrawlJob[] = (crawls.data?.crawls ?? []).filter((c) => c.sourceId === source).slice(0, 3);
+  return (
+    <section aria-label="Bring in content" className={box}>
+      <h2 className="font-medium">Bring in content</h2>
+      <p className="mb-2 text-sm text-muted">Upload PDF, HTML, Markdown or text files, or read a website. Pages are added as documents you can edit and keep up to date.</p>
+      <label className="text-sm">Into source <select value={source} onChange={(e) => setSource(e.target.value)} className="ml-1 rounded-lg border border-border bg-bg px-2 py-1.5">{sources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+      <div className="mt-3 text-sm"><label className="inline-block cursor-pointer rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">Upload files
+        <input type="file" multiple className="sr-only" accept=".pdf,.html,.htm,.md,.markdown,.txt,application/pdf,text/*" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} /></label></div>
+      {crawls.data?.enabled ? (
+        <form onSubmit={crawl} className="mt-3 space-y-2 text-sm" aria-label="Crawl a website">
+          <label className="block">Website address<input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://help.example.com/" className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-1.5" /></label>
+          <div className="flex flex-wrap items-end gap-3">
+            <label>Pages at most<input type="number" min={1} max={200} value={pages} onChange={(e) => setPages(Number(e.target.value))} className="ml-2 w-20 rounded-lg border border-border bg-bg px-2 py-1.5" /></label>
+            <label>Only these paths (optional)<input value={include} onChange={(e) => setInclude(e.target.value)} placeholder="/help/, /faq/" className="ml-2 w-48 rounded-lg border border-border bg-bg px-2 py-1.5" /></label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={prune} onChange={(e) => setPrune(e.target.checked)} /> Remove pages that no longer exist</label>
+          </div>
+          <button disabled={!url.trim() || !source || !!running} className="rounded-lg bg-primary px-3 py-1.5 font-medium text-primary-text disabled:opacity-50">{running ? "Crawling…" : "Crawl"}</button>
+        </form>
+      ) : <p className="mt-3 text-xs text-muted">Reading websites is switched off. The operator lists the sites that may be read in <code>NORTHCX_CRAWL_HOSTS</code>.</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm ${msg.ok ? "text-muted" : "text-[var(--bad)]"}`}>{msg.text}</p>}
+      {mine.map((c) => (
+        <p key={c.jobId} className="mt-2 text-xs text-muted">{c.host}: {c.state === "running" ? "reading…" : c.state} · {c.fetched} pages read · {c.created} new, {c.updated} changed, {c.unchanged} the same{c.pruned ? `, ${c.pruned} removed` : ""}
+          {Object.keys(c.skipped).length > 0 && ` · skipped: ${Object.entries(c.skipped).map(([k, n]) => `${n} ${k}`).join(", ")}`}{c.message && ` · ${c.message}`}</p>))}
+    </section>
+  );
+}
+
 export default function Knowledge() {
   const { can } = useMe();
   const [tick, setTick] = useState(0);
@@ -112,6 +163,8 @@ export default function Knowledge() {
                 <label>Out of date after (days)<input name="days" type="number" min={1} max={3650} className="ml-2 w-20 rounded-lg border border-border bg-bg px-2 py-1.5" /></label>
                 <button className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">Add source</button></form>)}
           </section>
+
+          {write && srcs.length > 0 && <BringIn sources={srcs} onDone={refresh} />}
 
           <section aria-label="Documents" className={box}>
             <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-medium">Documents</h2>

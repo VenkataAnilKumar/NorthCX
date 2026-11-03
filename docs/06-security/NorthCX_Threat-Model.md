@@ -58,6 +58,7 @@ Disposition: **M** mitigated, **A** accepted with the residual noted, **T** tran
 | C1 | Prompt injection in a customer message | Input checks (takeover phrasing withheld, personal data masked) before the model sees text; the model's replies and tool calls pass reply/tool guardrails and, for sensitive tools, human approval | M |
 | C2 | Prompt injection in third-party content (tool results, knowledge, files) | Output guardrails screen tool results; text attachments pass the input checks and are marked untrusted; customer facts and memories are labelled untrusted data | M (pictures and PDFs: A) |
 | C3 | The model is manipulated into an unwanted action | Writes can require approval; tool scopes limit who and where; strict skills and journeys enforce order; fail-closed supervision; idempotency stops repeats | M |
+| C9 | Hostile web pages or files imported as knowledge (hidden instructions, parser exploits) | Visible text only; PDFs read in a worker thread with a time limit and a page cap; sizes capped; the text reaches the model as tool results through the output checks; style-sheet-hidden text is a known gap | M / A |
 | C4 | Malicious upload | Identified by content; programs, archives, Office files, SVG/HTML refused; size and count caps; optional scanner; served only as sandboxed downloads to staff | M |
 | C5 | Cross-site scripting through widget or Studio | The widget and Studio render text only; no raw HTML sinks (checked); Studio sends a CSP forbidding framing, plugins and base changes | M |
 | C6 | Another website calling the API from a visitor's browser | CORS is an explicit allow-list of exact https origins; tokens travel in a header, never cookies | M |
@@ -97,6 +98,7 @@ Disposition: **M** mitigated, **A** accepted with the residual noted, **T** tran
 |---|---|---|---|
 | S1 | Server-side request forgery | Every outbound URL is operator configuration (webhooks, scanner, identity provider, connectors with a host allow-list), https required except localhost, redirects never followed (a test enforces it), no URL is taken from a customer or from API input | M |
 | S3 | A paged list or an OAuth token address used to reach somewhere else | A `Link` address is followed only on the connector's own scheme, host, port and path (credentials never leave it); the token address must be on the operator's allowed hosts and https; page and item counts are capped; tokens live in memory only and never appear in results, traces or errors | M |
+| S4 | The crawler used to reach internal systems or cloud metadata, or to attack a third party | Only operator-listed hosts, https, no private or link-local addresses (all resolved addresses checked on every request and redirect hop), same-host redirects only, robots.txt and delays obeyed, hard caps on pages, bytes, depth and time, rate-limited starts, audited | M |
 | S2 | A webhook receiver being forged to | Outgoing webhooks are signed with a timestamp; incoming SMS is signature checked | M |
 
 ### Supply chain and build

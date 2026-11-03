@@ -66,6 +66,16 @@ await page.getByRole("button", { name: "Stop" }).click();
 await page.getByRole("button", { name: "Start rollout" }).waitFor();
 check(true, "rollout: stopped");
 
+// knowledge: upload a file into a source
+await fetch(`${API}/v1/knowledge/sources`, { method: "POST", headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json" }, body: JSON.stringify({ id: "smoke", name: "Smoke source" }) });
+await page.goto(`${WEB}/knowledge`);
+await page.getByRole("region", { name: "Bring in content" }).waitFor();
+await page.getByRole("region", { name: "Bring in content" }).getByLabel("Into source").selectOption("smoke");
+await page.locator('input[type=file]').setInputFiles({ name: "warranty-e2e.md", mimeType: "text/markdown", buffer: Buffer.from(`# Warranty ${Date.now()}\n\nEvery product has a two year warranty.`) });
+await page.getByRole("region", { name: "Bring in content" }).getByRole("status").filter({ hasText: "warranty-e2e.md" }).waitFor();
+check(true, "knowledge: a file can be uploaded from the page");
+check((await page.getByRole("region", { name: "Bring in content" }).innerText()).includes("switched off"), "knowledge: crawling reports that it is switched off when no host is listed");
+
 // monitoring: status, flagged conversations and a test alert (no webhook is set up in the test stack)
 await page.goto(`${WEB}/monitoring`);
 await page.getByRole("region", { name: "Alert status" }).waitFor();

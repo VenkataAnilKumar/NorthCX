@@ -25,6 +25,7 @@ Run on the production dependencies at 1.0.0-rc.1.
 | Backend (74 Python packages) | permissive only: MIT, BSD, Apache-2.0, PSF, ISC-style; one weak-copyleft file-level licence (MPL-2.0, the CA certificate bundle `certifi`, used unmodified); no GPL, AGPL, SSPL or source-available licences |
 | Studio (production npm packages) | MIT, Apache-2.0, ISC, BSD, 0BSD; `caniuse-lite` data is CC-BY-4.0 (attribution); one optional native image library from Next.js (`@img/sharp-libvips`, LGPL-3.0-or-later) that is dynamically loaded and not modified or redistributed by NorthCX source |
 | Browser SDK | no runtime dependencies |
+| PDF reading (`pypdf`, BSD-3-Clause) | added in the knowledge step; pure Python |
 | Our own packages | declared Apache-2.0 in `pyproject.toml` and `package.json` |
 
 Re-run before every release (`pip-licenses`, `npx license-checker --production`) and after dependency upgrades.

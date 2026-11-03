@@ -337,3 +337,17 @@ export async function downloadAttachment(a: { id: string; name: string }): Promi
   link.href = url; link.download = a.name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
+
+export interface CrawlJob { jobId: string; sourceId: string; host: string; state: "running" | "done" | "failed" | "stopped"; startedAt: number; finishedAt: number | null; fetched: number; created: number; updated: number; unchanged: number; skipped: Record<string, number>; pruned: number; errors: string[]; message: string }
+export const listCrawls = () => api<{ enabled: boolean; crawls: CrawlJob[] }>("/v1/knowledge/crawls");
+export const startCrawl = (source: string, body: { url: string; maxPages: number; maxDepth: number; includePaths: string[]; excludePaths: string[]; prune: boolean }) =>
+  api<CrawlJob>(`/v1/knowledge/sources/${encodeURIComponent(source)}/crawl`, { method: "POST", body: JSON.stringify(body) });
+export async function importKnowledgeFile(source: string, file: File): Promise<{ status: string; kind: string; document: KnowledgeDoc }> {
+  const headers = new Headers({ "content-type": "application/octet-stream" });
+  const key = getApiKey();
+  if (key) headers.set("authorization", `Bearer ${key}`);
+  const res = await fetch(`/api/northcx/v1/knowledge/sources/${encodeURIComponent(source)}/import?filename=${encodeURIComponent(file.name)}`, { method: "POST", headers, body: file });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, body?.error?.message ?? `Import failed (${res.status})`);
+  return body;
+}

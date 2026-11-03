@@ -22,6 +22,9 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 | DELETE | `/knowledge/sources/{id}/documents/{externalId}` | Delete a document and its passages at once (built) |
 | GET | `/knowledge/documents` | List documents with freshness; `source`, `stale=true`, `limit` (built) |
 | GET | `/knowledge/search` | `q`, `source`, `limit`: ranked passages with title, URL, section, `updatedAt`, `stale` (built) |
+| POST | `/knowledge/sources/{id}/import` | `filename` (and optional `externalId`, `url`): the file is the body (PDF, HTML, Markdown, text) (`knowledge:write`) (built) |
+| POST | `/knowledge/sources/{id}/crawl` | `url`, `maxPages`, `maxDepth`, `delaySeconds`, `includePaths`, `excludePaths`, `useSitemap`, `prune`: starts a background crawl of an operator-listed host; 202 with a job (`knowledge:write`) (built) |
+| GET | `/knowledge/crawls`, `/knowledge/crawls/{id}` | crawl progress and outcome (`knowledge:read`) (built) |
 | POST | `/alerts/test` | send a test alert through the real delivery path and report whether the receiver accepted it (`keys:manage`) (built) |
 | GET | `/monitor/findings` | Monitoring flags, newest first; filters `rule`, `severity`, `agentId`, `sessionId`, `since`, `limit` (`monitor:read`, built) |
 | GET | `/monitor/summary` | Counts per rule and severity, rule names, total (built) |

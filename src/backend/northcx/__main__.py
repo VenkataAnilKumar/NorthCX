@@ -8,6 +8,7 @@ import uvicorn
 from .access import AccessControl, InMemoryKeys, LimitConfig
 from . import __version__
 from .assist import AssistService
+from .crawler import Crawler, hosts_from as crawl_hosts_from
 from .voice import InMemoryCalls, VoiceConfig
 from .attachments import HttpScanner, InMemoryAttachments
 from .sso import Sso, config_from_env as sso_config_from_env
@@ -349,6 +350,13 @@ def run() -> None:
     for o in cors_origins:
         if o == "*" or not re.fullmatch(r"https://[A-Za-z0-9.-]+(:\d+)?|http://(localhost|127\.0\.0\.1)(:\d+)?", o):
             sys.exit(f"NORTHCX_CORS_ORIGINS: '{o}' must be an https origin such as https://www.example.com (no wildcards, no paths)")
+    crawler = None
+    if os.environ.get("NORTHCX_CRAWL_HOSTS"):
+        try:
+            crawler = Crawler(knowledge_repo, crawl_hosts_from(os.environ["NORTHCX_CRAWL_HOSTS"]), os.environ.get("NORTHCX_CRAWL_ALLOW_PRIVATE") == "1")
+        except ValueError as e:
+            sys.exit(str(e))
+        print(f"Knowledge crawling is ON for: {', '.join(sorted(crawler.allowed))}.")
     voice_cfg = None
     if os.environ.get("NORTHCX_VOICE_AGENT"):
         try:
@@ -368,7 +376,7 @@ def run() -> None:
     print(f"NorthCX {__version__}")
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
-                      access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
+                      access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo, crawler=crawler,
                       regression=regression, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
                       attachment_scanner=attachment_scanner, cors_origins=cors_origins, voice=voice_cfg, calls=call_repo,
                       insights=insights_service, alerts=alert_manager,

@@ -35,6 +35,8 @@ from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms
 from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
 from .assist import AssistError
 from . import __version__
+from .crawler import Crawler, CrawlConfig, CrawlRefused
+from .ingest import IngestError, extract as extract_file
 from .hardening import BodyLimit, SecurityHeaders
 from .voice import CallRepo, CallSession, InMemoryCalls, VoiceConfig
 from .attachments import MAX_BYTES, MAX_PER_MESSAGE, AttachmentError, AttachmentRepo, InMemoryAttachments, Scanner, accept as accept_attachment, check_accepted
@@ -93,6 +95,18 @@ class RolloutBody(BaseModel):
     environment: str = "production"
     by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
+
+
+class CrawlBody(BaseModel):
+    url: str = Field(min_length=8, max_length=500)
+    max_pages: int = Field(default=50, alias="maxPages")
+    max_depth: int = Field(default=2, alias="maxDepth")
+    delay_seconds: float = Field(default=1.0, alias="delaySeconds")
+    include_paths: list[str] = Field(default_factory=list, alias="includePaths")
+    exclude_paths: list[str] = Field(default_factory=list, alias="excludePaths")
+    use_sitemap: bool = Field(default=True, alias="useSitemap")
+    prune: bool = False
+    model_config = {"populate_by_name": True}
 
 
 class JourneyDraftBody(BaseModel):
@@ -248,6 +262,10 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/knowledge/documents", "knowledge:read"),
     ("GET", r"/v1/knowledge/sources/[^/]+/documents/.+", "knowledge:read"),
     ("GET", r"/v1/knowledge/search", "knowledge:read"),
+    ("POST", r"/v1/knowledge/sources/[^/]+/crawl", "knowledge:write"),
+    ("POST", r"/v1/knowledge/sources/[^/]+/import", "knowledge:write"),
+    ("GET", r"/v1/knowledge/crawls", "knowledge:read"),
+    ("GET", r"/v1/knowledge/crawls/[^/]+", "knowledge:read"),
     ("POST", r"/v1/alerts/test", "keys:manage"),
     ("GET", r"/v1/monitor/findings", "monitor:read"),
     ("GET", r"/v1/monitor/summary", "monitor:read"),
@@ -347,7 +365,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
                attachments: AttachmentRepo | None = None, attachment_scanner: Scanner | None = None, cors_origins: list[str] | None = None,
-               voice: VoiceConfig | None = None, calls: CallRepo | None = None) -> FastAPI:
+               voice: VoiceConfig | None = None, calls: CallRepo | None = None, crawler: Crawler | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -356,6 +374,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     audit = audit or InMemoryAudit()
     idem = idempotency or InMemoryIdempotency()
     kb = knowledge or InMemoryKnowledge()
+    if crawler is not None and crawler.on_change is None and regression is not None:
+        crawler.on_change = regression.trigger  # a crawl that changed knowledge re-runs the knowledge-tagged scenarios, like any other change
     fb = feedback or InMemoryFeedback()
     tag_repo = tags or InMemoryTags()
     review_repo = reviews or InMemoryReviews()
@@ -1205,6 +1225,57 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if regression is not None:
             regression.trigger(f"source {source_id} deleted")
         return {"deleted": True, "documents": n}
+
+    @app.post("/v1/knowledge/sources/{source_id}/import", status_code=201)
+    async def kb_import(source_id: str, request: Request, filename: str = "upload", externalId: str | None = None, url: str | None = None) -> Any:
+        """Add a PDF, HTML, Markdown or text file to a source (the request body is the file)."""
+        if await kb.get_source(source_id) is None:
+            return _err(404, "not_found", "Unknown source")
+        data = b""
+        async for chunk in request.stream():
+            data += chunk
+            if len(data) > 11 * 1024 * 1024:
+                return _err(413, "too_large", "The file is too large")
+        try:
+            ex = await extract_file(data, filename, request.headers.get("x-file-type", ""))
+        except IngestError as e:
+            return _err(400, "bad_request", str(e))
+        ext = externalId or "file:" + (re.sub(r"[^A-Za-z0-9._-]", "_", filename.rsplit("/", 1)[-1])[:120] or "upload")
+        try:
+            r = await kb.upsert(source_id, ext, ex.title, url, ex.text, None)
+        except KnowledgeError as e:
+            return _err(400, "bad_request", str(e))
+        if r.status != "unchanged":
+            await record(request, "knowledge.import", f"{source_id}/{ext}", kind=ex.kind, size=len(data), status=r.status, chunks=r.document.chunks)
+            if regression is not None:
+                regression.trigger(f"document {source_id}/{ext} {r.status}")
+        return {"status": r.status, "kind": ex.kind, "document": r.document.to_dict()}
+
+    @app.post("/v1/knowledge/sources/{source_id}/crawl", status_code=202)
+    async def kb_crawl(source_id: str, body: CrawlBody, request: Request) -> Any:
+        """Read a site's public pages into this source in the background. Only hosts the operator allowed can be crawled."""
+        if crawler is None:
+            return _err(501, "not_configured", "Crawling is switched off: the operator must list the sites that may be crawled in NORTHCX_CRAWL_HOSTS")
+        who: Identity = request.state.identity
+        if not access.limiter.allow(f"crawl:{who.key_id or 'open'}", 5)[0]:
+            return too_many(60, "crawl requests")
+        cfg = CrawlConfig(body.url, body.max_pages, body.max_depth, body.delay_seconds, body.include_paths, body.exclude_paths, body.use_sitemap, body.prune)
+        try:
+            job = await crawler.start(source_id, cfg)
+        except CrawlRefused as e:
+            code = 404 if str(e) == "Unknown source" else 409 if "already running" in str(e) else 400
+            return _err(code, "not_found" if code == 404 else "conflict" if code == 409 else "bad_request", str(e))
+        await record(request, "knowledge.crawl.start", f"{source_id}", host=job.host, maxPages=cfg.max_pages, prune=cfg.prune)
+        return job.to_dict()
+
+    @app.get("/v1/knowledge/crawls")
+    async def kb_crawls() -> Any:
+        return {"enabled": crawler is not None, "crawls": crawler.jobs_list() if crawler is not None else []}
+
+    @app.get("/v1/knowledge/crawls/{job_id}")
+    async def kb_crawl_status(job_id: str) -> Any:
+        job = crawler.jobs.get(job_id) if crawler is not None else None
+        return job.to_dict() if job is not None else _err(404, "not_found", "Unknown crawl")
 
     @app.get("/v1/knowledge/sources/{source_id}/documents/{external_id:path}")
     async def kb_get_document(source_id: str, external_id: str) -> Any:
