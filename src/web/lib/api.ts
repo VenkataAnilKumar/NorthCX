@@ -54,7 +54,7 @@ export const getRouting = () => api<{ timezone: string; defaultQueue: string; ho
 export const getHandoff = (id: string) => api<Handoff>(`/v1/handoffs/${id}`);
 export const resolveHandoff = (id: string, by?: string, note?: string) =>
   api<HandoffSummary>(`/v1/handoffs/${id}/resolve`, { method: "POST", body: JSON.stringify({ ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
-export interface SimScenario { name: string; agent: string; required: boolean; description: string; steps: number; judge: boolean; digest: string }
+export interface SimScenario { name: string; agent: string; required: boolean; description: string; steps: number; judge: boolean; digest: string; tags?: string[]; source?: "file" | "managed"; editable?: boolean }
 export interface SimFailure { where: string; check: string; expected: unknown; actual: unknown }
 export interface SimScenarioResult { name: string; required: boolean; passed: boolean; pass_rate: number; agent: string; notes: string[]; trials: { failures: SimFailure[] }[] }
 export interface SimRunSummary { id: string; createdAt: number; mode: string; source: string; passed: boolean; counts: { total: number; passed: number; failed: number; required_failed: number }; seconds: number; meta: Record<string, string>; agentDigests: Record<string, string> }
@@ -222,6 +222,14 @@ export const getCatalog = () => api<Catalog>("/v1/catalog");
 export const previewSpec = (id: string, spec: unknown) => api<SpecPreview>(`/v1/agents/${encodeURIComponent(id)}/versions/preview`, { method: "POST", body: JSON.stringify({ spec }) });
 export const saveSpec = (id: string, spec: unknown, by?: string, note?: string) =>
   api<AgentVersion>(`/v1/agents/${encodeURIComponent(id)}/versions`, { method: "POST", body: JSON.stringify({ spec, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
+
+export interface ScenarioDetail { name: string; source: "file" | "managed"; editable: boolean; required: boolean; digest: string; definition: Record<string, any>; yaml: string; revision: number | null } // eslint-disable-line @typescript-eslint/no-explicit-any
+export const getScenario = (name: string) => api<ScenarioDetail>(`/v1/simulations/scenarios/${encodeURIComponent(name)}`);
+export const validateScenario = (body: { yaml?: string; scenario?: unknown }) => api<{ valid: boolean; problems: string[]; digest?: string; steps?: number }>("/v1/simulations/scenarios/validate", { method: "POST", body: JSON.stringify(body) });
+export const createScenario = (body: { yaml?: string; scenario?: unknown }) => api<{ name: string; revision: number }>("/v1/simulations/scenarios", { method: "POST", body: JSON.stringify(body) });
+export const updateScenario = (name: string, body: { yaml?: string; scenario?: unknown }) => api<{ name: string; revision: number }>(`/v1/simulations/scenarios/${encodeURIComponent(name)}`, { method: "PUT", body: JSON.stringify(body) });
+export const deleteScenario = (name: string) => api<{ deleted: boolean }>(`/v1/simulations/scenarios/${encodeURIComponent(name)}`, { method: "DELETE" });
+export const getScenarioDraft = (sessionId: string) => api<{ yaml: string; scenario: Record<string, unknown>; warnings: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/scenario-draft`);
 
 export const statusLabel: Record<string, string> = {
   completed: "Completed", escalated: "Escalated", needs_approval: "Needs approval", unknown: "Unknown",

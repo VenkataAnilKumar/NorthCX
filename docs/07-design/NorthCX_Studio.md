@@ -19,8 +19,17 @@ Open an agent, choose **Edit in Studio**. The form starts from what is live in p
 
 **Roles.** People who can create versions (developers and above) can edit; others can read the form but not change it.
 
+## Scenario editor (U3) — as built
+Simulations lists every scenario with its source (file or saved) and a **New scenario** button. The editor describes a test in plain terms: name, agent, what it checks, whether it is required to release, tags; the **conversation** (what the customer says and, after each message, the agent's expected status, tools called, and words the reply must or must not contain); checks across the whole conversation (tools never called, most model calls, text that must never reach the model); and the **model script** (the answers replayed in offline runs, as replies or tool calls with JSON input). A side panel checks the scenario live and says exactly what is wrong. **Save** stores it; **Run it now (offline)** runs just this scenario and shows pass or fail with the reasons; **Edit as text** shows the scenario as JSON or YAML for anything the form does not cover. A scenario can be drafted from a real conversation (`GET /v1/sessions/{id}/scenario-draft`) and saved here.
+
+Rules that keep the release gate honest:
+- Saved scenarios live in the database next to the scenario files. A file scenario wins on a name clash and cannot be changed in the editor.
+- Editing a scenario changes its digest, so earlier passes no longer count and the gate asks for a new run. Renaming is not allowed (save under the new name, delete the old).
+- Developers can write ordinary scenarios. Deciding which scenarios are **required** (creating, changing, relaxing or deleting one) needs the release permission, because that decides what may be released. Every change is audited.
+- An agent made from a template can save the template's tests with it (`saveScenarios`); a developer's copies are optional until a release manager marks them required.
+
 ## Planned next
-A scenario editor (write and run tests without YAML), knowledge screens (documents, freshness), conversation review with failure tagging, a publish checklist that shows the required checks in one place, and single sign-on. The editor does not yet offer an undo history beyond the saved versions and their diffs.
+Knowledge screens (documents, freshness), conversation review with failure tagging, a publish checklist that shows the required checks in one place, and single sign-on. The editor does not yet offer an undo history beyond the saved versions and their diffs.
 
 ## Design rules
 - Studio never bypasses the platform's controls: it creates versions, and publishing still needs the release gate; production releases still need the release permission.

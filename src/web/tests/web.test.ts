@@ -307,3 +307,21 @@ describe("studio calls", () => {
     expect(JSON.parse(String(calls[2][1]?.body))).toEqual({ spec: { id: "support", instructions: "hi" }, by: "jo", note: "tweak" });
   });
 });
+
+describe("scenario editor calls", () => {
+  it("validates, creates, updates and deletes saved scenarios", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => { calls.push([url, init]); return new Response(JSON.stringify({ valid: true, problems: [], name: "x", revision: 1, deleted: true }), { status: 200 }); }));
+    const { validateScenario, createScenario, updateScenario, deleteScenario, getScenario } = await import("@/lib/api");
+    await validateScenario({ scenario: { name: "a" } });
+    await createScenario({ yaml: "name: a" });
+    await updateScenario("my scenario", { scenario: { name: "my scenario" } });
+    await deleteScenario("my scenario");
+    await getScenario("my scenario");
+    expect(calls.map((c) => [c[0], c[1]?.method ?? "GET"])).toEqual([
+      ["/api/northcx/v1/simulations/scenarios/validate", "POST"], ["/api/northcx/v1/simulations/scenarios", "POST"],
+      ["/api/northcx/v1/simulations/scenarios/my%20scenario", "PUT"], ["/api/northcx/v1/simulations/scenarios/my%20scenario", "DELETE"],
+      ["/api/northcx/v1/simulations/scenarios/my%20scenario", "GET"]]);
+    expect(JSON.parse(String(calls[0][1]?.body))).toEqual({ scenario: { name: "a" } });
+  });
+});

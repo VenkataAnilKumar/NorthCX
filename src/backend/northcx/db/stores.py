@@ -16,6 +16,7 @@ from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
 from ..monitor import Finding
+from ..simulation.managed import ManagedScenario
 from ..insights import MAX_TAGS, FeedbackFacts, HandoffFacts, TurnFacts, facts_from_trace
 from ..trace_export import MAX_ATTEMPTS as EXPORT_MAX_ATTEMPTS, ExportJob
 from ..inbox import MAX_ATTEMPTS, InboxEvent
@@ -591,6 +592,37 @@ class PgFeedback(_Base):
     async def erase_session(self, session_id: str) -> int:
         async with self._sm.begin() as s:
             return (await s.execute(text("delete from conversation_feedback where session_id = :s"), {"s": session_id})).rowcount
+
+
+class PgScenarios(_Base):
+    @staticmethod
+    def _m(r: Any) -> ManagedScenario:
+        return ManagedScenario(r.name, r.agent_id, r.required, r.definition, r.created_by, r.updated_by, r.created_at, r.updated_at, r.revision)
+
+    async def list(self) -> list[ManagedScenario]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from managed_scenarios order by name"))).all()
+        return [self._m(r) for r in rows]
+
+    async def get(self, name: str) -> ManagedScenario | None:
+        async with self._sm() as s:
+            r = (await s.execute(text("select * from managed_scenarios where name = :n"), {"n": name})).first()
+        return self._m(r) if r else None
+
+    async def put(self, scenario: Any, definition: dict[str, Any], by: str, now: float | None = None) -> tuple[ManagedScenario, bool]:
+        now = time.time() if now is None else now
+        async with self._sm.begin() as s:
+            r = (await s.execute(text(
+                "insert into managed_scenarios (name, agent_id, required, definition, created_by, updated_by, created_at, updated_at, revision) "
+                "values (:n, :a, :r, cast(:d as jsonb), :b, :b, :t, :t, 1) on conflict (name) do update set agent_id = excluded.agent_id, required = excluded.required, "
+                "definition = excluded.definition, updated_by = excluded.updated_by, updated_at = excluded.updated_at, revision = managed_scenarios.revision + 1 "
+                "returning *, (xmax = 0) as inserted"),
+                {"n": scenario.name, "a": scenario.agent, "r": scenario.required, "d": json.dumps(_jsonable(definition)), "b": by, "t": now})).one()
+        return self._m(r), bool(r.inserted)
+
+    async def delete(self, name: str) -> bool:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from managed_scenarios where name = :n returning name"), {"n": name})).first() is not None
 
 
 class PgTags(_Base):

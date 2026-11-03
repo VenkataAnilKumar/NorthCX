@@ -9,6 +9,7 @@ from .tokens import TokenSigner, derive_secret
 from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
 from .trace_export import ExportService, InMemoryExports, LangfuseExporter, OtlpExporter, Redactor
 from .alerts import AlertConfigError, AlertManager, WebhookAlerts, load_rules
+from .simulation.managed import InMemoryScenarios
 from .insights import InMemoryTags, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .regression import RegressionRunner
 from .connectors import ConnectorError, allowed_hosts_from, load_connectors
@@ -27,7 +28,7 @@ from .memory import InMemoryMemories, memory_tools
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgScenarios, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -106,6 +107,7 @@ def run() -> None:
         export_repo = PgExports(engine)
         feedback_repo = PgFeedback(engine)
         tag_repo = PgTags(engine)
+        scenario_repo = PgScenarios(engine)
         insights_source = PgInsightsSource(engine)
         inbox_repo = PgInbox(engine)
         memory_repo = PgMemories(engine)
@@ -123,6 +125,7 @@ def run() -> None:
         export_repo = InMemoryExports()
         feedback_repo = InMemoryFeedback()
         tag_repo = InMemoryTags()
+        scenario_repo = InMemoryScenarios()
         insights_source = None  # built over the runtime below
         inbox_repo = InMemoryInbox()
         memory_repo = InMemoryMemories()
@@ -245,14 +248,13 @@ def run() -> None:
     except (SpecError, ScenarioError, SkillError, ConnectorError, TemplateError) as e:
         sys.exit(f"Invalid configuration: {e}")
 
-    simulations = None
-    if scenarios:
-        def factory(agent_id, sim_llm):
-            return reg.build(specs[agent_id], BuildContext(llm=sim_llm))
+    def factory(agent_id, sim_llm):
+        return reg.build(specs[agent_id], BuildContext(llm=sim_llm))
 
-        simulations = SimulationService(scenarios, factory, sim_runs, {i: s.digest() for i, s in specs.items()},
-                                        live_llm=None if demo else llm, judge_llm=None if demo else llm,
-                                        spec_builder=lambda spec, sim_llm: reg.build(spec, BuildContext(llm=sim_llm)))
+    # Always available: scenarios can live in files, in the database (the Studio editor), or both.
+    simulations = SimulationService(scenarios, factory, sim_runs, {i: s.digest() for i, s in specs.items()},
+                                    live_llm=None if demo else llm, judge_llm=None if demo else llm,
+                                    spec_builder=lambda spec, sim_llm: reg.build(spec, BuildContext(llm=sim_llm)), managed=scenario_repo)
     release_service = ReleaseService(versions_repo, releases_repo, reg, specs, simulations, strict_promotion=os.environ.get("NORTHCX_STRICT_PROMOTION") == "1")
 
     def build_live(spec):

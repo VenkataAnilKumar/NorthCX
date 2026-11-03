@@ -238,6 +238,20 @@ class KnowledgeChunkRow(Base):
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
+class ManagedScenarioRow(Base):
+    __tablename__ = "managed_scenarios"
+    name: Mapped[str] = mapped_column(String(100), primary_key=True)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    required: Mapped[bool] = mapped_column(nullable=False)
+    definition: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    created_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    updated_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    __table_args__ = (Index("ix_managed_scenarios_agent", "agent_id"),)
+
+
 class ConversationTagRow(Base):
     __tablename__ = "conversation_tags"
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)

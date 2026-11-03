@@ -85,6 +85,9 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | POST | `/templates/{id}/create-version` | Render and save as a new version of `agentId`; refused when the deployment lacks a tool the template needs (built) |
 | GET | `/catalog` | The building blocks an editor can offer: tools (effect, approval, inputs), guardrails with an example setting, input and output checks, skills (built) |
 | POST | `/agents/{id}/versions/preview` | `{spec}`: every problem found, the digest, whether it equals the latest version, and what differs from production; saves nothing (`versions:create`) (built) |
+| GET | `/simulations/scenarios`, `/simulations/scenarios/{name}` | All scenarios (files and saved), with `source` (`file` or `managed`), `editable`, tags and digest; the detail includes the definition and its YAML (built) |
+| POST | `/simulations/scenarios/validate` | `{yaml}` or `{scenario}`: check a scenario without saving (`scenarios:write`) (built) |
+| POST, PUT, DELETE | `/simulations/scenarios[/{name}]` | Create, change or delete a saved scenario (`scenarios:write`: developers and up). Creating, changing or deleting a *required* scenario, or making one required, needs `scenarios:require` (release managers, admins). File scenarios cannot be changed here; a scenario cannot be renamed; all audited (built) |
 | GET | `/skills` | Skills available to agents, with their steps and tools (built) |
 | GET | `/insights/overview`, `/insights/timeseries`, `/insights/failures`, `/insights/gaps` | Metrics with numerator, denominator and period; `from`, `to` (epoch seconds, default last 7 days, at most 366), `agent`, `environment`; timeseries takes `bucket=hour|day` (`insights:read`) (built) |
 | POST | `/sessions/{id}/feedback` | `{rating 1-5, comment?}`: a customer's rating (chat token for its own conversation, channel or API key); a second rating replaces the first (`feedback:send`) (built) |
@@ -98,3 +101,5 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 
 
 Chat requests (`/chat`, `/chat/stream`) accept `environment` (`dev`, `staging`, `production`). Only keys with `simulations:run` may use dev or staging; customer tokens and channel keys always get production. Each trace records the environment that answered.
+
+`POST /v1/templates/{id}/create-version` also accepts `saveScenarios: true`: the template's tests are saved with the version (as required scenarios only when the caller holds `scenarios:require`), and the response lists `scenariosSaved` and `scenariosSkipped`.

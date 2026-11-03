@@ -14,11 +14,11 @@ from .tokens import PREFIX as TOKEN_PREFIX, TokenError, TokenSigner
 
 # ---------------- roles and permissions ----------------
 VIEW = {"agents:read", "traces:read", "handoffs:read", "approvals:read", "simulations:read", "versions:read", "monitor:read", "knowledge:read", "insights:read"}
-DEVELOP = VIEW | {"conversations:tag", "feedback:send", "knowledge:write", "versions:create", "simulations:run", "chat:send", "outbox:read"}
+DEVELOP = VIEW | {"scenarios:write", "conversations:tag", "feedback:send", "knowledge:write", "versions:create", "simulations:run", "chat:send", "outbox:read"}
 ROLES: dict[str, frozenset[str]] = {
     "admin": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "approvals:decide", "handoffs:resolve",
-                                  "keys:manage", "audit:read", "chat:mint", "channel:inbound", "privacy:manage", "memory:read", "memory:manage"}),
-    "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "memory:read"}),
+                                  "keys:manage", "audit:read", "chat:mint", "channel:inbound", "privacy:manage", "memory:read", "memory:manage", "scenarios:require"}),
+    "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "memory:read", "scenarios:require"}),
     "developer": frozenset(DEVELOP | {"memory:read"}),
     "reviewer": frozenset(VIEW | {"approvals:decide", "handoffs:resolve", "memory:read", "conversations:tag"}),
     "auditor": frozenset(VIEW | {"audit:read"}),

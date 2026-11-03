@@ -1,5 +1,7 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
+import { useMe } from "@/lib/me";
 import { formatTime, getGates, getSimRun, listSimRuns, listSimScenarios, runSimulation, type SimRunSummary } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
@@ -63,6 +65,7 @@ export default function Simulations() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const { can } = useMe();
 
   async function start() {
     setRunning(true); setError(null);
@@ -78,6 +81,15 @@ export default function Simulations() {
     <>
       <PageHeader title="Simulations" subtitle="Scripted conversations that check an agent before it reaches customers. A release needs every required scenario to pass for its exact version." />
       <Gates refresh={tick} />
+      <section aria-label="Scenarios" className="mt-6 rounded-xl border border-border bg-surface p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-medium">Scenarios</h2>
+          {can("scenarios:write") && <Link href="/simulations/scenarios/new" className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text">New scenario</Link>}</div>
+        <ul className="mt-2 divide-y divide-border text-sm">{list.map((s) => (
+          <li key={s.name} className="flex flex-wrap items-center justify-between gap-2 py-2">
+            <span><Link className="text-primary underline" href={`/simulations/scenarios/${encodeURIComponent(s.name)}`}>{s.name}</Link> <span className="text-muted">· {s.agent} · {s.steps} step{s.steps === 1 ? "" : "s"}</span></span>
+            <span className="flex gap-2 text-xs">{s.required && <span className="rounded bg-[var(--info-bg)] px-1.5 py-0.5 text-[var(--info)]">required</span>}<span className="rounded bg-border/60 px-1.5 py-0.5">{s.source ?? "file"}</span></span>
+          </li>))}</ul>
+      </section>
       <form onSubmit={(e) => { e.preventDefault(); start(); }} className="my-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-4">
         <label className="text-sm">Model
           <select value={mode} onChange={(e) => setMode(e.target.value)} className="ml-2 rounded-lg border border-border bg-bg px-2 py-1.5">

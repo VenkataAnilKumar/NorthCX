@@ -9,6 +9,8 @@ import re
 import secrets
 import time
 import uuid
+
+import yaml
 from contextlib import asynccontextmanager
 
 from fastapi import Query, FastAPI, Request
@@ -24,6 +26,7 @@ from .channels.sms import SmsChannel, parse_form
 from .templates import Template, TemplateError, render
 from .alerts import AlertManager
 from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
+from .simulation.managed import parse_definition
 from .regression import RegressionRunner, scenario_from_traces
 from .simulation.scenario import ScenarioError
 from .privacy import InMemoryPrivacy, PrivacyService, customer_ref
@@ -77,6 +80,7 @@ class PromoteBody(BaseModel):
 class TemplateBody(BaseModel):
     agent_id: str = Field(alias="agentId", min_length=2, max_length=40)
     params: dict[str, Any] = Field(default_factory=dict)
+    save_scenarios: bool = Field(default=False, alias="saveScenarios")
     by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
     model_config = {"populate_by_name": True}
@@ -85,6 +89,11 @@ class TemplateBody(BaseModel):
 class FeedbackBody(BaseModel):
     rating: int = Field(ge=1, le=5)
     comment: str = Field(default="", max_length=1000)
+
+
+class ScenarioBody(BaseModel):
+    yaml: str | None = Field(default=None, max_length=100_000)
+    scenario: dict[str, Any] | None = None
 
 
 class DecisionBody(BaseModel):
@@ -233,6 +242,11 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/handoffs/[^/]+", "handoffs:read"),
     ("POST", r"/v1/handoffs/[^/]+/resolve", "handoffs:resolve"),
     ("GET", r"/v1/simulations/(scenarios|runs|gate)", "simulations:read"),
+    ("GET", r"/v1/simulations/scenarios/[^/]+", "simulations:read"),
+    ("POST", r"/v1/simulations/scenarios", "scenarios:write"),
+    ("POST", r"/v1/simulations/scenarios/validate", "scenarios:write"),
+    ("PUT", r"/v1/simulations/scenarios/[^/]+", "scenarios:write"),
+    ("DELETE", r"/v1/simulations/scenarios/[^/]+", "scenarios:write"),
     ("GET", r"/v1/simulations/runs/[^/]+", "simulations:read"),
     ("POST", r"/v1/simulations/runs", "simulations:run"),
     ("GET", r"/v1/keys", "keys:manage"),
@@ -623,7 +637,22 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         except (InvalidSpec, Conflict) as e:
             return rel_error(e)
         await record(request, "template.create_version", f"{body.agent_id}@{v.number}", template=t.id)
-        return JSONResponse({**version_json(v, full=True), **rendered_json(r)}, status_code=201)
+        saved, skipped = [], []
+        if body.save_scenarios and simulations is not None and simulations.managed is not None:
+            # The template's tests are saved too. They gate releases only if the person saving them may decide that.
+            may_require = request.state.identity.can("scenarios:require")
+            existing = {s.name for s in await simulations.all_scenarios()}
+            for sc in r.scenarios:
+                if sc["name"] in existing:
+                    skipped.append(sc["name"])
+                    continue
+                definition = {**sc, "required": bool(sc.get("required", True)) and may_require, "tags": sorted({*sc.get("tags", []), "template"})}
+                parsed_sc = parse_definition(definition)[1]
+                await simulations.managed.put(parsed_sc, definition, actor(request, body.by))
+                saved.append(sc["name"])
+            await record(request, "scenario.create", f"{body.agent_id}: {len(saved)} from template {t.id}", required=may_require)
+        return JSONResponse({**version_json(v, full=True), **rendered_json(r), "scenariosSaved": saved, "scenariosSkipped": skipped,
+                             "scenariosRequired": may_require if saved else None}, status_code=201)
 
     @app.get("/v1/skills")
     async def list_skills() -> Any:
@@ -989,9 +1018,112 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         sim = need_sim()
         if isinstance(sim, JSONResponse):
             return sim
-        return {"modes": sim.modes, "scenarios": [
-            {"name": s.name, "agent": s.agent, "required": s.required, "description": s.description, "steps": len(s.turns),
-             "judge": s.judge is not None, "digest": s.digest()} for s in sim.scenarios]}
+        files = {s.name for s in sim.scenarios}
+        return {"modes": sim.modes, "managedAvailable": sim.managed is not None, "scenarios": [
+            {"name": s.name, "agent": s.agent, "required": s.required, "description": s.description, "steps": len(s.turns), "tags": s.tags,
+             "judge": s.judge is not None, "digest": s.digest(), "source": "file" if s.name in files else "managed", "editable": s.name not in files and sim.managed is not None}
+            for s in await sim.all_scenarios()]}
+
+    def scenario_input(body: ScenarioBody) -> tuple[dict[str, Any], Any] | JSONResponse:
+        if (body.yaml is None) == (body.scenario is None):
+            return _err(400, "bad_request", "Give exactly one of 'yaml' or 'scenario'")
+        try:
+            return parse_definition(body.yaml if body.yaml is not None else body.scenario)
+        except ScenarioError as e:
+            return _err(400, "invalid_scenario", str(e))
+
+    async def need_require(request: Request, what: str) -> JSONResponse | None:
+        """Required scenarios decide what may be released, so changing which ones are required needs the release permission."""
+        who: Identity = request.state.identity
+        if not who.can("scenarios:require"):
+            await record(request, "auth.denied", f"{request.method} {request.url.path}", "denied", permission="scenarios:require")
+            return _err(403, "forbidden", f"The '{who.role}' role cannot {what} a required scenario (needs scenarios:require)")
+        return None
+
+    @app.post("/v1/simulations/scenarios/validate")
+    async def validate_scenario(body: ScenarioBody) -> Any:
+        """Check a scenario without saving it."""
+        parsed = scenario_input(body)
+        if isinstance(parsed, JSONResponse):
+            return {"valid": False, "problems": [json.loads(parsed.body)["error"]["message"]]}
+        definition, sc = parsed
+        return {"valid": True, "problems": [], "name": sc.name, "agent": sc.agent, "required": sc.required, "digest": sc.digest(), "steps": len(sc.turns)}
+
+    @app.get("/v1/simulations/scenarios/{name}")
+    async def get_scenario(name: str) -> Any:
+        sim = need_sim()
+        if isinstance(sim, JSONResponse):
+            return sim
+        sc = next((s for s in await sim.all_scenarios() if s.name == name), None)
+        if sc is None:
+            return _err(404, "not_found", "Unknown scenario")
+        is_file = any(s.name == name for s in sim.scenarios)
+        m = None if is_file or sim.managed is None else await sim.managed.get(name)
+        definition = m.definition if m else json.loads(sc.model_dump_json(exclude={"source"}, exclude_defaults=True))
+        return {"name": name, "source": "file" if is_file else "managed", "editable": m is not None, "required": sc.required, "digest": sc.digest(),
+                "definition": definition, "yaml": yaml.safe_dump(definition, sort_keys=False, allow_unicode=True, width=100),
+                "revision": m.revision if m else None, "updatedBy": m.updated_by if m else None, "updatedAt": m.updated_at if m else None}
+
+    @app.post("/v1/simulations/scenarios", status_code=201)
+    async def create_scenario(body: ScenarioBody, request: Request) -> Any:
+        sim = need_sim()
+        if isinstance(sim, JSONResponse):
+            return sim
+        if sim.managed is None:
+            return _err(501, "not_configured", "Saving scenarios is not configured on this server")
+        parsed = scenario_input(body)
+        if isinstance(parsed, JSONResponse):
+            return parsed
+        definition, sc = parsed
+        if any(s.name == sc.name for s in await sim.all_scenarios()):
+            return _err(409, "conflict", f"A scenario named '{sc.name}' already exists")
+        if sc.required and (denied := await need_require(request, "create")) is not None:
+            return denied
+        m, _ = await sim.managed.put(sc, definition, actor(request, None))
+        await record(request, "scenario.create", sc.name, agent=sc.agent, required=sc.required, digest=sc.digest()[:12])
+        return JSONResponse({"name": m.name, "revision": m.revision, "digest": sc.digest(), "required": sc.required}, status_code=201)
+
+    @app.put("/v1/simulations/scenarios/{name}")
+    async def update_scenario(name: str, body: ScenarioBody, request: Request) -> Any:
+        sim = need_sim()
+        if isinstance(sim, JSONResponse):
+            return sim
+        if sim.managed is None:
+            return _err(501, "not_configured", "Saving scenarios is not configured on this server")
+        if any(s.name == name for s in sim.scenarios):
+            return _err(409, "conflict", "This scenario comes from a file and is changed there")
+        old = await sim.managed.get(name)
+        if old is None:
+            return _err(404, "not_found", "Unknown scenario")
+        parsed = scenario_input(body)
+        if isinstance(parsed, JSONResponse):
+            return parsed
+        definition, sc = parsed
+        if sc.name != name:
+            return _err(400, "bad_request", "A scenario cannot be renamed; save it under the new name and delete the old one")
+        if (old.required or sc.required) and (denied := await need_require(request, "change")) is not None:
+            return denied
+        m, _ = await sim.managed.put(sc, definition, actor(request, None))
+        await record(request, "scenario.update", name, agent=sc.agent, required=sc.required, was_required=old.required, digest=sc.digest()[:12], revision=m.revision)
+        return {"name": m.name, "revision": m.revision, "digest": sc.digest(), "required": sc.required}
+
+    @app.delete("/v1/simulations/scenarios/{name}")
+    async def delete_scenario(name: str, request: Request) -> Any:
+        sim = need_sim()
+        if isinstance(sim, JSONResponse):
+            return sim
+        if sim.managed is None:
+            return _err(501, "not_configured", "Saving scenarios is not configured on this server")
+        if any(s.name == name for s in sim.scenarios):
+            return _err(409, "conflict", "This scenario comes from a file and is removed there")
+        old = await sim.managed.get(name)
+        if old is None:
+            return _err(404, "not_found", "Unknown scenario")
+        if old.required and (denied := await need_require(request, "delete")) is not None:
+            return denied
+        await sim.managed.delete(name)
+        await record(request, "scenario.delete", name, agent=old.agent, was_required=old.required)
+        return {"deleted": True}
 
     @app.post("/v1/simulations/runs")
     async def sim_run(body: SimRunBody, request: Request) -> Any:
