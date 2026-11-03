@@ -7,7 +7,7 @@ Open-source platform for deploying supervised AI agents that resolve customer is
 ## What it does
 - **Agents** defined in YAML (instructions, tools, checks, skills, journeys, languages, specialist agents, attachments) and edited in a web **Studio** without code.
 - **Supervision** of every reply and tool call, input checks (personal-data masking, takeover phrasing), human **approval** for sensitive actions, always-to-a-person topics, token budgets, fail-closed.
-- **Channels**: web chat and a drop-in widget/SDK, email, SMS, phone calls (through your telephony bridge), with attachments.
+- **Channels**: web chat and a drop-in widget/SDK, email, SMS, WhatsApp, Telegram, phone calls (through your telephony bridge), with attachments.
 - **People in the loop**: hand-off queues with hours, a package with the transcript and actions, suggested replies, person replies, hand-back to the agent, conversation review with failure tagging.
 - **Proof before release**: scenario simulations (including attack suites), immutable versions, a publish checklist, release gate tied to the exact version, staged rollout, environments, one-step rollback.
 - **Insight and operations**: metrics with numerators and denominators, alerts, search, trace export (OpenTelemetry, Langfuse), privacy export/erasure/retention, hash-chained audit log, single sign-on, load and cost tools.
