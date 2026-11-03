@@ -17,6 +17,7 @@ from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entrie
 from ..handoffs import Handoff
 from ..monitor import Finding
 from ..simulation.managed import ManagedScenario
+from ..reviews import Review
 from ..insights import MAX_TAGS, FeedbackFacts, HandoffFacts, TurnFacts, facts_from_trace
 from ..trace_export import MAX_ATTEMPTS as EXPORT_MAX_ATTEMPTS, ExportJob
 from ..inbox import MAX_ATTEMPTS, InboxEvent
@@ -642,6 +643,42 @@ class PgScenarios(_Base):
             return (await s.execute(text("delete from managed_scenarios where name = :n returning name"), {"n": name})).first() is not None
 
 
+class PgReviews(_Base):
+    @staticmethod
+    def _r(r: Any) -> Review:
+        return Review(r.session_id, r.verdict, r.handoff, list(r.failures), r.note, r.reviewer, r.reviewed_at)
+
+    async def put(self, review: Review) -> bool:
+        async with self._sm.begin() as s:
+            r = await s.execute(text(
+                "insert into conversation_reviews (session_id, verdict, handoff, failures, note, reviewer, reviewed_at) values (:s, :v, :h, cast(:f as jsonb), :n, :r, :t) "
+                "on conflict (session_id) do update set verdict = excluded.verdict, handoff = excluded.handoff, failures = excluded.failures, note = excluded.note, "
+                "reviewer = excluded.reviewer, reviewed_at = excluded.reviewed_at returning (xmax = 0) as inserted"),
+                {"s": review.session_id, "v": review.verdict, "h": review.handoff, "f": json.dumps(review.failures), "n": review.note, "r": review.reviewer, "t": review.reviewed_at})
+            return bool(r.scalar_one())
+
+    async def get(self, session_id: str) -> Review | None:
+        async with self._sm() as s:
+            r = (await s.execute(text("select * from conversation_reviews where session_id = :s"), {"s": session_id})).first()
+        return self._r(r) if r else None
+
+    async def between(self, since: float, until: float) -> list[Review]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from conversation_reviews where reviewed_at between :a and :b"), {"a": since, "b": until})).all()
+        return [self._r(r) for r in rows]
+
+    async def for_sessions(self, session_ids: list[str]) -> dict[str, Review]:
+        if not session_ids:
+            return {}
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from conversation_reviews where session_id = any(:ids)"), {"ids": session_ids})).all()
+        return {r.session_id: self._r(r) for r in rows}
+
+    async def erase_session(self, session_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from conversation_reviews where session_id = :s"), {"s": session_id})).rowcount
+
+
 class PgTags(_Base):
     async def add(self, session_id: str, tag: str, by: str) -> bool:
         async with self._sm.begin() as s:
@@ -950,6 +987,7 @@ class PgPrivacy(_Base):
                 "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
                 "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,
             }
+            out["reviews"] = (await s.execute(text("delete from conversation_reviews where session_id = :s"), p)).rowcount
             out["tags"] = (await s.execute(text("delete from conversation_tags where session_id = :s"), p)).rowcount
             out["feedback"] = (await s.execute(text("delete from conversation_feedback where session_id = :s"), p)).rowcount
             out["exports"] = (await s.execute(text("delete from trace_exports where trace_id in (select id from traces where session_id = :s)"), p)).rowcount

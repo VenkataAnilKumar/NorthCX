@@ -9,6 +9,7 @@ from .tokens import TokenSigner, derive_secret
 from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
 from .trace_export import ExportService, InMemoryExports, LangfuseExporter, OtlpExporter, Redactor
 from .alerts import AlertConfigError, AlertManager, WebhookAlerts, load_rules
+from .reviews import InMemoryReviews
 from .simulation.managed import InMemoryScenarios
 from .insights import InMemoryTags, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .regression import RegressionRunner
@@ -28,7 +29,7 @@ from .memory import InMemoryMemories, memory_tools
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgScenarios, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgReviews, PgScenarios, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -107,6 +108,7 @@ def run() -> None:
         export_repo = PgExports(engine)
         feedback_repo = PgFeedback(engine)
         tag_repo = PgTags(engine)
+        review_repo = PgReviews(engine)
         scenario_repo = PgScenarios(engine)
         insights_source = PgInsightsSource(engine)
         inbox_repo = PgInbox(engine)
@@ -125,6 +127,7 @@ def run() -> None:
         export_repo = InMemoryExports()
         feedback_repo = InMemoryFeedback()
         tag_repo = InMemoryTags()
+        review_repo = InMemoryReviews()
         scenario_repo = InMemoryScenarios()
         insights_source = None  # built over the runtime below
         inbox_repo = InMemoryInbox()
@@ -311,7 +314,7 @@ def run() -> None:
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
-                      regression=regression, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo,
+                      regression=regression, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo,
                       insights=insights_service, alerts=alert_manager,
                       templates=load_templates(LIBRARY, *([os.environ["NORTHCX_TEMPLATES_DIR"]] if os.environ.get("NORTHCX_TEMPLATES_DIR") else [])),
                       sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,

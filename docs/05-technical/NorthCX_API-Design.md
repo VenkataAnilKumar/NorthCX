@@ -92,6 +92,10 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | GET | `/skills` | Skills available to agents, with their steps and tools (built) |
 | GET | `/insights/overview`, `/insights/timeseries`, `/insights/failures`, `/insights/gaps` | Metrics with numerator, denominator and period; `from`, `to` (epoch seconds, default last 7 days, at most 366), `agent`, `environment`; timeseries takes `bucket=hour|day` (`insights:read`) (built) |
 | POST | `/sessions/{id}/feedback` | `{rating 1-5, comment?}`: a customer's rating (chat token for its own conversation, channel or API key); a second rating replaces the first (`feedback:send`) (built) |
+| GET | `/reviews/queue` | `agent`, `environment`, `includeReviewed`, `sample`, `limit`: conversations worth reviewing with reasons (`traces:read`) (built) |
+| GET | `/sessions/{id}/transcript` | transcript, traces, hand-offs, rating, tags and existing review (`traces:read`) (built) |
+| PUT | `/sessions/{id}/review` | `verdict`, `handoff`, `failures[]`, `note`; replaces an earlier review; audited (`reviews:write`) (built) |
+| GET | `/insights/review-quality` | correct rate, hand-off correctness, unneeded hand-offs, failures by kind (`insights:read`) (built) |
 | GET | `/conversations/search` | `q`, `status`, `tag`, `handedOff`, `agent`, `environment`, `from`, `to`, `limit`: conversations with masked snippets, outcome, rating and tags (`traces:read`) (built) |
 | GET, PUT, DELETE | `/sessions/{id}/tags[/{tag}]` | Read, add or remove a tag (1-40 lowercase letters, digits, - or _; at most 20 per conversation); add and remove need `conversations:tag` (reviewers, developers, admins) (built) |
 | GET | `/alerts` | Alert rules, alerts firing now and recent events (`insights:read`) (built) |

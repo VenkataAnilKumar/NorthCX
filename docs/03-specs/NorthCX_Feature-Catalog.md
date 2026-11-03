@@ -131,7 +131,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | U1 | Agent editor (instructions, tools, guardrails, approvals) | P1 | 4 | Built (form editor with live checks, save as version, try in dev) |
 | U2 | Test console with live trace | P1 | 4 | Built (streamed replies, trace, environment selector; opens from Studio) |
 | U3 | Simulation runner and results | P1 | 4 | Built (runner, results, release gate, and a scenario editor with saved scenarios) |
-| U4 | Conversation review and failure tagging | P1 | 4 | Planned |
+| U4 | Conversation review and failure tagging | P1 | 4 | Built |
 | U5 | Approval queue | P1 | 4 | Planned |
 | U6 | Knowledge management | P1 | 4 | Built (sources, documents with editing, freshness, try-a-question) |
 | U7 | Publish workflow with required checks | P1 | 4 | Early version built (versions page: save, run scenarios, publish, roll back) |

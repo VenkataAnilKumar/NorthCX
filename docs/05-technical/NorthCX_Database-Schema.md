@@ -23,6 +23,7 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 | `inbox_events` (built) | `id` pk, `handoff_id`, `connector`, `event` (created/resolved), `created_at`, `attempts`, `last_attempt_at`, `delivered_at`, `external_ref`, `error` | Delivery queue to helpdesks; retried with back-off up to 12 attempts; erased with the hand-off |
 | `trace_exports` (built) | `id` pk, `trace_id`, `exporter`, `created_at`, `attempts`, `last_attempt_at`, `delivered_at`, `error` | Queue of traces to send to observability backends; retried with back-off up to 12 attempts; erased with the conversation |
 | `conversation_feedback` (built) | `session_id` pk, `rating` 1-5, `comment`, `created_at` | One rating per conversation; erased with it |
+| `conversation_reviews` (built) | `session_id` pk, `verdict`, `handoff`, `failures` (jsonb), `note`, `reviewer`, `reviewed_at` | One review per conversation, a new one replaces it; erased with the conversation |
 | `conversation_tags` (built) | (`session_id`, `tag`) pk, `by`, `created_at` | At most 20 tags per conversation; erased with it |
 | `traces.environment` (built) | `varchar(32)`, default `production` | Which environment answered the turn |
 | `agents` | `id` pk, `definition` jsonb, `version`, `published_at` | For Studio, Phase 4 |

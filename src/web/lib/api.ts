@@ -259,3 +259,14 @@ export const statusLabel: Record<string, string> = {
 export function formatTime(t: number | null | undefined): string {
   return t ? new Date(t * 1000).toLocaleString() : "";
 }
+
+export const FAILURE_KINDS = ["wrong_answer", "missed_policy", "hallucination", "bad_tone", "tool_misuse", "unneeded_handoff", "missed_handoff", "slow", "other"] as const;
+export interface ReviewRecord { verdict: "correct" | "wrong"; handoff: string; failures: string[]; note: string; reviewer: string; reviewedAt: number }
+export interface QueueRow { sessionId: string; agentId: string; turns: number; startedAt: number; endedAt: number; lastStatus: string; firstMessage: string; reasons: string[]; weight: number; handedOff: boolean; rating: number | null; review: ReviewRecord | null }
+export interface ReviewContext { sessionId: string; transcript: { from: string; text: string }[]; tags: string[]; traces: { id: string; status: string; tools: string[]; startedAt: number | null; agentVersion?: string }[]; handoffs: { id: string; trigger: string; state: string; queue: string | null; reason: string }[]; rating: number | null; review: ReviewRecord | null }
+export interface ReviewQuality { reviewed: number; correctRate: Ratio; escalationCorrectness: Ratio; unneededEscalationRate: Ratio; failuresByKind: Record<string, number>; note: string }
+export const getReviewQueue = (includeReviewed: boolean) => api<{ queue: QueueRow[] }>(`/v1/reviews/queue?includeReviewed=${includeReviewed}`).then((r) => r.queue);
+export const getReviewContext = (id: string) => api<ReviewContext>(`/v1/sessions/${encodeURIComponent(id)}/transcript`);
+export const saveReview = (id: string, body: { verdict: string; handoff: string; failures: string[]; note: string }) =>
+  api<{ saved: boolean; replaced: boolean }>(`/v1/sessions/${encodeURIComponent(id)}/review`, { method: "PUT", body: JSON.stringify(body) });
+export const getReviewQuality = () => api<ReviewQuality>("/v1/insights/review-quality");

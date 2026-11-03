@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { formatTime, getAlerts, getFailures, getGaps, getOverview, getSeries, type Ratio, type SeriesPoint } from "@/lib/api";
+import { formatTime, getAlerts, getFailures, getGaps, getOverview, getReviewQuality, getSeries, type Ratio, type SeriesPoint } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
 
@@ -52,6 +52,7 @@ export default function Insights() {
   const failures = useLoad(() => getFailures(hours, undefined, env), [hours, env]);
   const gaps = useLoad(() => getGaps(hours, undefined, env), [hours, env]);
   const alerts = useLoad(getAlerts, []);
+  const quality = useLoad(getReviewQuality, []);
   const o = overview.data;
   return (
     <>
@@ -68,6 +69,14 @@ export default function Insights() {
           </select>
         </div>
       </PageHeader>
+
+      {quality.data && quality.data.reviewed > 0 && (
+        <section aria-label="Human review" className="mb-4 grid gap-3 sm:grid-cols-3">
+          <Stat title="Judged correct" ratio={quality.data.correctRate} hint="of reviewed conversations" />
+          <Stat title="Hand-offs that were needed" ratio={quality.data.escalationCorrectness} hint="of reviewed hand-offs" />
+          <Stat title="Unneeded hand-offs" ratio={quality.data.unneededEscalationRate} hint="of reviewed hand-offs" />
+        </section>
+      )}
 
       {alerts.data?.enabled && (alerts.data.active?.length ?? 0) > 0 && (
         <section aria-label="Active alerts" className="mb-4 rounded-xl border border-[var(--bad)] bg-[var(--bad-bg)] p-4 text-[var(--bad)]">

@@ -25,6 +25,8 @@ from .approval_flow import ApprovalFlow
 from .channels.sms import SmsChannel, parse_form
 from .templates import Template, TemplateError, render
 from .alerts import AlertManager
+from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
+from .handoffs import transcript
 from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .simulation.managed import parse_definition
 from .regression import RegressionRunner, scenario_from_traces
@@ -94,6 +96,13 @@ class FeedbackBody(BaseModel):
 class ScenarioBody(BaseModel):
     yaml: str | None = Field(default=None, max_length=100_000)
     scenario: dict[str, Any] | None = None
+
+
+class ReviewBody(BaseModel):
+    verdict: str
+    handoff: str = "not_applicable"
+    failures: list[str] = Field(default_factory=list, max_length=9)
+    note: str = Field(default="", max_length=1000)
 
 
 class DecisionBody(BaseModel):
@@ -200,6 +209,10 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/knowledge/search", "knowledge:read"),
     ("GET", r"/v1/monitor/findings", "monitor:read"),
     ("GET", r"/v1/monitor/summary", "monitor:read"),
+    ("GET", r"/v1/reviews/queue", "traces:read"),
+    ("GET", r"/v1/sessions/[^/]+/transcript", "traces:read"),
+    ("PUT", r"/v1/sessions/[^/]+/review", "reviews:write"),
+    ("GET", r"/v1/insights/review-quality", "insights:read"),
     ("GET", r"/v1/conversations/search", "traces:read"),
     ("GET", r"/v1/sessions/[^/]+/tags", "traces:read"),
     ("PUT", r"/v1/sessions/[^/]+/tags/[^/]+", "conversations:tag"),
@@ -273,7 +286,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None,
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
-               alerts: AlertManager | None = None, tags: TagRepo | None = None) -> FastAPI:
+               alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -284,11 +297,13 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     kb = knowledge or InMemoryKnowledge()
     fb = feedback or InMemoryFeedback()
     tag_repo = tags or InMemoryTags()
+    review_repo = reviews or InMemoryReviews()
     insight = insights or InsightsService(InMemoryInsightsSource(runtime, fb))
     privacy = PrivacyService(runtime.privacy)
     if isinstance(runtime.privacy, InMemoryPrivacy):
         runtime.privacy.feedback = fb
         runtime.privacy.tags = tag_repo
+        runtime.privacy.reviews = review_repo
     if isinstance(runtime.privacy, InMemoryPrivacy):  # the in-memory backend reaches the other in-memory stores through these
         runtime.privacy.idempotency = idem
         if email is not None:
@@ -706,6 +721,55 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(404, "not_found", "Unknown conversation")
         new = await fb.add(session_id, body.rating, body.comment.strip())
         return JSONResponse({"saved": True, "replaced": not new}, status_code=201)
+
+    @app.get("/v1/reviews/queue")
+    async def review_queue(from_: float | None = Query(None, alias="from"), to: float | None = None, agent: str | None = None, environment: str = "production",
+                           includeReviewed: bool = False, sample: float = 0.05, limit: int = 50) -> Any:
+        """Conversations most worth a human look: hand-offs, low ratings, failed or blocked turns, plus a small random sample."""
+        end = time.time() if to is None else to
+        start = end - 14 * 86400 if from_ is None else from_
+        if start >= end or end - start > 366 * 86400 or not 0 <= sample <= 1:
+            return _err(400, "bad_request", "'from' must be before 'to', the period at most 366 days, and sample between 0 and 1")
+        turns, handoffs, feedback = await insight._load(start, end, agent, environment)
+        reviewed = await review_repo.for_sessions(list({t.session_id for t in turns}))
+        return {"queue": review_queue_rows(turns, handoffs, feedback, reviewed, includeReviewed, sample, max(1, min(limit, 200)))}
+
+    @app.get("/v1/sessions/{session_id}/transcript")
+    async def session_transcript(session_id: str) -> Any:
+        """Everything a reviewer needs to judge one conversation."""
+        summaries = await traces.summaries(session_id, 200)
+        if not summaries:
+            return _err(404, "not_found", "Unknown conversation")
+        msgs = await runtime.store.load_messages(session_id)
+        hs = await runtime.handoffs.list(None, session_id, 20)
+        rev = await review_repo.get(session_id)
+        fbk = await fb.for_session(session_id)
+        return {"sessionId": session_id, "transcript": transcript(msgs), "tags": await tag_repo.all_for(session_id),
+                "traces": [{"id": t.id, "status": t.status, "tools": t.tools, "startedAt": t.started_at, "agentVersion": t.agent_version, "environment": t.environment}
+                           for t in sorted(summaries, key=lambda t: t.started_at or 0)],
+                "handoffs": [{"id": h.id, "trigger": h.trigger, "state": h.state, "queue": h.queue, "reason": h.reason} for h in hs],
+                "rating": fbk.rating if fbk else None, "review": review_json(rev) if rev else None}
+
+    @app.put("/v1/sessions/{session_id}/review")
+    async def put_review(session_id: str, body: ReviewBody, request: Request) -> Any:
+        if not await traces.summaries(session_id, 1):
+            return _err(404, "not_found", "Unknown conversation")
+        handed = bool(await runtime.handoffs.list(None, session_id, 1))
+        try:
+            verdict, handoff, failures, note = review_validate(body.verdict, body.handoff, body.failures, body.note, handed)
+        except ReviewError as e:
+            return _err(400, "bad_request", str(e))
+        who = actor(request, None)
+        new = await review_repo.put(Review(session_id, verdict, handoff, failures, note, who))
+        await record(request, "conversation.review", customer_ref(session_id), verdict=verdict, handoff=handoff, failures=failures)
+        return {"saved": True, "replaced": not new}
+
+    @app.get("/v1/insights/review-quality")
+    async def review_quality(from_: float | None = Query(None, alias="from"), to: float | None = None) -> Any:
+        w = window(from_, to)
+        if isinstance(w, JSONResponse):
+            return w
+        return {"period": {"from": w[0], "to": w[1]}, **quality(await review_repo.between(w[0], w[1]))}
 
     @app.get("/v1/conversations/search")
     async def conversation_search(q: str = "", status: str | None = None, tag: str | None = None, handedOff: bool | None = None, agent: str | None = None,

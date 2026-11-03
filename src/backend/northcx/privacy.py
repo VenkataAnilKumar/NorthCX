@@ -106,6 +106,9 @@ class InMemoryPrivacy:
         before = len(items)
         items[:] = [m for m in items if m.session_id != session_id]
         n["outbox"] = before - len(items)
+        rv = getattr(self, "reviews", None)
+        if rv is not None:
+            n["reviews"] = await rv.erase_session(session_id)
         tg = getattr(self, "tags", None)
         if tg is not None:
             n["tags"] = await tg.erase_session(session_id)

@@ -253,6 +253,18 @@ class ManagedScenarioRow(Base):
     __table_args__ = (Index("ix_managed_scenarios_agent", "agent_id"),)
 
 
+class ReviewRow(Base):
+    __tablename__ = "conversation_reviews"
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    verdict: Mapped[str] = mapped_column(String(16), nullable=False)
+    handoff: Mapped[str] = mapped_column(String(16), nullable=False)
+    failures: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    note: Mapped[str] = mapped_column(String(1000), nullable=False, server_default="")
+    reviewer: Mapped[str] = mapped_column(String(200), nullable=False)
+    reviewed_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_reviews_at", "reviewed_at"),)
+
+
 class ConversationTagRow(Base):
     __tablename__ = "conversation_tags"
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
