@@ -41,12 +41,15 @@ class RecordingLLM:
     def __init__(self, inner: LLM):
         self.inner = inner
         self.requests: list[LLMRequest] = []
+        self.responses: list[LLMResponse] = []
         self.errors: list[str] = []
 
     async def complete(self, req: LLMRequest) -> LLMResponse:
         self.requests.append(req)
         try:
-            return await self.inner.complete(req)
+            res = await self.inner.complete(req)
+            self.responses.append(res)
+            return res
         except Exception as e:
             self.errors.append(str(e))
             raise

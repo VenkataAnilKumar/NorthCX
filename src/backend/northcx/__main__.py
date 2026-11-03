@@ -312,7 +312,8 @@ def run() -> None:
         env = os.environ
         limits = LimitConfig(float(env.get("NORTHCX_RATE_LIMIT_PER_MINUTE", 600)),
                              float(env.get("NORTHCX_CHAT_PER_SESSION_PER_MINUTE", 30)),
-                             float(env.get("NORTHCX_AUTH_FAILURES_PER_MINUTE", 20)))
+                             float(env.get("NORTHCX_AUTH_FAILURES_PER_MINUTE", 20)),
+                             float(env.get("NORTHCX_CHANNEL_RATE_LIMIT_PER_MINUTE", 6000)))
     token_secret = derive_secret(env_or_file("NORTHCX_TOKEN_SECRET"), api_key)
     if token_secret is None:
         import secrets as _secrets

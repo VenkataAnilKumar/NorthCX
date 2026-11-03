@@ -160,6 +160,7 @@ class LimitConfig:
     per_key_per_minute: float = 600
     chat_per_session_per_minute: float = 30
     auth_failures_per_minute: float = 20  # per client address
+    channel_per_minute: float = 6000  # keys with the channel role (your servers minting chat tokens, telephony bridges) serve many customers at once
 
 
 # ---------------- access control ----------------

@@ -46,13 +46,15 @@ def _jsonable(value: Any) -> Any:
 class _Base:
     def __init__(self, engine: AsyncEngine) -> None:
         self._sm = async_sessionmaker(engine, expire_on_commit=False)
+        # Reads need no transaction: autocommit saves a BEGIN and a ROLLBACK round trip on every one of the dozens of lookups a conversation turn makes.
+        self._ro = async_sessionmaker(engine.execution_options(isolation_level="AUTOCOMMIT"), expire_on_commit=False)
 
 
 class PgMemoryStore(_Base):
     """Session history and per-customer facts."""
 
     async def load_messages(self, session_id: str) -> list[Message]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(
                 select(MessageRow.role, MessageRow.content).where(MessageRow.session_id == session_id).order_by(MessageRow.seq)
             )).all()
@@ -64,15 +66,19 @@ class PgMemoryStore(_Base):
             await s.execute(text("select pg_advisory_xact_lock(hashtext(:id))"), {"id": session_id})
             await s.execute(pg_insert(SessionRow).values(id=session_id).on_conflict_do_update(
                 index_elements=[SessionRow.id], set_={"updated_at": func.now()}))
-            await s.execute(delete(MessageRow).where(MessageRow.session_id == session_id))
-            if messages:
-                await s.execute(pg_insert(MessageRow), [
-                    {"session_id": session_id, "seq": i, "role": m["role"], "content": _jsonable(m["content"])}
-                    for i, m in enumerate(messages)
-                ])
+            # Only what changed is written: a normal turn appends a few messages, so the (growing) earlier history is left alone.
+            existing = (await s.execute(select(MessageRow.role, MessageRow.content).where(MessageRow.session_id == session_id).order_by(MessageRow.seq))).all()
+            new = [{"session_id": session_id, "seq": i, "role": m["role"], "content": _jsonable(m["content"])} for i, m in enumerate(messages)]
+            same = 0
+            while same < len(existing) and same < len(new) and existing[same].role == new[same]["role"] and existing[same].content == new[same]["content"]:
+                same += 1
+            if same < len(existing):
+                await s.execute(delete(MessageRow).where(MessageRow.session_id == session_id, MessageRow.seq >= same))
+            if same < len(new):
+                await s.execute(pg_insert(MessageRow).values(new[same:]))
 
     async def get_facts(self, customer_id: str) -> dict[str, str]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(FactRow.key, FactRow.value).where(FactRow.customer_id == customer_id))).all()
         return {r.key: r.value for r in rows}
 
@@ -93,14 +99,14 @@ class PgTraceStore(_Base):
             await s.execute(pg_insert(TraceRow).values(**values).on_conflict_do_update(
                 index_elements=[TraceRow.id], set_={k: v for k, v in values.items() if k != "id"}))
             await s.execute(delete(TraceEventRow).where(TraceEventRow.trace_id == trace.id))
-            if trace.events:
-                await s.execute(pg_insert(TraceEventRow), [
+            if trace.events:  # one statement for all the events
+                await s.execute(pg_insert(TraceEventRow).values([
                     {"trace_id": trace.id, "seq": i, "type": e.type, "t": e.t, "data": _jsonable(e.data)}
                     for i, e in enumerate(trace.events)
-                ])
+                ]))
 
     async def get(self, trace_id: str) -> Trace | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             row = (await s.execute(select(TraceRow).where(TraceRow.id == trace_id))).scalar_one_or_none()
             if row is None:
                 return None
@@ -114,7 +120,7 @@ class PgTraceStore(_Base):
         q = select(TraceRow).order_by(TraceRow.started_at.desc().nulls_last()).limit(limit)
         if session_id:
             q = q.where(TraceRow.session_id == session_id)
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(q)).scalars().all()
         return [TraceSummary(r.id, r.agent_id, r.session_id, r.event_count, r.status, r.started_at, list(r.tools), r.agent_version, r.environment)
                 for r in rows]
@@ -136,7 +142,7 @@ class PgApprovalStore(_Base):
         return a
 
     async def get(self, approval_id: str) -> Approval | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(select(ApprovalRow).where(ApprovalRow.id == approval_id))).scalar_one_or_none()
         return self._to_approval(r) if r else None
 
@@ -144,7 +150,7 @@ class PgApprovalStore(_Base):
         q = select(ApprovalRow).order_by(ApprovalRow.created_at)
         if state:
             q = q.where(ApprovalRow.state == state)
-        async with self._sm() as s:
+        async with self._ro() as s:
             return [self._to_approval(r) for r in (await s.execute(q)).scalars().all()]
 
     async def _transition(self, approval_id: str, from_state: str, values: dict[str, Any]) -> tuple[ApprovalRow | None, str]:
@@ -198,7 +204,7 @@ class PgOutbox(_Base):
             return self._to_msg(row)
 
     async def list(self, session_id: str, after_id: int = 0, limit: int = 100) -> list[OutboxMessage]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(OutboxRow).where(OutboxRow.session_id == session_id, OutboxRow.id > after_id)
                                     .order_by(OutboxRow.id).limit(limit))).scalars().all()
         return [self._to_msg(r) for r in rows]
@@ -207,7 +213,7 @@ class PgOutbox(_Base):
         q = select(OutboxRow).where(OutboxRow.delivered_at.is_(None)).order_by(OutboxRow.id).limit(limit)
         if max_attempts is not None:
             q = q.where(OutboxRow.attempts < max_attempts)
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(q)).scalars().all()
         return [self._to_msg(r) for r in rows]
 
@@ -238,7 +244,7 @@ class PgHandoffs(_Base):
         return handoff
 
     async def get(self, handoff_id: str) -> Handoff | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(select(HandoffRow).where(HandoffRow.id == handoff_id))).scalar_one_or_none()
         return self._to_handoff(r) if r else None
 
@@ -250,7 +256,7 @@ class PgHandoffs(_Base):
             q = q.where(HandoffRow.session_id == session_id)
         if queue:
             q = q.where(HandoffRow.queue == queue)
-        async with self._sm() as s:
+        async with self._ro() as s:
             return [self._to_handoff(r) for r in (await s.execute(q)).scalars().all()]
 
     async def set_package_field(self, handoff_id: str, key: str, value: Any) -> bool:
@@ -288,12 +294,12 @@ class PgSimRuns(_Base):
         return run
 
     async def get(self, run_id: str) -> SimRun | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(select(SimRunRow).where(SimRunRow.id == run_id))).scalar_one_or_none()
         return self._to_run(r) if r else None
 
     async def list(self, limit: int = 50) -> list[SimRun]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(SimRunRow).order_by(SimRunRow.created_at.desc()).limit(limit))).scalars().all()
         return [self._to_run(r) for r in rows]
 
@@ -316,18 +322,18 @@ class PgVersions(_Base):
             return v
 
     async def get(self, version_id: str) -> AgentVersion | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(select(AgentVersionRow).where(AgentVersionRow.id == version_id))).scalar_one_or_none()
         return self._to_version(r) if r else None
 
     async def get_number(self, agent_id: str, number: int) -> AgentVersion | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(select(AgentVersionRow).where(AgentVersionRow.agent_id == agent_id,
                                                                AgentVersionRow.number == number))).scalar_one_or_none()
         return self._to_version(r) if r else None
 
     async def list(self, agent_id: str) -> list[AgentVersion]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(AgentVersionRow).where(AgentVersionRow.agent_id == agent_id)
                                     .order_by(AgentVersionRow.number.desc()))).scalars().all()
         return [self._to_version(r) for r in rows]
@@ -349,7 +355,7 @@ class PgReleases(_Base):
             return self._to_release(row)
 
     async def list(self, agent_id: str, environment: str = "production", limit: int = 100) -> list[Release]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(ReleaseRow).where(ReleaseRow.agent_id == agent_id, ReleaseRow.environment == environment)
                                     .order_by(ReleaseRow.seq.desc()).limit(limit))).scalars().all()
         return [self._to_release(r) for r in rows]
@@ -359,7 +365,7 @@ class PgReleases(_Base):
         return rows[0] if rows else None
 
     async def agents_with_releases(self, environment: str = "production") -> list[str]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(ReleaseRow.agent_id).where(ReleaseRow.environment == environment).distinct())).all()
         return sorted(r[0] for r in rows)
 
@@ -378,12 +384,12 @@ class PgKeys(_Base):
         return key
 
     async def get(self, key_id: str) -> ApiKey | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(select(ApiKeyRow).where(ApiKeyRow.key_id == key_id))).scalar_one_or_none()
         return self._to_key(r) if r else None
 
     async def list(self) -> list[ApiKey]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(ApiKeyRow).order_by(ApiKeyRow.created_at.desc()))).scalars().all()
         return [self._to_key(r) for r in rows]
 
@@ -432,11 +438,11 @@ class PgAudit(_Base):
             q = q.where(AuditRow.actor == actor)
         if action:
             q = q.where(AuditRow.action == action)
-        async with self._sm() as s:
+        async with self._ro() as s:
             return [self._to_entry(r) for r in (await s.execute(q)).scalars().all()]
 
     async def verify(self) -> Verification:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(AuditRow).order_by(AuditRow.id))).scalars().all()
         return verify_entries([self._to_entry(r) for r in rows])
 
@@ -494,12 +500,12 @@ class PgKnowledge(_Base):
         return Source(r.id, r.name, r.stale_after_days, r.created_at)
 
     async def get_source(self, source_id: str) -> Source | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select * from knowledge_sources where id = :i"), {"i": source_id})).first()
         return self._src(r) if r else None
 
     async def list_sources(self) -> list[Source]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from knowledge_sources order by created_at"))).all()
         return [self._src(r) for r in rows]
 
@@ -539,7 +545,7 @@ class PgKnowledge(_Base):
         return Document(r.source_id, r.external_id, r.title, r.url, r.content_hash, r.chunks, r.source_updated_at, r.ingested_at, id=r.id)
 
     async def get_document(self, source_id: str, external_id: str):
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select * from knowledge_documents where source_id = :s and external_id = :e"), {"s": source_id, "e": external_id})).first()
             if r is None:
                 return None
@@ -572,7 +578,7 @@ class PgKnowledge(_Base):
             q += " where d.source_id = :s"
             params["s"] = source_id
         q += " order by d.ingested_at desc"
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text(q), params)).all()
         out = []
         for r in rows:
@@ -595,7 +601,7 @@ class PgKnowledge(_Base):
             q += " and d.source_id = :s"
             params["s"] = source_id
         q += " order by rank desc, c.id limit :n"
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text(q), params)).all()
         out = []
         for r in rows:
@@ -614,7 +620,7 @@ class PgFeedback(_Base):
             return bool(r.scalar_one())
 
     async def for_session(self, session_id: str) -> FeedbackFacts | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select * from conversation_feedback where session_id = :s"), {"s": session_id})).first()
         return FeedbackFacts(r.session_id, r.rating, r.created_at, r.comment) if r else None
 
@@ -629,12 +635,12 @@ class PgScenarios(_Base):
         return ManagedScenario(r.name, r.agent_id, r.required, r.definition, r.created_by, r.updated_by, r.created_at, r.updated_at, r.revision)
 
     async def list(self) -> list[ManagedScenario]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from managed_scenarios order by name"))).all()
         return [self._m(r) for r in rows]
 
     async def get(self, name: str) -> ManagedScenario | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select * from managed_scenarios where name = :n"), {"n": name})).first()
         return self._m(r) if r else None
 
@@ -671,12 +677,12 @@ class PgCalls(_Base):
                  "t": c.turns, "b": c.barge_ins, "l": json.dumps(c.languages), "ho": c.handoff_id, "lat": json.dumps(c.latency_ms)})
 
     async def get(self, call_id: str) -> CallRecord | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select * from voice_calls where call_id = :id"), {"id": call_id})).first()
         return self._c(r) if r else None
 
     async def recent(self, limit: int = 50) -> list[CallRecord]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from voice_calls order by started_at desc limit :n"), {"n": limit})).all()
         return [self._c(r) for r in rows]
 
@@ -698,17 +704,17 @@ class PgAttachments(_Base):
         return a
 
     async def get(self, attachment_id: str) -> Attachment | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select * from attachments where id = :id"), {"id": attachment_id})).first()
         return self._a(r) if r else None
 
     async def for_session(self, session_id: str) -> list[Attachment]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from attachments where session_id = :s order by created_at"), {"s": session_id})).all()
         return [self._a(r) for r in rows]
 
     async def usage(self, session_id: str) -> tuple[int, int]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select count(*), coalesce(sum(size), 0) from attachments where session_id = :s"), {"s": session_id})).one()
         return int(r[0]), int(r[1])
 
@@ -719,7 +725,7 @@ class PgAttachments(_Base):
 
 class PgSessionRoutes(_Base):
     async def get(self, session_id: str) -> str | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             return (await s.execute(text("select agent_id from session_routes where session_id = :s"), {"s": session_id})).scalar_one_or_none()
 
     async def set(self, session_id: str, agent_id: str) -> None:
@@ -756,7 +762,7 @@ class PgRollouts(_Base):
             await s.execute(text("update rollouts set percent = :p, state = :st, ended_by = :eby, ended_at = :ea where id = :id"), self._p(r))
 
     async def _one(self, where: str, params: dict[str, Any]) -> Rollout | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             row = (await s.execute(text(f"select * from rollouts where {where}"), params)).first()
         return self._r(row) if row else None
 
@@ -767,7 +773,7 @@ class PgRollouts(_Base):
         return await self._one("id = :id", {"id": rollout_id})
 
     async def history(self, agent_id: str, limit: int = 50) -> list[Rollout]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from rollouts where agent_id = :a order by started_at desc limit :n"), {"a": agent_id, "n": limit})).all()
         return [self._r(r) for r in rows]
 
@@ -778,7 +784,7 @@ class PgRollouts(_Base):
 
     async def arm_sessions(self, rollout_id: str, limit: int = 5000) -> dict[str, list[str]]:
         out: dict[str, list[str]] = {"control": [], "candidate": []}
-        async with self._sm() as s:
+        async with self._ro() as s:
             for arm in out:
                 rows = (await s.execute(text("select session_id from rollout_assignments where rollout_id = :r and arm = :a limit :n"), {"r": rollout_id, "a": arm, "n": limit})).all()
                 out[arm] = [r[0] for r in rows]
@@ -804,19 +810,19 @@ class PgReviews(_Base):
             return bool(r.scalar_one())
 
     async def get(self, session_id: str) -> Review | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select * from conversation_reviews where session_id = :s"), {"s": session_id})).first()
         return self._r(r) if r else None
 
     async def between(self, since: float, until: float) -> list[Review]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from conversation_reviews where reviewed_at between :a and :b"), {"a": since, "b": until})).all()
         return [self._r(r) for r in rows]
 
     async def for_sessions(self, session_ids: list[str]) -> dict[str, Review]:
         if not session_ids:
             return {}
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from conversation_reviews where session_id = any(:ids)"), {"ids": session_ids})).all()
         return {r.session_id: self._r(r) for r in rows}
 
@@ -845,7 +851,7 @@ class PgTags(_Base):
     async def for_sessions(self, session_ids: list[str]) -> dict[str, list[str]]:
         if not session_ids:
             return {}
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select session_id, tag from conversation_tags where session_id = any(:ids) order by tag"), {"ids": session_ids})).all()
         out: dict[str, list[str]] = {}
         for r in rows:
@@ -868,7 +874,7 @@ class PgInsightsSource(_Base):
         params: dict[str, Any] = {"a": since, "b": until, "env": environment, "n": limit}
         if agent:
             params["ag"] = agent
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text(q), params)).all()
         out: list[TurnFacts] = []
         cur: Trace | None = None
@@ -883,13 +889,13 @@ class PgInsightsSource(_Base):
         return out
 
     async def handoffs(self, since: float, until: float) -> list[HandoffFacts]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select session_id, trace_id, trigger, topics, queue, created_at from handoffs where created_at between :a and :b"),
                                     {"a": since, "b": until})).all()
         return [HandoffFacts(r.session_id, r.trace_id, r.trigger, list(r.topics), r.queue, r.created_at) for r in rows]
 
     async def feedback(self, since: float, until: float) -> list[FeedbackFacts]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from conversation_feedback where created_at between :a and :b"), {"a": since, "b": until})).all()
         return [FeedbackFacts(r.session_id, r.rating, r.created_at, r.comment) for r in rows]
 
@@ -907,7 +913,7 @@ class PgExports(_Base):
                             [{"id": j.id, "t": j.trace_id, "e": j.exporter, "c": j.created_at} for j in jobs])
 
     async def pending(self, limit: int = 100) -> list[ExportJob]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from trace_exports where delivered_at is null and attempts < :m order by created_at, id limit :n"),
                                     {"m": EXPORT_MAX_ATTEMPTS, "n": limit})).all()
         return [self._j(r) for r in rows]
@@ -919,7 +925,7 @@ class PgExports(_Base):
                             {"t": at, "err": None if delivered else error, "d": delivered, "i": job_id})
 
     async def for_trace(self, trace_id: str) -> list[ExportJob]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from trace_exports where trace_id = :t order by created_at, id"), {"t": trace_id})).all()
         return [self._j(r) for r in rows]
 
@@ -930,7 +936,7 @@ class PgExports(_Base):
             return (await s.execute(text("delete from trace_exports where trace_id = any(:ids)"), {"ids": trace_ids})).rowcount
 
     async def counts(self) -> dict[str, int]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select count(*) filter (where delivered_at is null and attempts < :m) as pending, count(*) filter (where delivered_at is not null) as delivered, "
                                       "count(*) filter (where delivered_at is null and attempts >= :m) as failed from trace_exports"), {"m": EXPORT_MAX_ATTEMPTS})).one()
         return {"pending": int(r.pending), "delivered": int(r.delivered), "failed": int(r.failed)}
@@ -949,7 +955,7 @@ class PgInbox(_Base):
                             [{"id": e.id, "h": e.handoff_id, "c": e.connector, "e": e.event, "t": e.created_at} for e in events])
 
     async def pending(self, limit: int = 100) -> list[InboxEvent]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from inbox_events where delivered_at is null and attempts < :m order by created_at, id limit :n"),
                                     {"m": MAX_ATTEMPTS, "n": limit})).all()
         return [self._e(r) for r in rows]
@@ -961,7 +967,7 @@ class PgInbox(_Base):
                             {"t": at, "err": None if delivered else error, "d": delivered, "r": ref, "i": event_id})
 
     async def for_handoff(self, handoff_id: str) -> list[InboxEvent]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from inbox_events where handoff_id = :h order by created_at, id"), {"h": handoff_id})).all()
         return [self._e(r) for r in rows]
 
@@ -978,13 +984,13 @@ class PgSmsRepo(_Base):
         return SmsSession(r.session_id, r.phone, r.our_number, r.created_at, r.last_seen)
 
     async def latest_session(self, phone: str, our_number: str) -> SmsSession | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select * from sms_sessions where phone = :p and our_number = :o order by last_seen desc limit 1"),
                                  {"p": phone, "o": our_number})).first()
         return self._s(r) if r else None
 
     async def get_session(self, session_id: str) -> SmsSession | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(text("select * from sms_sessions where session_id = :i"), {"i": session_id})).first()
         return self._s(r) if r else None
 
@@ -995,7 +1001,7 @@ class PgSmsRepo(_Base):
                             {"i": session.session_id, "p": session.phone, "o": session.our_number, "c": session.created_at, "l": session.last_seen})
 
     async def has_message(self, message_id: str) -> bool:
-        async with self._sm() as s:
+        async with self._ro() as s:
             return (await s.execute(text("select 1 from sms_messages where message_id = :i"), {"i": message_id})).first() is not None
 
     async def record_message(self, message_id: str, session_id: str, direction: str, outcome: str, peer: str) -> bool:
@@ -1006,7 +1012,7 @@ class PgSmsRepo(_Base):
             return r.first() is not None
 
     async def recent_count(self, peer: str, direction: str, since: float) -> int:
-        async with self._sm() as s:
+        async with self._ro() as s:
             return int((await s.execute(text("select count(*) from sms_messages where peer = :p and direction = :d and created_at >= :t"),
                                         {"p": peer, "d": direction, "t": since})).scalar_one())
 
@@ -1019,7 +1025,7 @@ class PgSmsRepo(_Base):
                 await s.execute(text("delete from sms_opt_outs where phone_hash = :h"), {"h": phone_hash(phone)})
 
     async def is_opted_out(self, phone: str) -> bool:
-        async with self._sm() as s:
+        async with self._ro() as s:
             return (await s.execute(text("select 1 from sms_opt_outs where phone_hash = :h"), {"h": phone_hash(phone)})).first() is not None
 
 
@@ -1047,7 +1053,7 @@ class PgMemories(_Base):
         return Memory(customer_id, note, session_id, now, now, mid), True
 
     async def list(self, customer_id: str, limit: int = 200) -> list[Memory]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select * from customer_memories where customer_id = :c order by updated_at desc limit :n"),
                                     {"c": customer_id, "n": limit})).all()
         return [self._m(r) for r in rows]
@@ -1056,7 +1062,7 @@ class PgMemories(_Base):
         terms = list(dict.fromkeys(tokens(query)))
         if not terms:
             return []
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text(
                 "select *, ts_rank_cd(tsv, to_tsquery('english', :q)) as rank from customer_memories "
                 "where customer_id = :c and tsv @@ to_tsquery('english', :q) order by rank desc, updated_at desc limit :n"),
@@ -1084,7 +1090,7 @@ class PgPrivacy(_Base):
                             {"s": session_id, "c": customer_id or "", "n": now})
 
     async def sessions_for_customer(self, customer_id: str) -> list[str]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text(
                 "select session_id from session_index where customer_id = :c union select session_id from approvals where customer_id = :c "
                 "union select session_id from handoffs where customer_id = :c union select session_id from email_sessions where customer_id = :c "
@@ -1092,7 +1098,7 @@ class PgPrivacy(_Base):
         return [r[0] for r in rows]
 
     async def sessions_idle_since(self, cutoff: float, limit: int = 1000) -> list[str]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(text("select session_id from session_index group by session_id having max(last_seen) < :c order by max(last_seen) limit :n"),
                                     {"c": cutoff, "n": limit})).all()
         return [r[0] for r in rows]
@@ -1101,7 +1107,7 @@ class PgPrivacy(_Base):
         return [_jsonable(dict(r._mapping)) for r in (await s.execute(text(sql), p)).all()]
 
     async def export_session(self, session_id: str) -> dict[str, Any]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             q = lambda sql: self._rows(s, sql, s_=session_id)  # noqa: E731
             traces = []
             for t in await q("select * from traces where session_id = :s_ order by started_at"):
@@ -1151,7 +1157,7 @@ class PgPrivacy(_Base):
         return {k: int(v) for k, v in out.items()}
 
     async def export_facts(self, customer_id: str) -> dict[str, str]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(FactRow.key, FactRow.value).where(FactRow.customer_id == customer_id))).all()
         return {r.key: r.value for r in rows}
 
@@ -1160,7 +1166,7 @@ class PgPrivacy(_Base):
             return (await s.execute(delete(FactRow).where(FactRow.customer_id == customer_id))).rowcount
 
     async def export_memories(self, customer_id: str) -> list[dict[str, Any]]:
-        async with self._sm() as s:
+        async with self._ro() as s:
             return await self._rows(s, "select id, text, source_session, created_at, updated_at from customer_memories where customer_id = :c order by updated_at desc", c=customer_id)
 
     async def erase_memories(self, customer_id: str) -> int:
@@ -1185,7 +1191,7 @@ class PgMonitor(_Base):
                 q = q.where(col == v)
         if since is not None:
             q = q.where(MonitorFindingRow.created_at >= since)
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(q)).scalars().all()
         return [Finding(r.rule, r.severity, r.detail, r.trace_id, r.session_id, r.agent_id, r.agent_version, r.created_at, r.id) for r in rows]
 
@@ -1193,7 +1199,7 @@ class PgMonitor(_Base):
         q = select(MonitorFindingRow.rule, MonitorFindingRow.severity, func.count()).group_by(MonitorFindingRow.rule, MonitorFindingRow.severity)
         if since is not None:
             q = q.where(MonitorFindingRow.created_at >= since)
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(q)).all()
         out: dict[str, dict[str, int]] = {}
         for rule, sev, n in rows:
@@ -1208,14 +1214,14 @@ class PgEmailRepo(_Base):
                             customer_id=r.customer_id, verified=r.verified, references=list(r.references), created_at=r.created_at)
 
     async def get_session(self, session_id: str) -> EmailSession | None:
-        async with self._sm() as s:
+        async with self._ro() as s:
             r = (await s.execute(select(EmailSessionRow).where(EmailSessionRow.session_id == session_id))).scalar_one_or_none()
         return self._to_session(r) if r else None
 
     async def find_session(self, message_ids: list[str]) -> EmailSession | None:
         if not message_ids:
             return None
-        async with self._sm() as s:
+        async with self._ro() as s:
             rows = (await s.execute(select(EmailMessageRow.message_id, EmailMessageRow.session_id)
                                     .where(EmailMessageRow.message_id.in_(message_ids)))).all()
             by_id = {r.message_id: r.session_id for r in rows}
@@ -1236,7 +1242,7 @@ class PgEmailRepo(_Base):
                 index_elements=[EmailSessionRow.session_id], set_={k: v for k, v in values.items() if k != "session_id"}))
 
     async def has_message(self, message_id: str) -> bool:
-        async with self._sm() as s:
+        async with self._ro() as s:
             return (await s.execute(select(EmailMessageRow.message_id).where(EmailMessageRow.message_id == message_id))).first() is not None
 
     async def record_message(self, message_id: str, session_id: str, direction: str, outcome: str, peer: str) -> bool:
@@ -1247,6 +1253,6 @@ class PgEmailRepo(_Base):
             return res.rowcount == 1
 
     async def recent_count(self, peer: str, direction: str, since: float) -> int:
-        async with self._sm() as s:
+        async with self._ro() as s:
             return (await s.execute(select(func.count()).select_from(EmailMessageRow).where(
                 EmailMessageRow.peer == peer, EmailMessageRow.direction == direction, EmailMessageRow.created_at >= since))).scalar_one()

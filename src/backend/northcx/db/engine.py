@@ -23,7 +23,13 @@ def database_url_from_env(url: str | None = None) -> str | None:
 
 
 def create_engine(url: str, **kwargs) -> AsyncEngine:
-    kwargs.setdefault("pool_pre_ping", True)
+    kwargs.setdefault("pool_pre_ping", True)  # a connection that went away (database restarted) is replaced instead of failing a request
+    # Everything the application does ends its own transaction before a connection goes back to the pool, so the pool's extra rollback on return is
+    # pure overhead (with asyncpg it costs a BEGIN and a ROLLBACK round trip for every one of the dozens of checkouts a conversation turn makes).
+    if "poolclass" not in kwargs:  # (tests and one-off tools pass their own pool)
+        kwargs.setdefault("pool_reset_on_return", None)
+        kwargs.setdefault("pool_size", int(os.environ.get("NORTHCX_DB_POOL_SIZE") or 20))
+        kwargs.setdefault("max_overflow", 10)
     return create_async_engine(url, **kwargs)
 
 

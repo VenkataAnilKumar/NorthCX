@@ -506,7 +506,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             ident = OPEN_IDENTITY
         request.state.identity = ident
         if limits:
-            ok, retry = access.limiter.allow(f"key:{ident.key_id or ip}", limits.per_key_per_minute)
+            ok, retry = access.limiter.allow(f"key:{ident.key_id or ip}", limits.channel_per_minute if ident.role == "channel" else limits.per_key_per_minute)
             if not ok:
                 return too_many(retry, "requests")
         if perm != "authenticated" and not ident.can(perm):

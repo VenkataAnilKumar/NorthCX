@@ -109,7 +109,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | Q9 | Environments (dev, staging, production) and promotion | P1 | 3 | Built (API, test console selector, promote buttons on the versions page) |
 | Q10 | Rollback to a prior version | P0 | 2 | Built |
 | Q11 | Staged rollout and A/B experiments | P2 | 4 | Built (staged rollout of a proven candidate to a share of new conversations with sticky arms, side-by-side comparison, promote or stop; automatic stop rules and multi-arm tests still planned) |
-| Q12 | Load and cost testing | P2 | 6 | Planned |
+| Q12 | Load and cost testing | P2 | 6 | Built (load test tool with release-gating targets, token-cost estimator with a CI baseline, measured numbers in `NorthCX_Performance.md`; real-model and long-run soak results not measured) |
 
 ## 9. Observability and insights
 | ID | Feature | Pri | Phase | State |

@@ -59,7 +59,8 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_OTLP_ENDPOINT`, `NORTHCX_OTLP_HEADERS` (`_FILE`; `name=value,name=value`) | Export traces over OpenTelemetry OTLP/HTTP to any compatible backend | off |
 | `NORTHCX_TRACE_EXPORT_CONTENT` (`none`, `masked`, `full`), `NORTHCX_TRACE_EXPORT_SAMPLE` (0 to 1), `NORTHCX_ENVIRONMENT` | What exported traces contain (default `masked`), the fraction exported (default 1), and the environment label (default `production`) | masked; all; production |
 | `NORTHCX_CHATWOOT_URL`, `NORTHCX_CHATWOOT_ACCOUNT_ID`, `NORTHCX_CHATWOOT_INBOX_ID`, `NORTHCX_CHATWOOT_TOKEN` (`_FILE`) | Create a Chatwoot conversation with a private note for each hand-off and close it when resolved | off |
-| `NORTHCX_RATE_LIMITS` (`off`), `NORTHCX_RATE_LIMIT_PER_MINUTE`, `NORTHCX_CHAT_PER_SESSION_PER_MINUTE`, `NORTHCX_AUTH_FAILURES_PER_MINUTE` | Per-process limits | 600 / 30 / 20 |
+| `NORTHCX_RATE_LIMITS` (`off`), `NORTHCX_RATE_LIMIT_PER_MINUTE`, `NORTHCX_CHAT_PER_SESSION_PER_MINUTE`, `NORTHCX_AUTH_FAILURES_PER_MINUTE`, `NORTHCX_CHANNEL_RATE_LIMIT_PER_MINUTE` | Per-process limits; the last applies to keys with the `channel` role (your server minting chat tokens, telephony bridges), which serve many customers at once | 600 / 30 / 20 / 6000 |
+| `NORTHCX_DB_POOL_SIZE` | Database connections each server process keeps (plus 10 extra under load). Keep processes x (size + 10) below Postgres `max_connections` | 20 |
 | `NORTHCX_TRACE_DIR` | Also write traces to JSON lines (in-memory mode) | none |
 | `PORT` | Backend port inside the container | 3000 |
 | `NORTHCX_BIND`, `NORTHCX_BACKEND_PORT`, `NORTHCX_WEB_PORT` | Compose: listen address and host ports | 127.0.0.1, 3000, 3001 |
@@ -115,6 +116,10 @@ Redeploy the previous image; agent definitions are versioned so a prior version 
 
 ## Operations
 Health endpoint, structured logs, alerts on error rate and model latency, regular backup and retention jobs.
+
+## Capacity
+
+See `NorthCX_Performance.md`: about 50 conversation turns per second per server process with Postgres on a small machine, scaling with the number of processes; use `python -m northcx.loadtest` against your own deployment before launch.
 
 ## Behind a reverse proxy
 
