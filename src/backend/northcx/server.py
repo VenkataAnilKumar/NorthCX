@@ -28,7 +28,7 @@ from .catalog import AgentUnavailable, as_provider
 from .runtime import Runtime
 from .simulation import Busy, SimulationService
 from .spec import AgentSpec, SpecError, parse_spec
-from .versions import Conflict, GateBlocked, InvalidSpec, NotFound, ReleaseService, diff_specs, spec_yaml
+from .versions import check_environment,  Conflict, GateBlocked, InvalidSpec, NotFound, ReleaseService, diff_specs, spec_yaml
 from .trace import TraceRepo
 from .widget import WIDGET_HTML
 
@@ -38,6 +38,7 @@ class ChatBody(BaseModel):
     message: str = Field(min_length=1, max_length=8000)
     customer_id: str | None = Field(default=None, alias="customerId", max_length=200)
     channel: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_-]{1,19}$")
+    environment: str | None = Field(default=None, pattern=r"^(dev|staging|production)$")  # internal keys only; customers always get production
     model_config = {"populate_by_name": True}
 
 
@@ -59,6 +60,12 @@ class DocumentBody(BaseModel):
 class RetentionBody(BaseModel):
     older_than_days: float = Field(alias="olderThanDays", ge=1, le=3650)
     model_config = {"populate_by_name": True}
+
+
+class PromoteBody(BaseModel):
+    to: str
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
 
 
 class DecisionBody(BaseModel):
@@ -92,11 +99,13 @@ class VersionBody(BaseModel):
 
 class PublishBody(BaseModel):
     version: int = Field(ge=1)
+    environment: str = "production"
     by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
 
 
 class RollbackBody(BaseModel):
+    environment: str = "production"
     to_version: int | None = Field(default=None, alias="toVersion", ge=1)
     by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
@@ -173,8 +182,10 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/agents/[^/]+/versions/[^/]+/diff/[^/]+", "versions:read"),
     ("GET", r"/v1/agents/[^/]+/releases", "versions:read"),
     ("POST", r"/v1/agents/[^/]+/versions", "versions:create"),
-    ("POST", r"/v1/agents/[^/]+/releases", "releases:publish"),
-    ("POST", r"/v1/agents/[^/]+/rollback", "releases:rollback"),
+    ("POST", r"/v1/agents/[^/]+/releases", "versions:create"),  # production also needs releases:publish, checked in the handler
+    ("POST", r"/v1/agents/[^/]+/rollback", "versions:create"),  # production also needs releases:rollback
+    ("POST", r"/v1/agents/[^/]+/promote", "versions:create"),
+    ("GET", r"/v1/agents/[^/]+/environments", "versions:read"),
     ("GET", r"/v1/approvals", "approvals:read"),
     ("POST", r"/v1/approvals/expire", "approvals:decide"),
     ("POST", r"/v1/approvals/[^/]+/decision", "approvals:decide"),
@@ -371,6 +382,15 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return JSONResponse({"ready": False}, status_code=503)
         return {"ready": True}
 
+    async def chat_environment(request: Request, body: ChatBody) -> JSONResponse | None:
+        """Only people with developer access may talk to dev or staging; customers and channels always get production."""
+        if body.environment and body.environment != "production":
+            who: Identity = request.state.identity
+            if who.session_id is not None or not who.can("simulations:run"):
+                await record(request, "auth.denied", f"{request.method} {request.url.path}", "denied", permission="simulations:run", environment=body.environment)
+                return _err(403, "forbidden", f"The '{who.role}' role cannot use the {body.environment} environment (needs simulations:run)")
+        return None
+
     @app.post("/v1/agents/{agent_id}/chat/stream")
     async def chat_stream(agent_id: str, body: ChatBody, request: Request) -> Any:
         """Server-sent events: `progress` while tools run, then the reply in `delta` pieces, then `done`.
@@ -398,6 +418,17 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if agent is None:
             return _err(404, "not_found", "Unknown agent")
         queue: asyncio.Queue = asyncio.Queue()
+        env_error = await chat_environment(request, body)
+        if env_error is not None:
+            return env_error
+        environment = body.environment or "production"
+        if environment != "production":
+            try:
+                agent = await provider.get(agent_id, environment)
+            except AgentUnavailable as e:
+                return _err(503, "agent_unavailable", str(e))
+            if agent is None:
+                return _err(404, "not_found", "Unknown agent")
 
         async def work() -> None:
             try:
@@ -448,13 +479,17 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             ok, retry = access.limiter.allow(f"session:{body.session_id}", limits.chat_per_session_per_minute)
             if not ok:
                 return too_many(retry, "messages in this conversation")
+        env_error = await chat_environment(request, body)
+        if env_error is not None:
+            return env_error
+        environment = body.environment or "production"
         ikey = request.headers.get("idempotency-key")
         scope = None
         if ikey is not None:
             if not valid_key(ikey):
                 return _err(400, "bad_idempotency_key", "Idempotency-Key must be 1-200 visible ASCII characters")
             scope = scope_hash(who.key_id or who.name, agent_id, body.session_id, ikey)
-            out = await idem.begin(scope, request_hash([body.message, customer_id]), session_id=body.session_id)
+            out = await idem.begin(scope, request_hash([body.message, customer_id, environment]), session_id=body.session_id)
             if out.state == "replay":
                 return JSONResponse(out.response, headers={"Idempotent-Replay": "true"})
             if out.state == "conflict":
@@ -462,7 +497,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             if out.state == "in_progress":
                 return _err(409, "request_in_progress", "A request with this Idempotency-Key is still being processed; retry shortly")
         try:
-            agent = await provider.get(agent_id)
+            agent = await provider.get(agent_id, environment)
         except AgentUnavailable as e:
             if scope:
                 await idem.abandon(scope)
@@ -472,7 +507,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                 await idem.abandon(scope)
             return _err(404, "not_found", "Unknown agent")
         try:
-            r = await runtime.run(agent, body.session_id, body.message, customer_id, channel=body.channel or ("web" if who.session_id else None))
+            r = await runtime.run(agent, body.session_id, body.message, customer_id, channel=body.channel or ("web" if who.session_id else None), environment=environment)
         except Exception:
             if scope:
                 await idem.abandon(scope)
@@ -625,7 +660,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         items = await traces.summaries(sessionId, max(1, min(limit, 1000)))
         return {"traces": [{"id": t.id, "agentId": t.agent_id, "sessionId": t.session_id, "events": t.events,
                             "status": t.status, "startedAt": t.started_at, "tools": t.tools,
-                            "agentVersion": t.agent_version} for t in items]}
+                            "agentVersion": t.agent_version, "environment": t.environment} for t in items]}
 
     @app.get("/v1/agents")
     async def list_agents() -> Any:
@@ -998,20 +1033,51 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(404, "not_found", f"Agent '{agent_id}' needs both versions {a} and {b}")
         return {"from": a, "to": b, **diff_specs(va.spec, vb.spec)}
 
+    async def need_env(request: Request, environment: str, perm: str) -> JSONResponse | None:
+        """Dev and staging are for developers; production needs the release permission."""
+        try:
+            check_environment(environment)
+        except ValueError as e:
+            return _err(400, "bad_request", str(e))
+        who: Identity = request.state.identity
+        if environment == "production" and not who.can(perm):
+            await record(request, "auth.denied", f"{request.method} {request.url.path}", "denied", permission=perm)
+            return _err(403, "forbidden", f"The '{who.role}' role cannot do this (needs {perm})")
+        return None
+
     @app.post("/v1/agents/{agent_id}/releases")
     async def publish(agent_id: str, body: PublishBody, request: Request) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
             return svc
+        if (denied := await need_env(request, body.environment, "releases:publish")) is not None:
+            return denied
+        target = f"{agent_id}@{body.version}" + ("" if body.environment == "production" else f" ({body.environment})")
         try:
-            rel = await svc.publish(agent_id, body.version, actor(request, body.by), body.note)
+            rel = await svc.publish(agent_id, body.version, actor(request, body.by), body.note, body.environment)
         except GateBlocked as e:  # an attempt to release something unproven is itself worth recording
-            await record(request, "release.publish", f"{agent_id}@{body.version}", "blocked", reasons=e.reasons[:10])
+            await record(request, "release.publish", target, "blocked", reasons=e.reasons[:10], environment=body.environment)
             return rel_error(e)
         except (NotFound, Conflict) as e:
             return rel_error(e)
-        await record(request, "release.publish", f"{agent_id}@{rel.number}", previous=rel.previous_number, gate=rel.gate,
-                     note=bool(body.note))
+        await record(request, "release.publish", target, previous=rel.previous_number, gate=rel.gate, note=bool(body.note), environment=body.environment)
+        return release_json(rel)
+
+    @app.post("/v1/agents/{agent_id}/promote")
+    async def promote(agent_id: str, body: PromoteBody, request: Request) -> Any:
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        if (denied := await need_env(request, body.to, "releases:publish")) is not None:
+            return denied
+        try:
+            rel = await svc.promote(agent_id, body.to, actor(request, body.by), body.note)
+        except GateBlocked as e:
+            await record(request, "release.promote", f"{agent_id} -> {body.to}", "blocked", reasons=e.reasons[:10], environment=body.to)
+            return rel_error(e)
+        except (NotFound, Conflict) as e:
+            return rel_error(e)
+        await record(request, "release.promote", f"{agent_id}@{rel.number} -> {body.to}", previous=rel.previous_number, gate=rel.gate, environment=body.to)
         return release_json(rel)
 
     @app.post("/v1/agents/{agent_id}/rollback")
@@ -1019,32 +1085,56 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         svc = need_rel()
         if isinstance(svc, JSONResponse):
             return svc
+        if (denied := await need_env(request, body.environment, "releases:rollback")) is not None:
+            return denied
         try:
-            rel = await svc.rollback(agent_id, actor(request, body.by), body.note, body.to_version)
+            rel = await svc.rollback(agent_id, actor(request, body.by), body.note, body.to_version, body.environment)
         except (NotFound, Conflict) as e:
             return rel_error(e)
         await record(request, "release.rollback", f"{agent_id}@{rel.number if rel.number else 'spec-file'}",
-                     previous=rel.previous_number, note=bool(body.note))
+                     previous=rel.previous_number, note=bool(body.note), environment=body.environment)
         return release_json(rel)
 
     @app.get("/v1/agents/{agent_id}/releases")
-    async def release_history(agent_id: str) -> Any:
+    async def release_history(agent_id: str, environment: str = "production") -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
             return svc
-        return {"releases": [release_json(r) for r in await svc.releases.list(agent_id)]}
+        try:
+            check_environment(environment)
+        except ValueError as e:
+            return _err(400, "bad_request", str(e))
+        return {"releases": [release_json(r) for r in await svc.releases.list(agent_id, environment)]}
+
+    @app.get("/v1/agents/{agent_id}/environments")
+    async def agent_environments(agent_id: str) -> Any:
+        """What is live in dev, staging and production, and what each actually serves."""
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        if svc.baseline(agent_id) is None and not await svc.versions.list(agent_id):
+            return _err(404, "not_found", f"Unknown agent '{agent_id}'")
+        out = {}
+        for env, info in (await svc.environments(agent_id)).items():
+            v, rel, served = await svc.resolve(agent_id, env)
+            out[env] = {"version": info["version"], "release": release_json(info["release"]) if info["release"] else None,
+                        "servedFrom": served, "servedVersion": v.number if v else None}
+        return {"agentId": agent_id, "strictPromotion": svc.strict_promotion, "environments": out}
 
     @app.get("/v1/agents/{agent_id}/live")
-    async def live(agent_id: str) -> Any:
+    async def live(agent_id: str, environment: str = "production") -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
             return svc
-        v, rel = await svc.live(agent_id)
+        try:
+            v, rel, served = await svc.resolve(agent_id, environment)
+        except ValueError as e:
+            return _err(400, "bad_request", str(e))
         base = svc.baseline(agent_id)
         if v is None and base is None:
             return _err(404, "not_found", f"Unknown agent '{agent_id}'")
         spec = v.spec if v else json.loads(base.canonical())
-        return {"agentId": agent_id, "source": "release" if v else "baseline", "version": v.number if v else None,
+        return {"agentId": agent_id, "environment": environment, "servedFrom": served, "source": "release" if v else "baseline", "version": v.number if v else None,
                 "digest": v.digest if v else base.digest(), "release": release_json(rel) if rel else None,
                 "spec": spec, "specYaml": spec_yaml(spec)}
 

@@ -126,6 +126,7 @@ def convert(trace: Trace, redactor: Redactor, environment: str = "production") -
         prev_t = e.t
         i += 1
     end = ev[-1].t if ev else t0
+    environment = trace.environment if trace.environment != "production" else environment
     return ExportTrace(trace.id, trace.agent_id, trace.session_id, t0, end, str(last_reply.data.get("status")) if last_reply else "unknown", trace.agent_version,
                        redactor.value(first_in.data.get("message"), "input") if first_in else None,
                        redactor.value(last_reply.data.get("reply"), "output") if last_reply else None, obs, environment)

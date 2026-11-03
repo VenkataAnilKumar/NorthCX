@@ -77,11 +77,11 @@ class PgMemoryStore(_Base):
 class PgTraceStore(_Base):
     async def save(self, trace: Trace) -> None:
         summary = TraceSummary(trace.id, trace.agent_id, trace.session_id, len(trace.events), trace.status(),
-                               trace.events[0].t if trace.events else None, trace.tools_called(), trace.agent_version)
+                               trace.events[0].t if trace.events else None, trace.tools_called(), trace.agent_version, trace.environment)
         async with self._sm.begin() as s:
             values = dict(id=trace.id, session_id=trace.session_id, agent_id=trace.agent_id, status=summary.status,
                           started_at=summary.started_at, tools=summary.tools, event_count=summary.events,
-                          agent_version=summary.agent_version)
+                          agent_version=summary.agent_version, environment=trace.environment)
             await s.execute(pg_insert(TraceRow).values(**values).on_conflict_do_update(
                 index_elements=[TraceRow.id], set_={k: v for k, v in values.items() if k != "id"}))
             await s.execute(delete(TraceEventRow).where(TraceEventRow.trace_id == trace.id))
@@ -98,7 +98,7 @@ class PgTraceStore(_Base):
                 return None
             events = (await s.execute(
                 select(TraceEventRow).where(TraceEventRow.trace_id == trace_id).order_by(TraceEventRow.seq))).scalars().all()
-        t = Trace(agent_id=row.agent_id, session_id=row.session_id, id=row.id, agent_version=row.agent_version)
+        t = Trace(agent_id=row.agent_id, session_id=row.session_id, id=row.id, agent_version=row.agent_version, environment=row.environment)
         t.events = [TraceEvent(e.t, e.type, e.data) for e in events]
         return t
 
@@ -108,7 +108,7 @@ class PgTraceStore(_Base):
             q = q.where(TraceRow.session_id == session_id)
         async with self._sm() as s:
             rows = (await s.execute(q)).scalars().all()
-        return [TraceSummary(r.id, r.agent_id, r.session_id, r.event_count, r.status, r.started_at, list(r.tools), r.agent_version)
+        return [TraceSummary(r.id, r.agent_id, r.session_id, r.event_count, r.status, r.started_at, list(r.tools), r.agent_version, r.environment)
                 for r in rows]
 
 

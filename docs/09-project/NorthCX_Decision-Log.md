@@ -95,3 +95,5 @@
 | 88 | Helpdesk-to-NorthCX sync uses the existing resolve API rather than a new public webhook | Decided | Direct helpdesk webhooks and return-to-agent (H7) later |
 | 89 | Traces are exported from a database queue by two exporters (Langfuse ingestion API, OTLP/HTTP JSON); the Langfuse code was read for its API contract only | Decided, built | Licence verified, nothing copied |
 | 90 | Export content defaults to `masked`; `none` sends structure only; customer ids are never exported | Decided, built | Masking is pattern-based |
+| 91 | One deployment, three labelled environments with separate release histories; an unreleased environment serves the next one up; dev needs no proof, staging and production need the release gate; strict promotion is optional | Decided, built | Separate deployments can share a database |
+| 92 | Non-production conversations are tagged, kept out of the helpdesk inbox, and share tools and data with production unless separated by the operator | Decided, built | Documented risk |

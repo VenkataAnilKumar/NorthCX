@@ -11,7 +11,7 @@ class AgentUnavailable(RuntimeError):
 
 
 class AgentProvider(Protocol):
-    async def get(self, agent_id: str) -> Agent | None: ...
+    async def get(self, agent_id: str, environment: str = "production") -> Agent | None: ...
     async def all(self) -> list[Agent]: ...
 
 
@@ -19,8 +19,8 @@ class StaticAgents:
     def __init__(self, agents: dict[str, Agent]):
         self._agents = agents
 
-    async def get(self, agent_id: str) -> Agent | None:
-        return self._agents.get(agent_id)
+    async def get(self, agent_id: str, environment: str = "production") -> Agent | None:
+        return self._agents.get(agent_id)  # a plain set of agents has one environment
 
     async def all(self) -> list[Agent]:
         return list(self._agents.values())

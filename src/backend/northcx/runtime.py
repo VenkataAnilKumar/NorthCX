@@ -76,10 +76,10 @@ class Runtime:
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
                   trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None,
-                  channel: str | None = None) -> RunResult:
+                  channel: str | None = None, environment: str = "production") -> RunResult:
         """`trusted=True` is for messages the platform itself writes (for example an approval outcome); they skip
         the customer input checks and are traced as `system` events."""
-        trace = Trace(agent.id, session_id, agent_version=agent.version)
+        trace = Trace(agent.id, session_id, agent_version=agent.version, environment=environment)
         await self.privacy.link(session_id, customer_id)  # so the conversation can be exported, erased and aged out
         messages: list[Message] = await self.store.load_messages(session_id)
         if self.compactor is not None and not self.dry_run:
@@ -339,7 +339,7 @@ class Runtime:
         added = await self.handoffs.add(Handoff(
             session_id=session_id, trace_id=trace.id, agent_id=agent_id, customer_id=customer_id, trigger=trigger,
             reason=reason, topics=topics, package=package, queue=route.queue, after_hours=not route.open_now))
-        if self.inbox is not None:  # queued for delivery to the helpdesk; a failure here must not lose the hand-off
+        if self.inbox is not None and trace.environment == "production":  # only real conversations reach the helpdesk; queued for delivery to the helpdesk; a failure here must not lose the hand-off
             try:
                 await self.inbox.enqueue(added, "created")
             except Exception:

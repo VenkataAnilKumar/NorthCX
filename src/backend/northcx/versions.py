@@ -21,6 +21,16 @@ from .simulation.service import SimulationService
 from .spec import AgentSpec, BuildContext, Registry, SpecError
 
 PRODUCTION = "production"
+ENVIRONMENTS = ("dev", "staging", PRODUCTION)
+PROMOTES_FROM = {"staging": "dev", PRODUCTION: "staging"}  # the step before each environment
+# An environment with nothing released serves what the next one up serves, so "staging" with no staged version behaves like production.
+FALLBACK = {"dev": ("dev", "staging", PRODUCTION), "staging": ("staging", PRODUCTION), PRODUCTION: (PRODUCTION,)}
+
+
+def check_environment(environment: str) -> str:
+    if environment not in ENVIRONMENTS:
+        raise ValueError(f"environment must be one of {', '.join(ENVIRONMENTS)}")
+    return environment
 
 
 class _NullLLM:
@@ -160,9 +170,10 @@ def diff_specs(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
 # ---------------- service ----------------
 class ReleaseService:
     def __init__(self, versions: VersionRepo, releases: ReleaseRepo, registry: Registry, baselines: dict[str, AgentSpec],
-                 simulations: SimulationService | None = None):
+                 simulations: SimulationService | None = None, strict_promotion: bool = False):
         self.versions, self.releases, self.registry = versions, releases, registry
         self.baselines, self.simulations = baselines, simulations
+        self.strict_promotion = strict_promotion  # production only accepts versions that were live in staging
         self._lock = asyncio.Lock()
 
     def baseline(self, agent_id: str) -> AgentSpec | None:
@@ -183,38 +194,76 @@ class ReleaseService:
             raise Conflict(f"No changes since version {existing[0].number}")
         return await self.versions.create(agent_id, json.loads(spec.canonical()), spec.digest(), by, note)
 
-    async def live(self, agent_id: str) -> tuple[AgentVersion | None, Release | None]:
-        rel = await self.releases.current(agent_id)
+    async def live(self, agent_id: str, environment: str = PRODUCTION) -> tuple[AgentVersion | None, Release | None]:
+        rel = await self.releases.current(agent_id, environment)
         if rel is None or rel.version_id is None:
             return None, rel
         return await self.versions.get(rel.version_id), rel
+
+    async def resolve(self, agent_id: str, environment: str = PRODUCTION) -> tuple[AgentVersion | None, Release | None, str]:
+        """What an environment actually serves: its own release, else the next environment up that has one (else the baseline)."""
+        for env in FALLBACK[check_environment(environment)]:
+            v, rel = await self.live(agent_id, env)
+            if rel is not None:
+                return v, rel, env
+        return None, None, PRODUCTION
+
+    async def environments(self, agent_id: str) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        for env in ENVIRONMENTS:
+            v, rel = await self.live(agent_id, env)
+            out[env] = {"version": v.number if v else None, "release": rel, "released": rel is not None}
+        return out
 
     async def gate_for(self, version: AgentVersion):
         if self.simulations is None:
             return None
         return await self.simulations.gate_for(version.agent_id, version.digest)
 
-    async def publish(self, agent_id: str, number: int, by: str, note: str | None = None) -> Release:
+    async def publish(self, agent_id: str, number: int, by: str, note: str | None = None, environment: str = PRODUCTION) -> Release:
+        """Release a version to an environment. Dev is for trying things and needs no proof; staging and production need the release
+        gate for that exact version, and in strict mode production only accepts what was live in staging."""
+        check_environment(environment)
         async with self._lock:
             v = await self.versions.get_number(agent_id, number)
             if v is None:
                 raise NotFound(f"Agent '{agent_id}' has no version {number}")
-            live_v, live_rel = await self.live(agent_id)
+            live_v, live_rel = await self.live(agent_id, environment)
             if live_v is not None and live_v.id == v.id:
-                raise Conflict(f"Version {number} is already live")
-            gate = await self.gate_for(v)
-            if gate is None:
-                raise GateBlocked(["simulations are not configured, so the release gate cannot be checked"])
-            if not gate.satisfied:
-                raise GateBlocked(gate.reasons)
-            return await self.releases.add(Release(
-                agent_id, "publish", by, v.id, v.number, {"satisfied": True, "covered": gate.covered, "required": gate.required,
-                                                         "runIds": gate.run_ids}, note, live_v.number if live_v else None))
+                raise Conflict(f"Version {number} is already live in {environment}")
+            gate_info: dict[str, Any] = {"satisfied": None, "note": "no gate in dev"}
+            if environment != "dev":
+                gate = await self.gate_for(v)
+                if gate is None:
+                    raise GateBlocked(["simulations are not configured, so the release gate cannot be checked"])
+                if not gate.satisfied:
+                    raise GateBlocked(gate.reasons)
+                gate_info = {"satisfied": True, "covered": gate.covered, "required": gate.required, "runIds": gate.run_ids}
+            if environment == PRODUCTION and self.strict_promotion:
+                staged = any(r.number == v.number for r in await self.releases.list(agent_id, "staging", 1000))
+                if not staged:
+                    raise GateBlocked([f"version {number} has not been live in staging; promote it there first"])
+            return await self.releases.add(Release(agent_id, "publish", by, v.id, v.number, gate_info, note, live_v.number if live_v else None, environment))
 
-    async def rollback(self, agent_id: str, by: str, note: str | None = None, to_number: int | None = None) -> Release:
-        """Restore a version that was live before (or the baseline spec file). No gate: it already ran in production."""
+    async def promote(self, agent_id: str, to_environment: str, by: str, note: str | None = None) -> Release:
+        """Release to an environment the version that is live in the one before it (dev -> staging -> production)."""
+        check_environment(to_environment)
+        source = PROMOTES_FROM.get(to_environment)
+        if source is None:
+            raise Conflict("Nothing is promoted into dev; publish a version there directly")
+        v, rel = await self.live(agent_id, source)
+        if rel is None:
+            raise Conflict(f"Nothing is released in {source}, so there is nothing to promote")
+        if v is None:
+            raise Conflict(f"{source} is running the baseline spec file, which has no version to promote; create a version first")
+        return await self.publish(agent_id, v.number, by, note or f"promoted from {source}", to_environment)
+
+    async def rollback(self, agent_id: str, by: str, note: str | None = None, to_number: int | None = None,
+                       environment: str = PRODUCTION) -> Release:
+        """Restore a version that was live before in this environment (or the baseline spec file). No gate: it already ran there."""
+        check_environment(environment)
         async with self._lock:
-            history = await self.releases.list(agent_id)
+            history = await self.releases.list(agent_id, environment)
             if not history:
                 raise Conflict("Nothing has been released, so there is nothing to roll back")
             current = history[0]
@@ -236,7 +285,7 @@ class ReleaseService:
                 else:
                     raise Conflict("The baseline is already live")
             return await self.releases.add(Release(
-                agent_id, "rollback", by, version_id, number, {}, note, current.number))
+                agent_id, "rollback", by, version_id, number, {}, note, current.number, environment))
 
 
 # ---------------- live agents ----------------
@@ -247,8 +296,8 @@ class LiveAgents:
         self.baseline, self.service, self.build = baseline, service, build
         self._cache: dict[str, Agent] = {}
 
-    async def get(self, agent_id: str) -> Agent | None:
-        version, rel = await self.service.live(agent_id)
+    async def get(self, agent_id: str, environment: str = PRODUCTION) -> Agent | None:
+        version, rel, _ = await self.service.resolve(agent_id, environment)
         if rel is None or rel.version_id is None:
             return self.baseline.get(agent_id)
         if version is None:

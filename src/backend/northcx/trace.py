@@ -22,6 +22,7 @@ class Trace:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     events: list[TraceEvent] = field(default_factory=list)
     agent_version: int | None = None
+    environment: str = "production"
 
     def add(self, type: str, **data: Any) -> None:
         self.events.append(TraceEvent(time.time(), type, data))
@@ -49,11 +50,12 @@ class TraceSummary:
     started_at: float | None
     tools: list[str]
     agent_version: int | None = None
+    environment: str = "production"
 
 
 def summarize(t: Trace) -> TraceSummary:
     return TraceSummary(t.id, t.agent_id, t.session_id, len(t.events), t.status(),
-                        t.events[0].t if t.events else None, t.tools_called(), t.agent_version)
+                        t.events[0].t if t.events else None, t.tools_called(), t.agent_version, t.environment)
 
 
 class TraceRepo(Protocol):

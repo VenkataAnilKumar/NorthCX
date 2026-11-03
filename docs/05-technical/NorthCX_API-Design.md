@@ -74,6 +74,14 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 `POST /v1/agents/{id}/chat/stream` returns `text/event-stream`. The agent's work and every supervisor check finish before the first `delta` is sent, so a customer never sees text a check could still reject; the pieces are the approved reply, split at word boundaries (joined they equal `reply` exactly). Progress events let a client show "Using lookup order…" during the wait. If the client disconnects, the turn still completes and is saved. Streaming of tokens straight from the model is not used because it would expose unchecked drafts.
 
 
+| POST | `/agents/{id}/releases` | Body `{version, environment?}` (default `production`). Dev needs no proof; staging and production need the release gate for that exact version. Dev and staging need `versions:create`; production also needs `releases:publish` (built) |
+| POST | `/agents/{id}/promote` | `{to: staging|production, note?}`: release what is live in the environment before it (dev, then staging), gated like any release (built) |
+| POST | `/agents/{id}/rollback` | `{environment?, toVersion?}` restores something that was live before in that environment; production needs `releases:rollback` (built) |
+| GET | `/agents/{id}/environments` | What is released in dev, staging and production and what each actually serves (built) |
+| GET | `/agents/{id}/releases?environment=`, `/agents/{id}/live?environment=` | History and the live agent for one environment (built) |
 | GET | `/trace-export` | Whether export is on, exporters, content mode, sampling and delivery counts (`traces:read`) (built) |
 | GET | `/traces/{id}/exports` | Delivery state of one trace per exporter (built) |
 | GET | `/handoffs/{id}/inbox` | Where a hand-off has been sent: per connector and event, attempts, reference, last error (built) |
+
+
+Chat requests (`/chat`, `/chat/stream`) accept `environment` (`dev`, `staging`, `production`). Only keys with `simulations:run` may use dev or staging; customer tokens and channel keys always get production. Each trace records the environment that answered.

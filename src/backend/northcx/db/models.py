@@ -48,6 +48,7 @@ class TraceRow(Base):
     tools: Mapped[Any] = mapped_column(JSONB, nullable=False)
     event_count: Mapped[int] = mapped_column(Integer, nullable=False)
     agent_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    environment: Mapped[str] = mapped_column(String(32), nullable=False, server_default="production")
     __table_args__ = (Index("ix_traces_session", "session_id"), Index("ix_traces_started", "started_at"))
 
 

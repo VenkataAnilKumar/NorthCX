@@ -234,7 +234,7 @@ def run() -> None:
         simulations = SimulationService(scenarios, factory, sim_runs, {i: s.digest() for i, s in specs.items()},
                                         live_llm=None if demo else llm, judge_llm=None if demo else llm,
                                         spec_builder=lambda spec, sim_llm: reg.build(spec, BuildContext(llm=sim_llm)))
-    release_service = ReleaseService(versions_repo, releases_repo, reg, specs, simulations)
+    release_service = ReleaseService(versions_repo, releases_repo, reg, specs, simulations, strict_promotion=os.environ.get("NORTHCX_STRICT_PROMOTION") == "1")
 
     def build_live(spec):
         agent = reg.build(spec, BuildContext(llm=llm))

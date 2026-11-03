@@ -57,3 +57,15 @@ Agent behaviour changes whenever instructions, tools, policies or knowledge chan
 - An approval resolved after a release or rollback is executed and described by the live agent, which re-validates the held input and re-checks supervisors.
 - There is one environment, `production`. Dev and staging, promotion between them, and staged rollout are Phase 3 and 4.
 - Publishing and rolling back need the release manager or admin role; the release records the key's name (a typed name is only used in open mode), and every attempt, including those blocked by the gate, is in the audit log.
+
+
+## Environments and promotion (Q9) — as built
+
+One deployment serves three environments, **dev**, **staging** and **production**, each with its own release history and its own live version of every agent.
+
+- **Serving.** Customers and channels always get production. Developers can chat with another environment by sending `environment` (test console, API). An environment with nothing released serves the next one up (dev falls back to staging, staging to production, production to the baseline spec file), so a new environment behaves like production until something is released to it.
+- **Rules.** Releasing to dev needs no proof. Staging and production need the release gate for that exact version (all required scenarios passed on the version's digest). `promote` releases what is live in the previous environment to the next (dev, staging, production) and is gated the same way. With strict promotion (`NORTHCX_STRICT_PROMOTION=1`) production only accepts versions that have been live in staging.
+- **Permissions.** Dev and staging releases need `versions:create` (developers and up). Production releases need `releases:publish` and production rollbacks `releases:rollback` (release managers and admins).
+- **Rollback.** Each environment rolls back within its own history and needs no new proof.
+- **Isolation.** Conversations in dev and staging are tagged with their environment, are not sent to the helpdesk inbox, and carry the environment label in exported traces. They share the deployment's database, customers' data stores and tools, so a dev agent calling a real write tool does real work: use dry-run scenarios, test accounts or separate tool credentials for non-production.
+- **Not built:** per-environment secrets and tool configuration, separate deployments sharing one database as a first-class mode, and scheduled or percentage rollouts (Q11).

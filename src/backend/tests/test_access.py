@@ -243,8 +243,9 @@ CALLS = [  # (permission needed, method, path, body)
     ("outbox:read", "GET", "/v1/sessions/s/outbox", None),
     ("versions:create", "POST", "/v1/agents/support/versions", {"fromBaseline": True}),
     ("simulations:run", "POST", "/v1/simulations/runs", {"only": "order-lookup", "skipJudge": True}),
-    ("releases:publish", "POST", "/v1/agents/support/releases", {"version": 1}),
-    ("releases:rollback", "POST", "/v1/agents/support/rollback", {}),
+    ("versions:create", "POST", "/v1/agents/support/releases", {"version": 1, "environment": "dev"}),  # dev and staging are for developers;
+    ("versions:create", "POST", "/v1/agents/support/rollback", {"environment": "dev"}),  # production needs releases:publish / releases:rollback (test_environments)
+    ("versions:create", "POST", "/v1/agents/support/promote", {"to": "staging"}),
     ("approvals:decide", "POST", "/v1/approvals/missing/decision", {"approved": True}),
     ("handoffs:resolve", "POST", "/v1/handoffs/missing/resolve", {}),
     ("chat:mint", "POST", "/v1/chat-tokens", {"sessionId": "s1"}),

@@ -106,7 +106,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | Q6 | Simulated customers with personas, including adversarial ones | P1 | 3 | Planned |
 | Q7 | Re-run simulations when knowledge or policies change | P1 | 3 | Planned |
 | Q8 | Agent versioning and change history | P0 | 2 | Built |
-| Q9 | Environments (dev, staging, production) and promotion | P1 | 3 | Planned (one production environment exists today) |
+| Q9 | Environments (dev, staging, production) and promotion | P1 | 3 | Built (backend and API; web page for environments planned) |
 | Q10 | Rollback to a prior version | P0 | 2 | Built |
 | Q11 | Staged rollout and A/B experiments | P2 | 4 | Planned |
 | Q12 | Load and cost testing | P2 | 6 | Planned |
