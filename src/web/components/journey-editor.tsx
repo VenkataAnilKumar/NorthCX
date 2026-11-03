@@ -69,6 +69,8 @@ export function JourneyEditor({ agent, journeys, tools, onChange }: { agent: str
         <label className="block text-sm">Describe a journey in plain words
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder="When a customer wants a refund, find their order, check it was delivered, then refund it. If they mention a lawyer, hand over to a person." className={input} /></label>
         <button type="button" disabled={busy || text.trim().length < 10} onClick={() => void draft()} className="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-text disabled:opacity-50">{busy ? "Drafting…" : "Draft a journey"}</button>
+        <button type="button" onClick={() => onChange([...journeys, { name: `journey-${journeys.length + 1}`, goal: "Describe the goal", steps: [{ purpose: "First step", required: true }], flexibility: "guided" }])}
+          className="ml-2 rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-border/40">Start from blank</button>
         {note && <p role={note.ok ? "status" : "alert"} className={`text-sm ${note.ok ? "text-muted" : "text-[var(--bad)]"}`}>{note.text}</p>}
       </div>
     </>

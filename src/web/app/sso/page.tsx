@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getMe, setApiKey } from "@/lib/api";
+import { getApiKey, getMe, setApiKey } from "@/lib/api";
 import { resetMe } from "@/lib/me";
 import { PageHeader } from "@/components/states";
 
@@ -14,10 +14,11 @@ export default function SsoLanding() {
     const token = hash.get("token");
     window.history.replaceState(null, "", window.location.pathname);
     if (!token) { setState({ ok: false, text: query.get("error") ?? "No sign-in was received." }); return; }
+    const previous = getApiKey();
     setApiKey(token);
     resetMe();
     getMe().then((me) => setState({ ok: true, text: `Signed in as ${me.name} (${me.role.replace("_", " ")}).` }))
-      .catch((e: Error) => { setApiKey(""); setState({ ok: false, text: `Sign-in did not work: ${e.message}` }); });
+      .catch((e: Error) => { setApiKey(previous); resetMe(); setState({ ok: false, text: `Sign-in did not work: ${e.message}` }); });
   }, []);
   return (
     <>

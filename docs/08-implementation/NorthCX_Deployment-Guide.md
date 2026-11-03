@@ -110,3 +110,13 @@ Redeploy the previous image; agent definitions are versioned so a prior version 
 
 ## Operations
 Health endpoint, structured logs, alerts on error rate and model latency, regular backup and retention jobs.
+
+## Browser smoke test
+
+`src/web/e2e/smoke.mjs` drives a running stack in a real browser (Playwright): connecting with a key, the review queue, insights, the publish checklist, a staged rollout, the agent editor (journeys, languages) and the single sign-on landing page, then loads every main page and fails on any client error. Start the backend and the web console, then:
+
+```bash
+cd src/web && API_KEY=<admin key> WEB_URL=http://localhost:3001 API_URL=http://localhost:3000 node e2e/smoke.mjs
+```
+
+It creates one fresh conversation each run, so it can be repeated. The single sign-on round trip was also checked in a browser against a local OpenID Connect provider (sign in, role from groups, sign out, refusal of an unmapped person).

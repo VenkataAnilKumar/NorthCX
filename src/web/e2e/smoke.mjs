@@ -1,0 +1,102 @@
+// Browser smoke test against a running stack: node e2e/smoke.mjs  (needs WEB_URL, API_KEY; playwright is preinstalled in the dev image)
+import { createRequire } from "node:module";
+const { chromium } = createRequire(import.meta.url)("playwright");
+const WEB = process.env.WEB_URL ?? "http://localhost:3001";
+const KEY = process.env.API_KEY ?? "";
+const API = process.env.API_URL ?? "http://localhost:3000";
+const failures = [];
+const check = (ok, what) => { console.log(`${ok ? "ok  " : "FAIL"} ${what}`); if (!ok) failures.push(what); };
+
+// a fresh conversation that asks for a person, so the review queue has something new every run
+const sid = `e2e-${Date.now()}`;
+const seeded = await fetch(`${API}/v1/agents/support/chat`, { method: "POST", headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json" },
+  body: JSON.stringify({ sessionId: sid, message: "I want a person please", customerId: `c-${sid}` }) });
+if (!seeded.ok) { console.log("could not seed a conversation", seeded.status); process.exit(1); }
+
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const page = await ctx.newPage();
+const errors = [];
+page.on("pageerror", (e) => errors.push(String(e)));
+page.on("console", (m) => { if (m.type() === "error" && !/favicon|401|403|409|422|Failed to load resource/.test(m.text())) errors.push(m.text()); });
+const text = async () => (await page.locator("main, body").first().innerText());
+
+// settings: connect with a key
+await page.goto(`${WEB}/settings`);
+await page.fill("#key", KEY);
+await page.getByRole("button", { name: "Save and test" }).click();
+await page.getByText(/Connected as/).waitFor();
+check(true, "settings: key accepted");
+check(await page.getByText("Single sign-on").count() === 0, "settings: no SSO button when SSO is off");
+
+// review queue
+await page.goto(`${WEB}/review`);
+await page.getByRole("list", { name: "Review queue" }).waitFor();
+const items = page.getByRole("list", { name: "Review queue" }).getByRole("button");
+await items.first().waitFor();
+check((await items.count()) >= 1, "review: queue has conversations");
+await page.getByRole("button", { name: /person please/ }).click();
+await page.getByRole("region", { name: "Transcript" }).waitFor();
+check((await page.getByRole("region", { name: "Transcript" }).innerText()).includes("person please"), "review: transcript shown");
+await page.getByLabel("No").first().check();           // verdict: not right
+await page.getByLabel("Yes").nth(1).check();            // hand-off needed
+await page.getByLabel("wrong answer").check();
+await page.getByLabel("Note").fill("e2e note");
+await page.getByRole("button", { name: "Save review" }).click();
+await page.getByText("Saved.").waitFor();
+check(true, "review: saved");
+
+// insights shows the human-review cards
+await page.goto(`${WEB}/insights`);
+await page.getByRole("region", { name: "Human review" }).waitFor();
+check(true, "insights: human review cards");
+
+// versions page: checklist and rollout panel
+await page.goto(`${WEB}/agents/support`);
+await page.getByRole("region", { name: /Publish checklist for version 1/ }).waitFor();
+check((await page.getByRole("region", { name: /Publish checklist/ }).innerText()).includes("ready"), "versions: checklist ready");
+await page.getByRole("region", { name: "Staged rollout" }).waitFor();
+await page.getByLabel("Candidate version").selectOption("1");
+await page.getByRole("button", { name: "Start rollout" }).click();
+await page.getByText(/of new conversations get/).waitFor();
+check(true, "rollout: started");
+check((await page.getByRole("region", { name: /Publish checklist/ }).innerText()).includes("not ready"), "versions: checklist blocks while a rollout runs");
+await page.getByRole("button", { name: "Stop" }).click();
+await page.getByRole("button", { name: "Start rollout" }).waitFor();
+check(true, "rollout: stopped");
+
+// editor: journeys and languages
+await page.goto(`${WEB}/agents/support/edit`);
+await page.getByRole("region", { name: "Journeys" }).waitFor();
+await page.getByRole("button", { name: "Start from blank" }).click();
+await page.getByLabel("Goal").fill("Help with a refund");
+await page.getByLabel("Tool for step 1").selectOption("lookup_order");
+await page.getByLabel("Spanish").check();
+await page.getByLabel("English").check();
+await page.waitForTimeout(900);
+check((await page.getByLabel("Goal").inputValue()) === "Help with a refund", "editor: journey and languages edited");
+await page.getByPlaceholder(/When a customer wants a refund/).fill("When a customer wants a refund, find the order and refund it.");
+await page.getByRole("button", { name: "Draft a journey" }).click();
+await page.getByRole("alert").filter({ hasText: /journey|model/i }).first().waitFor();
+check(true, "editor: unusable draft is reported, not applied");
+
+// single sign-on landing: a bad session is rejected cleanly, a missing one explains itself
+await page.goto(`${WEB}/sso#token=ncx_bad_token`);
+const sso = page.locator("p[role=alert]");
+await sso.waitFor();
+check((await sso.innerText()).includes("did not work"), "sso landing: bad session rejected");
+check(!page.url().includes("token="), "sso landing: token removed from the address bar");
+await page.goto(`${WEB}/sso?error=Your+account+has+no+role`);
+await page.getByText("no role").waitFor();
+check(true, "sso landing: error shown");
+
+// the other main pages load without a client error
+for (const p of ["/", "/conversations", "/simulations", "/knowledge", "/handoffs", "/approvals", "/agents", "/access", "/chat"]) {
+  await page.goto(`${WEB}${p}`);
+  await page.waitForLoadState("networkidle");
+  check(!(await page.locator("body").innerText()).includes("Application error"), `page loads: ${p}`);
+}
+check(errors.length === 0, `no client errors${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
+await browser.close();
+if (failures.length) { console.log(`\n${failures.length} failed`); process.exit(1); }
+console.log("\nall passed");

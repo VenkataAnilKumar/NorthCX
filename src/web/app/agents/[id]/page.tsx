@@ -29,7 +29,7 @@ function DiffView({ d }: { d: VersionDiff }) {
   );
 }
 
-function VersionRow({ agent, v, liveNumber, by, note, onChanged }: { agent: string; v: AgentVersion; liveNumber: number | null; by: string | undefined; note: string; onChanged: () => void }) {
+function VersionRow({ agent, v, liveNumber, by, note, tick, onChanged }: { agent: string; v: AgentVersion; liveNumber: number | null; by: string | undefined; note: string; tick: number; onChanged: () => void }) {
   const { can } = useMe();
   const [gate, setGate] = useState<Gate | null>(null);
   const [diff, setDiff] = useState<VersionDiff | null>(null);
@@ -42,7 +42,7 @@ function VersionRow({ agent, v, liveNumber, by, note, onChanged }: { agent: stri
     getChecklist(agent, v.number).then(setList).catch(() => setList(null));
     return versionGate(agent, v.number).then(setGate).catch(() => setGate(null));
   };
-  useEffect(() => { refreshGate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [v.number]);
+  useEffect(() => { refreshGate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [v.number, tick]);
 
   async function act(name: string, fn: () => Promise<unknown>, message: string) {
     setBusy(name); setErr(null); setDone(null);
@@ -193,7 +193,7 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
           <h2 className="mb-2 font-medium">Versions</h2>
           {versions.loading && !versions.data ? <Loading /> : !versions.data?.length ? <Empty>No versions yet. Save one with the form.</Empty> : (
             <ul className="space-y-3">{versions.data.map((v) => (
-              <VersionRow key={v.id} agent={id} v={v} liveNumber={l.version} by={askForName ? by.trim() || "release-manager" : undefined} note={note} onChanged={refresh} />))}</ul>
+              <VersionRow key={v.id} agent={id} v={v} liveNumber={l.version} by={askForName ? by.trim() || "release-manager" : undefined} note={note} tick={tick} onChanged={refresh} />))}</ul>
           )}
         </section>
         <div className="space-y-6">
