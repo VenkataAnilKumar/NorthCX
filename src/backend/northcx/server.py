@@ -34,6 +34,7 @@ from .sso import Sso, SsoError
 from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms, rollout_json
 from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
 from .assist import AssistError
+from .hardening import BodyLimit, SecurityHeaders
 from .voice import CallRepo, CallSession, InMemoryCalls, VoiceConfig
 from .attachments import MAX_BYTES, MAX_PER_MESSAGE, AttachmentError, AttachmentRepo, InMemoryAttachments, Scanner, accept as accept_attachment, check_accepted
 from .handoffs import PERSON_PREFIX, return_note, transcript
@@ -513,6 +514,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(403, "forbidden", f"The '{ident.role}' role cannot do this (needs {perm})")
         return await call_next(request)
 
+    app.add_middleware(SecurityHeaders)
+    app.add_middleware(BodyLimit)  # outside the key check, so an oversized body is refused before anything reads it
     if cors_origins:  # websites allowed to call the chat API from a browser (the SDK); added last so it answers preflight requests before the key check
         app.add_middleware(CORSMiddleware, allow_origins=cors_origins, allow_methods=["GET", "POST", "PUT", "OPTIONS"], allow_credentials=False, max_age=600,
                            allow_headers=["authorization", "content-type", "idempotency-key"], expose_headers=["retry-after", "idempotent-replay"])
@@ -561,11 +564,22 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         async def resolve(agent_id: str, session_id: str) -> Any:
             return await provider.get(agent_id, "production", session_id)
         call = CallSession(runtime, resolve, voice, call_repo, send)
+        tokens, stamp = [300.0], [time.monotonic()]
+
+        def bucket_allow() -> bool:
+            now = time.monotonic()
+            tokens[0] = min(300.0, tokens[0] + (now - stamp[0]) * 100)  # 100 messages a second sustained, bursts of 300
+            stamp[0] = now
+            tokens[0] -= 1
+            return tokens[0] >= 0
         try:
             while True:
                 raw = await ws.receive_text()
                 if len(raw) > 65536:
                     await ws.close(code=1009)
+                    break
+                if not bucket_allow():
+                    await ws.close(code=4429)  # a bridge that floods the stream is cut off
                     break
                 try:
                     msg = json.loads(raw)
@@ -573,6 +587,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                     continue
                 if not isinstance(msg, dict):
                     continue
+                if msg.get("type") == "transcript" and msg.get("final", True) and not access.limiter.allow(f"voice-turns:{ident.key_id or ip}", 120)[0]:
+                    continue  # at most 120 spoken turns a minute per key; the rest are ignored
                 if msg.get("type") == "start" and call.rec is None:
                     await call.handle(msg)
                     await audit.append(AuditEntry(actor=ident.name, role=ident.role, action="voice.call", target=call.session_id, outcome="ok", detail={"callId": call.rec.call_id if call.rec else None}))

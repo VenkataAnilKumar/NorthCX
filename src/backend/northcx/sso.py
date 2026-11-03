@@ -127,6 +127,8 @@ def verify_id_token(token: str, jwks: Mapping[str, Any], cfg: SsoConfig, nonce: 
         signature = unb64(sig_b64)
     except (ValueError, TypeError):
         raise SsoError("The identity provider returned a malformed token", "malformed id token") from None
+    if not isinstance(header, dict) or not isinstance(claims, dict):
+        raise SsoError("The identity provider returned a malformed token", "token parts are not objects")
     alg = header.get("alg")
     if alg not in ("RS256", "ES256"):
         raise SsoError("The identity provider signed the token in a way NorthCX does not accept", f"alg {alg}")

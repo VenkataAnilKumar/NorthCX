@@ -47,4 +47,5 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 - [ ] Agent assist, return-to-agent, multi-agent, attachments, SDK (H6, H7, R8, C10, C7)
 ## Phase 6
 - [ ] Agent-assisted building, natural-language analytics, load testing, data residency (A8, O8, Q12, P6)
-- [ ] Security review, licence choice, contribution guide, v1.0
+- [x] Security review and threat model (independent penetration test still to do)
+- [ ] Licence choice, contribution guide, v1.0

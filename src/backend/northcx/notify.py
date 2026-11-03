@@ -46,7 +46,7 @@ class WebhookNotifier:
     def __init__(self, url: str, secret: str, client: httpx.AsyncClient | None = None,
                  attempts: int = 3, backoff: float = 0.5, timeout: float = 5.0):
         self.url, self.secret, self.attempts, self.backoff = url, secret, attempts, backoff
-        self._client = client or httpx.AsyncClient(timeout=timeout)
+        self._client = client or httpx.AsyncClient(timeout=timeout, follow_redirects=False)
 
     async def deliver(self, message: OutboxMessage) -> None:
         body = json.dumps({"id": message.id, "sessionId": message.session_id, "kind": message.kind,

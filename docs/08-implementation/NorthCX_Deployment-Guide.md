@@ -116,6 +116,10 @@ Redeploy the previous image; agent definitions are versioned so a prior version 
 ## Operations
 Health endpoint, structured logs, alerts on error rate and model latency, regular backup and retention jobs.
 
+## Behind a reverse proxy
+
+Terminate TLS at a proxy and keep the API on a private network. Tell uvicorn which proxy to trust so per-address limits see the real client: set `FORWARDED_ALLOW_IPS` to the proxy's address (uvicorn's own setting; the default only trusts 127.0.0.1). Without it every client appears to have the proxy's address, and one noisy client can trigger limits for everyone. Rate limits and daily token budgets are per process: with several replicas, add a shared limit at the proxy. Requests are capped by size per endpoint (1 MB, 11 MB for uploads); set the proxy's body limit at or above 12 MB.
+
 ## Browser smoke test
 
 `src/web/e2e/smoke.mjs` drives a running stack in a real browser (Playwright): connecting with a key, the review queue, insights, the publish checklist, a staged rollout, the agent editor (journeys, languages) and the single sign-on landing page, then loads every main page and fails on any client error. Start the backend and the web console, then:
