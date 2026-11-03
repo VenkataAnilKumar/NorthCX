@@ -9,6 +9,9 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 | GET | `/health` | Liveness (public) |
 | POST | `/chat-tokens` | `{sessionId?, customerId?, agent?, ttlSeconds?}`: mint a chat token for one conversation (channel or admin key); returns `token`, `sessionId`, `expiresAt` (built) |
 | POST | `/agents/{id}/chat/stream` | Same request and access rules as chat, answered as server-sent events: `started`, `progress` (`{type: tool, name}`) while tools run, `delta` pieces of the approved reply, then `done` (the full chat response) or `error`. No `Idempotency-Key` (400) (built) |
+| GET | `/memories?customerId=` | A customer's long-term memories, newest first (`memory:read`: admin, developer, release manager, reviewer; audited; 501 when memory is off) (built) |
+| DELETE | `/memories/{id}?customerId=` | Forget one memory (`memory:manage`, admin only) (built) |
+| DELETE | `/memories?customerId=` | Forget all of a customer's memories (built) |
 | GET | `/privacy/customers/{id}/export` | Everything held for a customer as JSON: facts and, per conversation, messages, traces, outbox, approvals, hand-offs, monitoring findings and email thread (`privacy:manage`, admin only; audited) (built) |
 | DELETE | `/privacy/customers/{id}` | Erase a customer's conversations, facts and everything linked to them; returns counts (built) |
 | DELETE | `/privacy/sessions/{id}` | Erase one conversation (built) |

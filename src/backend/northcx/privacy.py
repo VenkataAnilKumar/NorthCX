@@ -29,6 +29,8 @@ class PrivacyBackend(Protocol):
     async def erase_session(self, session_id: str) -> dict[str, int]: ...
     async def export_facts(self, customer_id: str) -> dict[str, str]: ...
     async def erase_facts(self, customer_id: str) -> int: ...
+    async def export_memories(self, customer_id: str) -> list[dict[str, Any]]: ...
+    async def erase_memories(self, customer_id: str) -> int: ...
 
 
 def _plain(v: Any) -> Any:
@@ -130,6 +132,14 @@ class InMemoryPrivacy:
         facts = getattr(self.rt.store, "_facts", {})
         return len(facts.pop(customer_id, {}))
 
+    async def export_memories(self, customer_id) -> list[dict[str, Any]]:
+        mem = self.rt.memories
+        return [m.to_dict() for m in await mem.list(customer_id)] if mem is not None else []
+
+    async def erase_memories(self, customer_id) -> int:
+        mem = self.rt.memories
+        return await mem.forget_all(customer_id) if mem is not None else 0
+
 
 class PrivacyService:
     def __init__(self, backend: PrivacyBackend):
@@ -139,6 +149,7 @@ class PrivacyService:
         sessions = await self.backend.sessions_for_customer(customer_id)
         return {"customerId": customer_id, "generatedAt": time.time() if now is None else now,
                 "facts": await self.backend.export_facts(customer_id),
+                "memories": await self.backend.export_memories(customer_id),
                 "sessions": [await self.backend.export_session(s) for s in sessions]}
 
     async def erase_customer(self, customer_id: str) -> dict[str, Any]:
@@ -148,6 +159,7 @@ class PrivacyService:
             for k, v in (await self.backend.erase_session(s)).items():
                 total[k] = total.get(k, 0) + v
         total["facts"] = await self.backend.erase_facts(customer_id)
+        total["memories"] = await self.backend.erase_memories(customer_id)
         return {"sessions": len(sessions), "removed": total}
 
     async def erase_session(self, session_id: str) -> dict[str, int]:

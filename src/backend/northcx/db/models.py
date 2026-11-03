@@ -235,6 +235,20 @@ class KnowledgeChunkRow(Base):
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
+class CustomerMemoryRow(Base):
+    __tablename__ = "customer_memories"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    customer_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    text: Mapped[str] = mapped_column(String(300), nullable=False)
+    text_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_session: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    tsv: Mapped[Any] = mapped_column(TSVECTOR, Computed("to_tsvector('english', text)", persisted=True))
+    __table_args__ = (UniqueConstraint("customer_id", "text_hash", name="uq_memory_fact"), Index("ix_memories_customer", "customer_id", "updated_at"),
+                      Index("ix_memories_tsv", "tsv", postgresql_using="gin"))
+
+
 class SessionIndexRow(Base):
     """Which conversations belong to which customer ('' = no known customer), and when each was last active."""
     __tablename__ = "session_index"

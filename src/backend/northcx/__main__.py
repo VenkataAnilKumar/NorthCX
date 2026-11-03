@@ -13,10 +13,11 @@ from .channels.email import EmailChannel, EmailConfig, EmailNotifier, InMemoryEm
 from .summarize import Compactor
 from .reliability import ReliableLLM, UsageLedger
 from .llm import DEFAULT_MODEL
+from .memory import InMemoryMemories, memory_tools
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgIdempotency, PgKeys, PgKnowledge, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgIdempotency, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -90,6 +91,7 @@ def run() -> None:
         monitor_repo, idem_repo = PgMonitor(engine), PgIdempotency(engine)
         knowledge_repo = PgKnowledge(engine)
         privacy_backend = PgPrivacy(engine)
+        memory_repo = PgMemories(engine)
         print("Using Postgres storage.")
     else:
         store, traces, approvals = InMemoryStore(), TraceStore(os.environ.get("NORTHCX_TRACE_DIR")), None
@@ -100,6 +102,7 @@ def run() -> None:
         monitor_repo, idem_repo = InMemoryMonitor(), InMemoryIdempotency()
         knowledge_repo = InMemoryKnowledge()
         privacy_backend = None  # the runtime builds the in-memory one
+        memory_repo = InMemoryMemories()
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
 
     notifier = None
@@ -139,6 +142,7 @@ def run() -> None:
     except (ValueError, ConfigError) as e:
         sys.exit(f"Configuration error: {e}")
     runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, context=context_source,
+                      memories=memory_repo if os.environ.get("NORTHCX_MEMORY", "1") != "0" else None,
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
                                  if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),
                       ledger=UsageLedger(int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None))
@@ -150,6 +154,10 @@ def run() -> None:
         reg = registry()
         if "search_knowledge" not in reg.tool_names():
             reg.tool(knowledge_tool(knowledge_repo))
+        if runtime.memories is not None:
+            for t in memory_tools(runtime.memories):
+                if t.name not in reg.tool_names():
+                    reg.tool(t)
         print(f"Tool secrets available: {', '.join(secrets.names()) or 'none'}")
         specs = {s.id: s for s in load_specs(specs_dir)}
         baseline = {}

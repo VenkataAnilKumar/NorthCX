@@ -16,6 +16,7 @@ from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
 from ..monitor import Finding
+from ..memory import MAX_PER_CUSTOMER, Memory, check_note, text_hash
 from ..knowledge import Document, KnowledgeError, Passage, Source, UpsertResult, _prepare, chunk_text, content_hash, is_stale, tokens, valid_id
 from ..idempotency import STALE_AFTER, TTL_SECONDS, Outcome
 from ..simulation.store import SimRun
@@ -566,6 +567,56 @@ class PgKnowledge(_Base):
         return out
 
 
+class PgMemories(_Base):
+    @staticmethod
+    def _m(r: Any) -> Memory:
+        return Memory(r.customer_id, r.text, r.source_session, r.created_at, r.updated_at, r.id)
+
+    async def remember(self, customer_id: str, text_: str, session_id: str | None = None, now: float | None = None) -> tuple[Memory, bool]:
+        note = check_note(text_)
+        now = time.time() if now is None else now
+        h = text_hash(note)
+        async with self._sm.begin() as s:
+            await s.execute(text("select pg_advisory_xact_lock(hashtext(:k))"), {"k": f"mem:{customer_id}"})
+            row = (await s.execute(text("update customer_memories set updated_at = :n where customer_id = :c and text_hash = :h returning *"),
+                                   {"n": now, "c": customer_id, "h": h})).first()
+            if row is not None:
+                return self._m(row), False
+            mid = uuid.uuid4().hex
+            await s.execute(text("insert into customer_memories (id, customer_id, text, text_hash, source_session, created_at, updated_at) "
+                                 "values (:i, :c, :t, :h, :s, :n, :n)"), {"i": mid, "c": customer_id, "t": note, "h": h, "s": session_id, "n": now})
+            await s.execute(text("delete from customer_memories where customer_id = :c and id in "
+                                 "(select id from customer_memories where customer_id = :c order by updated_at desc offset :k)"),
+                            {"c": customer_id, "k": MAX_PER_CUSTOMER})
+        return Memory(customer_id, note, session_id, now, now, mid), True
+
+    async def list(self, customer_id: str, limit: int = 200) -> list[Memory]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from customer_memories where customer_id = :c order by updated_at desc limit :n"),
+                                    {"c": customer_id, "n": limit})).all()
+        return [self._m(r) for r in rows]
+
+    async def recall(self, customer_id: str, query: str, limit: int = 5) -> list[Memory]:
+        terms = list(dict.fromkeys(tokens(query)))
+        if not terms:
+            return []
+        async with self._sm() as s:
+            rows = (await s.execute(text(
+                "select *, ts_rank_cd(tsv, to_tsquery('english', :q)) as rank from customer_memories "
+                "where customer_id = :c and tsv @@ to_tsquery('english', :q) order by rank desc, updated_at desc limit :n"),
+                {"q": " | ".join(terms), "c": customer_id, "n": limit})).all()
+        return [self._m(r) for r in rows]
+
+    async def forget(self, customer_id: str, memory_id: str) -> bool:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from customer_memories where customer_id = :c and id = :i returning id"),
+                                    {"c": customer_id, "i": memory_id})).first() is not None
+
+    async def forget_all(self, customer_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from customer_memories where customer_id = :c"), {"c": customer_id})).rowcount
+
+
 class PgPrivacy(_Base):
     """Export and erasure across every table that holds conversation data."""
 
@@ -639,6 +690,14 @@ class PgPrivacy(_Base):
     async def erase_facts(self, customer_id: str) -> int:
         async with self._sm.begin() as s:
             return (await s.execute(delete(FactRow).where(FactRow.customer_id == customer_id))).rowcount
+
+    async def export_memories(self, customer_id: str) -> list[dict[str, Any]]:
+        async with self._sm() as s:
+            return await self._rows(s, "select id, text, source_session, created_at, updated_at from customer_memories where customer_id = :c order by updated_at desc", c=customer_id)
+
+    async def erase_memories(self, customer_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from customer_memories where customer_id = :c"), {"c": customer_id})).rowcount
 
 
 class PgMonitor(_Base):

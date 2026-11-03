@@ -81,3 +81,5 @@
 | 77 | The audit log is retained through erasure; privacy actions are logged with a one-way customer reference | Decided, built | Backups and downstream copies are out of scope and documented |
 | 78 | Long conversations are compacted by replacing older turns with model-written notes at the front of the first kept customer message; failure keeps the full history | Decided, built | Off unless NORTHCX_SUMMARIZE_AFTER_TOKENS is set |
 | 79 | Customer context comes from either a Python hook or a signed HTTPS endpoint, cached per customer, size-limited and screened; not stored with facts; failure means no context, not an error | Decided, built | Company values win over agent-stored facts |
+| 80 | Long-term memory is built in (Postgres full-text, in-memory twin) behind a five-method `MemoryService` interface rather than adopting an external memory library first | Decided, built | An external library can sit behind the same interface later |
+| 81 | The agent chooses what to remember; notes are screened, shown as untrusted data, limited to 200 per customer, and erased with the customer | Decided, built | No automatic extraction yet |

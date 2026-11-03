@@ -14,6 +14,7 @@ from .approvals import ApprovalRepo, ApprovalStore
 from .monitor import Monitor
 from .summarize import Compactor
 from .context import CachedContext
+from .memory import MemoryService, render_block
 from .privacy import InMemoryPrivacy
 from .reliability import UsageLedger
 from .guardrails import GuardrailContext, InputResult
@@ -52,7 +53,7 @@ class Runtime:
                  outbox: Outbox | None = None, handoffs: HandoffRepo | None = None,
                  secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None,
                  ledger: UsageLedger | None = None, privacy: Any = None, compactor: Compactor | None = None,
-                 context: CachedContext | None = None):
+                 context: CachedContext | None = None, memories: MemoryService | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
@@ -62,6 +63,7 @@ class Runtime:
         self.ledger = ledger or UsageLedger()
         self.compactor = compactor
         self.context = context
+        self.memories = memories
         self.privacy = privacy if privacy is not None else InMemoryPrivacy(self)
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
@@ -96,7 +98,16 @@ class Runtime:
             if facts
             else ""
         )
-        system = agent.instructions + facts_block + f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}."
+        memory_block = ""
+        if self.memories is not None and customer_id and not self.dry_run and not trusted:
+            try:
+                recalled = await self.memories.recall(customer_id, message, 5)
+                memory_block = render_block(recalled)
+                if recalled:
+                    trace.add("memory", recalled=len(recalled))  # how many, never the text
+            except Exception:  # memory is a convenience; the conversation goes on without it
+                trace.add("memory", error=True)
+        system = agent.instructions + facts_block + memory_block + f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}."
         tools = [t.spec() for t in agent.tools] + [HANDOFF_SPEC]
 
         async def finish(reply: str, status: str, trigger: str | None = None, reason: str = "",
