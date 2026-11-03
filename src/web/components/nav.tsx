@@ -7,6 +7,7 @@ const items: { href: string; label: string; any?: string[] }[] = [
   { href: "/", label: "Overview" },
   { href: "/chat", label: "Test console" },
   { href: "/conversations", label: "Conversations" },
+  { href: "/insights", label: "Insights", any: ["insights:read"] },
   { href: "/simulations", label: "Simulations" },
   { href: "/handoffs", label: "Handoffs" },
   { href: "/approvals", label: "Approvals" },

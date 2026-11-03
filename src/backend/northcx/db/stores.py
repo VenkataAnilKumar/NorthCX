@@ -16,6 +16,7 @@ from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
 from ..monitor import Finding
+from ..insights import MAX_TAGS, FeedbackFacts, HandoffFacts, TurnFacts, facts_from_trace
 from ..trace_export import MAX_ATTEMPTS as EXPORT_MAX_ATTEMPTS, ExportJob
 from ..inbox import MAX_ATTEMPTS, InboxEvent
 from ..channels.sms import SmsSession, phone_hash
@@ -574,6 +575,93 @@ class PgKnowledge(_Base):
         return out
 
 
+class PgFeedback(_Base):
+    async def add(self, session_id: str, rating: int, comment: str, at: float | None = None) -> bool:
+        async with self._sm.begin() as s:
+            r = await s.execute(text("insert into conversation_feedback (session_id, rating, comment, created_at) values (:s, :r, :c, :t) "
+                                     "on conflict (session_id) do update set rating = excluded.rating, comment = excluded.comment, created_at = excluded.created_at "
+                                     "returning (xmax = 0) as inserted"), {"s": session_id, "r": rating, "c": comment[:1000], "t": time.time() if at is None else at})
+            return bool(r.scalar_one())
+
+    async def for_session(self, session_id: str) -> FeedbackFacts | None:
+        async with self._sm() as s:
+            r = (await s.execute(text("select * from conversation_feedback where session_id = :s"), {"s": session_id})).first()
+        return FeedbackFacts(r.session_id, r.rating, r.created_at, r.comment) if r else None
+
+    async def erase_session(self, session_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from conversation_feedback where session_id = :s"), {"s": session_id})).rowcount
+
+
+class PgTags(_Base):
+    async def add(self, session_id: str, tag: str, by: str) -> bool:
+        async with self._sm.begin() as s:
+            await s.execute(text("select pg_advisory_xact_lock(hashtext(:k))"), {"k": f"tags:{session_id}"})
+            n = (await s.execute(text("select count(*) from conversation_tags where session_id = :s"), {"s": session_id})).scalar_one()
+            r = await s.execute(text("insert into conversation_tags (session_id, tag, by, created_at) values (:s, :t, :b, :c) on conflict do nothing returning tag"),
+                                {"s": session_id, "t": tag, "b": by[:200], "c": time.time()}) if n < MAX_TAGS else None
+            if r is None:
+                if (await s.execute(text("select 1 from conversation_tags where session_id = :s and tag = :t"), {"s": session_id, "t": tag})).first():
+                    return False
+                raise ValueError(f"a conversation can have at most {MAX_TAGS} tags")
+            return r.first() is not None
+
+    async def remove(self, session_id: str, tag: str) -> bool:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from conversation_tags where session_id = :s and tag = :t returning tag"), {"s": session_id, "t": tag})).first() is not None
+
+    async def for_sessions(self, session_ids: list[str]) -> dict[str, list[str]]:
+        if not session_ids:
+            return {}
+        async with self._sm() as s:
+            rows = (await s.execute(text("select session_id, tag from conversation_tags where session_id = any(:ids) order by tag"), {"ids": session_ids})).all()
+        out: dict[str, list[str]] = {}
+        for r in rows:
+            out.setdefault(r.session_id, []).append(r.tag)
+        return out
+
+    async def all_for(self, session_id: str) -> list[str]:
+        return (await self.for_sessions([session_id])).get(session_id, [])
+
+    async def erase_session(self, session_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from conversation_tags where session_id = :s"), {"s": session_id})).rowcount
+
+
+class PgInsightsSource(_Base):
+    async def turns(self, since: float, until: float, agent: str | None, environment: str, limit: int) -> list[TurnFacts]:
+        q = ("select t.id, t.session_id, t.agent_id, t.environment, t.agent_version, e.type, e.t as ts, e.data from "
+             "(select * from traces where started_at between :a and :b and environment = :env" + (" and agent_id = :ag" if agent else "") +
+             " order by started_at desc limit :n) t join trace_events e on e.trace_id = t.id order by t.started_at desc, t.id, e.seq")
+        params: dict[str, Any] = {"a": since, "b": until, "env": environment, "n": limit}
+        if agent:
+            params["ag"] = agent
+        async with self._sm() as s:
+            rows = (await s.execute(text(q), params)).all()
+        out: list[TurnFacts] = []
+        cur: Trace | None = None
+        for r in rows:
+            if cur is None or cur.id != r.id:
+                if cur is not None:
+                    out.append(facts_from_trace(cur))
+                cur = Trace(agent_id=r.agent_id, session_id=r.session_id, id=r.id, agent_version=r.agent_version, environment=r.environment)
+            cur.events.append(TraceEvent(r.ts, r.type, r.data))
+        if cur is not None:
+            out.append(facts_from_trace(cur))
+        return out
+
+    async def handoffs(self, since: float, until: float) -> list[HandoffFacts]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select session_id, trace_id, trigger, topics, queue, created_at from handoffs where created_at between :a and :b"),
+                                    {"a": since, "b": until})).all()
+        return [HandoffFacts(r.session_id, r.trace_id, r.trigger, list(r.topics), r.queue, r.created_at) for r in rows]
+
+    async def feedback(self, since: float, until: float) -> list[FeedbackFacts]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from conversation_feedback where created_at between :a and :b"), {"a": since, "b": until})).all()
+        return [FeedbackFacts(r.session_id, r.rating, r.created_at, r.comment) for r in rows]
+
+
 class PgExports(_Base):
     @staticmethod
     def _j(r: Any) -> ExportJob:
@@ -813,6 +901,8 @@ class PgPrivacy(_Base):
                 "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
                 "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,
             }
+            out["tags"] = (await s.execute(text("delete from conversation_tags where session_id = :s"), p)).rowcount
+            out["feedback"] = (await s.execute(text("delete from conversation_feedback where session_id = :s"), p)).rowcount
             out["exports"] = (await s.execute(text("delete from trace_exports where trace_id in (select id from traces where session_id = :s)"), p)).rowcount
             out["inbox"] = (await s.execute(text("delete from inbox_events where handoff_id in (select id from handoffs where session_id = :s)"), p)).rowcount
             out["email"] = ((await s.execute(text("delete from email_messages where session_id = :s"), p)).rowcount

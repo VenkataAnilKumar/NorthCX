@@ -45,6 +45,8 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_SKILLS_DIR` | Directory of skill files (YAML) added to the registry at start-up | none |
 | `NORTHCX_CONNECTORS_DIR`, `NORTHCX_CONNECTOR_HOSTS` | Directory of connector files (tools defined as data) and the comma-separated hosts they may call; a connector whose host is not listed is refused at start-up | none |
 | `NORTHCX_TEMPLATES_DIR` | Directory of extra agent templates (YAML); a template with the id of a built-in one replaces it | built-in four |
+| `NORTHCX_ALERTS` (`on`/`off`), `NORTHCX_ALERT_RULES` (YAML file), `NORTHCX_ALERT_WEBHOOK_URL`, `NORTHCX_ALERT_WEBHOOK_SECRET` (`_FILE`) | Alerts on error rate, escalation spikes, guardrail blocks, tool failures, fallback-model use and slow replies; findings always, signed webhook optionally | on, six default rules |
+| `NORTHCX_PRICE_PER_MILLION_TOKENS` | A blended price used to show an estimated model cost in Insights | no cost shown |
 | `NORTHCX_LANGFUSE_URL`, `NORTHCX_LANGFUSE_PUBLIC_KEY`, `NORTHCX_LANGFUSE_SECRET_KEY` (`_FILE`) | Export traces to Langfuse | off |
 | `NORTHCX_OTLP_ENDPOINT`, `NORTHCX_OTLP_HEADERS` (`_FILE`; `name=value,name=value`) | Export traces over OpenTelemetry OTLP/HTTP to any compatible backend | off |
 | `NORTHCX_TRACE_EXPORT_CONTENT` (`none`, `masked`, `full`), `NORTHCX_TRACE_EXPORT_SAMPLE` (0 to 1), `NORTHCX_ENVIRONMENT` | What exported traces contain (default `masked`), the fraction exported (default 1), and the environment label (default `production`) | masked; all; production |

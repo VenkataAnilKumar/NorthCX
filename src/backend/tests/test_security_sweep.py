@@ -21,7 +21,7 @@ from northcx.versions import InMemoryReleases, InMemoryVersions, ReleaseService
 
 KEY = "boot" * 10
 # The only /v1 routes a customer's chat token may use (/v1/me just describes the caller's own identity).
-TOKEN_ROUTES = {("GET", "/v1/me"), ("POST", "/v1/agents/x/chat"), ("POST", "/v1/agents/x/chat/stream"), ("GET", "/v1/sessions/x/outbox")}
+TOKEN_ROUTES = {("GET", "/v1/me"), ("POST", "/v1/sessions/x/feedback"), ("POST", "/v1/agents/x/chat"), ("POST", "/v1/agents/x/chat/stream"), ("GET", "/v1/sessions/x/outbox")}
 OUTSIDE_V1_PUBLIC = {("POST", "/channels/sms/twilio")}  # authenticated by the provider's signature instead
 
 

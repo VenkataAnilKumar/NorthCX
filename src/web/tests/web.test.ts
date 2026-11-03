@@ -265,3 +265,29 @@ describe("environment calls", () => {
     expect(JSON.parse(String(calls[3][1]?.body))).toEqual({ sessionId: "s2", message: "hi" });
   });
 });
+
+describe("insights and search calls", () => {
+  it("asks for a window, environment and agent, and searches and tags conversations", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => { calls.push([url, init]); return new Response(JSON.stringify({ conversations: [], tags: ["a"], causes: [], points: [] }), { status: 200 }); }));
+    const { getOverview, getSeries, getFailures, searchConversations, addTag, removeTag } = await import("@/lib/api");
+    await getOverview(24, "support", "staging");
+    await getSeries(24 * 7);
+    await getFailures(24);
+    await searchConversations({ q: "gift", tag: "needs-article", handedOff: true });
+    await addTag("s 1", "wrong-answer");
+    await removeTag("s 1", "wrong-answer");
+    const u = (i: number) => new URL(calls[i][0], "http://x");
+    expect(u(0).pathname).toBe("/api/northcx/v1/insights/overview");
+    expect(u(0).searchParams.get("agent")).toBe("support");
+    expect(u(0).searchParams.get("environment")).toBe("staging");
+    expect(Number(u(0).searchParams.get("to")) - Number(u(0).searchParams.get("from"))).toBeCloseTo(86400, -1);
+    expect(u(1).searchParams.get("bucket")).toBe("day");
+    expect(u(1).searchParams.get("environment")).toBeNull();
+    expect(u(3).searchParams.get("q")).toBe("gift");
+    expect(u(3).searchParams.get("handedOff")).toBe("true");
+    expect(calls[4][0]).toBe("/api/northcx/v1/sessions/s%201/tags/wrong-answer");
+    expect(calls[4][1]?.method).toBe("PUT");
+    expect(calls[5][1]?.method).toBe("DELETE");
+  });
+});

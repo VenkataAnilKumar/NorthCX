@@ -41,3 +41,18 @@ The customer's id is never sent; conversations are identified by their random se
 **Visibility.** `GET /v1/trace-export` shows the configuration and delivery counts; `GET /v1/traces/{id}/exports` shows one trace's deliveries.
 
 **Limits.** Exports are one-way (nothing is read back), per-turn rather than per-conversation, masking is pattern-based (names and free-form addresses are not detected), erasing a customer removes queued exports but cannot recall what a backend already holds, and the Langfuse and OTLP payloads are tested against simulated servers, not live ones.
+
+
+## Insights, alerts and search — as built (O5, O6, O7, O9, O10)
+
+**Metrics (O5, O6).** `GET /v1/insights/overview` computes from the recorded traces, hand-offs and ratings for a period (default last 7 days, at most 366) and an environment (default production), optionally for one agent. Each rate carries its **numerator, denominator and period**, as the success-metrics rules require. Figures: conversations and turns; containment (conversations that never reached a person); escalation, approval, guardrail-block, tool-error, error and fallback-model rates; reply time (median and 95th percentile of the time the platform took per turn); tokens and, if `NORTHCX_PRICE_PER_MILLION_TOKENS` is set, an estimated cost; hand-offs by trigger, queue and topic; tools used and failing; guardrails that blocked; and customer ratings. Containment is not a resolution rate: resolution needs an agreed definition of "resolved" for each intent, so the response says so. The time series (`hour` or `day` buckets) feeds the charts.
+
+**Customer ratings.** `POST /v1/sessions/{id}/feedback` takes a 1-5 rating and an optional comment. A customer's chat token can rate only its own conversation; one rating per conversation, a second replaces the first. Ratings are erased with the conversation.
+
+**Failure analysis and intent gaps (O7, O6).** `/insights/failures` ranks why turns went wrong (hand-off reason, a tool that failed, a guardrail that blocked) with example traces to open. `/insights/gaps` lists knowledge searches that found nothing and what customers said just before the agent handed them over (personal data masked), which is where a new article or a new tool would help.
+
+**Alerts (O9).** Six default rules watch the last 15 minutes of production traffic: error rate above 10% (critical), escalation above 50%, guardrail blocks above 30%, tool errors above 20%, fallback-model calls above 20%, and 95th-percentile reply time above 30 s. A rule needs at least 20 samples to fire, reminds at most once per cooldown (60 min) while still breached, and clears itself on recovery. Each event is a monitoring finding (`alert:<rule>`, `alert_cleared:<rule>`) and, if configured, a signed webhook. Rules can be replaced with a file (`NORTHCX_ALERT_RULES`). `GET /v1/alerts` shows what is firing.
+
+**Search and tagging (O10).** `GET /v1/conversations/search` finds conversations by words said by either side, status, hand-off, rating and tag; shown text is masked. Reviewers, developers and admins can tag conversations (for example `wrong-answer`, `needs-article`) and every tag change is audited. The Insights and Conversations pages in the console use these.
+
+**Limits.** Each query reads at most the 20,000 most recent turns of the period (the response says when it was cut). Computation is on demand, not pre-aggregated, so very large deployments will want rollup tables. Reply time is the platform's own processing time per turn, not time to first token. Alert state is in memory and re-evaluates after a restart. Satisfaction has no survey flow of its own: the company's front end asks and posts the rating.

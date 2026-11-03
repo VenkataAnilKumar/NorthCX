@@ -7,10 +7,11 @@ import json
 import logging
 import re
 import secrets
+import time
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Query, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
@@ -21,6 +22,8 @@ from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
 from .channels.sms import SmsChannel, parse_form
 from .templates import Template, TemplateError, render
+from .alerts import AlertManager
+from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .regression import RegressionRunner, scenario_from_traces
 from .simulation.scenario import ScenarioError
 from .privacy import InMemoryPrivacy, PrivacyService, customer_ref
@@ -77,6 +80,11 @@ class TemplateBody(BaseModel):
     by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
     model_config = {"populate_by_name": True}
+
+
+class FeedbackBody(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str = Field(default="", max_length=1000)
 
 
 class DecisionBody(BaseModel):
@@ -182,6 +190,16 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/knowledge/search", "knowledge:read"),
     ("GET", r"/v1/monitor/findings", "monitor:read"),
     ("GET", r"/v1/monitor/summary", "monitor:read"),
+    ("GET", r"/v1/conversations/search", "traces:read"),
+    ("GET", r"/v1/sessions/[^/]+/tags", "traces:read"),
+    ("PUT", r"/v1/sessions/[^/]+/tags/[^/]+", "conversations:tag"),
+    ("DELETE", r"/v1/sessions/[^/]+/tags/[^/]+", "conversations:tag"),
+    ("GET", r"/v1/alerts", "insights:read"),
+    ("GET", r"/v1/insights/overview", "insights:read"),
+    ("GET", r"/v1/insights/timeseries", "insights:read"),
+    ("GET", r"/v1/insights/failures", "insights:read"),
+    ("GET", r"/v1/insights/gaps", "insights:read"),
+    ("POST", r"/v1/sessions/[^/]+/feedback", "feedback:send"),
     ("GET", r"/v1/regression", "simulations:read"),
     ("GET", r"/v1/sessions/.+/scenario-draft", "simulations:run"),
     ("GET", r"/v1/trace-export", "traces:read"),
@@ -236,7 +254,9 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
                retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None,
-               skills: list[Any] | None = None, templates: dict[str, Template] | None = None) -> FastAPI:
+               skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
+               insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
+               alerts: AlertManager | None = None, tags: TagRepo | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -245,7 +265,13 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     audit = audit or InMemoryAudit()
     idem = idempotency or InMemoryIdempotency()
     kb = knowledge or InMemoryKnowledge()
+    fb = feedback or InMemoryFeedback()
+    tag_repo = tags or InMemoryTags()
+    insight = insights or InsightsService(InMemoryInsightsSource(runtime, fb))
     privacy = PrivacyService(runtime.privacy)
+    if isinstance(runtime.privacy, InMemoryPrivacy):
+        runtime.privacy.feedback = fb
+        runtime.privacy.tags = tag_repo
     if isinstance(runtime.privacy, InMemoryPrivacy):  # the in-memory backend reaches the other in-memory stores through these
         runtime.privacy.idempotency = idem
         if email is not None:
@@ -290,6 +316,17 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                         log.exception("trace export pass failed")
 
             export_task = asyncio.create_task(export_loop())
+        alert_task = None
+        if alerts is not None:
+            async def alert_loop() -> None:
+                while True:
+                    await asyncio.sleep(60)
+                    try:
+                        await alerts.evaluate()
+                    except Exception:
+                        log.exception("alert evaluation failed")
+
+            alert_task = asyncio.create_task(alert_loop())
         inbox_task = None
         if runtime.inbox is not None:
             async def inbox_loop() -> None:
@@ -316,7 +353,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
             retention = asyncio.create_task(retain())
         yield
-        for t in (task, flusher, retention, inbox_task, export_task):
+        for t in (task, flusher, retention, inbox_task, export_task, alert_task):
             if t:
                 t.cancel()
 
@@ -592,6 +629,91 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return {"skills": [{"name": s.name, "description": s.description, "instructions": s.instructions, "tools": s.tool_names(),
                             "steps": [{"purpose": x.purpose, "tool": x.tool, "required": x.required} for x in s.steps]} for s in (skills or [])],
                 "flexibility": ["strict", "guided", "free"]}
+
+    # ---- insights ----
+    def window(from_: float | None, to: float | None) -> tuple[float, float] | JSONResponse:
+        now = time.time()
+        end = now if to is None else to
+        start = end - 7 * 86400 if from_ is None else from_
+        if start >= end or end - start > 366 * 86400:
+            return _err(400, "bad_request", "'from' must be before 'to', and the period at most 366 days")
+        return start, end
+
+    @app.get("/v1/insights/overview")
+    async def insights_overview(from_: float | None = Query(None, alias="from"), to: float | None = None, agent: str | None = None, environment: str = "production") -> Any:
+        w = window(from_, to)
+        return w if isinstance(w, JSONResponse) else await insight.overview(w[0], w[1], agent, environment)
+
+    @app.get("/v1/insights/timeseries")
+    async def insights_series(from_: float | None = Query(None, alias="from"), to: float | None = None, bucket: str = "day", agent: str | None = None, environment: str = "production") -> Any:
+        w = window(from_, to)
+        if isinstance(w, JSONResponse):
+            return w
+        if bucket not in ("hour", "day"):
+            return _err(400, "bad_request", "bucket must be hour or day")
+        return {"bucket": bucket, "points": await insight.series(w[0], w[1], bucket, agent, environment)}
+
+    @app.get("/v1/insights/failures")
+    async def insights_failures(from_: float | None = Query(None, alias="from"), to: float | None = None, agent: str | None = None, environment: str = "production") -> Any:
+        w = window(from_, to)
+        return w if isinstance(w, JSONResponse) else {"causes": await insight.failure_analysis(w[0], w[1], agent, environment)}
+
+    @app.get("/v1/insights/gaps")
+    async def insights_gaps(from_: float | None = Query(None, alias="from"), to: float | None = None, agent: str | None = None, environment: str = "production") -> Any:
+        w = window(from_, to)
+        return w if isinstance(w, JSONResponse) else await insight.intent_gaps(w[0], w[1], agent, environment)
+
+    @app.post("/v1/sessions/{session_id}/feedback", status_code=201)
+    async def post_feedback(session_id: str, body: FeedbackBody, request: Request) -> Any:
+        """A customer's rating of a conversation (1 to 5). A chat token can rate only its own conversation; a second rating replaces the first."""
+        who: Identity = request.state.identity
+        if who.session_id is not None and session_id != who.session_id:
+            await record(request, "auth.denied", f"POST /v1/sessions/{session_id}/feedback", "denied", reason="outside the token's scope")
+            return _err(403, "forbidden", "This chat token cannot rate another conversation")
+        if not await traces.summaries(session_id, 1):
+            return _err(404, "not_found", "Unknown conversation")
+        new = await fb.add(session_id, body.rating, body.comment.strip())
+        return JSONResponse({"saved": True, "replaced": not new}, status_code=201)
+
+    @app.get("/v1/conversations/search")
+    async def conversation_search(q: str = "", status: str | None = None, tag: str | None = None, handedOff: bool | None = None, agent: str | None = None,
+                                  environment: str = "production", from_: float | None = Query(None, alias="from"), to: float | None = None, limit: int = 50) -> Any:
+        """Find conversations by what was said, outcome, hand-off, rating and tag. Text shown is masked."""
+        end = time.time() if to is None else to
+        start = end - 30 * 86400 if from_ is None else from_
+        if start >= end or end - start > 366 * 86400 or len(q) > 200:
+            return _err(400, "bad_request", "'from' must be before 'to', the period at most 366 days, and the search at most 200 characters")
+        return {"conversations": await insight.search(start, end, tag_repo, q, status, tag, handedOff, agent, environment, max(1, min(limit, 200)))}
+
+    @app.get("/v1/sessions/{session_id}/tags")
+    async def get_tags(session_id: str) -> Any:
+        return {"sessionId": session_id, "tags": await tag_repo.all_for(session_id)}
+
+    @app.put("/v1/sessions/{session_id}/tags/{tag}")
+    async def add_tag(session_id: str, tag: str, request: Request) -> Any:
+        if not TAG.match(tag):
+            return _err(400, "bad_request", "A tag is 1-40 lowercase letters, digits, - or _")
+        if not await traces.summaries(session_id, 1):
+            return _err(404, "not_found", "Unknown conversation")
+        try:
+            new = await tag_repo.add(session_id, tag, actor(request, None))
+        except ValueError as e:
+            return _err(409, "conflict", str(e))
+        if new:
+            await record(request, "conversation.tag", customer_ref(session_id), tag=tag)
+        return {"sessionId": session_id, "tag": tag, "added": new, "tags": await tag_repo.all_for(session_id)}
+
+    @app.delete("/v1/sessions/{session_id}/tags/{tag}")
+    async def remove_tag(session_id: str, tag: str, request: Request) -> Any:
+        if not await tag_repo.remove(session_id, tag):
+            return _err(404, "not_found", "That conversation does not have that tag")
+        await record(request, "conversation.untag", customer_ref(session_id), tag=tag)
+        return {"removed": True, "tags": await tag_repo.all_for(session_id)}
+
+    @app.get("/v1/alerts")
+    async def alert_status() -> Any:
+        """The alert rules, which are firing now, and recent alert events."""
+        return alerts.status() if alerts is not None else {"enabled": False}
 
     @app.get("/v1/regression")
     async def regression_status() -> Any:

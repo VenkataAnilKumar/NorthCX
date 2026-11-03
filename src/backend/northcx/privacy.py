@@ -106,6 +106,12 @@ class InMemoryPrivacy:
         before = len(items)
         items[:] = [m for m in items if m.session_id != session_id]
         n["outbox"] = before - len(items)
+        tg = getattr(self, "tags", None)
+        if tg is not None:
+            n["tags"] = await tg.erase_session(session_id)
+        fb = getattr(self, "feedback", None)
+        if fb is not None:
+            n["feedback"] = await fb.erase_session(session_id)
         if getattr(rt, "exports", None) is not None:
             n["exports"] = await rt.exports.repo.erase_traces(gone)
         if getattr(rt, "inbox", None) is not None:

@@ -22,6 +22,8 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 | `customer_memories` (built) | `id` pk, `customer_id`, `text` (max 300), `text_hash`, `source_session`, `created_at`, `updated_at`, `tsv` (generated) | Unique (`customer_id`, `text_hash`); GIN index on `tsv`; at most 200 per customer |
 | `inbox_events` (built) | `id` pk, `handoff_id`, `connector`, `event` (created/resolved), `created_at`, `attempts`, `last_attempt_at`, `delivered_at`, `external_ref`, `error` | Delivery queue to helpdesks; retried with back-off up to 12 attempts; erased with the hand-off |
 | `trace_exports` (built) | `id` pk, `trace_id`, `exporter`, `created_at`, `attempts`, `last_attempt_at`, `delivered_at`, `error` | Queue of traces to send to observability backends; retried with back-off up to 12 attempts; erased with the conversation |
+| `conversation_feedback` (built) | `session_id` pk, `rating` 1-5, `comment`, `created_at` | One rating per conversation; erased with it |
+| `conversation_tags` (built) | (`session_id`, `tag`) pk, `by`, `created_at` | At most 20 tags per conversation; erased with it |
 | `traces.environment` (built) | `varchar(32)`, default `production` | Which environment answered the turn |
 | `agents` | `id` pk, `definition` jsonb, `version`, `published_at` | For Studio, Phase 4 |
 | `api_keys` (built) | `key_id` pk, `name`, `role`, `key_hash`, `created_by`, `created_at`, `expires_at`, `revoked_at`, `revoked_by`, `last_used_at` | Only the SHA-256 hash of the secret is stored (migration 0006) |

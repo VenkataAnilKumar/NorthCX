@@ -158,6 +158,55 @@ export async function chatStream(agentId: string, sessionId: string, message: st
   throw new ApiError(502, "The connection closed before the reply finished");
 }
 
+export interface Ratio { value: number | null; numerator: number; denominator: number }
+export interface Overview {
+  period: { from: number; to: number }; conversations: number; turns: number; environment: string; truncated: boolean; note: string;
+  containmentRate: Ratio; escalationRate: Ratio; approvalRate: Ratio; guardrailBlockRate: Ratio; toolErrorRate: Ratio; errorRate: Ratio; fallbackModelRate: Ratio;
+  latencySeconds: { p50: number | null; p95: number | null; samples: number };
+  tokens: { total: number; perConversation: number | null; modelCalls: number };
+  handoffs: { total: number; byTrigger: Record<string, number>; byQueue: Record<string, number>; byTopic: Record<string, number> };
+  tools: { used: Record<string, number>; errors: Record<string, number> }; guardrails: Record<string, number>;
+  satisfaction: { average: number | null; responses: number; responseRate: Ratio; distribution: Record<string, number> };
+  estimatedCost?: { amount: number; perConversation: number | null; basis: string };
+}
+export interface SeriesPoint { start: number; turns: number; conversations: number; escalated: number; guardrailBlocks: number; errors: number; tokens: number; p95Latency: number | null }
+export interface FailureCause { cause: string; count: number; share: Ratio; exampleTraceIds: string[] }
+export interface Gaps { unansweredSearches: { query: string; count: number }[]; messagesBeforeHandoff: { message: string; count: number }[] }
+export interface AlertStatus {
+  enabled: boolean; lastRun?: number | null; rules?: { name: string; metric: string; threshold: number; windowMinutes: number; severity: string }[];
+  active?: { rule: string; since: number; value: number; samples: number; severity: string }[]; recent?: { event: string; rule: string; detail: string; at: number; severity: string }[];
+}
+const windowQuery = (hours: number, agent?: string, environment?: string) => {
+  const to = Date.now() / 1000;
+  const q = new URLSearchParams({ from: String(to - hours * 3600), to: String(to) });
+  if (agent) q.set("agent", agent);
+  if (environment && environment !== "production") q.set("environment", environment);
+  return q;
+};
+export const getOverview = (hours: number, agent?: string, env?: string) => api<Overview>(`/v1/insights/overview?${windowQuery(hours, agent, env)}`);
+export const getSeries = (hours: number, agent?: string, env?: string) => {
+  const q = windowQuery(hours, agent, env);
+  q.set("bucket", hours <= 48 ? "hour" : "day");
+  return api<{ bucket: string; points: SeriesPoint[] }>(`/v1/insights/timeseries?${q}`);
+};
+export const getFailures = (hours: number, agent?: string, env?: string) => api<{ causes: FailureCause[] }>(`/v1/insights/failures?${windowQuery(hours, agent, env)}`).then((r) => r.causes);
+export const getGaps = (hours: number, agent?: string, env?: string) => api<Gaps>(`/v1/insights/gaps?${windowQuery(hours, agent, env)}`);
+export const getAlerts = () => api<AlertStatus>("/v1/alerts");
+export interface ConversationRow {
+  sessionId: string; agentId: string; environment: string; turns: number; startedAt: number; endedAt: number; lastStatus: string; firstMessage: string; lastReply: string;
+  handedOff: boolean; handoffTriggers: string[]; rating: number | null; tags: string[]; traceIds: string[];
+}
+export const searchConversations = (p: { q?: string; status?: string; tag?: string; handedOff?: boolean }) => {
+  const q = new URLSearchParams();
+  if (p.q) q.set("q", p.q);
+  if (p.status) q.set("status", p.status);
+  if (p.tag) q.set("tag", p.tag);
+  if (p.handedOff !== undefined) q.set("handedOff", String(p.handedOff));
+  return api<{ conversations: ConversationRow[] }>(`/v1/conversations/search?${q}`).then((r) => r.conversations);
+};
+export const addTag = (sessionId: string, tag: string) => api<{ tags: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/tags/${encodeURIComponent(tag)}`, { method: "PUT" });
+export const removeTag = (sessionId: string, tag: string) => api<{ tags: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/tags/${encodeURIComponent(tag)}`, { method: "DELETE" });
+
 export const statusLabel: Record<string, string> = {
   completed: "Completed", escalated: "Escalated", needs_approval: "Needs approval", unknown: "Unknown",
 };

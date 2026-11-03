@@ -122,7 +122,7 @@ async def test_a_token_is_good_while_its_minting_key_is_good():
     token, _ = ac.signer.mint(sid="s1", kid=channel.key_id, cid="c1", agent="support")
     who, why = await ac.authenticate_detail(token)
     assert (who.role, who.session_id, who.customer_id, who.agent, why) == ("customer_session", "s1", "c1", "support", None)
-    assert who.permissions == {"chat:send", "outbox:read"} and not who.can("traces:read") and not who.can("chat:mint")
+    assert who.permissions == {"chat:send", "outbox:read", "feedback:send"} and not who.can("traces:read") and not who.can("chat:mint")
     boot, _ = ac.signer.mint(sid="s2", kid="bootstrap")
     assert (await ac.authenticate(boot)).session_id == "s2"
     await ac.revoke(channel.key_id, "root")
@@ -209,7 +209,7 @@ def test_a_server_mints_a_token_and_the_browser_chats_with_it():
     assert "gold" in system and "STOLEN-DATA" not in system  # the customer id came from the token
     assert c.get("/v1/sessions/web-123/outbox", headers=H(m["token"])).status_code == 200
     me = c.get("/v1/me", headers=H(m["token"])).json()
-    assert me["role"] == "customer_session" and set(me["permissions"]) == {"chat:send", "outbox:read"}
+    assert me["role"] == "customer_session" and set(me["permissions"]) == {"chat:send", "outbox:read", "feedback:send"}
 
 
 def test_a_token_works_only_for_its_own_conversation_and_agent():

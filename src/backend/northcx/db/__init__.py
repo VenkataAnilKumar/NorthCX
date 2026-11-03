@@ -1,4 +1,4 @@
 from .engine import create_engine, database_url_from_env, migrate
-from .stores import PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore, PgVersions
+from .stores import PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore, PgVersions
 
-__all__ = ["create_engine", "database_url_from_env", "migrate", "PgApprovalStore", "PgAudit", "PgEmailRepo", "PgExports", "PgHandoffs", "PgIdempotency", "PgInbox", "PgKeys", "PgKnowledge", "PgMemories", "PgMemoryStore", "PgMonitor", "PgPrivacy", "PgOutbox", "PgSmsRepo", "PgReleases", "PgSimRuns", "PgTraceStore", "PgVersions"]
+__all__ = ["create_engine", "database_url_from_env", "migrate", "PgApprovalStore", "PgAudit", "PgEmailRepo", "PgExports", "PgFeedback", "PgInsightsSource", "PgTags", "PgHandoffs", "PgIdempotency", "PgInbox", "PgKeys", "PgKnowledge", "PgMemories", "PgMemoryStore", "PgMonitor", "PgPrivacy", "PgOutbox", "PgSmsRepo", "PgReleases", "PgSimRuns", "PgTraceStore", "PgVersions"]

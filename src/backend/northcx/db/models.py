@@ -238,6 +238,24 @@ class KnowledgeChunkRow(Base):
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
+class ConversationTagRow(Base):
+    __tablename__ = "conversation_tags"
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    tag: Mapped[str] = mapped_column(String(40), primary_key=True)
+    by: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_tags_tag", "tag"),)
+
+
+class FeedbackRow(Base):
+    __tablename__ = "conversation_feedback"
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    comment: Mapped[str] = mapped_column(String(1000), nullable=False, server_default="")
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_feedback_created", "created_at"),)
+
+
 class TraceExportRow(Base):
     __tablename__ = "trace_exports"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)

@@ -13,21 +13,21 @@ from typing import Protocol
 from .tokens import PREFIX as TOKEN_PREFIX, TokenError, TokenSigner
 
 # ---------------- roles and permissions ----------------
-VIEW = {"agents:read", "traces:read", "handoffs:read", "approvals:read", "simulations:read", "versions:read", "monitor:read", "knowledge:read"}
-DEVELOP = VIEW | {"knowledge:write", "versions:create", "simulations:run", "chat:send", "outbox:read"}
+VIEW = {"agents:read", "traces:read", "handoffs:read", "approvals:read", "simulations:read", "versions:read", "monitor:read", "knowledge:read", "insights:read"}
+DEVELOP = VIEW | {"conversations:tag", "feedback:send", "knowledge:write", "versions:create", "simulations:run", "chat:send", "outbox:read"}
 ROLES: dict[str, frozenset[str]] = {
     "admin": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "approvals:decide", "handoffs:resolve",
                                   "keys:manage", "audit:read", "chat:mint", "channel:inbound", "privacy:manage", "memory:read", "memory:manage"}),
     "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "memory:read"}),
     "developer": frozenset(DEVELOP | {"memory:read"}),
-    "reviewer": frozenset(VIEW | {"approvals:decide", "handoffs:resolve", "memory:read"}),
+    "reviewer": frozenset(VIEW | {"approvals:decide", "handoffs:resolve", "memory:read", "conversations:tag"}),
     "auditor": frozenset(VIEW | {"audit:read"}),
     "viewer": frozenset(VIEW),
-    "channel": frozenset({"chat:send", "outbox:read", "chat:mint", "channel:inbound"}),  # for the company's servers and channel adapters
+    "channel": frozenset({"chat:send", "outbox:read", "chat:mint", "channel:inbound", "feedback:send"}),  # for the company's servers and channel adapters
 }
 # Roles that exist only inside the platform; a key can never be given one.
 INTERNAL_ROLES: dict[str, frozenset[str]] = {
-    "customer_session": frozenset({"chat:send", "outbox:read"}),  # a chat token: limited further to its own conversation
+    "customer_session": frozenset({"chat:send", "outbox:read", "feedback:send"}),  # a chat token: limited further to its own conversation
 }
 NAME_RE = re.compile(r"^[A-Za-z0-9 _.@-]{1,80}$")
 

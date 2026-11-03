@@ -84,6 +84,11 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | POST | `/templates/{id}/render` | `{agentId, params}`: the filled-in spec YAML, scenario YAML, missing tools and warnings; saves nothing (`versions:create`) (built) |
 | POST | `/templates/{id}/create-version` | Render and save as a new version of `agentId`; refused when the deployment lacks a tool the template needs (built) |
 | GET | `/skills` | Skills available to agents, with their steps and tools (built) |
+| GET | `/insights/overview`, `/insights/timeseries`, `/insights/failures`, `/insights/gaps` | Metrics with numerator, denominator and period; `from`, `to` (epoch seconds, default last 7 days, at most 366), `agent`, `environment`; timeseries takes `bucket=hour|day` (`insights:read`) (built) |
+| POST | `/sessions/{id}/feedback` | `{rating 1-5, comment?}`: a customer's rating (chat token for its own conversation, channel or API key); a second rating replaces the first (`feedback:send`) (built) |
+| GET | `/conversations/search` | `q`, `status`, `tag`, `handedOff`, `agent`, `environment`, `from`, `to`, `limit`: conversations with masked snippets, outcome, rating and tags (`traces:read`) (built) |
+| GET, PUT, DELETE | `/sessions/{id}/tags[/{tag}]` | Read, add or remove a tag (1-40 lowercase letters, digits, - or _; at most 20 per conversation); add and remove need `conversations:tag` (reviewers, developers, admins) (built) |
+| GET | `/alerts` | Alert rules, alerts firing now and recent events (`insights:read`) (built) |
 | GET | `/regression` | Whether simulations re-run on knowledge changes and how the last re-run went (built) |
 | GET | `/trace-export` | Whether export is on, exporters, content mode, sampling and delivery counts (`traces:read`) (built) |
 | GET | `/traces/{id}/exports` | Delivery state of one trace per exporter (built) |

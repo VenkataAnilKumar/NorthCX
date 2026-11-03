@@ -8,6 +8,8 @@ from .access import AccessControl, InMemoryKeys, LimitConfig
 from .tokens import TokenSigner, derive_secret
 from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
 from .trace_export import ExportService, InMemoryExports, LangfuseExporter, OtlpExporter, Redactor
+from .alerts import AlertConfigError, AlertManager, WebhookAlerts, load_rules
+from .insights import InMemoryTags, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .regression import RegressionRunner
 from .connectors import ConnectorError, allowed_hosts_from, load_connectors
 from .templates import LIBRARY, TemplateError, load_templates
@@ -25,7 +27,7 @@ from .memory import InMemoryMemories, memory_tools
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -102,6 +104,9 @@ def run() -> None:
         knowledge_repo = PgKnowledge(engine)
         privacy_backend = PgPrivacy(engine)
         export_repo = PgExports(engine)
+        feedback_repo = PgFeedback(engine)
+        tag_repo = PgTags(engine)
+        insights_source = PgInsightsSource(engine)
         inbox_repo = PgInbox(engine)
         memory_repo = PgMemories(engine)
         print("Using Postgres storage.")
@@ -116,6 +121,9 @@ def run() -> None:
         knowledge_repo = InMemoryKnowledge()
         privacy_backend = None  # the runtime builds the in-memory one
         export_repo = InMemoryExports()
+        feedback_repo = InMemoryFeedback()
+        tag_repo = InMemoryTags()
+        insights_source = None  # built over the runtime below
         inbox_repo = InMemoryInbox()
         memory_repo = InMemoryMemories()
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
@@ -262,6 +270,17 @@ def run() -> None:
         if rerun == "live" and demo:
             sys.exit("NORTHCX_RERUN_ON_KNOWLEDGE=live needs a real model (not the demo)")
         regression = RegressionRunner(simulations, monitor_repo, rerun, debounce=float(os.environ.get("NORTHCX_RERUN_DEBOUNCE_SECONDS", 60)))
+    insights_service = InsightsService(insights_source or InMemoryInsightsSource(runtime, feedback_repo),
+                                       float(os.environ["NORTHCX_PRICE_PER_MILLION_TOKENS"]) if os.environ.get("NORTHCX_PRICE_PER_MILLION_TOKENS") else None)
+    alert_manager = None
+    if os.environ.get("NORTHCX_ALERTS", "on") != "off":
+        try:
+            alert_hook = None
+            if os.environ.get("NORTHCX_ALERT_WEBHOOK_URL"):
+                alert_hook = WebhookAlerts(os.environ["NORTHCX_ALERT_WEBHOOK_URL"], env_or_file("NORTHCX_ALERT_WEBHOOK_SECRET") or "")
+            alert_manager = AlertManager(insights_service, monitor_repo, load_rules(os.environ["NORTHCX_ALERT_RULES"]) if os.environ.get("NORTHCX_ALERT_RULES") else None, alert_hook)
+        except (AlertConfigError, ValueError) as e:
+            sys.exit(f"Configuration error: {e}")
     limits = None
     if os.environ.get("NORTHCX_RATE_LIMITS", "on") != "off":
         env = os.environ
@@ -290,7 +309,8 @@ def run() -> None:
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
-                      regression=regression, skills=reg.skill_info(),
+                      regression=regression, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo,
+                      insights=insights_service, alerts=alert_manager,
                       templates=load_templates(LIBRARY, *([os.environ["NORTHCX_TEMPLATES_DIR"]] if os.environ.get("NORTHCX_TEMPLATES_DIR") else [])),
                       sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,
                       retention_days=float(os.environ["NORTHCX_RETENTION_DAYS"]) if os.environ.get("NORTHCX_RETENTION_DAYS") else None,
