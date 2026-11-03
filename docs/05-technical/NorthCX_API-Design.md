@@ -72,3 +72,6 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 ## Streaming
 
 `POST /v1/agents/{id}/chat/stream` returns `text/event-stream`. The agent's work and every supervisor check finish before the first `delta` is sent, so a customer never sees text a check could still reject; the pieces are the approved reply, split at word boundaries (joined they equal `reply` exactly). Progress events let a client show "Using lookup order…" during the wait. If the client disconnects, the turn still completes and is saved. Streaming of tokens straight from the model is not used because it would expose unchecked drafts.
+
+
+| GET | `/handoffs/{id}/inbox` | Where a hand-off has been sent: per connector and event, attempts, reference, last error (built) |

@@ -91,3 +91,5 @@
 | 84 | Channel-specific style lives in the agent spec (`channel_styles`), one agent across channels | Decided, built | Replaces a shared channel-adapter refactor for now; email and SMS share patterns, not code |
 | 85 | Hours and queues are a validated YAML file loaded at start-up (no API editing yet); first matching queue wins by topic or trigger | Decided, built | Studio editing later |
 | 86 | Outside hours the agent still answers; only the hand-off reply changes, with the next opening time | Decided, built | |
+| 87 | Hand-offs reach helpdesks through a database queue with back-off (not the customer-visible outbox), via a signed webhook and a Chatwoot adapter that uses only its REST API | Decided, built | Chatwoot calls not yet tried against a live server |
+| 88 | Helpdesk-to-NorthCX sync uses the existing resolve API rather than a new public webhook | Decided | Direct helpdesk webhooks and return-to-agent (H7) later |

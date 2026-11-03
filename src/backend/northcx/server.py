@@ -178,6 +178,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/approvals/[^/]+/decision", "approvals:decide"),
     ("GET", r"/v1/routing", "handoffs:read"),
     ("GET", r"/v1/handoffs", "handoffs:read"),
+    ("GET", r"/v1/handoffs/[^/]+/inbox", "handoffs:read"),
     ("GET", r"/v1/handoffs/[^/]+", "handoffs:read"),
     ("POST", r"/v1/handoffs/[^/]+/resolve", "handoffs:resolve"),
     ("GET", r"/v1/simulations/(scenarios|runs|gate)", "simulations:read"),
@@ -246,6 +247,17 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                         pass
 
             task = asyncio.create_task(sweep())
+        inbox_task = None
+        if runtime.inbox is not None:
+            async def inbox_loop() -> None:
+                while True:
+                    await asyncio.sleep(10)
+                    try:
+                        await runtime.inbox.flush(runtime.handoffs)
+                    except Exception:
+                        log.exception("inbox delivery pass failed")
+
+            inbox_task = asyncio.create_task(inbox_loop())
         retention = None
         if retention_days:  # age out old conversations once an hour
             async def retain() -> None:
@@ -261,7 +273,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
             retention = asyncio.create_task(retain())
         yield
-        for t in (task, flusher, retention):
+        for t in (task, flusher, retention, inbox_task):
             if t:
                 t.cancel()
 
@@ -648,6 +660,14 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         items = await runtime.handoffs.list(state, sessionId, max(1, min(limit, 1000)), queue)
         return {"handoffs": [handoff_json(h) for h in items]}
 
+    @app.get("/v1/handoffs/{handoff_id}/inbox")
+    async def handoff_inbox(handoff_id: str) -> Any:
+        """Where this hand-off has been sent (helpdesk reference, attempts, last error)."""
+        if await runtime.handoffs.get(handoff_id) is None:
+            return _err(404, "not_found", "Unknown handoff")
+        events = await runtime.inbox.repo.for_handoff(handoff_id) if runtime.inbox is not None else []
+        return {"configured": runtime.inbox is not None, "deliveries": [e.to_dict() for e in events]}
+
     @app.get("/v1/handoffs/{handoff_id}")
     async def get_handoff(handoff_id: str) -> Any:
         h = await runtime.handoffs.get(handoff_id)
@@ -657,6 +677,11 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def resolve_handoff(handoff_id: str, body: ResolveBody, request: Request) -> Any:
         try:
             done = await runtime.handoffs.resolve(handoff_id, actor(request, body.by), body.note)
+            if runtime.inbox is not None:
+                try:
+                    await runtime.inbox.enqueue(done, "resolved")
+                except Exception:
+                    log.exception("could not queue the resolution for the inbox")
             await record(request, "handoff.resolve", handoff_id, trigger=done.trigger, note=bool(body.note))
             return handoff_json(done)
         except KeyError:

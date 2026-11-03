@@ -237,6 +237,21 @@ class KnowledgeChunkRow(Base):
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
+class InboxEventRow(Base):
+    __tablename__ = "inbox_events"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    handoff_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    connector: Mapped[str] = mapped_column(String(32), nullable=False)
+    event: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    last_attempt_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    delivered_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    external_ref: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    error: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    __table_args__ = (Index("ix_inbox_events_handoff", "handoff_id"), Index("ix_inbox_events_pending", "delivered_at", "created_at"))
+
+
 class SmsSessionRow(Base):
     __tablename__ = "sms_sessions"
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)

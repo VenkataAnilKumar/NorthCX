@@ -6,6 +6,7 @@ import uvicorn
 
 from .access import AccessControl, InMemoryKeys, LimitConfig
 from .tokens import TokenSigner, derive_secret
+from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
 from .routing import RoutingError, load_router
 from .config import load_context_provider, load_registry
 from .context import CachedContext, HttpContextProvider
@@ -19,7 +20,7 @@ from .memory import InMemoryMemories, memory_tools
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgIdempotency, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -94,6 +95,7 @@ def run() -> None:
         monitor_repo, idem_repo = PgMonitor(engine), PgIdempotency(engine)
         knowledge_repo = PgKnowledge(engine)
         privacy_backend = PgPrivacy(engine)
+        inbox_repo = PgInbox(engine)
         memory_repo = PgMemories(engine)
         print("Using Postgres storage.")
     else:
@@ -106,6 +108,7 @@ def run() -> None:
         monitor_repo, idem_repo = InMemoryMonitor(), InMemoryIdempotency()
         knowledge_repo = InMemoryKnowledge()
         privacy_backend = None  # the runtime builds the in-memory one
+        inbox_repo = InMemoryInbox()
         memory_repo = InMemoryMemories()
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
 
@@ -161,13 +164,26 @@ def run() -> None:
                                            float(os.environ.get("NORTHCX_CONTEXT_TIMEOUT", 3)))
     except (ValueError, ConfigError) as e:
         sys.exit(f"Configuration error: {e}")
+    inbox = None
+    connectors = []
+    try:
+        if os.environ.get("NORTHCX_INBOX_WEBHOOK_URL"):
+            connectors.append(WebhookInbox(os.environ["NORTHCX_INBOX_WEBHOOK_URL"], env_or_file("NORTHCX_INBOX_WEBHOOK_SECRET") or "",
+                                           os.environ.get("NORTHCX_PUBLIC_CONSOLE_URL")))
+        if os.environ.get("NORTHCX_CHATWOOT_URL"):
+            connectors.append(ChatwootInbox(os.environ["NORTHCX_CHATWOOT_URL"], os.environ.get("NORTHCX_CHATWOOT_ACCOUNT_ID", ""),
+                                            os.environ.get("NORTHCX_CHATWOOT_INBOX_ID", ""), env_or_file("NORTHCX_CHATWOOT_TOKEN") or ""))
+    except ValueError as e:
+        sys.exit(f"Configuration error: {e}")
+    if connectors:
+        inbox = InboxDispatcher(inbox_repo, connectors)
     router = None
     if os.environ.get("NORTHCX_ROUTING_FILE"):
         try:
             router = load_router(os.environ["NORTHCX_ROUTING_FILE"])
         except RoutingError as e:
             sys.exit(f"Invalid routing file: {e}")
-    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, router=router, context=context_source,
+    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, router=router, inbox=inbox, context=context_source,
                       memories=memory_repo if os.environ.get("NORTHCX_MEMORY", "1") != "0" else None,
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
                                  if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),

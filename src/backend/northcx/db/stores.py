@@ -16,6 +16,7 @@ from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
 from ..monitor import Finding
+from ..inbox import MAX_ATTEMPTS, InboxEvent
 from ..channels.sms import SmsSession, phone_hash
 from ..memory import MAX_PER_CUSTOMER, Memory, check_note, text_hash
 from ..knowledge import Document, KnowledgeError, Passage, Source, UpsertResult, _prepare, chunk_text, content_hash, is_stale, tokens, valid_id
@@ -572,6 +573,42 @@ class PgKnowledge(_Base):
         return out
 
 
+class PgInbox(_Base):
+    @staticmethod
+    def _e(r: Any) -> InboxEvent:
+        return InboxEvent(r.handoff_id, r.connector, r.event, r.id, r.created_at, r.attempts, r.last_attempt_at, r.delivered_at, r.external_ref, r.error)
+
+    async def enqueue(self, events: list[InboxEvent]) -> None:
+        if not events:
+            return
+        async with self._sm.begin() as s:
+            await s.execute(text("insert into inbox_events (id, handoff_id, connector, event, created_at) values (:id, :h, :c, :e, :t)"),
+                            [{"id": e.id, "h": e.handoff_id, "c": e.connector, "e": e.event, "t": e.created_at} for e in events])
+
+    async def pending(self, limit: int = 100) -> list[InboxEvent]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from inbox_events where delivered_at is null and attempts < :m order by created_at, id limit :n"),
+                                    {"m": MAX_ATTEMPTS, "n": limit})).all()
+        return [self._e(r) for r in rows]
+
+    async def record(self, event_id: str, delivered: bool, ref: str | None, error: str | None, at: float) -> None:
+        async with self._sm.begin() as s:
+            await s.execute(text("update inbox_events set attempts = attempts + 1, last_attempt_at = :t, error = :err, "
+                                 "delivered_at = case when :d then :t else delivered_at end, external_ref = case when :d then :r else external_ref end where id = :i"),
+                            {"t": at, "err": None if delivered else error, "d": delivered, "r": ref, "i": event_id})
+
+    async def for_handoff(self, handoff_id: str) -> list[InboxEvent]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from inbox_events where handoff_id = :h order by created_at, id"), {"h": handoff_id})).all()
+        return [self._e(r) for r in rows]
+
+    async def erase_handoffs(self, handoff_ids: list[str]) -> int:
+        if not handoff_ids:
+            return 0
+        async with self._sm.begin() as s:
+            return (await s.execute(text("delete from inbox_events where handoff_id = any(:ids)"), {"ids": handoff_ids})).rowcount
+
+
 class PgSmsRepo(_Base):
     @staticmethod
     def _s(r: Any) -> SmsSession:
@@ -733,6 +770,7 @@ class PgPrivacy(_Base):
                 "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
                 "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,
             }
+            out["inbox"] = (await s.execute(text("delete from inbox_events where handoff_id in (select id from handoffs where session_id = :s)"), p)).rowcount
             out["email"] = ((await s.execute(text("delete from email_messages where session_id = :s"), p)).rowcount
                             + (await s.execute(text("delete from email_sessions where session_id = :s"), p)).rowcount)
             out["sms"] = ((await s.execute(text("delete from sms_messages where session_id = :s"), p)).rowcount

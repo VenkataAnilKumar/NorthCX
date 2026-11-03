@@ -14,6 +14,7 @@ from .approvals import ApprovalRepo, ApprovalStore
 from .monitor import Monitor
 from .summarize import Compactor
 from .context import CachedContext
+from .inbox import InboxDispatcher
 from .routing import DEFAULT_ROUTER, Route, Router
 from .memory import MemoryService, render_block
 from .privacy import InMemoryPrivacy
@@ -54,7 +55,8 @@ class Runtime:
                  outbox: Outbox | None = None, handoffs: HandoffRepo | None = None,
                  secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None,
                  ledger: UsageLedger | None = None, privacy: Any = None, compactor: Compactor | None = None,
-                 context: CachedContext | None = None, memories: MemoryService | None = None, router: Router | None = None):
+                 context: CachedContext | None = None, memories: MemoryService | None = None, router: Router | None = None,
+                 inbox: InboxDispatcher | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
@@ -66,6 +68,7 @@ class Runtime:
         self.context = context
         self.memories = memories
         self.router = router or DEFAULT_ROUTER
+        self.inbox = inbox
         self.privacy = privacy if privacy is not None else InMemoryPrivacy(self)
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
@@ -326,9 +329,15 @@ class Runtime:
                                                     trigger=trigger, reason=reason, topics=topics))
         route = route or self.router.route(topics, trigger)
         package["routing"] = {"queue": route.queue, "afterHours": not route.open_now, "nextOpen": route.next_open}
-        return await self.handoffs.add(Handoff(
+        added = await self.handoffs.add(Handoff(
             session_id=session_id, trace_id=trace.id, agent_id=agent_id, customer_id=customer_id, trigger=trigger,
             reason=reason, topics=topics, package=package, queue=route.queue, after_hours=not route.open_now))
+        if self.inbox is not None:  # queued for delivery to the helpdesk; a failure here must not lose the hand-off
+            try:
+                await self.inbox.enqueue(added, "created")
+            except Exception:
+                trace.add("error", stage="inbox", error="could not queue the hand-off for the inbox")
+        return added
 
     async def execute_tool(self, tool: Any, data: Any, ctx: ToolContext) -> tuple[Any, bool]:
         """Run a tool, or in dry-run mode simulate it if it is a write. Returns (result, was_simulated)."""

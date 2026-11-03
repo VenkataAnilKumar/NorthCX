@@ -106,6 +106,9 @@ class InMemoryPrivacy:
         before = len(items)
         items[:] = [m for m in items if m.session_id != session_id]
         n["outbox"] = before - len(items)
+        if getattr(rt, "inbox", None) is not None:
+            ids = [h.id for h in getattr(rt.handoffs, "_items", {}).values() if h.session_id == session_id]
+            n["inbox"] = await rt.inbox.repo.erase_handoffs(ids)
         for name, store in (("approvals", rt.approvals), ("handoffs", rt.handoffs)):
             d_ = getattr(store, "_items", {})
             ids_ = [k for k, v in d_.items() if v.session_id == session_id]
