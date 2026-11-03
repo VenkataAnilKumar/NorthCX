@@ -60,10 +60,20 @@ await page.getByLabel("Candidate version").selectOption("1");
 await page.getByRole("button", { name: "Start rollout" }).click();
 await page.getByText(/of new conversations get/).waitFor();
 check(true, "rollout: started");
-check((await page.getByRole("region", { name: /Publish checklist/ }).innerText()).includes("not ready"), "versions: checklist blocks while a rollout runs");
+await page.getByRole("region", { name: /Publish checklist/ }).getByText(/not ready/).waitFor({ timeout: 10000 });
+check(true, "versions: checklist blocks while a rollout runs");
 await page.getByRole("button", { name: "Stop" }).click();
 await page.getByRole("button", { name: "Start rollout" }).waitFor();
 check(true, "rollout: stopped");
+
+// monitoring: status, flagged conversations and a test alert (no webhook is set up in the test stack)
+await page.goto(`${WEB}/monitoring`);
+await page.getByRole("region", { name: "Alert status" }).waitFor();
+await page.getByRole("region", { name: "Flagged conversations" }).waitFor();
+await page.getByRole("button", { name: "Send a test alert" }).click();
+await page.getByRole("status").filter({ hasText: "Test alert" }).waitFor();
+check((await page.getByRole("status").filter({ hasText: "Test alert" }).innerText()).includes("No webhook set up"), "monitoring: a test alert reports that no webhook is set up");
+check((await page.getByRole("region", { name: "Alert history" }).innerText()).includes("test"), "monitoring: the test shows in the recent events");
 
 // editor: journeys and languages
 await page.goto(`${WEB}/agents/support/edit`);

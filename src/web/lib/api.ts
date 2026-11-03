@@ -192,10 +192,22 @@ export interface Overview {
 export interface SeriesPoint { start: number; turns: number; conversations: number; escalated: number; guardrailBlocks: number; errors: number; tokens: number; p95Latency: number | null }
 export interface FailureCause { cause: string; count: number; share: Ratio; exampleTraceIds: string[] }
 export interface Gaps { unansweredSearches: { query: string; count: number }[]; messagesBeforeHandoff: { message: string; count: number }[] }
+export interface AlertDelivery { status: "sent" | "retrying" | "failed" | "not_configured"; attempts: number; error?: string; at?: number }
+export interface AlertEvent { event: string; rule: string; detail: string; at: number; severity: string; delivery?: AlertDelivery }
 export interface AlertStatus {
-  enabled: boolean; lastRun?: number | null; rules?: { name: string; metric: string; threshold: number; windowMinutes: number; severity: string }[];
-  active?: { rule: string; since: number; value: number; samples: number; severity: string }[]; recent?: { event: string; rule: string; detail: string; at: number; severity: string }[];
+  enabled: boolean; lastRun?: number | null; webhook?: boolean; undelivered?: number;
+  rules?: { name: string; metric: string; threshold: number; windowMinutes: number; minSamples?: number; severity: string; cooldownMinutes?: number }[];
+  active?: { rule: string; since: number; value: number; samples: number; severity: string }[]; recent?: AlertEvent[];
 }
+export interface Finding { id: string; rule: string; severity: string; detail: string; trace_id: string; session_id: string; agent_id: string; agent_version: number | null; created_at: number }
+export const getMonitorSummary = () => api<{ rules: string[]; counts: Record<string, Record<string, number>>; total: number }>("/v1/monitor/summary");
+export const getFindings = (p: { rule?: string; severity?: string } = {}) => {
+  const q = new URLSearchParams({ limit: "100" });
+  if (p.rule) q.set("rule", p.rule);
+  if (p.severity) q.set("severity", p.severity);
+  return api<{ findings: Finding[] }>(`/v1/monitor/findings?${q}`).then((r) => r.findings);
+};
+export const sendTestAlert = () => api<AlertEvent>("/v1/alerts/test", { method: "POST" });
 const windowQuery = (hours: number, agent?: string, environment?: string) => {
   const to = Date.now() / 1000;
   const q = new URLSearchParams({ from: String(to - hours * 3600), to: String(to) });

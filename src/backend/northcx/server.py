@@ -248,6 +248,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/knowledge/documents", "knowledge:read"),
     ("GET", r"/v1/knowledge/sources/[^/]+/documents/.+", "knowledge:read"),
     ("GET", r"/v1/knowledge/search", "knowledge:read"),
+    ("POST", r"/v1/alerts/test", "keys:manage"),
     ("GET", r"/v1/monitor/findings", "monitor:read"),
     ("GET", r"/v1/monitor/summary", "monitor:read"),
     ("GET", r"/v1/reviews/queue", "traces:read"),
@@ -1245,6 +1246,15 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         found = await kb.search(q, max(1, min(limit, 20)), source)
         return {"passages": [{"documentId": p.document_id, "sourceId": p.source_id, "title": p.title, "url": p.url, "section": p.heading,
                               "text": p.text, "score": p.score, "updatedAt": p.updated_at, "stale": p.stale} for p in found]}
+
+    @app.post("/v1/alerts/test")
+    async def alert_test(request: Request) -> Any:
+        """Sends a test alert through the real delivery path and reports whether the receiver accepted it."""
+        if alerts is None:
+            return _err(501, "not_configured", "Alerts are not configured on this server")
+        e = await alerts.send_test()
+        await record(request, "alert.test", "alerts", delivery=e["delivery"]["status"])
+        return e
 
     @app.get("/v1/monitor/findings")
     async def monitor_findings(rule: str | None = None, severity: str | None = None, agentId: str | None = None,

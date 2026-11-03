@@ -22,6 +22,7 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 | DELETE | `/knowledge/sources/{id}/documents/{externalId}` | Delete a document and its passages at once (built) |
 | GET | `/knowledge/documents` | List documents with freshness; `source`, `stale=true`, `limit` (built) |
 | GET | `/knowledge/search` | `q`, `source`, `limit`: ranked passages with title, URL, section, `updatedAt`, `stale` (built) |
+| POST | `/alerts/test` | send a test alert through the real delivery path and report whether the receiver accepted it (`keys:manage`) (built) |
 | GET | `/monitor/findings` | Monitoring flags, newest first; filters `rule`, `severity`, `agentId`, `sessionId`, `since`, `limit` (`monitor:read`, built) |
 | GET | `/monitor/summary` | Counts per rule and severity, rule names, total (built) |
 | POST | `/channels/email/inbound` | Raw RFC 822 message as the body (≤ 1,000,000 bytes), `channel:inbound` permission; returns `{status, sessionId, reason, traceId, handoffId}`; 400 unusable, 413 too large, 501 not configured (built) |

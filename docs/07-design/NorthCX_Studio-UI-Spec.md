@@ -31,6 +31,7 @@ Built in `src/web`: Access and audit page (keys, audit log, integrity check), id
 - **Customer widget (C7, built):** `<northcx-chat>`, documented in `05-technical/NorthCX_Client-SDK.md`.
 - **Attachments (C10, built):** a paperclip in the test console; the trace shows what was attached.
 - **Specialist agents (R8, built):** a section in the editor to choose which agents this one may pass conversations to and when; the trace shows each transfer.
+- **Monitoring (built):** active alerts, rules, recent alert events with delivery status and a test-alert button, and the conversations flagged by the always-on checks with filters and links to traces.
 - **Hand-off collaboration (H6/H7, built):** suggested help, a reply box and a hand-back checkbox on each open hand-off.
 - **Journeys (A5/A6, built):** editor section to write or draft a journey, tie steps to tools, choose strictness, and create test scenarios; Insights show journeys reached and completed.
 - **Single sign-on (P5, built):** a 'Sign in with single sign-on' button on Settings when configured, a landing page that stores the session, and Sign out.

@@ -5,6 +5,7 @@ quiet for a cooldown after firing. An alert clears itself when the metric recove
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -112,13 +113,57 @@ class WebhookAlerts:
             raise RuntimeError(f"alert webhook returned {r.status_code}")
 
 
+RETRY_WAITS = (1.0, 5.0)  # seconds before the second and third attempt to deliver an alert
+
+
+def safe_error(e: Exception) -> str:
+    """What went wrong with a delivery, without the address or anything the receiver said."""
+    return str(e) if isinstance(e, RuntimeError) and str(e).startswith("alert webhook returned ") else type(e).__name__
+
+
 class AlertManager:
     def __init__(self, insights: Any, monitor_repo: Any, rules: list[AlertRule] | None = None, notifier: WebhookAlerts | None = None,
-                 clock: Callable[[], float] = time.time):
+                 clock: Callable[[], float] = time.time, sleep: Callable[[float], Any] = asyncio.sleep):
         self.insights, self.monitor, self.rules, self.notifier, self.clock = insights, monitor_repo, rules or list(DEFAULT_RULES), notifier, clock
+        self.sleep = sleep
         self.active: dict[str, ActiveAlert] = {}
         self.events: list[dict[str, Any]] = []
         self.last_run: float | None = None
+        self._tasks: set[Any] = set()
+
+    async def _deliver(self, e: dict[str, Any]) -> None:
+        """Send one event to the webhook, trying up to three times, and record what happened on the event itself so it can be shown."""
+        waits = (0.0, *RETRY_WAITS)
+        for n, wait in enumerate(waits, 1):
+            if wait:
+                await self.sleep(wait)
+            try:
+                await self.notifier.send({k: v for k, v in e.items() if k != "delivery"})  # type: ignore[union-attr]
+                e["delivery"] = {"status": "sent", "attempts": n, "at": self.clock()}
+                return
+            except Exception as ex:
+                e["delivery"] = {"status": "retrying" if n < len(waits) else "failed", "attempts": n, "error": safe_error(ex), "at": self.clock()}
+        log.error("alert webhook failed after %d attempts: %s", len(waits), e["delivery"]["error"])
+
+    async def settle(self) -> None:
+        """Waits for deliveries in progress (for tests and shutdown)."""
+        await asyncio.gather(*list(self._tasks), return_exceptions=True)
+
+    async def send_test(self) -> dict[str, Any]:
+        """A made-up event through the real delivery path, so an operator can check the webhook works before it matters."""
+        e = {"event": "alert.test", "rule": "test", "metric": "test", "severity": "info", "value": None, "threshold": None, "samples": 0, "windowMinutes": 0,
+             "at": self.clock(), "detail": "A test alert from NorthCX. Nothing is wrong."}
+        if self.notifier is None:
+            e["delivery"] = {"status": "not_configured", "attempts": 0}
+        else:
+            try:
+                await self.notifier.send({k: v for k, v in e.items() if k != "delivery"})
+                e["delivery"] = {"status": "sent", "attempts": 1, "at": self.clock()}
+            except Exception as ex:
+                e["delivery"] = {"status": "failed", "attempts": 1, "error": safe_error(ex), "at": self.clock()}
+        self.events.append(e)
+        del self.events[:-200]
+        return e
 
     async def _emit(self, event: str, rule: AlertRule, detail: str, value: float | None, samples: int, now: float) -> None:
         e = {"event": event, "rule": rule.name, "metric": rule.metric, "severity": rule.severity, "value": value, "threshold": rule.threshold,
@@ -130,11 +175,13 @@ class AlertManager:
                                             rule.severity if event == "alert.fired" else "info", detail, "-", "-", "-")])
         except Exception:
             log.exception("could not record alert finding")
-        if self.notifier is not None:
-            try:
-                await self.notifier.send(e)
-            except Exception as ex:
-                log.error("alert webhook failed: %s", type(ex).__name__)
+        if self.notifier is None:
+            e["delivery"] = {"status": "not_configured", "attempts": 0}
+        else:
+            e["delivery"] = {"status": "retrying", "attempts": 0}
+            task = asyncio.ensure_future(self._deliver(e))  # in the background, so evaluating the next rule is not held up by a slow receiver
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.discard)
 
     async def evaluate(self) -> list[dict[str, Any]]:
         now = self.clock()
@@ -169,4 +216,5 @@ class AlertManager:
         return {"enabled": True, "lastRun": self.last_run, "webhook": self.notifier is not None,
                 "rules": [{"name": r.name, "metric": r.metric, "threshold": r.threshold, "windowMinutes": r.window_minutes, "minSamples": r.min_samples,
                            "severity": r.severity, "cooldownMinutes": r.cooldown_minutes} for r in self.rules],
-                "active": [a.__dict__ for a in self.active.values()], "recent": self.events[-20:][::-1]}
+                "active": [a.__dict__ for a in self.active.values()], "recent": self.events[-20:][::-1],
+                "undelivered": sum(1 for e in self.events if e.get("delivery", {}).get("status") == "failed")}

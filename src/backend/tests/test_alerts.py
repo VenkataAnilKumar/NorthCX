@@ -35,10 +35,17 @@ class FakeInsights:
                 "fallbackModelRate": r((0.0, 100)), "latencySeconds": {"p95": self.lat[0], "samples": self.lat[1]}}
 
 
+WAITS: list[float] = []
+
+
+async def no_wait(seconds):
+    WAITS.append(seconds)
+
+
 def manager(rules=None, clock=None, notifier=None):
     ins, mon = FakeInsights(), InMemoryMonitor()
     now = [1_800_000_000.0]
-    m = AlertManager(ins, mon, rules, notifier, clock=lambda: now[0])
+    m = AlertManager(ins, mon, rules, notifier, clock=lambda: now[0], sleep=no_wait)
     return m, ins, mon, now
 
 
@@ -88,6 +95,7 @@ async def test_the_webhook_is_signed_and_a_broken_one_never_stops_alerting():
     m, ins, mon, now = manager([AlertRule("errors", "error_rate", 0.1)], notifier=hook)
     ins.err = (0.5, 100)
     await m.evaluate()
+    await m.settle()
     body, h = seen[0]
     assert verify("s3cret", h["x-northcx-timestamp"], body, h["x-northcx-signature"]) and h["x-northcx-event"] == "alert.fired" and b'"rule": "errors"' in body
 
@@ -98,6 +106,7 @@ async def test_the_webhook_is_signed_and_a_broken_one_never_stops_alerting():
     m2, ins2, mon2, _ = manager([AlertRule("errors", "error_rate", 0.1)], notifier=Down())
     ins2.err = (0.5, 100)
     assert len(await m2.evaluate()) == 1 and len(await mon2.list()) == 1  # the finding is recorded even when the webhook is not
+    await m2.settle()
     for url, secret in [("ftp://x", "s"), ("https://x", "")]:
         with pytest.raises(ValueError):
             WebhookAlerts(url, secret)
@@ -145,3 +154,73 @@ def test_api_status_and_permissions():
     assert c.get("/v1/alerts", headers={"authorization": f"Bearer {chan}"}).status_code == 403
     off = TestClient(create_app(Runtime(ScriptedLLM([]), InMemoryStore(), TraceStore()), TraceStore(), {"support": support_agent()}))
     assert off.get("/v1/alerts").json() == {"enabled": False}
+
+
+async def test_each_event_records_whether_it_was_delivered_and_failures_are_retried():
+    WAITS.clear()
+    answers = [503, 503, 200]
+    sent, bodies = [], []
+
+    def handler(req):
+        sent.append(req.headers["x-northcx-event"])
+        bodies.append(req.content)
+        return httpx.Response(answers.pop(0) if answers else 200)
+    hook = WebhookAlerts("https://hooks.example.com/secret-path", "s3cret", httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    m, ins, mon, now = manager([AlertRule("errors", "error_rate", 0.1)], notifier=hook)
+    ins.err = (0.5, 100)
+    await m.evaluate()
+    assert m.events[-1]["delivery"]["status"] == "retrying"            # visible while it is being tried
+    await m.settle()
+    d = m.events[-1]["delivery"]
+    assert (d["status"], d["attempts"]) == ("sent", 3) and sent == ["alert.fired"] * 3 and WAITS == [1.0, 5.0]
+    assert all(b"delivery" not in b for b in bodies)  # the receiver is not sent our bookkeeping
+
+
+async def test_a_receiver_that_stays_down_ends_as_failed_without_leaking_the_address():
+    WAITS.clear()
+    hook = WebhookAlerts("https://hooks.example.com/secret-path", "s3cret", httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(503))))
+    m, ins, mon, now = manager([AlertRule("errors", "error_rate", 0.1)], notifier=hook)
+    ins.err = (0.5, 100)
+    await m.evaluate()
+    await m.settle()
+    d = m.events[-1]["delivery"]
+    assert (d["status"], d["attempts"], d["error"]) == ("failed", 3, "alert webhook returned 503") and "secret-path" not in str(m.events)
+    assert m.status()["undelivered"] == 1
+    broken = WebhookAlerts("https://hooks.example.com/x", "s", httpx.AsyncClient(transport=httpx.MockTransport(lambda r: (_ for _ in ()).throw(httpx.ConnectError("boom hooks.example.com")))))
+    m2, ins2, *_ = manager([AlertRule("errors", "error_rate", 0.1)], notifier=broken)
+    ins2.err = (0.5, 100)
+    await m2.evaluate()
+    await m2.settle()
+    assert m2.events[-1]["delivery"]["error"] == "ConnectError" and "hooks.example.com" not in str(m2.events)
+
+
+async def test_without_a_webhook_events_say_so():
+    m, ins, mon, now = manager([AlertRule("errors", "error_rate", 0.1)])
+    ins.err = (0.5, 100)
+    await m.evaluate()
+    assert m.events[-1]["delivery"] == {"status": "not_configured", "attempts": 0}
+    t = await m.send_test()
+    assert t["event"] == "alert.test" and t["delivery"]["status"] == "not_configured" and m.events[-1] is t
+
+
+def test_the_test_alert_endpoint_reports_delivery_and_is_for_admins_only():
+    answers = [200, 500]
+    hook = WebhookAlerts("https://hooks.example.com/a", "s3cret", httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(answers.pop(0)))))
+    ins, mon = FakeInsights(), InMemoryMonitor()
+    m = AlertManager(ins, mon, [AlertRule("errors", "error_rate", 0.1)], hook, sleep=no_wait)
+    rt = Runtime(ScriptedLLM([]), InMemoryStore(), TraceStore())
+    ac = AccessControl(bootstrap_key="boot" * 10)
+    c = TestClient(create_app(rt, rt.traces, {"support": support_agent()}, access=ac, alerts=m))
+    H = {"authorization": "Bearer " + "boot" * 10}
+    ok = c.post("/v1/alerts/test", headers=H).json()
+    assert ok["event"] == "alert.test" and ok["delivery"]["status"] == "sent"
+    bad = c.post("/v1/alerts/test", headers=H).json()
+    assert bad["delivery"] == {"status": "failed", "attempts": 1, "error": "alert webhook returned 500", "at": bad["delivery"]["at"]}
+    loop = asyncio.new_event_loop()
+    for role, code in [("developer", 403), ("release_manager", 403), ("viewer", 403), ("auditor", 403), ("admin", 200)]:
+        key = loop.run_until_complete(ac.issue(role, role, "root"))[1]
+        answers.append(200)
+        assert c.post("/v1/alerts/test", headers={"authorization": f"Bearer {key}"}).status_code == code, role
+    assert "alert.test" in [e["action"] for e in c.get("/v1/audit?limit=20", headers=H).json()["entries"]]
+    off = TestClient(create_app(Runtime(ScriptedLLM([]), InMemoryStore(), TraceStore()), TraceStore(), {"support": support_agent()}))
+    assert off.post("/v1/alerts/test").status_code == 501

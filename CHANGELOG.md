@@ -2,6 +2,14 @@
 
 All notable changes. The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [Semantic Versioning](https://semver.org/). Detailed design decisions are numbered in `docs/09-project/NorthCX_Decision-Log.md`.
 
+## [Unreleased]
+
+### Added
+- Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
+
+### Changed
+- Alert webhook deliveries are retried (three attempts) and each event records whether it was delivered.
+
 ## [1.0.0-rc.1] - 2026-11-03
 
 First release candidate: the planned feature set (phases 1 to 6, minus the items listed under "Not in this release") is built and tested. Before 1.0.0: an independent penetration test and a run against a real model.
