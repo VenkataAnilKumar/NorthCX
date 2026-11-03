@@ -86,3 +86,32 @@ Every hand-off, with its package (summary, transcript, actions, customer facts, 
 **Resolving from the helpdesk.** A person who resolves the conversation in the helpdesk can mark the hand-off resolved with `POST /v1/handoffs/{id}/resolve` using a key that holds `handoffs:resolve` (for example from the helpdesk's own webhook or automation). Receiving the helpdesk's webhooks directly, and returning a conversation to the agent (H7), are not built.
 
 **Privacy.** The package contains personal data and is sent to the helpdesk on purpose; erasing a customer removes NorthCX's queued deliveries but cannot recall copies the helpdesk holds, so the helpdesk's own deletion process applies.
+
+
+## Connector library (T5)
+
+Business systems are connected with **connector files**: YAML that describes a REST API and the tools an agent may use against it, so common integrations need no code. Four starting points ship in `src/backend/examples/connectors/` (orders, billing, accounts, helpdesk); they are generic REST shapes to adapt, not integrations with a particular product. Remove `.example` from the name, put the file in `NORTHCX_CONNECTORS_DIR`, and allow its host with `NORTHCX_CONNECTOR_HOSTS`.
+
+```yaml
+name: orders
+base_url: https://api.shop.example.com/v1
+auth: {type: bearer, secret: ORDERS_API_TOKEN}      # none | bearer | header (+header) | basic (+user)
+tools:
+  - name: orders_refund
+    description: Refund a delivered order.
+    method: POST
+    path: /orders/{order_id}/refunds
+    inputs:
+      order_id: {type: string, pattern: '^[A-Za-z0-9-]{3,20}$'}
+      amount: {type: number, min: 0.01, max: 10000}
+    body: {amount: "{amount}"}
+    response: {fields: [id, status, amount]}          # only these fields reach the model
+    requires_approval: {input: amount, above: 100, reason: Refunds over 100 need approval}
+    dry_run_result: {id: dry-run, status: simulated}
+```
+
+**Safety is set by the operator, not the file.** Calls go only to hosts in `NORTHCX_CONNECTOR_HOSTS` (a file naming any other host is refused at start-up), over HTTPS (plain HTTP only for localhost), without following redirects, with a time limit and a 256 KB response cap. Paths are fixed in the file: input values fill `{placeholders}` as data (URL-encoded, so `../` or `?` cannot change where a request goes) and every input is validated (type, pattern, range, allowed values, length) before any call. Credentials are looked up by name in the secret store at call time, so they are scrubbed from traces and never returned. Writes send the call's stable idempotency key as an `Idempotency-Key` header; whether the other system honours it is up to that system. Errors tell the model only what happened ("the system returned 500", "could not be reached"), never URLs, response bodies or credentials. A read that finds nothing (404) returns `{"found": false}`; a write that gets 404 is an error.
+
+**Approvals and testing.** `requires_approval` (always, or when an input is above a number) holds the call for a person like any tool. `dry_run_result` is what simulations get instead of a real write; write tools without one return a generic placeholder. Tools from connectors are ordinary tools: they work with skills, tool scopes, output screening of results, and the policy library.
+
+**Not built.** Pagination, OAuth flows and token refresh, file uploads, GraphQL, per-customer credentials, and verifying a connector against a live system at start-up. Connector tools are loaded at start-up; changing a file needs a restart.

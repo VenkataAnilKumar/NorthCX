@@ -9,6 +9,7 @@ from .tokens import TokenSigner, derive_secret
 from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
 from .trace_export import ExportService, InMemoryExports, LangfuseExporter, OtlpExporter, Redactor
 from .regression import RegressionRunner
+from .connectors import ConnectorError, allowed_hosts_from, load_connectors
 from .skills import SkillError, load_skills
 from .routing import RoutingError, load_router
 from .config import load_context_provider, load_registry
@@ -212,6 +213,9 @@ def run() -> None:
     scenarios_dir = os.environ.get("NORTHCX_SCENARIOS_DIR") or str(examples_dir / "scenarios")
     try:
         reg = registry()
+        if os.environ.get("NORTHCX_CONNECTORS_DIR"):
+            for tool in load_connectors(os.environ["NORTHCX_CONNECTORS_DIR"], allowed_hosts_from(os.environ.get("NORTHCX_CONNECTOR_HOSTS"))):
+                reg.tool(tool)  # a tool name that already exists is refused
         if os.environ.get("NORTHCX_SKILLS_DIR"):
             for sk in load_skills(os.environ["NORTHCX_SKILLS_DIR"]):
                 reg.skill(sk)
@@ -228,7 +232,7 @@ def run() -> None:
             baseline[i] = reg.build(s, BuildContext(llm=llm))
             baseline[i].digest = s.digest()
         scenarios = load_scenarios(scenarios_dir) if Path(scenarios_dir).exists() else []
-    except (SpecError, ScenarioError, SkillError) as e:
+    except (SpecError, ScenarioError, SkillError, ConnectorError) as e:
         sys.exit(f"Invalid configuration: {e}")
 
     simulations = None

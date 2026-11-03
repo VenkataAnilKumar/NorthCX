@@ -1,0 +1,19 @@
+# Invoices and payment status for a billing system. Adapt, rename without ".example", and allow the host.
+name: billing
+description: Invoices and payments
+base_url: https://billing.example.com/api
+auth: {type: header, header: X-Api-Key, secret: BILLING_API_KEY}
+tools:
+  - name: billing_invoice
+    description: Look up an invoice by number. Returns its status, amount due and due date.
+    path: /invoices/{invoice_number}
+    inputs:
+      invoice_number: {type: string, pattern: '^[A-Za-z0-9-]{3,24}$'}
+    response: {fields: [number, status, amount_due, due_date]}
+  - name: billing_invoices_for_customer
+    description: List a customer's recent invoices (at most 10).
+    path: /customers/{customer_ref}/invoices
+    inputs:
+      customer_ref: {type: string, pattern: '^[A-Za-z0-9_.:@-]{1,100}$'}
+    query: {limit: "10"}
+    response: {fields: [number, status, amount_due, due_date]}

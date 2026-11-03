@@ -1,0 +1,26 @@
+# A starting point for an order system with a REST API. Adapt the paths and fields to yours, remove ".example" from the file
+# name, put it in NORTHCX_CONNECTORS_DIR, and allow its host with NORTHCX_CONNECTOR_HOSTS=api.shop.example.com.
+name: orders
+description: Orders and refunds
+base_url: https://api.shop.example.com/v1
+auth: {type: bearer, secret: ORDERS_API_TOKEN}   # read from NORTHCX_SECRET_ORDERS_API_TOKEN (or a mounted file)
+tools:
+  - name: orders_lookup
+    description: Look up an order by its id. Returns status, total and the date it was placed.
+    method: GET
+    path: /orders/{order_id}
+    inputs:
+      order_id: {type: string, pattern: '^[A-Za-z0-9-]{3,20}$', description: The order id the customer gave}
+    response: {fields: [id, status, total, currency, placed_at]}
+  - name: orders_refund
+    description: Refund a delivered order. The amount must not exceed the order total.
+    method: POST
+    path: /orders/{order_id}/refunds
+    inputs:
+      order_id: {type: string, pattern: '^[A-Za-z0-9-]{3,20}$'}
+      amount: {type: number, min: 0.01, max: 10000, description: Amount to refund}
+      reason: {type: string, required: false, max_length: 200}
+    body: {amount: "{amount}", reason: "{reason}"}
+    response: {fields: [id, status, amount]}
+    requires_approval: {input: amount, above: 100, reason: Refunds over 100 need a person to approve}
+    dry_run_result: {id: dry-run, status: simulated}

@@ -1,0 +1,22 @@
+# Account lookups for an identity or CRM system. Adapt, rename without ".example", and allow the host.
+name: accounts
+description: Customer accounts
+base_url: https://crm.example.com/api
+auth: {type: basic, user: northcx, secret: CRM_PASSWORD}
+tools:
+  - name: accounts_lookup
+    description: Look up a customer's account by email address. Returns their plan, status and region.
+    path: /accounts
+    inputs:
+      email: {type: string, pattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$', max_length: 200}
+    query: {email: "{email}"}
+    response: {fields: [id, plan, status, region]}
+  - name: accounts_update_address
+    description: Change the shipping address on a customer's account. Only use after the customer has confirmed the new address.
+    method: PATCH
+    path: /accounts/{account_id}
+    inputs:
+      account_id: {type: string, pattern: '^[A-Za-z0-9_-]{1,40}$'}
+      address: {type: string, max_length: 300}
+    body: {shipping_address: "{address}"}
+    requires_approval: {always: true, reason: Address changes are confirmed by a person}

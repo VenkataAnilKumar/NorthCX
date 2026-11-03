@@ -1,0 +1,23 @@
+# Create and read support tickets in a helpdesk. Adapt, rename without ".example", and allow the host.
+name: helpdesk
+description: Support tickets
+base_url: https://helpdesk.example.com/api/v2
+auth: {type: bearer, secret: HELPDESK_TOKEN}
+tools:
+  - name: helpdesk_ticket_status
+    description: Look up a support ticket by number.
+    path: /tickets/{ticket_id}
+    inputs:
+      ticket_id: {type: integer, min: 1}
+    response: {fields: [id, subject, status, updated_at]}
+  - name: helpdesk_create_ticket
+    description: Open a support ticket for a problem you cannot solve. Use when the customer needs follow-up from a specialist team.
+    method: POST
+    path: /tickets
+    inputs:
+      subject: {type: string, max_length: 150}
+      description: {type: string, max_length: 1500}
+      priority: {type: string, enum: [low, normal, high], required: false}
+    body: {subject: "{subject}", description: "{description}", priority: "{priority}"}
+    response: {fields: [id, status]}
+    dry_run_result: {id: 0, status: simulated}
