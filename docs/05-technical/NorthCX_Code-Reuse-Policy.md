@@ -55,5 +55,8 @@ Apache-2.0, MIT and BSD code can be included in an Apache-2.0 project. The proje
 | Code quality or security issues inherited | Review, tests and scans on every import |
 
 
-## Current rule (supersedes any earlier permission to copy)
-Open-source projects are **reference only**. NorthCX does not depend on them, does not copy or adapt their source, and does not vendor their files. Read them to learn an idea or an API contract, check the licence, and write the code independently in NorthCX style. Ordinary infrastructure libraries (web server, database driver, YAML, the web framework) are dependencies, not references, and are listed in the package manifests. The earlier cases of adapted code were rewritten and removed.
+## Current rule
+- **Copying or adapting reference code for a feature is allowed**, under the licence rules above: permissive licences only (MIT, Apache-2.0, BSD), never from `ee`/enterprise directories or from projects under restrictive licences, with the licence kept, an attribution header in each file and an entry in `THIRD_PARTY.md`. Adapted code lives inside NorthCX's own source tree under `src/` and follows NorthCX naming and structure.
+- **NorthCX never depends on a reference project's SDK or library.** Nothing in the product imports or installs a reference project's package, and no reference project is a runtime service the product needs. If a feature is wanted from a reference project, its code is copied and adapted, or the idea is rewritten; the project itself is not added as a dependency.
+- Ordinary infrastructure libraries (web server, database driver, YAML, the web framework) are dependencies, not references, and are listed in the package manifests.
+- State today: no third-party source code is currently copied. The two small guardrails that were once adapted were rewritten independently (a fresh implementation is fine, and so would an adapted copy have been); the earlier copies were removed.
