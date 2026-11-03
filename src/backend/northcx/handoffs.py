@@ -84,7 +84,12 @@ def transcript(messages: list[Message]) -> list[dict[str, str]]:
         c = m["content"]
         if m["role"] == "user":
             if isinstance(c, str):
-                if c.startswith("[system]"):
+                if c.startswith("[summary]") and "[/summary]" in c:  # earlier turns were summarised to save space
+                    note, _, rest = c.removeprefix("[summary]").partition("[/summary]")
+                    out.append({"from": "platform", "text": "Earlier in this conversation: " + note.strip()})
+                    if rest.strip():
+                        out.append({"from": "customer", "text": rest.strip()})
+                elif c.startswith("[system]"):
                     out.append({"from": "platform", "text": c.removeprefix("[system]").strip()})
                 elif not c.startswith("[supervisor]"):
                     out.append({"from": "customer", "text": c})

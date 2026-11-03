@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from .agent import Agent, ToolContext
 from .approvals import ApprovalRepo, ApprovalStore
 from .monitor import Monitor
+from .summarize import Compactor
 from .privacy import InMemoryPrivacy
 from .reliability import UsageLedger
 from .guardrails import GuardrailContext, InputResult
@@ -49,7 +50,7 @@ class Runtime:
     def __init__(self, llm: LLM, store: MemoryStore, traces: TraceRepo, approvals: ApprovalRepo | None = None,
                  outbox: Outbox | None = None, handoffs: HandoffRepo | None = None,
                  secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None,
-                 ledger: UsageLedger | None = None, privacy: Any = None):
+                 ledger: UsageLedger | None = None, privacy: Any = None, compactor: Compactor | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
@@ -57,6 +58,7 @@ class Runtime:
         self.secrets = secrets or NO_SECRETS
         self.monitor = monitor or Monitor()
         self.ledger = ledger or UsageLedger()
+        self.compactor = compactor
         self.privacy = privacy if privacy is not None else InMemoryPrivacy(self)
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
@@ -67,6 +69,11 @@ class Runtime:
         trace = Trace(agent.id, session_id, agent_version=agent.version)
         await self.privacy.link(session_id, customer_id)  # so the conversation can be exported, erased and aged out
         messages: list[Message] = await self.store.load_messages(session_id)
+        if self.compactor is not None and not self.dry_run:
+            done = await self.compactor.compact(messages)
+            if done is not None:
+                messages = done.messages
+                trace.add("summary", tokens_before=done.before, tokens_after=done.after, turns_summarised=done.dropped)
         facts = await self.store.get_facts(customer_id) if customer_id else {}
         ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets)
         pending: list[dict[str, Any]] = []

@@ -48,3 +48,7 @@ Stateless runtime workers scale horizontally; state lives in the store. Concurre
 - If the model repeats an identical write call within one turn, the platform answers from the first result and does not execute it again (trace event `duplicate_call`). A later turn is a new, intentional action.
 - Read tools are retried once on error; write tools are never retried automatically.
 - API clients should send `Idempotency-Key` on chat requests that they may retry (see API Design).
+
+### Long conversations (summarisation)
+
+When a conversation's saved history passes `NORTHCX_SUMMARIZE_AFTER_TOKENS` (estimated at four characters per token), the part before the last four customer messages is replaced by short notes written by the model (at most 3,000 characters, optionally by a cheaper `NORTHCX_SUMMARY_MODEL`). The notes sit at the front of the first kept customer message inside `[summary]` markers, so roles still alternate and no tool call is separated from its result. The notes are told to record order numbers, amounts and promises exactly, to treat the conversation as data and to leave out credentials. Later summaries fold earlier ones in. If the summary cannot be written (model error, empty or no smaller), the full history is kept. Redaction runs on the saved history as usual, and a `summary` trace event records the sizes. Hand-off packages show the notes to the person as "Earlier in this conversation" followed by the recent turns; the original early turns remain in the conversation's traces until erased or aged out. Simulation (dry) runs never summarise.

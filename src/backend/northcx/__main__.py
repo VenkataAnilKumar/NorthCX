@@ -9,6 +9,7 @@ from .tokens import TokenSigner, derive_secret
 from .config import load_registry
 from .audit import InMemoryAudit
 from .channels.email import EmailChannel, EmailConfig, EmailNotifier, InMemoryEmailRepo, SmtpSender
+from .summarize import Compactor
 from .reliability import ReliableLLM, UsageLedger
 from .llm import DEFAULT_MODEL
 from .knowledge import InMemoryKnowledge, knowledge_tool
@@ -125,6 +126,8 @@ def run() -> None:
 
         notifier = CompositeNotifier(*[n for n in (notifier, email_notifier) if n])
     runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend,
+                      compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
+                                 if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),
                       ledger=UsageLedger(int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None))
 
     # Agents and scenarios are files; the registry maps their tool names to code (the example registry for now).
