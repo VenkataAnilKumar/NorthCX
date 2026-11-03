@@ -79,6 +79,8 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | POST | `/agents/{id}/rollback` | `{environment?, toVersion?}` restores something that was live before in that environment; production needs `releases:rollback` (built) |
 | GET | `/agents/{id}/environments` | What is released in dev, staging and production and what each actually serves (built) |
 | GET | `/agents/{id}/releases?environment=`, `/agents/{id}/live?environment=` | History and the live agent for one environment (built) |
+| GET | `/sessions/{id}/scenario-draft` | A scenario drafted from a real conversation (masked), with warnings; `simulations:run`; audited (built) |
+| GET | `/regression` | Whether simulations re-run on knowledge changes and how the last re-run went (built) |
 | GET | `/trace-export` | Whether export is on, exporters, content mode, sampling and delivery counts (`traces:read`) (built) |
 | GET | `/traces/{id}/exports` | Delivery state of one trace per exporter (built) |
 | GET | `/handoffs/{id}/inbox` | Where a hand-off has been sent: per connector and event, attempts, reference, last error (built) |

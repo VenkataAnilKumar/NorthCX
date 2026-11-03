@@ -111,6 +111,7 @@ class Scenario(_Strict):
     description: str = ""
     agent: str
     required: bool = True  # required scenarios gate releases
+    tags: list[str] = Field(default_factory=list)  # labels such as "knowledge" (run after knowledge changes); not part of the digest
     customer_id: str | None = None
     facts: dict[str, str] = Field(default_factory=dict)
     model: list[ModelResponse] | None = None  # scripted model responses (deterministic runs)
@@ -123,7 +124,7 @@ class Scenario(_Strict):
 
     def digest(self) -> str:
         """Content hash of the scenario definition (not the file it came from)."""
-        body = self.model_dump(mode="json", exclude={"source"})
+        body = self.model_dump(mode="json", exclude={"source", "tags"})
         return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
     @model_validator(mode="after")

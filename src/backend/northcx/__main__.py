@@ -8,6 +8,7 @@ from .access import AccessControl, InMemoryKeys, LimitConfig
 from .tokens import TokenSigner, derive_secret
 from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
 from .trace_export import ExportService, InMemoryExports, LangfuseExporter, OtlpExporter, Redactor
+from .regression import RegressionRunner
 from .routing import RoutingError, load_router
 from .config import load_context_provider, load_registry
 from .context import CachedContext, HttpContextProvider
@@ -243,6 +244,14 @@ def run() -> None:
 
     agents = LiveAgents(baseline, release_service, build_live)
 
+    regression = None
+    rerun = os.environ.get("NORTHCX_RERUN_ON_KNOWLEDGE", "off")
+    if rerun != "off":
+        if rerun not in ("scripted", "live") or simulations is None:
+            sys.exit("NORTHCX_RERUN_ON_KNOWLEDGE must be off, scripted or live, and needs scenarios (NORTHCX_SCENARIOS_DIR)")
+        if rerun == "live" and demo:
+            sys.exit("NORTHCX_RERUN_ON_KNOWLEDGE=live needs a real model (not the demo)")
+        regression = RegressionRunner(simulations, monitor_repo, rerun, debounce=float(os.environ.get("NORTHCX_RERUN_DEBOUNCE_SECONDS", 60)))
     limits = None
     if os.environ.get("NORTHCX_RATE_LIMITS", "on") != "off":
         env = os.environ
@@ -271,6 +280,7 @@ def run() -> None:
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
+                      regression=regression,
                       sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,
                       retention_days=float(os.environ["NORTHCX_RETENTION_DAYS"]) if os.environ.get("NORTHCX_RETENTION_DAYS") else None,
                       email=EmailChannel(runtime, agents, email_repo, email_config) if email_config else None)

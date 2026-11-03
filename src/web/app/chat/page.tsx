@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { chatStream, getTrace, listAgents, listOutbox, statusLabel, type Trace } from "@/lib/api";
+import { chatStream, type EnvName, getTrace, listAgents, listOutbox, statusLabel, type Trace } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
+import { useMe } from "@/lib/me";
 import { ErrorBox, Loading, PageHeader } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
 import { TraceTimeline } from "@/components/trace-timeline";
@@ -17,6 +18,8 @@ export default function TestConsole() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [working, setWorking] = useState<string | null>(null);
+  const [environment, setEnvironment] = useState<EnvName>("production");
+  const { can } = useMe();
   const [error, setError] = useState<string | null>(null);
   const [trace, setTrace] = useState<Trace | null>(null);
   const [version, setVersion] = useState<number | null | undefined>(undefined);
@@ -62,7 +65,7 @@ export default function TestConsole() {
             : [...t, { from: "agent", text: piece }]);
           started = true;
         },
-      });
+      }, environment);
       setTurns((t) => {
         const turn: Turn = { from: "agent", text: r.reply, status: r.status, handoffId: r.handoffId };
         return started ? [...t.slice(0, -1), turn] : [...t, turn];
@@ -88,6 +91,12 @@ export default function TestConsole() {
             className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm">
             {agents.data?.map((a) => <option key={a.id} value={a.id}>{a.id}</option>)}
           </select>
+          {can("simulations:run") && (<>
+            <label htmlFor="env" className="text-sm text-muted">Environment</label>
+            <select id="env" value={environment} onChange={(e) => { setEnvironment(e.target.value as EnvName); reset(); }} className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm">
+              <option value="production">production</option><option value="staging">staging</option><option value="dev">dev</option>
+            </select>
+          </>)}
           <button onClick={reset} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-border/40">New conversation</button>
         </div>
       </PageHeader>

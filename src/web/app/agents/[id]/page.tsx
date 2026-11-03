@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import {
-  ApiError, createVersion, diffVersions, formatTime, getLive, getVersionDetail, listReleases, listVersions, publishVersion,
+  ApiError, createVersion, diffVersions, formatTime, getEnvironments, getLive, promoteAgent, getVersionDetail, listReleases, listVersions, publishVersion,
   rollbackAgent, runForVersion, versionGate, type AgentVersion, type Gate, type VersionDiff,
 } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
@@ -88,6 +88,8 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
   const live = useLoad(() => getLive(id), [id, tick]);
   const versions = useLoad(() => listVersions(id), [id, tick]);
   const releases = useLoad(() => listReleases(id), [id, tick]);
+  const envs = useLoad(() => getEnvironments(id), [id, tick]);
+  const [envErr, setEnvErr] = useState<string | null>(null);
   const { can, askForName } = useMe();
   const [by, setBy] = useState("dev");
   const [note, setNote] = useState("");
@@ -105,6 +107,11 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
     e.preventDefault(); setFormErr(null); setCreated(null);
     try { const v = await createVersion(id, yamlText ?? "", askForName ? by.trim() || "dev" : undefined, note.trim() || undefined); setCreated(`Saved as version ${v.number}.`); setNote(""); refresh(); }
     catch (err) { setFormErr((err as Error).message); }
+  }
+  async function promote(to: "staging" | "production") {
+    setEnvErr(null);
+    try { await promoteAgent(id, to, askForName ? by.trim() || "dev" : undefined, note.trim() || undefined); refresh(); }
+    catch (err) { setEnvErr((err as Error).message); }
   }
   async function rollback() {
     setRollErr(null);
@@ -126,6 +133,26 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
           <input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" className="w-44 rounded-lg border border-border bg-surface px-2 py-1.5" />
         </div>
       </PageHeader>
+      {envs.data && (
+        <section aria-label="Environments" className="mb-6 rounded-xl border border-border bg-surface p-4">
+          <h2 className="mb-2 text-sm font-medium text-muted">Environments{envs.data.strictPromotion ? " · production only takes versions that were live in staging" : ""}</h2>
+          <ul className="grid gap-3 sm:grid-cols-3">
+            {(["dev", "staging", "production"] as const).map((name, i, all) => {
+              const e = envs.data!.environments[name];
+              const next = all[i + 1];
+              return (
+                <li key={name} className="rounded-lg border border-border p-3 text-sm">
+                  <p className="font-medium">{name}</p>
+                  <p>{e.version ? `Version ${e.version}` : e.servedFrom !== name ? `Serves ${e.servedFrom}` : "Spec file"}</p>
+                  {next && next !== "dev" && (
+                    <button onClick={() => promote(next)} disabled={!can(next === "production" ? "releases:publish" : "versions:create") || !e.version}
+                      title={!e.version ? "Nothing released here to promote" : undefined}
+                      className="mt-2 rounded-lg border border-border px-2 py-1 text-xs hover:bg-border/40 disabled:opacity-50">Promote to {next}</button>)}
+                </li>);
+            })}
+          </ul>
+          {envErr && <p role="alert" className="mt-2 text-sm text-[var(--bad)]">{envErr}</p>}
+        </section>)}
       <section aria-label="Live" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4">
         <div>
           <p className="text-sm text-muted">Serving customers now</p>

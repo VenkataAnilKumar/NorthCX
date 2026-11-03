@@ -86,6 +86,13 @@ export const publishVersion = (id: string, version: number, by?: string, note?: 
   api<ReleaseRecord>(`${agentPath(id)}/releases`, { method: "POST", body: JSON.stringify({ version, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 export const rollbackAgent = (id: string, by?: string, note?: string) =>
   api<ReleaseRecord>(`${agentPath(id)}/rollback`, { method: "POST", body: JSON.stringify({ ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
+export type EnvName = "dev" | "staging" | "production";
+export interface EnvInfo { version: number | null; release: ReleaseRecord | null; servedFrom: EnvName; servedVersion: number | null }
+export const getEnvironments = (id: string) => api<{ agentId: string; strictPromotion: boolean; environments: Record<EnvName, EnvInfo> }>(`${agentPath(id)}/environments`);
+export const promoteAgent = (id: string, to: EnvName, by?: string, note?: string) =>
+  api<ReleaseRecord>(`${agentPath(id)}/promote`, { method: "POST", body: JSON.stringify({ to, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
+export const releaseToEnvironment = (id: string, version: number, environment: EnvName, by?: string, note?: string) =>
+  api<ReleaseRecord>(`${agentPath(id)}/releases`, { method: "POST", body: JSON.stringify({ version, environment, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 export const listReleases = (id: string) => api<{ releases: ReleaseRecord[] }>(`${agentPath(id)}/releases`).then((r) => r.releases);
 export interface Me { name: string; role: string; openMode: boolean; keyId: string | null; permissions: string[] }
 export interface KeyInfo { id: string; prefix: string; name: string; role: string; createdBy: string; createdAt: number; expiresAt: number | null; revokedAt: number | null; revokedBy: string | null; lastUsedAt: number | null; active: boolean }
@@ -132,11 +139,11 @@ export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenera
 }
 
 /** Like `chat`, but reports tool progress and reply text as it arrives. Resolves with the final result. */
-export async function chatStream(agentId: string, sessionId: string, message: string, h: StreamHandlers = {}): Promise<ChatReply> {
+export async function chatStream(agentId: string, sessionId: string, message: string, h: StreamHandlers = {}, environment?: EnvName): Promise<ChatReply> {
   const headers = new Headers({ "content-type": "application/json" });
   const key = getApiKey();
   if (key) headers.set("authorization", `Bearer ${key}`);
-  const res = await fetch(`/api/northcx/v1/agents/${agentId}/chat/stream`, { method: "POST", headers, body: JSON.stringify({ sessionId, message }) });
+  const res = await fetch(`/api/northcx/v1/agents/${agentId}/chat/stream`, { method: "POST", headers, body: JSON.stringify({ sessionId, message, ...(environment && environment !== "production" ? { environment } : {}) }) });
   if (!res.ok || !res.body) {
     const body = await res.json().catch(() => ({}));
     throw new ApiError(res.status, body?.error?.message ?? `Request failed (${res.status})`, body?.error?.reasons ?? []);

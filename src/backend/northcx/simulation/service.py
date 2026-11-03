@@ -31,13 +31,13 @@ class SimulationService:
         return ["scripted", "demo"] + (["live"] if self.live_llm else [])
 
     async def run(self, mode: str = "scripted", only: str | None = None, skip_judge: bool = False, source: str = "api",
-                  meta: dict[str, Any] | None = None, spec: AgentSpec | None = None) -> SimRun:
+                  meta: dict[str, Any] | None = None, spec: AgentSpec | None = None, tag: str | None = None) -> SimRun:
         """Run scenarios. With `spec`, only that agent's scenarios run, against that exact spec (a version to be released)."""
         if mode not in self.modes:
             raise ValueError(f"mode '{mode}' is not available (have: {', '.join(self.modes)})")
-        chosen = [s for s in self.scenarios if (not only or only in s.name) and (spec is None or s.agent == spec.id)]
+        chosen = [s for s in self.scenarios if (not only or only in s.name) and (spec is None or s.agent == spec.id) and (not tag or tag in s.tags)]
         if not chosen:
-            raise ValueError(f"no scenario name contains {only!r}" if only else "no scenarios for this agent")
+            raise ValueError(f"no scenario name contains {only!r}" if only else f"no scenarios are tagged {tag!r}" if tag else "no scenarios for this agent")
         factory, digests = self.agent_factory, self.agent_digests
         if spec is not None:
             if self.spec_builder is None:

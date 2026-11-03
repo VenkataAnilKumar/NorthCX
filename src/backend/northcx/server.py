@@ -20,6 +20,8 @@ from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
 from .channels.sms import SmsChannel, parse_form
+from .regression import RegressionRunner, scenario_from_traces
+from .simulation.scenario import ScenarioError
 from .privacy import InMemoryPrivacy, PrivacyService, customer_ref
 from .knowledge import InMemoryKnowledge, KnowledgeError, KnowledgeStore, Source
 from .idempotency import IdempotencyStore, InMemoryIdempotency, scope_hash, request_hash, valid_key
@@ -171,6 +173,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/knowledge/search", "knowledge:read"),
     ("GET", r"/v1/monitor/findings", "monitor:read"),
     ("GET", r"/v1/monitor/summary", "monitor:read"),
+    ("GET", r"/v1/regression", "simulations:read"),
+    ("GET", r"/v1/sessions/.+/scenario-draft", "simulations:run"),
     ("GET", r"/v1/trace-export", "traces:read"),
     ("GET", r"/v1/traces/[^/]+/exports", "traces:read"),
     ("GET", r"/v1/traces", "traces:read"),
@@ -217,7 +221,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
-               retention_days: float | None = None, sms: SmsChannel | None = None) -> FastAPI:
+               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -518,6 +522,22 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             await idem.complete(scope, result)
         return result
 
+    @app.get("/v1/regression")
+    async def regression_status() -> Any:
+        """Whether simulations re-run when the knowledge changes, and how the last re-run went."""
+        return regression.status() if regression is not None else {"enabled": False}
+
+    @app.get("/v1/sessions/{session_id}/scenario-draft")
+    async def scenario_draft(session_id: str, request: Request) -> Any:
+        """A scenario drafted from a real conversation (personal data masked), for a person to review and add to the scenario files."""
+        found = [t for t in [await traces.get(s.id) for s in await traces.summaries(session_id, 200)] if t is not None]
+        try:
+            d = scenario_from_traces(found, session_id)
+        except ScenarioError as e:
+            return _err(404 if not found else 400, "not_found" if not found else "bad_request", str(e))
+        await record(request, "scenario.draft", customer_ref(session_id), turns=len(d.scenario["turns"]))
+        return {"yaml": d.yaml, "scenario": d.scenario, "warnings": d.warnings}
+
     @app.get("/v1/trace-export")
     async def trace_export_status() -> Any:
         """Whether export is on, where traces go, what content is sent, and how deliveries are doing."""
@@ -612,6 +632,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(404, "not_found", "Unknown source")
         n = await kb.delete_source(source_id)
         await record(request, "knowledge.source.delete", source_id, documents=n)
+        if regression is not None:
+            regression.trigger(f"source {source_id} deleted")
         return {"deleted": True, "documents": n}
 
     @app.put("/v1/knowledge/sources/{source_id}/documents/{external_id:path}")
@@ -622,6 +644,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(404 if str(e).startswith("Unknown source") else 400, "not_found" if str(e).startswith("Unknown source") else "bad_request", str(e))
         if r.status != "unchanged":
             await record(request, "knowledge.document.put", f"{source_id}/{external_id}", status=r.status, chunks=r.document.chunks)
+            if regression is not None:
+                regression.trigger(f"document {source_id}/{external_id} {r.status}")
         return {"status": r.status, "document": r.document.to_dict()}
 
     @app.delete("/v1/knowledge/sources/{source_id}/documents/{external_id:path}")
@@ -629,6 +653,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         if not await kb.delete(source_id, external_id):
             return _err(404, "not_found", "Unknown document")
         await record(request, "knowledge.document.delete", f"{source_id}/{external_id}")
+        if regression is not None:
+            regression.trigger(f"document {source_id}/{external_id} deleted")
         return {"deleted": True}
 
     @app.get("/v1/knowledge/documents")

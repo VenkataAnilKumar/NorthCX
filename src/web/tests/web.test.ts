@@ -244,3 +244,24 @@ describe("routing calls", () => {
     expect(calls).toEqual(["/api/northcx/v1/handoffs?state=open&queue=billing", "/api/northcx/v1/handoffs", "/api/northcx/v1/routing"]);
   });
 });
+
+describe("environment calls", () => {
+  it("reads environments, promotes, and sends the environment with streamed chat", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    const done = `event: done\ndata: ${JSON.stringify({ reply: "ok", status: "completed", traceId: "t", pendingApprovals: [], handoffId: null, agentVersion: null })}\n\n`;
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push([url, init]);
+      return url.includes("chat/stream") ? new Response(done, { status: 200 }) : new Response(JSON.stringify({ environments: {}, agentId: "support", strictPromotion: false }), { status: 200 });
+    }));
+    const { getEnvironments, promoteAgent, chatStream } = await import("@/lib/api");
+    await getEnvironments("support");
+    await promoteAgent("support", "staging", "jo", "ok");
+    await chatStream("support", "s1", "hi", {}, "dev");
+    await chatStream("support", "s2", "hi", {}, "production");
+    expect(calls[0][0]).toBe("/api/northcx/v1/agents/support/environments");
+    expect(calls[1][0]).toBe("/api/northcx/v1/agents/support/promote");
+    expect(JSON.parse(String(calls[1][1]?.body))).toEqual({ to: "staging", by: "jo", note: "ok" });
+    expect(JSON.parse(String(calls[2][1]?.body))).toEqual({ sessionId: "s1", message: "hi", environment: "dev" });
+    expect(JSON.parse(String(calls[3][1]?.body))).toEqual({ sessionId: "s2", message: "hi" });
+  });
+});
