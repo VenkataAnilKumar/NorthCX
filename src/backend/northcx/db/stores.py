@@ -215,14 +215,16 @@ class PgHandoffs(_Base):
     def _to_handoff(r: HandoffRow) -> Handoff:
         return Handoff(session_id=r.session_id, trace_id=r.trace_id, agent_id=r.agent_id, customer_id=r.customer_id,
                        trigger=r.trigger, reason=r.reason, topics=list(r.topics), package=r.package, id=r.id, state=r.state,
-                       created_at=r.created_at, resolved_by=r.resolved_by, resolved_at=r.resolved_at, note=r.note)
+                       created_at=r.created_at, resolved_by=r.resolved_by, resolved_at=r.resolved_at, note=r.note,
+                       queue=r.queue, after_hours=r.after_hours)
 
     async def add(self, handoff: Handoff) -> Handoff:
         async with self._sm.begin() as s:
             await s.execute(pg_insert(HandoffRow).values(
                 id=handoff.id, session_id=handoff.session_id, trace_id=handoff.trace_id, agent_id=handoff.agent_id,
                 customer_id=handoff.customer_id, trigger=handoff.trigger, reason=handoff.reason, topics=handoff.topics,
-                package=_jsonable(handoff.package), state=handoff.state, created_at=handoff.created_at))
+                package=_jsonable(handoff.package), state=handoff.state, created_at=handoff.created_at,
+                queue=handoff.queue, after_hours=handoff.after_hours))
         return handoff
 
     async def get(self, handoff_id: str) -> Handoff | None:
@@ -230,12 +232,14 @@ class PgHandoffs(_Base):
             r = (await s.execute(select(HandoffRow).where(HandoffRow.id == handoff_id))).scalar_one_or_none()
         return self._to_handoff(r) if r else None
 
-    async def list(self, state: str | None = None, session_id: str | None = None, limit: int = 200) -> list[Handoff]:
+    async def list(self, state: str | None = None, session_id: str | None = None, limit: int = 200, queue: str | None = None) -> list[Handoff]:
         q = select(HandoffRow).order_by(HandoffRow.created_at.desc()).limit(limit)
         if state:
             q = q.where(HandoffRow.state == state)
         if session_id:
             q = q.where(HandoffRow.session_id == session_id)
+        if queue:
+            q = q.where(HandoffRow.queue == queue)
         async with self._sm() as s:
             return [self._to_handoff(r) for r in (await s.execute(q)).scalars().all()]
 

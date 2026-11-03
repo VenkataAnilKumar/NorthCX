@@ -6,6 +6,7 @@ import uvicorn
 
 from .access import AccessControl, InMemoryKeys, LimitConfig
 from .tokens import TokenSigner, derive_secret
+from .routing import RoutingError, load_router
 from .config import load_context_provider, load_registry
 from .context import CachedContext, HttpContextProvider
 from .audit import InMemoryAudit
@@ -160,7 +161,13 @@ def run() -> None:
                                            float(os.environ.get("NORTHCX_CONTEXT_TIMEOUT", 3)))
     except (ValueError, ConfigError) as e:
         sys.exit(f"Configuration error: {e}")
-    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, context=context_source,
+    router = None
+    if os.environ.get("NORTHCX_ROUTING_FILE"):
+        try:
+            router = load_router(os.environ["NORTHCX_ROUTING_FILE"])
+        except RoutingError as e:
+            sys.exit(f"Invalid routing file: {e}")
+    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, router=router, context=context_source,
                       memories=memory_repo if os.environ.get("NORTHCX_MEMORY", "1") != "0" else None,
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
                                  if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),

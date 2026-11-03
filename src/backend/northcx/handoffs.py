@@ -23,6 +23,7 @@ TRIGGERS = {
     "step_limit": "The agent could not finish within its step limit",
     "model_error": "The model could not be reached",
     "approval_expired": "A held action was not approved in time",
+    "budget_exceeded": "The model budget for this conversation or day was used up",
 }
 OPEN, RESOLVED = "open", "resolved"
 
@@ -43,12 +44,14 @@ class Handoff:
     resolved_by: str | None = None
     resolved_at: float | None = None
     note: str | None = None
+    queue: str | None = None
+    after_hours: bool = False  # the team was offline when this arrived
 
 
 class HandoffRepo(Protocol):
     async def add(self, handoff: Handoff) -> Handoff: ...
     async def get(self, handoff_id: str) -> Handoff | None: ...
-    async def list(self, state: str | None = None, session_id: str | None = None, limit: int = 200) -> list[Handoff]: ...
+    async def list(self, state: str | None = None, session_id: str | None = None, limit: int = 200, queue: str | None = None) -> list[Handoff]: ...
     async def resolve(self, handoff_id: str, by: str, note: str | None = None) -> Handoff: ...
 
 
@@ -63,8 +66,9 @@ class InMemoryHandoffs:
     async def get(self, handoff_id: str) -> Handoff | None:
         return self._items.get(handoff_id)
 
-    async def list(self, state: str | None = None, session_id: str | None = None, limit: int = 200) -> list[Handoff]:
-        items = [h for h in self._items.values() if (not state or h.state == state) and (not session_id or h.session_id == session_id)]
+    async def list(self, state: str | None = None, session_id: str | None = None, limit: int = 200, queue: str | None = None) -> list[Handoff]:
+        items = [h for h in self._items.values() if (not state or h.state == state) and (not session_id or h.session_id == session_id)
+                 and (not queue or h.queue == queue)]
         return sorted(items, key=lambda h: h.created_at, reverse=True)[:limit]
 
     async def resolve(self, handoff_id: str, by: str, note: str | None = None) -> Handoff:

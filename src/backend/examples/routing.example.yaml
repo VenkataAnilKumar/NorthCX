@@ -1,0 +1,17 @@
+# Business hours and hand-off queues. Copy, edit, and set NORTHCX_ROUTING_FILE to its path.
+timezone: America/New_York
+hours:                        # when people are available (default for every queue)
+  mon-fri: "09:00-17:00"
+holidays: [2026-12-25, 2027-01-01]
+default_queue: general
+after_hours_message: "Our team is offline right now. A teammate will reply when we reopen{when}."
+queues:
+  - name: billing             # first matching queue wins: by topic or by why the hand-off happened
+    topics: [formal_complaint]
+    hours:
+      mon-fri: ["08:00-12:00", "13:00-20:00"]
+      sat: "10:00-14:00"
+  - name: urgent
+    topics: [safety]
+    hours: always             # safety topics are staffed around the clock
+  - name: general

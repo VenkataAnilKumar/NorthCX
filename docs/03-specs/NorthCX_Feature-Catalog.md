@@ -67,7 +67,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | H5 | Human inbox integration | P1 | 3 | Planned |
 | H6 | Agent assist for humans: suggested replies, next steps, call scripts | P2 | 5 | Planned |
 | H7 | Return conversation to the agent after human help | P2 | 5 | Planned |
-| H8 | Business hours and queue routing | P1 | 3 | Planned |
+| H8 | Business hours and queue routing | P1 | 3 | Built (routing file, queues, holidays, after-hours message, queue filter) |
 
 ## 6. Channels
 | ID | Feature | Pri | Phase | State |

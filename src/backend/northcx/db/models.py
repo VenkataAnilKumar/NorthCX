@@ -97,7 +97,9 @@ class HandoffRow(Base):
     resolved_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
     resolved_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
-    __table_args__ = (Index("ix_handoffs_state", "state", "created_at"), Index("ix_handoffs_session", "session_id"))
+    queue: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    after_hours: Mapped[bool] = mapped_column(nullable=False, server_default="false")
+    __table_args__ = (Index("ix_handoffs_state", "state", "created_at"), Index("ix_handoffs_session", "session_id"), Index("ix_handoffs_queue", "queue", "state"))
 
 
 class SimRunRow(Base):

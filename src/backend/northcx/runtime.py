@@ -14,6 +14,7 @@ from .approvals import ApprovalRepo, ApprovalStore
 from .monitor import Monitor
 from .summarize import Compactor
 from .context import CachedContext
+from .routing import DEFAULT_ROUTER, Route, Router
 from .memory import MemoryService, render_block
 from .privacy import InMemoryPrivacy
 from .reliability import UsageLedger
@@ -53,7 +54,7 @@ class Runtime:
                  outbox: Outbox | None = None, handoffs: HandoffRepo | None = None,
                  secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None,
                  ledger: UsageLedger | None = None, privacy: Any = None, compactor: Compactor | None = None,
-                 context: CachedContext | None = None, memories: MemoryService | None = None):
+                 context: CachedContext | None = None, memories: MemoryService | None = None, router: Router | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
@@ -64,6 +65,7 @@ class Runtime:
         self.compactor = compactor
         self.context = context
         self.memories = memories
+        self.router = router or DEFAULT_ROUTER
         self.privacy = privacy if privacy is not None else InMemoryPrivacy(self)
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
@@ -115,6 +117,11 @@ class Runtime:
 
         async def finish(reply: str, status: str, trigger: str | None = None, reason: str = "",
                          topics: list[str] | None = None) -> RunResult:
+            route: Route | None = None
+            if status == "escalated":
+                route = self.router.route(topics or [], trigger or "agent_handoff")
+                if not route.open_now and route.message:
+                    reply = f"{reply}\n\n{route.message}"  # tell the customer when to expect a person
             # Saved history must alternate and end on an assistant turn.
             if messages and messages[-1]["role"] == "user":
                 messages.append({"role": "assistant", "content": reply})
@@ -132,7 +139,7 @@ class Runtime:
                 handoff_id = (await self.create_handoff(
                     agent_id=agent.id, session_id=session_id, customer_id=customer_id, trace=trace, messages=safe,
                     trigger=trigger or "agent_handoff", reason=reason, topics=topics or [],
-                    extra_facts=company_context)).id
+                    extra_facts=company_context, route=route)).id
             await self.monitor.observe(trace, status, trigger)
             return RunResult(reply, status, trace, pending, handoff_id)
 
@@ -307,7 +314,7 @@ class Runtime:
 
     async def create_handoff(self, *, agent_id: str, session_id: str, customer_id: str | None, trace: Trace,
                              messages: list[Message], trigger: str, reason: str, topics: list[str],
-                             extra_facts: dict[str, str] | None = None) -> Handoff:
+                             extra_facts: dict[str, str] | None = None, route: Route | None = None) -> Handoff:
         """Build the package a person receives and put the conversation in the handoff queue."""
         reason = self.secrets.redact_text(reason)
         traces = [t for t in [await self.traces.get(s.id) for s in await self.traces.summaries(session_id, 50)
@@ -317,9 +324,11 @@ class Runtime:
         facts = {**(await self.store.get_facts(customer_id) if customer_id else {}), **(extra_facts or {})}
         package = self.secrets.redact(build_package(messages=messages, traces=traces + [trace], approvals=approvals, facts=facts,
                                                     trigger=trigger, reason=reason, topics=topics))
+        route = route or self.router.route(topics, trigger)
+        package["routing"] = {"queue": route.queue, "afterHours": not route.open_now, "nextOpen": route.next_open}
         return await self.handoffs.add(Handoff(
             session_id=session_id, trace_id=trace.id, agent_id=agent_id, customer_id=customer_id, trigger=trigger,
-            reason=reason, topics=topics, package=package))
+            reason=reason, topics=topics, package=package, queue=route.queue, after_hours=not route.open_now))
 
     async def execute_tool(self, tool: Any, data: Any, ctx: ToolContext) -> tuple[Any, bool]:
         """Run a tool, or in dry-run mode simulate it if it is a write. Returns (result, was_simulated)."""

@@ -89,3 +89,5 @@
 | 82 | SMS is a public webhook authenticated by the provider's signature over a configured public URL (never the request's Host); the sender number is the customer identity | Decided, built | Provider behind a two-method interface |
 | 83 | STOP opt-outs persist by one-way hash through erasure; messages with no conversation are recorded under a hash, not the number | Decided, built | |
 | 84 | Channel-specific style lives in the agent spec (`channel_styles`), one agent across channels | Decided, built | Replaces a shared channel-adapter refactor for now; email and SMS share patterns, not code |
+| 85 | Hours and queues are a validated YAML file loaded at start-up (no API editing yet); first matching queue wins by topic or trigger | Decided, built | Studio editing later |
+| 86 | Outside hours the agent still answers; only the hand-off reply changes, with the next opening time | Decided, built | |

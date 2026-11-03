@@ -176,6 +176,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/approvals", "approvals:read"),
     ("POST", r"/v1/approvals/expire", "approvals:decide"),
     ("POST", r"/v1/approvals/[^/]+/decision", "approvals:decide"),
+    ("GET", r"/v1/routing", "handoffs:read"),
     ("GET", r"/v1/handoffs", "handoffs:read"),
     ("GET", r"/v1/handoffs/[^/]+", "handoffs:read"),
     ("POST", r"/v1/handoffs/[^/]+/resolve", "handoffs:resolve"),
@@ -631,14 +632,20 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     def handoff_json(h: Any, full: bool = False) -> dict[str, Any]:
         out = {"id": h.id, "sessionId": h.session_id, "traceId": h.trace_id, "agentId": h.agent_id, "customerId": h.customer_id,
                "trigger": h.trigger, "reason": h.reason, "topics": h.topics, "state": h.state, "createdAt": h.created_at,
-               "resolvedBy": h.resolved_by, "resolvedAt": h.resolved_at, "note": h.note, "summary": h.package.get("summary")}
+               "resolvedBy": h.resolved_by, "resolvedAt": h.resolved_at, "note": h.note, "summary": h.package.get("summary"),
+               "queue": h.queue, "afterHours": h.after_hours}
         if full:
             out["package"] = h.package
         return out
 
+    @app.get("/v1/routing")
+    async def routing_status() -> Any:
+        """Queues, their hours and whether each is open right now."""
+        return runtime.router.describe()
+
     @app.get("/v1/handoffs")
-    async def list_handoffs(state: str | None = None, sessionId: str | None = None, limit: int = 200) -> Any:
-        items = await runtime.handoffs.list(state, sessionId, max(1, min(limit, 1000)))
+    async def list_handoffs(state: str | None = None, sessionId: str | None = None, limit: int = 200, queue: str | None = None) -> Any:
+        items = await runtime.handoffs.list(state, sessionId, max(1, min(limit, 1000)), queue)
         return {"handoffs": [handoff_json(h) for h in items]}
 
     @app.get("/v1/handoffs/{handoff_id}")

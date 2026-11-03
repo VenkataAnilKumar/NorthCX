@@ -232,3 +232,15 @@ describe("streaming chat", () => {
     await expect(chatStream("a", "s", "m")).rejects.toThrow("closed before");
   });
 });
+
+describe("routing calls", () => {
+  it("filters hand-offs by queue and reads queue status", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => { calls.push(url); return new Response(JSON.stringify(url.includes("routing") ? { timezone: "UTC", defaultQueue: "general", holidays: [], queues: [{ name: "general", open: true, nextOpen: null, topics: [], triggers: [] }] } : { handoffs: [] }), { status: 200 }); }));
+    const { listHandoffs, getRouting } = await import("@/lib/api");
+    await listHandoffs("open", "billing");
+    await listHandoffs();
+    expect((await getRouting()).queues[0].name).toBe("general");
+    expect(calls).toEqual(["/api/northcx/v1/handoffs?state=open&queue=billing", "/api/northcx/v1/handoffs", "/api/northcx/v1/routing"]);
+  });
+});
