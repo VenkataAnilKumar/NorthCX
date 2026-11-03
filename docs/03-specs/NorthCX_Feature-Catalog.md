@@ -121,7 +121,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | O5 | Metrics: resolution, escalation, guardrail blocks, tool errors, latency, cost | P1 | 4 | Built (resolution is reported as containment until an agreed definition exists) |
 | O6 | Containment rate, satisfaction score, intent gaps | P1 | 4 | Built (ratings are posted by the company's front end) |
 | O7 | Workflow failure analysis | P1 | 4 | Built (ranked causes with example traces) |
-| O8 | Natural-language analytics questions | P2 | 6 | Planned |
+| O8 | Natural-language analytics questions | P2 | 6 | Built (model plans a validated query over a fixed list of figures; answers are computed, not generated) |
 | O9 | Alerts on error rate, latency and policy spikes | P1 | 4 | Built (six default rules, findings and signed webhook) |
 | O10 | Conversation search and tagging | P1 | 4 | Built |
 

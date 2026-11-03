@@ -42,6 +42,7 @@ from .hardening import BodyLimit, SecurityHeaders
 from .voice import CallRepo, CallSession, InMemoryCalls, VoiceConfig
 from .attachments import MAX_BYTES, MAX_PER_MESSAGE, AttachmentError, AttachmentRepo, InMemoryAttachments, Scanner, accept as accept_attachment, check_accepted
 from .handoffs import PERSON_PREFIX, return_note, transcript
+from .analytics_qa import ask as ask_insights
 from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .simulation.managed import parse_definition
 from .regression import RegressionRunner, scenario_from_traces
@@ -108,6 +109,11 @@ class CrawlBody(BaseModel):
     use_sitemap: bool = Field(default=True, alias="useSitemap")
     prune: bool = False
     model_config = {"populate_by_name": True}
+
+
+class AskBody(BaseModel):
+    question: str = Field(min_length=3, max_length=500)
+    environment: str = "production"
 
 
 class JourneyDraftBody(BaseModel):
@@ -282,6 +288,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("DELETE", r"/v1/sessions/[^/]+/tags/[^/]+", "conversations:tag"),
     ("GET", r"/v1/alerts", "insights:read"),
     ("GET", r"/v1/insights/overview", "insights:read"),
+    ("POST", r"/v1/insights/ask", "insights:read"),
     ("GET", r"/v1/insights/timeseries", "insights:read"),
     ("GET", r"/v1/insights/failures", "insights:read"),
     ("GET", r"/v1/insights/gaps", "insights:read"),
@@ -962,6 +969,21 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def insights_overview(from_: float | None = Query(None, alias="from"), to: float | None = None, agent: str | None = None, environment: str = "production") -> Any:
         w = window(from_, to)
         return w if isinstance(w, JSONResponse) else await insight.overview(w[0], w[1], agent, environment)
+
+    @app.post("/v1/insights/ask")
+    async def insights_ask(body: AskBody, request: Request) -> Any:
+        """A question about performance in plain words. The model only plans the query (one known figure, a period, maybe an agent); the numbers
+        and the sentence come from the same code as the Insights pages, and the plan is returned so the reading can be checked."""
+        who: Identity = request.state.identity
+        if not access.limiter.allow(f"insights-ask:{who.key_id or 'open'}", 15)[0]:
+            return too_many(60, "questions")
+        try:
+            out = await ask_insights(runtime.llm, insight, body.question, [a.id for a in await provider.all()], body.environment)
+        except Exception:
+            log.exception("insights question failed")
+            return _err(502, "model_unavailable", "The model could not be reached; try again")
+        await record(request, "insights.ask", "insights", answerable=out["answerable"], metric=(out.get("plan") or {}).get("metric"))
+        return out
 
     @app.get("/v1/insights/timeseries")
     async def insights_series(from_: float | None = Query(None, alias="from"), to: float | None = None, bucket: str = "day", agent: str | None = None, environment: str = "production") -> Any:

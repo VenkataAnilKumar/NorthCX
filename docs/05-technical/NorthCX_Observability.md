@@ -56,3 +56,12 @@ The customer's id is never sent; conversations are identified by their random se
 **Search and tagging (O10).** `GET /v1/conversations/search` finds conversations by words said by either side, status, hand-off, rating and tag; shown text is masked. Reviewers, developers and admins can tag conversations (for example `wrong-answer`, `needs-article`) and every tag change is audited. The Insights and Conversations pages in the console use these.
 
 **Limits.** Each query reads at most the 20,000 most recent turns of the period (the response says when it was cut). Computation is on demand, not pre-aggregated, so very large deployments will want rollup tables. Reply time is the platform's own processing time per turn, not time to first token. Alert state is in memory and re-evaluates after a restart. Satisfaction has no survey flow of its own: the company's front end asks and posts the rating.
+
+## Plain-language questions — as built (O8)
+
+`POST /v1/insights/ask` with `{question, environment}` (role: anyone who can read insights; 15 questions a minute per key). Example: “Did containment improve compared with last week?”
+
+- The model receives the question and the list of figure names, and replies with a small JSON query: `metric`, `days` (1–366), `offset_days`, `agent`, `compare`, `trend`. Anything not on the list — an unknown figure or agent, a period over a year, wrong types, extra instructions — is refused. The model never sees conversation data or results, and it does not write the answer.
+- Figures: containment, escalation, approval, guardrail-block, tool-error, error and fallback-model rates; conversations, turns, hand-offs, tokens, tokens per conversation; median and slowest-5% response time; average rating and ratings received; estimated cost; and ranked breakdowns of hand-offs (by trigger, queue, topic), tool calls, tool errors and guardrail blocks. `compare` adds the period just before; `trend` adds a per-day (per-hour for up to two days) series for the figures that have one.
+- The reply contains `answer` (a sentence built from the numbers), the figures, and `plan`, which Studio shows as “Read as: …” so a misreading is visible. Questions the list cannot answer return `answerable: false` with the list of what can be asked.
+- Not covered: filters beyond agent and period, questions about individual conversations (use conversation search), charts in answers.

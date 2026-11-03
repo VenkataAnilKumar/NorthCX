@@ -1,12 +1,42 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { formatTime, getAlerts, getFailures, getGaps, getOverview, getReviewQuality, getSeries, type Ratio, type SeriesPoint } from "@/lib/api";
+import { askInsights, formatTime, getAlerts, getFailures, getGaps, getOverview, getReviewQuality, getSeries, type AskAnswer, type Ratio, type SeriesPoint } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
 
 const PERIODS = [{ label: "24 hours", hours: 24 }, { label: "7 days", hours: 24 * 7 }, { label: "30 days", hours: 24 * 30 }];
 const pct = (r: Ratio) => (r.value === null ? "–" : `${(r.value * 100).toFixed(r.value < 0.1 ? 1 : 0)}%`);
+
+function AskBox({ env }: { env: string }) {
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<AskAnswer | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  async function go(e: React.FormEvent) {
+    e.preventDefault(); setBusy(true); setErr(null); setRes(null);
+    try { setRes(await askInsights(q.trim(), env)); } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
+  }
+  const p = res?.plan;
+  return (
+    <section aria-label="Ask a question" className="mb-4 rounded-xl border border-border bg-surface p-4">
+      <h2 className="font-medium">Ask a question</h2>
+      <p className="mb-2 text-sm text-muted">For example: “Did containment improve compared with last week?” The answer is calculated from the recorded figures; the model only works out which figure and period you mean.</p>
+      <form onSubmit={go} className="flex gap-2">
+        <label htmlFor="ask" className="sr-only">Question</label>
+        <input id="ask" value={q} onChange={(e) => setQ(e.target.value)} maxLength={500} placeholder="How many conversations went to a person yesterday?" className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm" />
+        <button disabled={busy || q.trim().length < 3} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text disabled:opacity-50">{busy ? "Working…" : "Ask"}</button>
+      </form>
+      {err && <p role="alert" className="mt-2 text-sm text-[var(--bad)]">{err}</p>}
+      {res && (
+        <div role="status" className="mt-3 text-sm">
+          <p className={res.answerable ? "" : "text-[var(--warn)]"}>{res.answer}</p>
+          {p && <p className="mt-1 text-xs text-muted">Read as: {p.metric.replaceAll("_", " ")}, {p.days} day{p.days === 1 ? "" : "s"}{p.offsetDays ? `, ending ${p.offsetDays} days ago` : ""}{p.agent ? `, agent ${p.agent}` : ""}{p.compare ? ", compared with the period before" : ""}{p.trend ? ", over time" : ""}.</p>}
+          {res.supported && <p className="mt-1 text-xs text-muted">Figures I can answer about: {res.supported.join(", ")}.</p>}
+        </div>)}
+    </section>
+  );
+}
 
 function Stat({ title, ratio, hint }: { title: string; ratio: Ratio; hint: string }) {
   return (
@@ -69,6 +99,8 @@ export default function Insights() {
           </select>
         </div>
       </PageHeader>
+
+      <AskBox env={env} />
 
       {quality.data && quality.data.reviewed > 0 && (
         <section aria-label="Human review" className="mb-4 grid gap-3 sm:grid-cols-3">

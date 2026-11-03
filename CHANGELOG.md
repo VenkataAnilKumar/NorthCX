@@ -7,6 +7,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
+### Added (insights)
+- Ask performance questions in plain words (`POST /v1/insights/ask`, “Ask a question” on the Insights page). The model only picks the figure, period, agent and comparison; the numbers and the answer are computed from the recorded figures and the reading is shown.
+
 ### Added (channels)
 - WhatsApp channel (Meta Cloud API webhook, signed requests, one-time verification) on the same engine as SMS; refused replies are recorded as undeliverable instead of retried.
 

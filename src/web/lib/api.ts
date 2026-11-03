@@ -221,6 +221,8 @@ export const getSeries = (hours: number, agent?: string, env?: string) => {
   q.set("bucket", hours <= 48 ? "hour" : "day");
   return api<{ bucket: string; points: SeriesPoint[] }>(`/v1/insights/timeseries?${q}`);
 };
+export interface AskAnswer { answerable: boolean; answer: string; plan?: { metric: string; days: number; offsetDays: number; agent: string | null; compare: boolean; trend: boolean }; supported?: string[] }
+export const askInsights = (question: string, environment?: string) => api<AskAnswer>("/v1/insights/ask", { method: "POST", body: JSON.stringify({ question, ...(environment ? { environment } : {}) }) });
 export const getFailures = (hours: number, agent?: string, env?: string) => api<{ causes: FailureCause[] }>(`/v1/insights/failures?${windowQuery(hours, agent, env)}`).then((r) => r.causes);
 export const getGaps = (hours: number, agent?: string, env?: string) => api<Gaps>(`/v1/insights/gaps?${windowQuery(hours, agent, env)}`);
 export const getAlerts = () => api<AlertStatus>("/v1/alerts");
