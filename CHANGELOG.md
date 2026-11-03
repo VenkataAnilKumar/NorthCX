@@ -7,6 +7,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
+### Added (knowledge, Office files)
+- Import Word (.docx), PowerPoint (.pptx) and Excel (.xlsx) files into the knowledge base (read with the standard library; hidden sheets and speaker notes are not read; zip bombs and XML entities are refused).
+
 ### Added (residency)
 - Data residency policy (`NORTHCX_RESIDENCY_FILE`): every destination data can be sent to is checked against allowed regions at start-up (strict mode refuses to start), with a data-flow report at `/v1/residency` and in Studio.
 

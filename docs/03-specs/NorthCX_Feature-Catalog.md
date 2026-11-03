@@ -90,7 +90,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | K2 | Customer facts | P0 | 1 | Built; long-term memories (free-text notes with recall) added |
 | K3 | Persistent store | P0 | 2 | Built |
 | K4 | Knowledge retrieval with source citations | P1 | 3 | Built: keyword search, numbered citations; optional meaning-based (hybrid) ranking through a configured embeddings service, with keyword fallback |
-| K5 | Knowledge source connectors and freshness | P1 | 3 | Built: document API, freshness flags, file import (PDF, HTML, Markdown, text) and a polite website crawler; connectors to document systems and Office formats not built |
+| K5 | Knowledge source connectors and freshness | P1 | 3 | Built: document API, freshness flags, file import (PDF, Word, PowerPoint, Excel, HTML, Markdown, text) and a polite website crawler; connectors to document systems and Office formats not built |
 | K6 | History summarisation for long sessions | P1 | 3 | Built |
 | K7 | Customer context pulled from business systems at conversation start | P1 | 3 | Built (Python hook and signed HTTPS endpoint) |
 | K8 | Retention, export and deletion per customer | P1 | 3 | Built |
