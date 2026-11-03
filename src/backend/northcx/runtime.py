@@ -16,6 +16,7 @@ from .monitor import Monitor
 from .summarize import Compactor
 from .context import CachedContext
 from .inbox import InboxDispatcher
+from .journeys import progress as journey_progress, used_tools as journey_tools
 from .language import choose as choose_language, conversation_language, instruction as language_instruction
 from .trace_export import ExportService
 from .routing import DEFAULT_ROUTER, Route, Router
@@ -143,6 +144,12 @@ class Runtime:
             reply = self.secrets.redact_text(reply)
             if messages and messages[-1]["role"] == "assistant" and isinstance(messages[-1]["content"], str):
                 messages[-1]["content"] = reply
+            if agent.journeys:
+                used = journey_tools(messages)
+                for j in agent.journeys:
+                    p = journey_progress(j, used)
+                    if p["reached"]:
+                        trace.add("journey", name=j.name, completed=p["completed"], stepsDone=p["stepsDone"], steps=p["steps"])
             trace.add("reply", reply=reply, status=status)
             for e in trace.events:  # nothing we keep may contain a secret
                 e.data = self.secrets.redact(e.data)

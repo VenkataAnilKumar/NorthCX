@@ -9,8 +9,8 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | A2 | Agents as code (version-controlled definitions, YAML spec) | P0 | 1-2 | Built |
 | A3 | Reusable skills composed into workflows (for example triage, respond, confirm) | P1 | 3 | Built (skill files, composed into the agent; step lists) |
 | A4 | Adjustable workflow flexibility (strict steps to free-form) per skill | P1 | 3 | Built (strict is enforced, guided and free are advice) |
-| A5 | Journeys: scenario blueprints with goals, guardrails and required steps | P1 | 4 | Planned |
-| A6 | Journeys described in plain language and converted to definitions | P2 | 4 | Planned |
+| A5 | Journeys: scenario blueprints with goals, guardrails and required steps | P1 | 4 | Built (journeys inside the agent spec: goal, steps tied to tools, rules, done-when, hand-off conditions; strict ordering enforced; progress measured from tools used; test scenarios generated) |
+| A6 | Journeys described in plain language and converted to definitions | P2 | 4 | Built (model drafts a checked definition for review; never saved by itself; needs a live model) |
 | A7 | Templates for common support intents | P1 | 3 | Built (four templates with scenarios; API; gallery page planned) |
 | A8 | Agent-assisted building: generate an agent from procedures, transcripts or call recordings | P2 | 6 | Planned |
 | A9 | Per-agent model choice and settings | P0 | 1 | Built |

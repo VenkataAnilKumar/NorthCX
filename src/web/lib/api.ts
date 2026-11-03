@@ -182,6 +182,7 @@ export interface Overview {
   latencySeconds: { p50: number | null; p95: number | null; samples: number };
   tokens: { total: number; perConversation: number | null; modelCalls: number };
   handoffs: { total: number; byTrigger: Record<string, number>; byQueue: Record<string, number>; byTopic: Record<string, number> };
+  journeys?: Record<string, { reached: number; completed: Ratio | null; handedOff: number }>;
   languages?: { detected: Ratio; byLanguage: Record<string, { conversations: number; containmentRate: Ratio }> };
   tools: { used: Record<string, number>; errors: Record<string, number> }; guardrails: Record<string, number>;
   satisfaction: { average: number | null; responses: number; responseRate: Ratio; distribution: Record<string, number> };
@@ -291,3 +292,9 @@ export const getReviewQuality = () => api<ReviewQuality>("/v1/insights/review-qu
 export const getSsoConfig = () =>
   fetch("/api/northcx/auth/sso/config").then((r) => (r.ok ? (r.json() as Promise<{ enabled: boolean; loginUrl: string | null }>) : { enabled: false, loginUrl: null })).catch(() => ({ enabled: false, loginUrl: null }));
 export const signOut = () => api<{ revoked: boolean }>("/v1/me/logout", { method: "POST" });
+
+export interface Journey { name: string; goal: string; when?: string; steps: { purpose: string; tool?: string | null; required?: boolean }[]; rules?: string[]; done_when?: string[]; handoff_if?: string[]; flexibility?: string; samples?: string[] }
+export const draftJourney = (agent: string, description: string) =>
+  api<{ journey: Journey; yaml: string; warnings: string[]; note: string }>(`/v1/agents/${encodeURIComponent(agent)}/journeys/draft`, { method: "POST", body: JSON.stringify({ description }) });
+export const journeyScenarios = (agent: string, journey: Journey) =>
+  api<{ scenarios: Record<string, unknown>[]; yaml: string }>(`/v1/agents/${encodeURIComponent(agent)}/journeys/scenarios`, { method: "POST", body: JSON.stringify({ journey }) });

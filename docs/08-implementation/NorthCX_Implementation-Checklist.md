@@ -41,7 +41,7 @@ Status: Living checklist. IDs refer to the Feature Catalog.
 ## Phase 4
 - [ ] Studio screens (U1-U8)
 - [ ] Insights, alerts, search (O5-O7, O9, O10)
-- [ ] Journeys, multilingual, SSO, experiments (A5, A6, R9, P5, Q11)
+- [x] Journeys, multilingual, SSO, experiments (A5, A6, R9, P5, Q11)
 ## Phase 5
 - [ ] Voice and consent flow (C5, C6)
 - [ ] Agent assist, return-to-agent, multi-agent, attachments, SDK (H6, H7, R8, C10, C7)

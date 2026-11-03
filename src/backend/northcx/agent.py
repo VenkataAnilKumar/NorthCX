@@ -74,5 +74,6 @@ class Agent:
     model: str | None = None
     max_steps: int = 8
     channel_styles: dict[str, str] = field(default_factory=dict)  # per-channel writing style, e.g. {"sms": "Two short sentences"}
+    journeys: list[Any] = field(default_factory=list)  # JourneySpec objects; progress through them is recorded on each trace
     languages: list[str] = field(default_factory=list)  # languages the agent supports; the first is the default. Empty: no language handling
     max_run_tokens: int | None = None  # stop and hand off when one turn has used this many model tokens

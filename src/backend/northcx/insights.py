@@ -39,6 +39,7 @@ class TurnFacts:
     text: str = ""  # what was said (customer and agent), lower-cased and capped, for conversation search
     last_reply: str = ""
     language: str | None = None  # what the customer wrote in, when the agent handles languages
+    journeys: dict[str, bool | None] = field(default_factory=dict)  # journeys reached this turn -> completed (None: cannot be told)
 
 
 @dataclass
@@ -71,6 +72,8 @@ def facts_from_trace(t: Trace) -> TurnFacts:
             said.append(str(d.get("message", "")))
             if not f.first_message:
                 f.first_message = str(d.get("message", ""))
+        elif e.type == "journey":
+            f.journeys[str(d.get("name"))] = d.get("completed")
         elif e.type == "language":
             f.language = d.get("detected") or f.language
         elif e.type == "reply":
@@ -156,6 +159,18 @@ def compute(turns: list[TurnFacts], handoffs: list[HandoffFacts], feedback: list
         "note": "Containment is the share of conversations that did not reach a person; it is not a resolution rate, which needs an agreed definition of "
                 "'resolved' per intent. Figures cover only the turns recorded in this period and environment.",
     }
+    reached: dict[str, set[str]] = {}
+    completed: dict[str, set[str]] = {}
+    measurable: dict[str, bool] = {}
+    for t in turns:
+        for name, done in t.journeys.items():
+            reached.setdefault(name, set()).add(t.session_id)
+            measurable[name] = measurable.get(name, False) or done is not None
+            if done:
+                completed.setdefault(name, set()).add(t.session_id)
+    if reached:
+        out["journeys"] = {n: {"reached": len(s), "completed": ratio(len(completed.get(n, set())), len(s)) if measurable[n] else None,
+                               "handedOff": len(s & handed)} for n, s in sorted(reached.items())}
     langs: dict[str, str] = {}
     for t in sorted(turns, key=lambda t: t.started_at):
         if t.language:

@@ -94,8 +94,8 @@ def load_skills(path: str | Path) -> list[Skill]:
     return out
 
 
-def render_skill(skill: Skill, flexibility: str) -> str:
-    lines = [f"## Skill: {skill.name}", skill.instructions]
+def render_skill(skill: Skill, flexibility: str, label: str = "Skill") -> str:
+    lines = [f"## {label}: {skill.name}", skill.instructions]
     if skill.steps:
         how = {"strict": "Follow these steps in this order. Required steps cannot be skipped; the system refuses a step's tool until the earlier required steps are done.",
                "guided": "Follow these steps in this order unless the customer's situation clearly calls for something else.",

@@ -15,6 +15,7 @@ import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .agent import Agent, Tool
+from .journeys import JourneySpec, to_skill as journey_skill
 from .skills import FLEXIBILITY, Skill, SkillError, SkillOrder, parse_skill, skill_to_dict, ToolScope, ToolScopeRule, render_skill, render_voice
 from .policies import FACTORIES as POLICY_FACTORIES
 from .guardrails import Guardrail, InputGuardrail, OutputGuardrail, LLMPolicy, NoCardNumbers
@@ -90,6 +91,7 @@ class AgentSpec(BaseModel):
     max_steps: int = Field(default=8, ge=1, le=50)
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
     channel_styles: dict[str, str] = Field(default_factory=dict)
+    journeys: list[JourneySpec] = Field(default_factory=list, max_length=20)
     languages: list[str] = Field(default_factory=list)  # supported languages (first is the default); empty means no language handling
     skills: list[SkillRef] = Field(default_factory=list)
     voice: VoiceSpec | None = None
@@ -138,6 +140,8 @@ class AgentSpec(BaseModel):
         for key in ("skills", "voice", "tool_scopes", "skill_snapshots"):
             if not data[key]:
                 del data[key]  # keeps digests of specs written before these fields existed
+        if not data["journeys"]:
+            del data["journeys"]  # keeps digests of specs written before this field existed
         if not data["languages"]:
             del data["languages"]  # keeps digests of specs written before this field existed
         if not data["channel_styles"]:
@@ -281,6 +285,18 @@ class Registry:
             for t in sk.tool_names():
                 if t not in self._tools:
                     problems.append(f"Skill '{ref}' needs the tool '{t}', which is not registered")
+        jn = [j.name for j in spec.journeys]
+        if len(set(jn)) != len(jn):
+            problems.append("Duplicate journey names")
+        for j in spec.journeys:
+            if j.name in refs:
+                problems.append(f"Journey '{j.name}' has the same name as a skill")
+            for t in j.tool_names():
+                if t not in self._tools:
+                    problems.append(f"Journey '{j.name}' needs the tool '{t}', which is not registered")
+            late = [s.tool for s in j.steps if s.tool and j.flexibility == "strict" and sum(1 for x in j.steps if x.tool == s.tool) > 1]
+            if late:
+                problems.append(f"Journey '{j.name}' is strict but uses the tool '{late[0]}' in more than one step")
         for t in spec.tool_scopes:
             if t not in self._tools:
                 problems.append(f"tool_scopes names the unknown tool '{t}'")
@@ -298,7 +314,7 @@ class Registry:
 
     def _all_tools(self, spec: AgentSpec) -> list[str]:
         """The spec's tools plus those its skills need (each once)."""
-        extra = [t for r in spec.skills for t in self.skill_for(spec, r.name).tool_names()]
+        extra = [t for r in spec.skills for t in self.skill_for(spec, r.name).tool_names()] + [t for j in spec.journeys for t in j.tool_names()]
         return list(dict.fromkeys(list(spec.tools) + extra))
 
     def _compose(self, spec: AgentSpec) -> str:
@@ -307,11 +323,13 @@ class Registry:
         if spec.voice:
             parts.append(render_voice(spec.voice.tone, spec.voice.guidelines, spec.voice.avoid_phrases, spec.voice.sign_off))
         parts += [render_skill(self.skill_for(spec, r.name), r.flexibility) for r in spec.skills]
+        parts += [render_skill(journey_skill(j), j.flexibility, "Journey") for j in spec.journeys]
         return "\n\n".join(parts) + ("\n" if spec.instructions.endswith("\n") else "")
 
     def _enforcers(self, spec: AgentSpec) -> list[Guardrail]:
         """Guardrails that turn skills, voice and tool scopes from advice into rules."""
         out: list[Guardrail] = [SkillOrder(self.skill_for(spec, r.name)) for r in spec.skills if r.flexibility == "strict" and self.skill_for(spec, r.name).steps]
+        out += [SkillOrder(journey_skill(j)) for j in spec.journeys if j.flexibility == "strict" and any(s.tool for s in j.steps)]
         if spec.voice and spec.voice.avoid_phrases:
             out.append(POLICY_FACTORIES["forbidden_phrases"]({"phrases": spec.voice.avoid_phrases, "reason": "Reply uses wording the brand voice forbids."}, None))
         if spec.tool_scopes:
@@ -333,6 +351,7 @@ class Registry:
                 max_run_tokens=spec.max_run_tokens,
                 channel_styles=dict(spec.channel_styles),
                 languages=list(spec.languages),
+                journeys=list(spec.journeys),
                 tools=[self._tools[t] for t in self._all_tools(spec)],
                 guardrails=[self._make("guardrail", self._guardrails[g.name], g, ctx) for g in spec.guardrails] + self._enforcers(spec),
                 input_guardrails=[self._make("input guardrail", self._input_guardrails[g.name], g, ctx) for g in spec.input_guardrails],

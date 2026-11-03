@@ -1,4 +1,5 @@
 "use client";
+import { JourneyEditor } from "@/components/journey-editor";
 import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
 import { getCatalog, getLive, previewSpec, releaseToEnvironment, saveSpec, type Catalog, type SpecPreview } from "@/lib/api";
@@ -142,6 +143,9 @@ function Editor({ id, initial, catalog }: { id: string; initial: Spec; catalog: 
                   {catalog.flexibility.map((f) => <option key={f}>{f}</option>)}</select></label>}
               </div>);
           })}
+        </Section>
+        <Section title="Journeys" hint="How a kind of conversation should go: a goal, steps tied to tools, rules, and when to hand over. Describe one in plain words and the model drafts it for you to review.">
+          <JourneyEditor agent={id} journeys={spec.journeys ?? []} tools={Array.from(new Set([...tools, ...catalog.tools.map((t) => t.name)]))} onChange={(j) => set("journeys", j)} />
         </Section>
         <Section title="Languages" hint="Languages this agent is written and tested for. It detects what the customer writes in and replies in the same language; anything else gets the default and an offer of a person. Leave empty for no language handling.">
           <div className="flex flex-wrap gap-3 text-sm">

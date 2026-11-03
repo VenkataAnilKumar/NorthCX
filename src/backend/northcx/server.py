@@ -27,6 +27,7 @@ from .approval_flow import ApprovalFlow
 from .channels.sms import SmsChannel, parse_form
 from .templates import Template, TemplateError, render
 from .alerts import AlertManager
+from .journeys import SYSTEM as JOURNEY_SYSTEM, DraftError, JourneySpec, draft_prompt, parse_draft, scenarios as journey_scenarios_list, scenarios_yaml as journey_scenarios_yaml
 from .sso import Sso, SsoError
 from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms, rollout_json
 from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
@@ -40,6 +41,7 @@ from .knowledge import InMemoryKnowledge, KnowledgeError, KnowledgeStore, Source
 from .idempotency import IdempotencyStore, InMemoryIdempotency, scope_hash, request_hash, valid_key
 from .audit import AuditEntry, AuditRepo, InMemoryAudit
 from .catalog import AgentUnavailable, as_provider
+from .types import LLMRequest, text_of
 from .runtime import Runtime
 from .simulation import Busy, SimulationService
 from .spec import AgentSpec, SpecError, parse_spec
@@ -83,6 +85,14 @@ class RolloutBody(BaseModel):
     environment: str = "production"
     by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
+
+
+class JourneyDraftBody(BaseModel):
+    description: str = Field(min_length=10, max_length=3000)
+
+
+class JourneyScenariosBody(BaseModel):
+    journey: dict[str, Any]
 
 
 class PercentBody(BaseModel):
@@ -242,6 +252,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/sessions/[^/]+/feedback", "feedback:send"),
     ("GET", r"/v1/regression", "simulations:read"),
     ("GET", r"/v1/sessions/.+/scenario-draft", "simulations:run"),
+    ("POST", r"/v1/agents/[^/]+/journeys/draft", "versions:create"),
+    ("POST", r"/v1/agents/[^/]+/journeys/scenarios", "simulations:run"),
     ("GET", r"/v1/trace-export", "traces:read"),
     ("GET", r"/v1/traces/[^/]+/exports", "traces:read"),
     ("GET", r"/v1/traces", "traces:read"),
@@ -843,6 +855,42 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def regression_status() -> Any:
         """Whether simulations re-run when the knowledge changes, and how the last re-run went."""
         return regression.status() if regression is not None else {"enabled": False}
+
+    @app.post("/v1/agents/{agent_id}/journeys/draft")
+    async def journey_draft(agent_id: str, body: JourneyDraftBody, request: Request) -> Any:
+        """A journey drafted from a plain-language description by the model. Checked against the agent's real tools; never saved by itself."""
+        who: Identity = request.state.identity
+        if not access.limiter.allow(f"journey-draft:{who.key_id or 'open'}", 10)[0]:
+            return too_many(60, "journey drafts")
+        try:
+            agent = await provider.get(agent_id)
+        except AgentUnavailable as e:
+            return _err(503, "agent_unavailable", str(e))
+        if agent is None:
+            return _err(404, "not_found", "Unknown agent")
+        tools = [(t.name, t.description) for t in agent.tools]
+        try:
+            res = await runtime.llm.complete(LLMRequest(system=JOURNEY_SYSTEM, messages=[{"role": "user", "content": draft_prompt(body.description, tools)}], max_tokens=1500))
+        except Exception:
+            log.exception("journey draft failed")
+            return _err(502, "model_unavailable", "The model could not be reached; try again")
+        try:
+            journey, warnings = parse_draft(text_of(res.content), {n for n, _ in tools})
+        except DraftError as e:
+            return _err(422, "unusable_draft", str(e))
+        await record(request, "journey.draft", agent_id, steps=len(journey.steps), warnings=len(warnings))
+        data = journey.model_dump(mode="json")
+        return {"journey": data, "yaml": yaml.safe_dump(data, sort_keys=False, allow_unicode=True), "warnings": warnings,
+                "note": "A draft for a person to review. Nothing is saved until it is added to the agent and a version is created."}
+
+    @app.post("/v1/agents/{agent_id}/journeys/scenarios")
+    async def journey_scenarios(agent_id: str, body: JourneyScenariosBody) -> Any:
+        """Test scenario drafts for a journey, one per sample opening message (not required until someone relies on them)."""
+        try:
+            j = JourneySpec.model_validate(body.journey)
+        except ValueError as e:
+            return _err(400, "bad_request", "; ".join(f"{'.'.join(str(p) for p in x['loc'])}: {x['msg']}" for x in getattr(e, "errors", lambda: [])()[:5]) or str(e))
+        return {"scenarios": journey_scenarios_list(j, agent_id), "yaml": journey_scenarios_yaml(j, agent_id)}
 
     @app.get("/v1/sessions/{session_id}/scenario-draft")
     async def scenario_draft(session_id: str, request: Request) -> Any:
