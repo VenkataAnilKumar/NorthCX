@@ -83,6 +83,8 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | GET | `/templates`, `/templates/{id}` | Agent templates and their parameters (built) |
 | POST | `/templates/{id}/render` | `{agentId, params}`: the filled-in spec YAML, scenario YAML, missing tools and warnings; saves nothing (`versions:create`) (built) |
 | POST | `/templates/{id}/create-version` | Render and save as a new version of `agentId`; refused when the deployment lacks a tool the template needs (built) |
+| GET | `/catalog` | The building blocks an editor can offer: tools (effect, approval, inputs), guardrails with an example setting, input and output checks, skills (built) |
+| POST | `/agents/{id}/versions/preview` | `{spec}`: every problem found, the digest, whether it equals the latest version, and what differs from production; saves nothing (`versions:create`) (built) |
 | GET | `/skills` | Skills available to agents, with their steps and tools (built) |
 | GET | `/insights/overview`, `/insights/timeseries`, `/insights/failures`, `/insights/gaps` | Metrics with numerator, denominator and period; `from`, `to` (epoch seconds, default last 7 days, at most 366), `agent`, `environment`; timeseries takes `bucket=hour|day` (`insights:read`) (built) |
 | POST | `/sessions/{id}/feedback` | `{rating 1-5, comment?}`: a customer's rating (chat token for its own conversation, channel or API key); a second rating replaces the first (`feedback:send`) (built) |

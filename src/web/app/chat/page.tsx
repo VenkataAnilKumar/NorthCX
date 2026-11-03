@@ -25,7 +25,14 @@ export default function TestConsole() {
   const [version, setVersion] = useState<number | null | undefined>(undefined);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (agents.data?.length && !agentId) setAgentId(agents.data[0].id); }, [agents.data, agentId]);
+  useEffect(() => {
+    if (!agents.data?.length || agentId) return;
+    const q = new URLSearchParams(window.location.search);
+    const wanted = q.get("agent");
+    setAgentId(wanted && agents.data.some((a) => a.id === wanted) ? wanted : agents.data[0].id);
+    const e = q.get("env");
+    if (e === "dev" || e === "staging") setEnvironment(e);
+  }, [agents.data, agentId]);
   useEffect(() => { endRef.current?.scrollIntoView?.({ block: "end" }); }, [turns]);
 
   // Messages that arrive later (for example after a reviewer decides an approval) appear in the conversation.

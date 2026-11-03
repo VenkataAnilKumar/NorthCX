@@ -211,6 +211,25 @@ class Registry:
     def output_guardrail_names(self) -> list[str]:
         return sorted(self._output_guardrails)
 
+    def describe(self) -> dict[str, Any]:
+        """Everything an editor needs to offer choices: tools (with their inputs and whether they change things or need approval),
+        the guardrails of each kind, policies with an example configuration, and skills."""
+        from .policies import CASES, DESCRIPTIONS
+        examples = {}
+        for name, cfg, *_ in CASES:
+            examples.setdefault(name, cfg)
+        tools = []
+        for n in self.tool_names():
+            t = self._tools[n]
+            tools.append({"name": n, "description": t.description, "effect": t.effect, "approval": t.requires_approval is not None,
+                          "inputs": list(t.input_model.model_json_schema().get("properties", {}))})
+        return {"tools": tools,
+                "guardrails": [{"name": n, "description": DESCRIPTIONS.get(n, ""), "example": examples.get(n)} for n in self.guardrail_names()],
+                "inputGuardrails": [{"name": n} for n in self.input_guardrail_names()],
+                "outputGuardrails": [{"name": n} for n in self.output_guardrail_names()],
+                "skills": [{"name": s.name, "description": s.description, "steps": [x.purpose for x in s.steps], "tools": s.tool_names()} for s in self.skill_info()],
+                "flexibility": list(FLEXIBILITY)}
+
     def tool_names(self) -> list[str]:
         return sorted(self._tools)
 
@@ -256,6 +275,16 @@ class Registry:
                 problems.append(f"tool_scopes names the unknown tool '{t}'")
         return problems
 
+    @staticmethod
+    def _make(kind: str, factory: Any, ref: Any, ctx: Any) -> Any:
+        try:
+            return factory(ref.config, ctx)
+        except (TypeError, ValueError) as e:
+            detail = str(e)
+            if "missing" in detail and "required" in detail:  # a missing setting: say which, not which Python class
+                detail = "missing setting(s): " + ", ".join(re.findall(r"'([a-z_]+)'", detail.split("argument")[1] if "argument" in detail else detail))
+            raise SpecError(f"Invalid {kind} configuration for '{ref.name}': {detail}") from e
+
     def _all_tools(self, spec: AgentSpec) -> list[str]:
         """The spec's tools plus those its skills need (each once)."""
         extra = [t for r in spec.skills for t in self.skill_for(spec, r.name).tool_names()]
@@ -293,9 +322,9 @@ class Registry:
                 max_run_tokens=spec.max_run_tokens,
                 channel_styles=dict(spec.channel_styles),
                 tools=[self._tools[t] for t in self._all_tools(spec)],
-                guardrails=[self._guardrails[g.name](g.config, ctx) for g in spec.guardrails] + self._enforcers(spec),
-                input_guardrails=[self._input_guardrails[g.name](g.config, ctx) for g in spec.input_guardrails],
-                output_guardrails=[self._output_guardrails[g.name](g.config, ctx) for g in spec.output_guardrails],
+                guardrails=[self._make("guardrail", self._guardrails[g.name], g, ctx) for g in spec.guardrails] + self._enforcers(spec),
+                input_guardrails=[self._make("input guardrail", self._input_guardrails[g.name], g, ctx) for g in spec.input_guardrails],
+                output_guardrails=[self._make("output guardrail", self._output_guardrails[g.name], g, ctx) for g in spec.output_guardrails],
                 forced_handoffs=[ForcedTopic(t.name, t.patterns, **({"reply": t.reply} if t.reply else {}))
                                  for t in spec.forced_handoff],
             )

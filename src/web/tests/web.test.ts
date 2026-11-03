@@ -291,3 +291,19 @@ describe("insights and search calls", () => {
     expect(calls[5][1]?.method).toBe("DELETE");
   });
 });
+
+describe("studio calls", () => {
+  it("loads the catalog, previews a spec without saving it, and saves a version from the spec", async () => {
+    const calls: [string, RequestInit | undefined][] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => { calls.push([url, init]); return new Response(JSON.stringify({ valid: true, problems: [], number: 3 }), { status: 200 }); }));
+    const { getCatalog, previewSpec, saveSpec } = await import("@/lib/api");
+    await getCatalog();
+    await previewSpec("support", { id: "support", instructions: "hi" });
+    await saveSpec("support", { id: "support", instructions: "hi" }, "jo", "tweak");
+    expect(calls[0][0]).toBe("/api/northcx/v1/catalog");
+    expect(calls[1][0]).toBe("/api/northcx/v1/agents/support/versions/preview");
+    expect(JSON.parse(String(calls[1][1]?.body))).toEqual({ spec: { id: "support", instructions: "hi" } });
+    expect(calls[2][0]).toBe("/api/northcx/v1/agents/support/versions");
+    expect(JSON.parse(String(calls[2][1]?.body))).toEqual({ spec: { id: "support", instructions: "hi" }, by: "jo", note: "tweak" });
+  });
+});

@@ -110,3 +110,4 @@
 | 103 | The Anthropic SDK is the model backend for now, isolated in `northcx/llm.py` behind the `LLM` interface (checked by a test); the plan is our own multi-provider layer later (direct Claude client first, then provider adapters), see NorthCX_Model-Providers.md | Decided | Chosen by the owner |
 | 104 | Insights are computed on demand from traces, hand-offs and ratings with numerator, denominator and period on every rate; containment is reported, resolution is not claimed | Decided, built | Rollups later if volume needs them |
 | 105 | Alerts are rule-based over a recent production window with minimum samples, cooldown and auto-clear; findings are the record, a signed webhook is optional | Decided, built | |
+| 106 | The Studio editor is a form over the spec with server-side live checks (preview) and a one-click path to dev; it creates versions and never bypasses the release gate | Decided, built | Scenario editor, knowledge screens and review views follow |

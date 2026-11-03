@@ -122,7 +122,7 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
   const l = live.data!;
   return (
     <>
-      <p className="mb-2 text-sm"><Link className="text-primary underline" href="/agents">← Agents</Link></p>
+      <p className="mb-2 flex items-center justify-between text-sm"><Link className="text-primary underline" href="/agents">← Agents</Link>{can("versions:create") && <Link className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40" href={`/agents/${id}/edit`}>Edit in Studio</Link>}</p>
       <PageHeader title={`${id}: versions and releases`} subtitle="A version is a saved copy of the agent's spec. It can go live only after every required scenario has passed for that exact version.">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {askForName && (<>

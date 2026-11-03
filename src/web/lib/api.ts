@@ -68,7 +68,8 @@ export const runSimulation = (mode: string, skipJudge: boolean, only?: string) =
   api<SimRunSummary>("/v1/simulations/runs", { method: "POST", body: JSON.stringify({ mode, skipJudge, ...(only ? { only } : {}) }) });
 export interface AgentVersion { id: string; agentId: string; number: number; digest: string; author: string; note: string | null; createdAt: number; live: boolean; everReleased: boolean; spec?: unknown; specYaml?: string }
 export interface ReleaseRecord { id: string; agentId: string; environment: string; action: "publish" | "rollback"; version: number | null; previousVersion: number | null; by: string; note: string | null; gate: { satisfied?: boolean; covered?: number; required?: number }; createdAt: number; toBaseline: boolean }
-export interface LiveInfo { agentId: string; source: "release" | "baseline"; version: number | null; digest: string; release: ReleaseRecord | null; specYaml: string }
+export interface LiveInfo {
+  spec: Record<string, unknown>; agentId: string; source: "release" | "baseline"; version: number | null; digest: string; release: ReleaseRecord | null; specYaml: string }
 export interface VersionDiff { from: number; to: number; identical: boolean; instructions: string | null; tools: { added: string[]; removed: string[] }; guardrails: Chg; input_guardrails: Chg; forced_handoff: Chg; other: Record<string, { from: unknown; to: unknown }> }
 interface Chg { added: string[]; removed: string[]; changed: string[] }
 const agentPath = (id: string) => `/v1/agents/${encodeURIComponent(id)}`;
@@ -206,6 +207,21 @@ export const searchConversations = (p: { q?: string; status?: string; tag?: stri
 };
 export const addTag = (sessionId: string, tag: string) => api<{ tags: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/tags/${encodeURIComponent(tag)}`, { method: "PUT" });
 export const removeTag = (sessionId: string, tag: string) => api<{ tags: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/tags/${encodeURIComponent(tag)}`, { method: "DELETE" });
+
+export interface CatalogTool { name: string; description: string; effect: "read" | "write"; approval: boolean; inputs: string[] }
+export interface Catalog {
+  tools: CatalogTool[]; guardrails: { name: string; description: string; example: Record<string, unknown> | null }[];
+  inputGuardrails: { name: string }[]; outputGuardrails: { name: string }[];
+  skills: { name: string; description: string; steps: string[]; tools: string[] }[]; flexibility: string[];
+}
+export interface SpecPreview {
+  valid: boolean; problems: string[]; digest?: string; unchangedSinceLatest?: boolean;
+  diffFromLive?: { identical: boolean; instructions: string | null; tools: { added: string[]; removed: string[] }; other: Record<string, unknown> } | null;
+}
+export const getCatalog = () => api<Catalog>("/v1/catalog");
+export const previewSpec = (id: string, spec: unknown) => api<SpecPreview>(`/v1/agents/${encodeURIComponent(id)}/versions/preview`, { method: "POST", body: JSON.stringify({ spec }) });
+export const saveSpec = (id: string, spec: unknown, by?: string, note?: string) =>
+  api<AgentVersion>(`/v1/agents/${encodeURIComponent(id)}/versions`, { method: "POST", body: JSON.stringify({ spec, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 
 export const statusLabel: Record<string, string> = {
   completed: "Completed", escalated: "Escalated", needs_approval: "Needs approval", unknown: "Unknown",

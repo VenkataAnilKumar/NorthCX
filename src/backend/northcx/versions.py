@@ -195,6 +195,30 @@ class ReleaseService:
             raise Conflict(f"No changes since version {existing[0].number}")
         return await self.versions.create(agent_id, json.loads(spec.canonical()), spec.digest(), by, note)
 
+    async def preview(self, agent_id: str, spec_data: dict[str, Any]) -> dict[str, Any]:
+        """Check a spec as an editor is changing it, without saving: every problem found, whether it differs from the latest version, and what
+        changed compared with what is live in production."""
+        try:
+            spec = AgentSpec.model_validate(spec_data)
+        except Exception as e:
+            errors = e.errors() if hasattr(e, "errors") else []
+            return {"valid": False, "problems": [(".".join(str(p) for p in x["loc"]) + ": " if x.get("loc") else "") + str(x["msg"]) for x in errors] or [str(e)]}
+        problems = [] if spec.id == agent_id else [f"The spec's id '{spec.id}' must be '{agent_id}'"]
+        problems += self.registry.validate(spec)
+        if not problems:
+            try:
+                self.registry.build(spec, BuildContext(llm=_NullLLM()))
+            except SpecError as e:
+                problems.append(str(e))
+        if problems:
+            return {"valid": False, "problems": problems}
+        pinned = self.registry.pin_skills(spec)
+        latest = await self.versions.list(agent_id)
+        v, rel, _ = await self.resolve(agent_id, PRODUCTION)
+        base = v.spec if v else (json.loads(self.baselines[agent_id].canonical()) if agent_id in self.baselines else None)
+        return {"valid": True, "problems": [], "digest": pinned.digest(), "unchangedSinceLatest": bool(latest) and latest[0].digest == pinned.digest(),
+                "diffFromLive": diff_specs(base, json.loads(pinned.canonical())) if base is not None else None}
+
     async def live(self, agent_id: str, environment: str = PRODUCTION) -> tuple[AgentVersion | None, Release | None]:
         rel = await self.releases.current(agent_id, environment)
         if rel is None or rel.version_id is None:

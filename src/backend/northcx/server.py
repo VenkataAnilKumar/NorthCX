@@ -206,6 +206,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/traces/[^/]+/exports", "traces:read"),
     ("GET", r"/v1/traces", "traces:read"),
     ("GET", r"/v1/traces/[^/]+", "traces:read"),
+    ("GET", r"/v1/catalog", "agents:read"),
+    ("POST", r"/v1/agents/[^/]+/versions/preview", "versions:create"),
     ("GET", r"/v1/templates", "agents:read"),
     ("GET", r"/v1/templates/[^/]+", "agents:read"),
     ("POST", r"/v1/templates/[^/]+/render", "versions:create"),
@@ -1220,6 +1222,22 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return rel_error(e if isinstance(e, (InvalidSpec, Conflict)) else InvalidSpec(str(e)))
         await record(request, "version.create", f"{agent_id}@{v.number}", digest=v.digest[:12])
         return JSONResponse(version_json(v, full=True), status_code=201)
+
+    @app.get("/v1/catalog")
+    async def catalog() -> Any:
+        """The building blocks an editor can offer: tools, guardrails, policies, skills."""
+        svc = need_rel()
+        return svc if isinstance(svc, JSONResponse) else svc.registry.describe()
+
+    @app.post("/v1/agents/{agent_id}/versions/preview")
+    async def preview_version(agent_id: str, body: VersionBody) -> Any:
+        """Check a spec without saving it (for editors): problems, digest, and what changed compared with production."""
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        if body.spec is None:
+            return _err(400, "bad_request", "Give the spec as 'spec'")
+        return await svc.preview(agent_id, body.spec)
 
     @app.get("/v1/agents/{agent_id}/versions")
     async def list_versions(agent_id: str) -> Any:
