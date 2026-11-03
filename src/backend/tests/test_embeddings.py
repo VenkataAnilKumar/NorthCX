@@ -4,7 +4,7 @@ import json
 import httpx
 import pytest
 
-from northcx.embeddings import EmbeddingError, EmbeddingIndexer, HttpEmbedder, HybridKnowledge, fuse
+from northcx.embeddings import EmbeddingError, EmbeddingIndexer, HttpEmbedder, HybridKnowledge, fuse, model_groups, parse_source_models
 from northcx.knowledge import InMemoryKnowledge, Passage, Source
 
 CONCEPTS = [("refund", "money back", "reimburse", "return"), ("ship", "delivery", "courier", "parcel"), ("gift", "voucher", "present")]
@@ -30,6 +30,11 @@ class Fake:
 
     async def embed_query(self, q):
         return (await self.embed([q]))[0]
+
+    def for_model(self, model):
+        other = Fake()
+        other.model, other.down, other.calls = model, self.down, self.calls
+        return other
 
 
 @pytest.fixture(params=["memory", "postgres"])
@@ -206,3 +211,69 @@ def test_the_index_endpoints_and_search_marks_how_each_passage_was_found():
     with TestClient(create_app(rt2, rt2.traces, {"support": support_agent()}, access=plain)) as c:
         assert c.get("/v1/knowledge/index", headers=h).json() == {"enabled": False}
         assert c.post("/v1/knowledge/index/rebuild", headers=h).status_code == 501
+
+
+# ---- approximate index (Postgres only) ----
+async def test_the_approximate_index_is_built_past_the_threshold_and_agrees_with_the_exact_scan(engine):
+    from sqlalchemy import text as sql
+    from northcx.db import PgKnowledge
+    st = PgKnowledge(engine)
+    st.ann_threshold = 4
+    await st.create_source(Source("help", "Help", None))
+    for i in range(6):
+        await st.upsert("help", f"d{i}", f"Doc {i}", None, f"# Doc {i}\n\n" + ["refund money back", "courier parcel ship", "gift voucher present"][i % 3] + f" item{i}", None, 1.0)
+    idx = EmbeddingIndexer(st, Fake())
+    await st.ensure_semantic()
+    st.ann_threshold = 10_000
+    await idx.run_once()
+    assert (await st.ann_status())["indexedSizes"] == []  # below the threshold: the exact scan is used
+    exact = [(p.document_id, p.score) for p in await st.semantic_search([1.0, 0.0, 0.0], "fake-1", 6)]
+    st.ann_threshold = 4
+    assert await st.maybe_build_ann("fake-1") == 3 and (await st.ann_status())["indexedSizes"] == [3]
+    st._ann_dims = None
+    approx = [(p.document_id, p.score) for p in await st.semantic_search([1.0, 0.0, 0.0], "fake-1", 6)]
+    assert {d for d, _ in approx} == {d for d, _ in exact} and sorted(s for _, s in approx) == sorted(s for _, s in exact)
+    async with engine.begin() as c:
+        await c.execute(sql("set local enable_seqscan = off"))
+        plan = (await c.execute(sql("explain select chunk_id from knowledge_embeddings where vector_dims(embedding) = 3 order by (embedding::vector(3)) <=> '[1,0,0]'::vector(3) limit 3"))).all()
+    assert any("ix_ke_hnsw_3" in str(r) for r in plan)
+    assert (await idx.status())["approximateIndex"]["indexedSizes"] == [3]
+
+
+# ---- a different model for some sources ----
+def test_source_model_settings_are_parsed_strictly_and_grouped():
+    assert parse_source_models("help=m2, docs = m3") == {"help": "m2", "docs": "m3"} and parse_source_models("") == {}
+    for bad in ("help", "help=", "=m", "a=m,a=n"):
+        with pytest.raises(ValueError):
+            parse_source_models(bad)
+    assert model_groups("m1", {"help": "m2", "docs": "m2", "faq": "m1"}) == [("m1", None, ["docs", "help"]), ("m2", ["docs", "help"], None)]
+    assert model_groups("m1", {}) == [("m1", None, None)]
+
+
+async def test_each_source_is_indexed_and_searched_with_its_own_model(store):
+    await store.create_source(Source("help", "Help", None))
+    await store.create_source(Source("docs", "Docs", None))
+    await store.upsert("help", "a", "Refunds", None, "# Refunds\n\nWe reimburse the full price.", None, 1.0)
+    await store.upsert("docs", "b", "Refund API", None, "# Refund API\n\nPOST a refund to reimburse an order.", None, 1.0)
+    emb = Fake()
+    hy = HybridKnowledge(store, emb, source_models={"docs": "fake-2"})
+    hy.indexer = EmbeddingIndexer(store, emb, source_models={"docs": "fake-2"})
+    assert await hy.indexer.run_once() == 2
+    st = await hy.indexer.status()
+    assert [(m["model"], m["indexed"], m["passages"]) for m in st["models"]] == [("fake-1", 1, 1), ("fake-2", 1, 1)] and st["pending"] == 0
+    assert [p.source_id for p in await store.semantic_search([1.0, 0.0, 0.0], "fake-1", 5)] == ["help"]  # the default model only holds the help source
+    assert [p.source_id for p in await store.semantic_search([1.0, 0.0, 0.0], "fake-2", 5)] == ["docs"]
+    found = await hy.search("money back", 5)
+    assert {p.source_id for p in found} == {"help", "docs"}
+    assert [p.source_id for p in await hy.search("money back", 5, "docs")] == ["docs"]
+
+
+async def test_changing_a_sources_model_makes_only_that_source_pending(store):
+    await store.create_source(Source("help", "Help", None))
+    await store.upsert("help", "a", "Refunds", None, "# Refunds\n\nWe reimburse the full price.", None, 1.0)
+    emb = Fake()
+    await EmbeddingIndexer(store, emb).run_once()
+    idx = EmbeddingIndexer(store, emb, source_models={"help": "fake-3"})
+    assert (await idx.status())["pending"] == 1
+    await idx.run_once()
+    assert (await idx.status())["pending"] == 0

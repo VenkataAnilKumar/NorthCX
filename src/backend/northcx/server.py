@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import WebSocket, WebSocketDisconnect, Query, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
@@ -37,6 +37,7 @@ from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Re
 from .assist import AssistError
 from . import __version__
 from .crawler import Crawler, CrawlConfig, CrawlRefused
+from .crawl_schedule import CrawlScheduler
 from .ingest import IngestError, extract as extract_file
 from .hardening import BodyLimit, SecurityHeaders
 from .voice import CallRepo, CallSession, InMemoryCalls, VoiceConfig
@@ -110,6 +111,14 @@ class CrawlBody(BaseModel):
     use_sitemap: bool = Field(default=True, alias="useSitemap")
     prune: bool = False
     model_config = {"populate_by_name": True}
+
+
+class ScheduleBody(CrawlBody):
+    every_hours: float = Field(alias="everyHours")
+
+
+class EnabledBody(BaseModel):
+    enabled: bool
 
 
 class BuilderSource(BaseModel):
@@ -287,6 +296,10 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/knowledge/index/rebuild", "knowledge:write"),
     ("POST", r"/v1/knowledge/sources/[^/]+/crawl", "knowledge:write"),
     ("POST", r"/v1/knowledge/sources/[^/]+/import", "knowledge:write"),
+    ("GET", r"/v1/knowledge/schedules", "knowledge:read"),
+    ("POST", r"/v1/knowledge/sources/[^/]+/schedule", "knowledge:write"),
+    ("DELETE", r"/v1/knowledge/schedules/[^/]+", "knowledge:write"),
+    ("POST", r"/v1/knowledge/schedules/[^/]+/enabled", "knowledge:write"),
     ("GET", r"/v1/knowledge/crawls", "knowledge:read"),
     ("GET", r"/v1/knowledge/crawls/[^/]+", "knowledge:read"),
     ("POST", r"/v1/alerts/test", "keys:manage"),
@@ -386,7 +399,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
-               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None, residency: dict | None = None,
+               retention_days: float | None = None, sms: SmsChannel | None = None, regression: RegressionRunner | None = None, whatsapp: WhatsAppChannel | None = None, residency: dict | None = None, crawl_scheduler: CrawlScheduler | None = None,
                skills: list[Any] | None = None, templates: dict[str, Template] | None = None,
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
@@ -502,9 +515,13 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         indexer = getattr(kb, "indexer", None)
         if indexer is not None:
             indexer.start()
+        if crawl_scheduler is not None:
+            crawl_scheduler.start()
         yield
         if indexer is not None:
             await indexer.stop()
+        if crawl_scheduler is not None:
+            await crawl_scheduler.stop()
         for t in (task, flusher, retention, inbox_task, export_task, alert_task):
             if t:
                 t.cancel()
@@ -1338,6 +1355,39 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(code, "not_found" if code == 404 else "conflict" if code == 409 else "bad_request", str(e))
         await record(request, "knowledge.crawl.start", f"{source_id}", host=job.host, maxPages=cfg.max_pages, prune=cfg.prune)
         return job.to_dict()
+
+    @app.post("/v1/knowledge/sources/{source_id}/schedule", status_code=201)
+    async def kb_schedule(source_id: str, body: ScheduleBody, request: Request) -> Any:
+        """Repeat a crawl every so many hours (at least one). It is checked exactly like a crawl started now, and again on every run."""
+        if crawl_scheduler is None:
+            return _err(501, "not_configured", "Crawling is switched off: the operator must list the sites that may be crawled in NORTHCX_CRAWL_HOSTS")
+        who: Identity = request.state.identity
+        cfg = CrawlConfig(body.url, body.max_pages, body.max_depth, body.delay_seconds, body.include_paths, body.exclude_paths, body.use_sitemap, body.prune)
+        try:
+            s = await crawl_scheduler.create(source_id, cfg, body.every_hours, who.name if hasattr(who, "name") else "unknown")
+        except CrawlRefused as e:
+            code = 404 if str(e) == "Unknown source" else 409 if "already has" in str(e) else 400
+            return _err(code, "not_found" if code == 404 else "conflict" if code == 409 else "bad_request", str(e))
+        await record(request, "knowledge.schedule.create", source_id, host=urlsplit(body.url).netloc.lower(), everyHours=body.every_hours)
+        return s.to_dict()
+
+    @app.get("/v1/knowledge/schedules")
+    async def kb_schedules() -> Any:
+        return {"enabled": crawl_scheduler is not None, "schedules": [s.to_dict() for s in await crawl_scheduler.repo.list()] if crawl_scheduler is not None else []}
+
+    @app.delete("/v1/knowledge/schedules/{schedule_id}")
+    async def kb_schedule_delete(schedule_id: str, request: Request) -> Any:
+        if crawl_scheduler is None or not await crawl_scheduler.repo.delete(schedule_id):
+            return _err(404, "not_found", "Unknown schedule")
+        await record(request, "knowledge.schedule.delete", schedule_id)
+        return {"deleted": True}
+
+    @app.post("/v1/knowledge/schedules/{schedule_id}/enabled")
+    async def kb_schedule_enabled(schedule_id: str, body: EnabledBody, request: Request) -> Any:
+        if crawl_scheduler is None or not await crawl_scheduler.repo.set_enabled(schedule_id, body.enabled, time.time()):
+            return _err(404, "not_found", "Unknown schedule")
+        await record(request, "knowledge.schedule.enable" if body.enabled else "knowledge.schedule.pause", schedule_id)
+        return {"enabled": body.enabled}
 
     @app.get("/v1/knowledge/crawls")
     async def kb_crawls() -> Any:

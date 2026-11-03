@@ -7,6 +7,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
+### Added (knowledge, scale and freshness)
+- Scheduled re-crawls, an automatic approximate (HNSW) index for large knowledge bases, and an optional embedding model per source.
+
 ### Added (knowledge, Office files)
 - Import Word (.docx), PowerPoint (.pptx) and Excel (.xlsx) files into the knowledge base (read with the standard library; hidden sheets and speaker notes are not read; zip bombs and XML entities are refused).
 

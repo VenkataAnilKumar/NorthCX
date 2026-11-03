@@ -351,6 +351,12 @@ export async function downloadAttachment(a: { id: string; name: string }): Promi
 
 export interface CrawlJob { jobId: string; sourceId: string; host: string; state: "running" | "done" | "failed" | "stopped"; startedAt: number; finishedAt: number | null; fetched: number; created: number; updated: number; unchanged: number; skipped: Record<string, number>; pruned: number; errors: string[]; message: string }
 export const listCrawls = () => api<{ enabled: boolean; crawls: CrawlJob[] }>("/v1/knowledge/crawls");
+export interface CrawlSchedule { id: string; sourceId: string; url: string; maxPages: number; maxDepth: number; prune: boolean; everyHours: number; nextRun: number; lastRun: number | null; lastResult: string | null; enabled: boolean }
+export const listSchedules = () => api<{ enabled: boolean; schedules: CrawlSchedule[] }>("/v1/knowledge/schedules");
+export const createSchedule = (source: string, body: { url: string; maxPages: number; maxDepth: number; includePaths: string[]; excludePaths: string[]; prune: boolean; everyHours: number }) =>
+  api<CrawlSchedule>(`/v1/knowledge/sources/${encodeURIComponent(source)}/schedule`, { method: "POST", body: JSON.stringify(body) });
+export const deleteSchedule = (id: string) => api<{ deleted: boolean }>(`/v1/knowledge/schedules/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const setScheduleEnabled = (id: string, enabled: boolean) => api<{ enabled: boolean }>(`/v1/knowledge/schedules/${encodeURIComponent(id)}/enabled`, { method: "POST", body: JSON.stringify({ enabled }) });
 export const startCrawl = (source: string, body: { url: string; maxPages: number; maxDepth: number; includePaths: string[]; excludePaths: string[]; prune: boolean }) =>
   api<CrawlJob>(`/v1/knowledge/sources/${encodeURIComponent(source)}/crawl`, { method: "POST", body: JSON.stringify(body) });
 export async function importKnowledgeFile(source: string, file: File): Promise<{ status: string; kind: string; document: KnowledgeDoc }> {

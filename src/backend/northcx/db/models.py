@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, Computed, DateTime, Float, ForeignKey, Identity, Index, Integer, LargeBinary, String, Text, UniqueConstraint, func, text
+from sqlalchemy import BigInteger, Boolean, Computed, DateTime, Float, ForeignKey, Identity, Index, Integer, LargeBinary, String, Text, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -237,6 +237,22 @@ class KnowledgeChunkRow(Base):
     search_text: Mapped[str] = mapped_column(Text, nullable=False)
     tsv: Mapped[Any] = mapped_column(TSVECTOR, Computed("to_tsvector('english', search_text)", persisted=True))
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
+
+
+class CrawlScheduleRow(Base):
+    __tablename__ = "crawl_schedules"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    source_id: Mapped[str] = mapped_column(String(200), ForeignKey("knowledge_sources.id", ondelete="CASCADE"), nullable=False)
+    config: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    every_hours: Mapped[float] = mapped_column(Float, nullable=False)
+    next_run: Mapped[float] = mapped_column(Float, nullable=False)
+    last_run: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_job_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    last_result: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    created_by: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_crawl_schedules_due", "enabled", "next_run"),)
 
 
 class ManagedScenarioRow(Base):

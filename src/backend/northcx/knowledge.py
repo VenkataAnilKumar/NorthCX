@@ -264,9 +264,15 @@ class InMemoryKnowledge:
 
 
     # ---- meaning-based search support (see embeddings.py) ----
-    async def pending_chunks(self, model: str, limit: int) -> list[tuple[Any, str]]:
+    @staticmethod
+    def _in_scope(source_id: str, include: list[str] | None, exclude: list[str] | None) -> bool:
+        return (include is None or source_id in include) and not (exclude and source_id in exclude)
+
+    async def pending_chunks(self, model: str, limit: int, include: list[str] | None = None, exclude: list[str] | None = None) -> list[tuple[Any, str]]:
         out: list[tuple[Any, str]] = []
         for d in self.docs.values():
+            if not self._in_scope(d.source_id, include, exclude):
+                continue
             for i, (hd, tx, _) in enumerate(self.passages.get(d.id, [])):
                 if self.vectors.get((d.id, i), ("", []))[0] != model:
                     out.append(((d.id, i), f"{d.title}\n{hd}\n{tx}".strip()))
@@ -280,22 +286,24 @@ class InMemoryKnowledge:
                 self.vectors[ref] = (model, vec)
         return len(items)
 
-    async def embedding_counts(self, model: str) -> tuple[int, int]:
-        total = sum(len(v) for v in self.passages.values())
-        return sum(1 for m, _ in self.vectors.values() if m == model), total
+    async def embedding_counts(self, model: str, include: list[str] | None = None, exclude: list[str] | None = None) -> tuple[int, int]:
+        ids = {d.id for d in self.docs.values() if self._in_scope(d.source_id, include, exclude)}
+        total = sum(len(v) for k, v in self.passages.items() if k in ids)
+        return sum(1 for (doc, _), (m, _v) in self.vectors.items() if m == model and doc in ids), total
 
     async def clear_embeddings(self) -> int:
         n = len(self.vectors)
         self.vectors.clear()
         return n
 
-    async def semantic_search(self, vec: list[float], model: str, limit: int, source_id: str | None = None, now: float | None = None) -> list[Passage]:
+    async def semantic_search(self, vec: list[float], model: str, limit: int, source_id: str | None = None, now: float | None = None,
+                              include: list[str] | None = None, exclude: list[str] | None = None) -> list[Passage]:
         def cos(a: list[float], b: list[float]) -> float:
             if len(a) != len(b):
                 return 0.0
             na, nb = math.sqrt(sum(x * x for x in a)), math.sqrt(sum(x * x for x in b))
             return sum(x * y for x, y in zip(a, b)) / (na * nb) if na and nb else 0.0
-        by_id = {d.id: d for d in self.docs.values() if not source_id or d.source_id == source_id}
+        by_id = {d.id: d for d in self.docs.values() if (not source_id or d.source_id == source_id) and self._in_scope(d.source_id, include, exclude)}
         scored = []
         for (doc_id, i), (m, v) in self.vectors.items():
             if m == model and doc_id in by_id and i < len(self.passages.get(doc_id, [])):

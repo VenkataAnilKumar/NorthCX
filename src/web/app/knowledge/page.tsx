@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createKnowledgeSource, importKnowledgeFile, listCrawls, startCrawl, type CrawlJob, deleteKnowledgeDoc, deleteKnowledgeSource, formatTime, getKnowledgeDoc, listKnowledgeDocs, listKnowledgeSources, putKnowledgeDoc, searchKnowledge, getIndexStatus, rebuildIndex, type KnowledgeDoc, type Passage } from "@/lib/api";
+import { createKnowledgeSource, importKnowledgeFile, listCrawls, startCrawl, createSchedule, deleteSchedule, listSchedules, setScheduleEnabled, type CrawlJob, deleteKnowledgeDoc, deleteKnowledgeSource, formatTime, getKnowledgeDoc, listKnowledgeDocs, listKnowledgeSources, putKnowledgeDoc, searchKnowledge, getIndexStatus, rebuildIndex, type KnowledgeDoc, type Passage } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { useMe } from "@/lib/me";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
@@ -100,6 +100,8 @@ function BringIn({ sources, onDone }: { sources: { id: string; name: string }[];
   const [pages, setPages] = useState(50);
   const [include, setInclude] = useState("");
   const [prune, setPrune] = useState(false);
+  const [every, setEvery] = useState(0);
+  const schedules = useLoad(listSchedules, [msg]);
   const crawls = useLoad(listCrawls, [source, msg]);
   const running = crawls.data?.crawls.some((c) => c.state === "running");
   useEffect(() => { if (!running) return; const t = setInterval(() => { crawls.reload(); onDone(); }, 3000); return () => clearInterval(t); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [running]);
@@ -114,7 +116,13 @@ function BringIn({ sources, onDone }: { sources: { id: string; name: string }[];
   }
   async function crawl(e: React.FormEvent) {
     e.preventDefault(); setMsg(null);
-    try { await startCrawl(source, { url: url.trim(), maxPages: pages, maxDepth: 2, includePaths: lines(include), excludePaths: [], prune }); setMsg({ ok: true, text: "Crawl started." }); crawls.reload(); }
+    try {
+      const body = { url: url.trim(), maxPages: pages, maxDepth: 2, includePaths: lines(include), excludePaths: [], prune };
+      await startCrawl(source, body);
+      if (every > 0) { await createSchedule(source, { ...body, everyHours: every }); setMsg({ ok: true, text: `Crawl started, and it will repeat every ${every === 24 ? "day" : every === 168 ? "week" : `${every} hours`}.` }); }
+      else setMsg({ ok: true, text: "Crawl started." });
+      crawls.reload();
+    }
     catch (err) { setMsg({ ok: false, text: (err as Error).message }); }
   }
   const mine: CrawlJob[] = (crawls.data?.crawls ?? []).filter((c) => c.sourceId === source).slice(0, 3);
@@ -133,10 +141,15 @@ function BringIn({ sources, onDone }: { sources: { id: string; name: string }[];
             <label>Only these paths (optional)<input value={include} onChange={(e) => setInclude(e.target.value)} placeholder="/help/, /faq/" className="ml-2 w-48 rounded-lg border border-border bg-bg px-2 py-1.5" /></label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={prune} onChange={(e) => setPrune(e.target.checked)} /> Remove pages that no longer exist</label>
           </div>
+          <label className="block">Repeat <select value={every} onChange={(e) => setEvery(Number(e.target.value))} className="ml-2 rounded-lg border border-border bg-bg px-2 py-1.5"><option value={0}>Only this once</option><option value={6}>Every 6 hours</option><option value={24}>Every day</option><option value={168}>Every week</option></select></label>
           <button disabled={!url.trim() || !source || !!running} className="rounded-lg bg-primary px-3 py-1.5 font-medium text-primary-text disabled:opacity-50">{running ? "Crawling…" : "Crawl"}</button>
         </form>
       ) : <p className="mt-3 text-xs text-muted">Reading websites is switched off. The operator lists the sites that may be read in <code>NORTHCX_CRAWL_HOSTS</code>.</p>}
       {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm ${msg.ok ? "text-muted" : "text-[var(--bad)]"}`}>{msg.text}</p>}
+      {(schedules.data?.schedules ?? []).filter((s) => s.sourceId === source).map((s) => (
+        <p key={s.id} className="mt-2 text-xs text-muted">Repeats every {s.everyHours} hours: {s.url}{s.enabled ? `, next ${formatTime(s.nextRun)}` : " (paused)"}{s.lastResult ? ` · last: ${s.lastResult}` : ""}{" "}
+          <button type="button" className="underline" onClick={async () => { await setScheduleEnabled(s.id, !s.enabled); schedules.reload(); }}>{s.enabled ? "Pause" : "Resume"}</button>{" "}
+          <button type="button" className="underline" onClick={async () => { await deleteSchedule(s.id); schedules.reload(); }}>Remove</button></p>))}
       {mine.map((c) => (
         <p key={c.jobId} className="mt-2 text-xs text-muted">{c.host}: {c.state === "running" ? "reading…" : c.state} · {c.fetched} pages read · {c.created} new, {c.updated} changed, {c.unchanged} the same{c.pruned ? `, ${c.pruned} removed` : ""}
           {Object.keys(c.skipped).length > 0 && ` · skipped: ${Object.entries(c.skipped).map(([k, n]) => `${n} ${k}`).join(", ")}`}{c.message && ` · ${c.message}`}</p>))}

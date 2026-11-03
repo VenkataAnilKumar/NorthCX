@@ -36,11 +36,12 @@ from .reliability import ReliableLLM, UsageLedger
 from .llm import DEFAULT_MODEL
 from .memory import InMemoryMemories, memory_tools
 from .residency import ResidencyError, build_report, parse_policy
-from .embeddings import EmbeddingIndexer, HttpEmbedder, HybridKnowledge
+from .crawl_schedule import CrawlScheduler, InMemorySchedules
+from .embeddings import EmbeddingIndexer, HttpEmbedder, HybridKnowledge, parse_source_models
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgAttachments, PgCalls, PgReviews, PgRollouts, PgScenarios, PgSessionRoutes, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgExports, PgFeedback, PgInsightsSource, PgAttachments, PgCalls, PgReviews, PgRollouts, PgScenarios, PgSessionRoutes, PgTags, PgHandoffs, PgIdempotency, PgInbox, PgKeys, PgKnowledge, PgSchedules, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -374,16 +375,24 @@ def run() -> None:
                                     int(os.environ["NORTHCX_EMBEDDINGS_DIMENSIONS"]) if os.environ.get("NORTHCX_EMBEDDINGS_DIMENSIONS") else None)
         except ValueError as e:
             sys.exit(str(e))
-        knowledge_repo = HybridKnowledge(knowledge_repo, embedder)
-        knowledge_repo.indexer = EmbeddingIndexer(knowledge_repo.store, embedder)
+        try:
+            src_models = parse_source_models(os.environ.get("NORTHCX_EMBEDDINGS_SOURCE_MODELS", ""))
+            knowledge_repo = HybridKnowledge(knowledge_repo, embedder, source_models=src_models)
+        except ValueError as e:
+            sys.exit(str(e))
+        knowledge_repo.indexer = EmbeddingIndexer(knowledge_repo.store, embedder, source_models=src_models)
+        if hasattr(knowledge_repo.store, "ann_threshold") and os.environ.get("NORTHCX_ANN_THRESHOLD"):
+            knowledge_repo.store.ann_threshold = int(os.environ["NORTHCX_ANN_THRESHOLD"])
         print(f"Meaning-based knowledge search is ON (model {embedder.model}); passages are sent to the embeddings endpoint you configured.")
-    crawler = None
+    crawler = crawl_scheduler = None
     if os.environ.get("NORTHCX_CRAWL_HOSTS"):
         try:
             crawler = Crawler(knowledge_repo, crawl_hosts_from(os.environ["NORTHCX_CRAWL_HOSTS"]), os.environ.get("NORTHCX_CRAWL_ALLOW_PRIVATE") == "1")
         except ValueError as e:
             sys.exit(str(e))
         print(f"Knowledge crawling is ON for: {', '.join(sorted(crawler.allowed))}.")
+        schedule_repo = PgSchedules(engine) if db_url else InMemorySchedules()
+        crawl_scheduler = CrawlScheduler(crawler, schedule_repo)
     voice_cfg = None
     if os.environ.get("NORTHCX_VOICE_AGENT"):
         try:
@@ -417,7 +426,7 @@ def run() -> None:
     print(f"NorthCX {__version__}")
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
-                      access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo, crawler=crawler,
+                      access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo, crawler=crawler, crawl_scheduler=crawl_scheduler,
                       regression=regression, residency=residency, whatsapp=WhatsAppChannel(runtime, agents, sms_repo, wa_provider, wa_config) if wa_provider else None, skills=reg.skill_info(), feedback=feedback_repo, tags=tag_repo, reviews=review_repo, rollouts=rollout_service, sso=sso, attachments=attachment_repo,
                       attachment_scanner=attachment_scanner, cors_origins=cors_origins, voice=voice_cfg, calls=call_repo,
                       insights=insights_service, alerts=alert_manager,

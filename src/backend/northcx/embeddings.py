@@ -54,6 +54,12 @@ class HttpEmbedder:
         self._client = client or httpx.AsyncClient(timeout=timeout, follow_redirects=False)
         self._cache: OrderedDict[str, list[float]] = OrderedDict()
 
+    def for_model(self, model: str) -> "HttpEmbedder":
+        """The same service with a different model name (shares the connection)."""
+        if model == self.model:
+            return self
+        return HttpEmbedder(self.url, model, self._key, self.dimensions, client=self._client)
+
     async def embed(self, texts: list[str]) -> list[list[float]]:
         out: list[list[float]] = []
         for i in range(0, len(texts), BATCH):
@@ -120,15 +126,42 @@ def fuse(keyword: list[Passage], meaning: list[Passage], limit: int) -> list[Pas
     return out
 
 
+def model_groups(default: str, source_models: dict[str, str]) -> list[tuple[str, list[str] | None, list[str] | None]]:
+    by_model: dict[str, list[str]] = {}
+    for src, m in sorted(source_models.items()):
+        if m != default:
+            by_model.setdefault(m, []).append(src)
+    others = sorted(s for ss in by_model.values() for s in ss)
+    return [(default, None, others or None)] + [(m, ss, None) for m, ss in sorted(by_model.items())]
+
+
+def parse_source_models(text: str) -> dict[str, str]:
+    """'help=model-a,docs=model-b' -> {'help': 'model-a', 'docs': 'model-b'}"""
+    out: dict[str, str] = {}
+    for part in [p.strip() for p in text.split(",") if p.strip()]:
+        src, sep, model = part.partition("=")
+        if not sep or not src.strip() or not model.strip() or len(model) > 200 or src.strip() in out:
+            raise ValueError("NORTHCX_EMBEDDINGS_SOURCE_MODELS must look like source=model,source2=model2 with each source once")
+        out[src.strip()] = model.strip()
+    return out
+
+
 class HybridKnowledge:
     """A knowledge store whose search also understands meaning. Everything else is the underlying store's."""
 
     hybrid = True
 
-    def __init__(self, store: Any, embedder: Embedder, min_similarity: float = 0.25, query_timeout: float = 4.0):
+    def __init__(self, store: Any, embedder: Embedder, min_similarity: float = 0.25, query_timeout: float = 4.0, source_models: dict[str, str] | None = None):
         self.store, self.embedder, self.min_similarity, self.query_timeout = store, embedder, min_similarity, query_timeout
+        self.source_models = dict(source_models or {})
+        if self.source_models and not hasattr(embedder, "for_model"):
+            raise ValueError("this embedder cannot use a different model per source")
         self.indexer: EmbeddingIndexer | None = None
         self.last_fallback: str | None = None
+
+    def groups(self) -> list[tuple[str, list[str] | None, list[str] | None]]:
+        """(model, only these sources, all but these sources): the sources that use another model, and everything else with the default."""
+        return model_groups(self.embedder.model, self.source_models)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self.store, name)
@@ -146,8 +179,15 @@ class HybridKnowledge:
         wide = max(limit * 4, 20)
         kw_task = asyncio.ensure_future(self.store.search(query, wide, source_id, now))
         try:
-            vec = await asyncio.wait_for(self.embedder.embed_query(query), self.query_timeout)
-            meaning = [p for p in await self.store.semantic_search(vec, self.embedder.model, wide, source_id, now) if p.score >= self.min_similarity]
+            meaning = []
+            for model, inc, exc in self.groups():
+                if source_id and not ((inc is None or source_id in inc) and not (exc and source_id in exc)):
+                    continue
+                emb = self.embedder.for_model(model) if hasattr(self.embedder, "for_model") else self.embedder
+                vec = await asyncio.wait_for(emb.embed_query(query), self.query_timeout)
+                meaning += [p for p in await self.store.semantic_search(vec, model, wide, source_id, now, include=inc, exclude=exc) if p.score >= self.min_similarity]
+            meaning.sort(key=lambda p: -p.score)
+            meaning = meaning[:wide]
             self.last_fallback = None
         except Exception as e:  # any failure here means keywords only; the conversation must never notice
             meaning = []
@@ -161,8 +201,9 @@ class HybridKnowledge:
 class EmbeddingIndexer:
     """Keeps every passage's embedding up to date in the background."""
 
-    def __init__(self, store: Any, embedder: Embedder, interval: float = 30.0, sleep: Any = asyncio.sleep):
+    def __init__(self, store: Any, embedder: Embedder, interval: float = 30.0, sleep: Any = asyncio.sleep, source_models: dict[str, str] | None = None):
         self.store, self.embedder, self.interval, self.sleep = store, embedder, interval, sleep
+        self.source_models = dict(source_models or {})
         self.last_error: str | None = None
         self.last_run: float | None = None
         self._wake = asyncio.Event()
@@ -173,6 +214,12 @@ class EmbeddingIndexer:
 
     def kick(self) -> None:
         self._wake.set()
+
+    def _groups(self) -> list[tuple[str, list[str] | None, list[str] | None]]:
+        return model_groups(self.embedder.model, self.source_models)
+
+    def _embedder_for(self, model: str) -> Any:
+        return self.embedder.for_model(model) if hasattr(self.embedder, "for_model") else self.embedder
 
     async def run_once(self) -> int:
         """Embeds everything that is waiting; returns how many passages were done. Stops at the first failure and remembers why."""
@@ -188,25 +235,39 @@ class EmbeddingIndexer:
                 self.last_error = str(e)
                 self._failures += 1
                 return 0
-        while True:
-            pending = await self.store.pending_chunks(self.embedder.model, BATCH * 2)
-            if not pending:
-                self.last_error, self._failures = None, 0
-                return done
-            try:
-                vecs = await self.embedder.embed([t for _, t in pending])
-                await self.store.save_embeddings(self.embedder.model, [(ref, v) for (ref, _), v in zip(pending, vecs)])
-            except Exception as e:
-                self.last_error = str(e) if isinstance(e, EmbeddingError) else type(e).__name__
-                self._failures += 1
-                log.warning("embedding indexing failed: %s", self.last_error)
-                return done
-            done += len(pending)
+        for model, inc, exc in self._groups():
+            emb = self._embedder_for(model)
+            while True:
+                pending = await self.store.pending_chunks(model, BATCH * 2, include=inc, exclude=exc)
+                if not pending:
+                    break
+                try:
+                    vecs = await emb.embed([t for _, t in pending])
+                    await self.store.save_embeddings(model, [(ref, v) for (ref, _), v in zip(pending, vecs)])
+                except Exception as e:
+                    self.last_error = str(e) if isinstance(e, EmbeddingError) else type(e).__name__
+                    self._failures += 1
+                    log.warning("embedding indexing failed: %s", self.last_error)
+                    return done
+                done += len(pending)
+            ann = getattr(self.store, "maybe_build_ann", None)
+            if ann is not None:
+                try:
+                    await ann(model)
+                except Exception as ex:  # an index is an optimisation: search still works without it
+                    log.warning("approximate index not built: %s", type(ex).__name__)
+        self.last_error, self._failures = None, 0
+        return done
 
     async def status(self) -> dict[str, Any]:
-        indexed, total = await self.store.embedding_counts(self.embedder.model)
-        return {"enabled": True, "model": self.embedder.model, "indexed": indexed, "passages": total, "pending": max(0, total - indexed),
-                "lastRun": self.last_run, "lastError": self.last_error}
+        models, indexed, total = [], 0, 0
+        for model, inc, exc in self._groups():
+            i, t = await self.store.embedding_counts(model, include=inc, exclude=exc)
+            indexed, total = indexed + i, total + t
+            models.append({"model": model, "sources": inc if inc is not None else "all others", "indexed": i, "passages": t})
+        ann = getattr(self.store, "ann_status", None)
+        return {"enabled": True, "model": self.embedder.model, "models": models, "indexed": indexed, "passages": total, "pending": max(0, total - indexed),
+                "lastRun": self.last_run, "lastError": self.last_error, "approximateIndex": await ann() if ann is not None else None}
 
     async def rebuild(self) -> int:
         n = await self.store.clear_embeddings()
