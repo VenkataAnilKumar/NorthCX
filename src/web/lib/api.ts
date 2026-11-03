@@ -10,7 +10,7 @@ export interface OutboxMessage { id: number; kind: string; createdAt: number; re
 export interface AgentInfo { id: string; version: number | null; digest: string | null; instructions: string; model: string | null; maxSteps: number; tools: { name: string; description: string; approval: boolean }[]; guardrails: string[]; inputGuardrails: string[] }
 export interface ChatReply { reply: string; status: Status; traceId: string; pendingApprovals: { id: string; tool: string; reason: string }[]; handoffId: string | null; agentVersion: number | null }
 export interface HandoffSummary { id: string; sessionId: string; traceId: string; agentId: string; customerId: string | null; trigger: string; reason: string; topics: string[]; state: "open" | "resolved"; createdAt: number; resolvedBy: string | null; resolvedAt: number | null; note: string | null; summary: string; queue?: string | null; afterHours?: boolean }
-export interface HandoffPackage { summary: string; trigger: string; triggerDescription: string; reason: string; topics: string[]; transcript: { from: "customer" | "agent" | "platform"; text: string }[]; customerFacts: Record<string, string>; actions: { tool: string; input: unknown; outcome: string; detail: unknown; traceId: string }[]; approvals: { id: string; tool: string; state: string; reason: string; input: unknown; note: string | null }[] }
+export interface HandoffPackage { summary: string; trigger: string; triggerDescription: string; reason: string; topics: string[]; transcript: { from: "customer" | "agent" | "platform"; text: string }[]; customerFacts: Record<string, string>; language?: string | null; actions: { tool: string; input: unknown; outcome: string; detail: unknown; traceId: string }[]; approvals: { id: string; tool: string; state: string; reason: string; input: unknown; note: string | null }[] }
 export interface Handoff extends HandoffSummary { package: HandoffPackage }
 
 const KEY = "northcx.apiKey";
@@ -182,6 +182,7 @@ export interface Overview {
   latencySeconds: { p50: number | null; p95: number | null; samples: number };
   tokens: { total: number; perConversation: number | null; modelCalls: number };
   handoffs: { total: number; byTrigger: Record<string, number>; byQueue: Record<string, number>; byTopic: Record<string, number> };
+  languages?: { detected: Ratio; byLanguage: Record<string, { conversations: number; containmentRate: Ratio }> };
   tools: { used: Record<string, number>; errors: Record<string, number> }; guardrails: Record<string, number>;
   satisfaction: { average: number | null; responses: number; responseRate: Ratio; distribution: Record<string, number> };
   estimatedCost?: { amount: number; perConversation: number | null; basis: string };

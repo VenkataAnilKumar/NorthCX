@@ -161,6 +161,7 @@ def build_package(*, messages: list[Message], traces: list[Trace], approvals: li
         "topics": topics,
         "transcript": msgs,
         "customerFacts": facts,
+        "language": next((e.data.get("detected") for t in reversed(traces) for e in reversed(t.events) if e.type == "language" and e.data.get("detected")), None),
         "actions": acts,
         "approvals": [{"id": a.id, "tool": a.tool, "state": a.state, "reason": a.reason, "input": a.input,
                        "note": a.note, "result": a.result} for a in approvals],

@@ -16,6 +16,7 @@ from .monitor import Monitor
 from .summarize import Compactor
 from .context import CachedContext
 from .inbox import InboxDispatcher
+from .language import choose as choose_language, conversation_language, instruction as language_instruction
 from .trace_export import ExportService
 from .routing import DEFAULT_ROUTER, Route, Router
 from .memory import MemoryService, render_block
@@ -120,7 +121,13 @@ class Runtime:
                 trace.add("memory", error=True)
         style = agent.channel_styles.get(channel or "")
         style_block = f"\n\nStyle for this channel ({channel}): {style}" if style else ""
-        system = agent.instructions + style_block + facts_block + memory_block + f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}."
+        language_block = ""
+        if agent.languages and not trusted:
+            history = [m["content"] for m in messages if m["role"] == "user" and isinstance(m["content"], str) and not m["content"].startswith("[")]
+            choice = choose_language(conversation_language(message, history), agent.languages)
+            language_block = language_instruction(choice)
+            trace.add("language", detected=choice.detected, replyIn=choice.reply_in, supported=choice.supported)
+        system = agent.instructions + style_block + language_block + facts_block + memory_block + f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}."
         tools = [t.spec() for t in agent.tools] + [HANDOFF_SPEC]
 
         async def finish(reply: str, status: str, trigger: str | None = None, reason: str = "",

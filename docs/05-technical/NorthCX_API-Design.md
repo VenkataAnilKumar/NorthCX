@@ -105,7 +105,7 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | GET | `/sessions/{id}/transcript` | transcript, traces, hand-offs, rating, tags and existing review (`traces:read`) (built) |
 | PUT | `/sessions/{id}/review` | `verdict`, `handoff`, `failures[]`, `note`; replaces an earlier review; audited (`reviews:write`) (built) |
 | GET | `/insights/review-quality` | correct rate, hand-off correctness, unneeded hand-offs, failures by kind (`insights:read`) (built) |
-| GET | `/conversations/search` | `q`, `status`, `tag`, `handedOff`, `agent`, `environment`, `from`, `to`, `limit`: conversations with masked snippets, outcome, rating and tags (`traces:read`) (built) |
+| GET | `/conversations/search` | `q`, `status`, `tag`, `language`, `handedOff`, `agent`, `environment`, `from`, `to`, `limit`: conversations with masked snippets, outcome, rating and tags (`traces:read`) (built) |
 | GET, PUT, DELETE | `/sessions/{id}/tags[/{tag}]` | Read, add or remove a tag (1-40 lowercase letters, digits, - or _; at most 20 per conversation); add and remove need `conversations:tag` (reviewers, developers, admins) (built) |
 | GET | `/alerts` | Alert rules, alerts firing now and recent events (`insights:read`) (built) |
 | GET | `/regression` | Whether simulations re-run on knowledge changes and how the last re-run went (built) |

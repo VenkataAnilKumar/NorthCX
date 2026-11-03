@@ -38,6 +38,7 @@ class TurnFacts:
     errored: bool = False  # any error event, including model failures
     text: str = ""  # what was said (customer and agent), lower-cased and capped, for conversation search
     last_reply: str = ""
+    language: str | None = None  # what the customer wrote in, when the agent handles languages
 
 
 @dataclass
@@ -70,6 +71,8 @@ def facts_from_trace(t: Trace) -> TurnFacts:
             said.append(str(d.get("message", "")))
             if not f.first_message:
                 f.first_message = str(d.get("message", ""))
+        elif e.type == "language":
+            f.language = d.get("detected") or f.language
         elif e.type == "reply":
             f.last_reply = str(d.get("reply", ""))
             said.append(f.last_reply)
@@ -153,6 +156,16 @@ def compute(turns: list[TurnFacts], handoffs: list[HandoffFacts], feedback: list
         "note": "Containment is the share of conversations that did not reach a person; it is not a resolution rate, which needs an agreed definition of "
                 "'resolved' per intent. Figures cover only the turns recorded in this period and environment.",
     }
+    langs: dict[str, str] = {}
+    for t in sorted(turns, key=lambda t: t.started_at):
+        if t.language:
+            langs[t.session_id] = t.language  # the latest language a customer wrote in
+    if langs:
+        by_lang: dict[str, dict[str, Any]] = {}
+        for code in sorted(set(langs.values())):
+            ids = {s for s, c in langs.items() if c == code}
+            by_lang[code] = {"conversations": len(ids), "containmentRate": ratio(len(ids - handed), len(ids))}
+        out["languages"] = {"detected": ratio(len(langs), len(sessions)), "byLanguage": by_lang}
     if price_per_million_tokens:
         out["estimatedCost"] = {"amount": round(tokens / 1e6 * price_per_million_tokens, 4), "perConversation": round(tokens / 1e6 * price_per_million_tokens / len(sessions), 5) if sessions else None,
                                 "basis": f"{price_per_million_tokens} per million tokens (blended)"}
@@ -206,7 +219,7 @@ MAX_TAGS = 20
 
 
 def search_conversations(turns: list[TurnFacts], handoffs: list[HandoffFacts], feedback: list[FeedbackFacts], tags: dict[str, list[str]],
-                         q: str = "", status: str | None = None, tag: str | None = None, handed_off: bool | None = None, limit: int = 50) -> list[dict[str, Any]]:
+                         q: str = "", status: str | None = None, tag: str | None = None, handed_off: bool | None = None, limit: int = 50, language: str | None = None) -> list[dict[str, Any]]:
     """Conversations (sessions) matching a word or phrase and filters, newest first. Text is masked before it is shown."""
     needle = " ".join(q.lower().split())
     by_session: dict[str, list[TurnFacts]] = {}
@@ -226,12 +239,15 @@ def search_conversations(turns: list[TurnFacts], handoffs: list[HandoffFacts], f
             continue
         if tag and tag not in tags.get(sid, []):
             continue
+        lang = next((t.language for t in reversed(ts) if t.language), None)
+        if language and lang != language:
+            continue
         hs = h_by_session.get(sid, [])
         if handed_off is not None and bool(hs) != handed_off:
             continue
         out.append({"sessionId": sid, "agentId": ts[0].agent_id, "environment": ts[0].environment, "turns": len(ts), "startedAt": ts[0].started_at,
                     "endedAt": last.started_at + last.duration, "lastStatus": last.status, "firstMessage": mask(ts[0].first_message, 200), "lastReply": mask(last.last_reply, 200),
-                    "handedOff": bool(hs), "handoffTriggers": sorted({h.trigger for h in hs}), "rating": rated.get(sid), "tags": tags.get(sid, []), "traceIds": [t.trace_id for t in ts][-5:]})
+                    "language": lang, "handedOff": bool(hs), "handoffTriggers": sorted({h.trigger for h in hs}), "rating": rated.get(sid), "tags": tags.get(sid, []), "traceIds": [t.trace_id for t in ts][-5:]})
     out.sort(key=lambda r: -r["endedAt"])
     return out[:limit]
 
@@ -336,10 +352,10 @@ class InsightsService:
         return failures(turns, handoffs)
 
     async def search(self, since: float, until: float, tags: TagRepo, q: str = "", status: str | None = None, tag: str | None = None,
-                     handed_off: bool | None = None, agent: str | None = None, environment: str = "production", limit: int = 50) -> list[dict[str, Any]]:
+                     handed_off: bool | None = None, agent: str | None = None, environment: str = "production", limit: int = 50, language: str | None = None) -> list[dict[str, Any]]:
         turns, handoffs, feedback = await self._load(since, until, agent, environment)
         sessions = list({t.session_id for t in turns})
-        return search_conversations(turns, handoffs, feedback, await tags.for_sessions(sessions), q, status, tag, handed_off, limit)
+        return search_conversations(turns, handoffs, feedback, await tags.for_sessions(sessions), q, status, tag, handed_off, limit, language)
 
     async def intent_gaps(self, since: float, until: float, agent: str | None = None, environment: str = "production") -> dict[str, Any]:
         turns, handoffs, _ = await self._load(since, until, agent, environment)

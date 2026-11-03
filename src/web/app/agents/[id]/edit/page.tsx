@@ -82,6 +82,9 @@ function Editor({ id, initial, catalog }: { id: string; initial: Spec; catalog: 
   const topics: { name: string; patterns: string[]; reply?: string }[] = spec.forced_handoff ?? [];
   const voice = spec.voice ?? {};
   const styles: Record<string, string> = spec.channel_styles ?? {};
+  const languages: string[] = spec.languages ?? [];
+  const LANGS: Record<string, string> = { en: "English", es: "Spanish", fr: "French", de: "German", pt: "Portuguese", it: "Italian", nl: "Dutch", ru: "Russian", ja: "Japanese", zh: "Chinese", ko: "Korean", ar: "Arabic", hi: "Hindi" };
+  const setLanguages = (l: string[]) => set("languages", l.length ? l : null);
   const setVoice = (k: string, v: unknown) => set("voice", (() => { const n = { ...voice, [k]: v }; if (v === "" || (Array.isArray(v) && !v.length)) delete n[k]; return Object.keys(n).length ? n : null; })());
   const editable = can("versions:create");
 
@@ -139,6 +142,15 @@ function Editor({ id, initial, catalog }: { id: string; initial: Spec; catalog: 
                   {catalog.flexibility.map((f) => <option key={f}>{f}</option>)}</select></label>}
               </div>);
           })}
+        </Section>
+        <Section title="Languages" hint="Languages this agent is written and tested for. It detects what the customer writes in and replies in the same language; anything else gets the default and an offer of a person. Leave empty for no language handling.">
+          <div className="flex flex-wrap gap-3 text-sm">
+            {Object.entries(LANGS).map(([code, name]) => (
+              <label key={code}><input type="checkbox" checked={languages.includes(code)} onChange={(e) => setLanguages(e.target.checked ? [...languages, code] : languages.filter((x) => x !== code))} /> {name}</label>))}
+          </div>
+          {languages.length > 1 && (
+            <label className="text-sm">Default language<select value={languages[0]} onChange={(e) => setLanguages([e.target.value, ...languages.filter((x) => x !== e.target.value)])} className="ml-2 rounded border border-border bg-bg px-1 py-0.5">
+              {languages.map((c) => <option key={c} value={c}>{LANGS[c] ?? c}</option>)}</select></label>)}
         </Section>
         <Section title="Style per channel" hint="Optional wording for a channel, for example sms: two short sentences, no formatting.">
           {Object.entries(styles).map(([ch, text]) => (

@@ -60,3 +60,11 @@ Streaming replies on the API, identity verification per channel, and per-channel
 - **Replies:** split at sentence ends into up to three texts of at most 1,500 characters, the rest cut with an ellipsis. Per-number limit of 20 replies per hour. Attachments are noted, never read.
 - **Style (C8):** an agent spec may carry `channel_styles` (for example `sms: "Two short sentences, no markdown"`); the matching style is added to the prompt for that channel (`sms`, `email`, and `web` for chat-token callers; API callers may send `channel`). Specs without it keep their digests.
 - **Provider interface:** `valid_signature(url, params, signature)` and `send(to, from, body)`; a different provider needs only those two. Limits: no WhatsApp or other messaging apps yet, no delivery receipts, no media, and the signature algorithm is implemented from the provider's published description and checked against its documented example, not against a live account.
+
+## Languages (R9)
+
+An agent spec can list the languages it supports, for example `languages: [en, es, fr]`; the first is the default. On every customer message the runtime detects the language (offline, from the script and common words; no model call) and tells the model to reply in it. When the message is too short or unclear (such as "ok"), the conversation keeps the language of the last clear customer message. A customer writing in a language outside the list gets a reply in the default language, a short note that this is what the service supports, and an offer to bring in a person.
+
+Known codes: en, es, fr, de, pt, it, nl, ru, ja, zh, ko, ar, hi. The detected language is recorded on the trace, shown on hand-off packages, broken down in Insights (with containment per language) and searchable (`language` filter).
+
+Limits: fixed platform messages (the model-failure fallback, after-hours notices) and forced-topic replies are written by the operator, so write them in the languages you support (a forced-topic pattern is a regular expression and can list words from several languages). Detection is weakest for very short text and for closely related languages written without accents.

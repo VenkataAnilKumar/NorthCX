@@ -68,7 +68,7 @@ def test_summary_is_short_and_informative():
 def test_package_has_everything_a_person_needs():
     p = build_package(messages=[{"role": "user", "content": "hi"}], traces=[], approvals=[], facts={"tier": "gold"},
                       trigger="agent_handoff", reason="asked", topics=[])
-    assert set(p) == {"summary", "trigger", "triggerDescription", "reason", "topics", "transcript", "customerFacts", "actions", "approvals"}
+    assert set(p) == {"summary", "trigger", "triggerDescription", "reason", "topics", "transcript", "customerFacts", "language", "actions", "approvals"}
     assert p["customerFacts"] == {"tier": "gold"} and p["transcript"][0]["from"] == "customer"
 
 

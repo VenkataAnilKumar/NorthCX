@@ -27,7 +27,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | R6 | Streaming responses | P1 | 3 | Built as progressive delivery of the checked reply plus tool progress; raw token streaming deliberately not used |
 | R7 | Per-conversation token and cost budget | P1 | 3 | Built for tokens (per turn and per day); cost in currency planned |
 | R8 | Multi-agent orchestration (specialist agents, routing) | P2 | 5 | Planned |
-| R9 | Multilingual conversations with automatic language detection | P1 | 4 | Planned |
+| R9 | Multilingual conversations with automatic language detection | P1 | 4 | Built (offline detection of 13 languages, same-language replies from a per-agent language list, language in hand-offs, insights and search; fallback messages and forced-topic replies stay in the language their author wrote) |
 | R10 | Resume a run after a human decision | P0 | 2 | Built |
 
 ## 3. Tools and actions

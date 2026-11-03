@@ -64,6 +64,7 @@ function Detail({ id, onChanged }: { id: string; onChanged: () => void }) {
         <div>
           <h3 className="mb-1 text-sm font-medium">Customer</h3>
           <p className="text-sm text-muted">{h.customerId ?? "Not identified"}</p>
+          {p.language && <p className="text-sm text-muted">Writing in: {p.language}</p>}
           {Object.keys(p.customerFacts).length > 0 && (
             <dl className="mt-1 text-sm">{Object.entries(p.customerFacts).map(([k, v]) => (
               <div key={k} className="flex gap-2"><dt className="text-muted">{k}</dt><dd>{v}</dd></div>))}</dl>

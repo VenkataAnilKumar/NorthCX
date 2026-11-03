@@ -79,6 +79,9 @@ class ToolScopeSpec(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+from .language import check_codes as check_languages  # noqa: E402
+
+
 class AgentSpec(BaseModel):
     spec_version: int = SPEC_VERSION
     id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9_.-]+$")
@@ -87,6 +90,7 @@ class AgentSpec(BaseModel):
     max_steps: int = Field(default=8, ge=1, le=50)
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
     channel_styles: dict[str, str] = Field(default_factory=dict)
+    languages: list[str] = Field(default_factory=list)  # supported languages (first is the default); empty means no language handling
     skills: list[SkillRef] = Field(default_factory=list)
     voice: VoiceSpec | None = None
     tool_scopes: dict[str, ToolScopeSpec] = Field(default_factory=dict)
@@ -115,6 +119,11 @@ class AgentSpec(BaseModel):
                 raise ValueError(f"style for '{k}' must be 1-1000 characters")
         return v
 
+    @field_validator("languages")
+    @classmethod
+    def _languages(cls, v: list[str]) -> list[str]:
+        return check_languages(v)
+
     @field_validator("spec_version")
     @classmethod
     def _known_version(cls, v: int) -> int:
@@ -129,6 +138,8 @@ class AgentSpec(BaseModel):
         for key in ("skills", "voice", "tool_scopes", "skill_snapshots"):
             if not data[key]:
                 del data[key]  # keeps digests of specs written before these fields existed
+        if not data["languages"]:
+            del data["languages"]  # keeps digests of specs written before this field existed
         if not data["channel_styles"]:
             del data["channel_styles"]  # keeps digests of specs written before this field existed
         if not data["output_guardrails"]:
@@ -321,6 +332,7 @@ class Registry:
                 max_steps=spec.max_steps,
                 max_run_tokens=spec.max_run_tokens,
                 channel_styles=dict(spec.channel_styles),
+                languages=list(spec.languages),
                 tools=[self._tools[t] for t in self._all_tools(spec)],
                 guardrails=[self._make("guardrail", self._guardrails[g.name], g, ctx) for g in spec.guardrails] + self._enforcers(spec),
                 input_guardrails=[self._make("input guardrail", self._input_guardrails[g.name], g, ctx) for g in spec.input_guardrails],

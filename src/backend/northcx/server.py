@@ -800,13 +800,14 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
     @app.get("/v1/conversations/search")
     async def conversation_search(q: str = "", status: str | None = None, tag: str | None = None, handedOff: bool | None = None, agent: str | None = None,
-                                  environment: str = "production", from_: float | None = Query(None, alias="from"), to: float | None = None, limit: int = 50) -> Any:
+                                  environment: str = "production", from_: float | None = Query(None, alias="from"), to: float | None = None, limit: int = 50,
+                                  language: str | None = None) -> Any:
         """Find conversations by what was said, outcome, hand-off, rating and tag. Text shown is masked."""
         end = time.time() if to is None else to
         start = end - 30 * 86400 if from_ is None else from_
         if start >= end or end - start > 366 * 86400 or len(q) > 200:
             return _err(400, "bad_request", "'from' must be before 'to', the period at most 366 days, and the search at most 200 characters")
-        return {"conversations": await insight.search(start, end, tag_repo, q, status, tag, handedOff, agent, environment, max(1, min(limit, 200)))}
+        return {"conversations": await insight.search(start, end, tag_repo, q, status, tag, handedOff, agent, environment, max(1, min(limit, 200)), language)}
 
     @app.get("/v1/sessions/{session_id}/tags")
     async def get_tags(session_id: str) -> Any:

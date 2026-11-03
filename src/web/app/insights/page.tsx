@@ -113,6 +113,7 @@ export default function Insights() {
                     <div className="text-xs">{c.exampleTraceIds.map((id) => <Link key={id} className="mr-2 text-primary underline" href={`/conversations/${id}`}>example</Link>)}</div></li>))}</ul>
                   : <p className="text-sm text-muted">Nothing went wrong in this period.</p>}
               </section>
+              {o.languages && <Table title="Languages customers wrote in" rows={Object.entries(o.languages.byLanguage).map(([c, v]): [string, string] => [c, `${v.conversations} conversations · ${pct(v.containmentRate)} contained`])} empty="" />}
               <Table title="Handed to a person because" rows={Object.entries(o.handoffs.byTrigger)} empty="No hand-offs." />
               <Table title="What customers asked that the knowledge could not answer" rows={(gaps.data?.unansweredSearches ?? []).map((g) => [g.query, g.count])} empty="Every search found something." />
               <Table title="What customers said before a hand-off" rows={(gaps.data?.messagesBeforeHandoff ?? []).map((g) => [g.message, g.count])} empty="No agent-side hand-offs." />
