@@ -53,7 +53,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | S6 | Customer data treated as untrusted in prompts | P0 | 1 | Built |
 | S7 | Topics the agent must never handle alone (forced handoff list) | P0 | 2 | Built |
 | S8 | Input-side checks (prompt-injection, abuse detection) | P1 | 3 | Partly built: customer input and tool results are screened; abuse detection planned |
-| S9 | PII detection and redaction | P1 | 3 | Planned |
+| S9 | PII detection and redaction | P1 | 3 | Built for customer input (masking or refusing emails, phone numbers, card and national-id numbers) and tool results (masked before the model sees them), and in conversation search, exports and drafting; a reply-side redaction policy is covered by the `no_personal_data_in_reply` and `no_card_numbers` rules |
 | S10 | Monitoring of every conversation, not a sample | P1 | 3 | Built: deterministic rules on every turn, findings API; a Monitoring page and alert delivery planned |
 | S11 | Policy library with tests | P1 | 3 | Built: five configurable policies, each with allow and block cases run in CI; more policies to add |
 
@@ -74,7 +74,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 |---|---|---|---|---|
 | C1 | HTTP chat API | P0 | 1 | Built |
 | C2 | Web chat widget | P0 | 1 | Built (demo page; uses chat tokens) |
-| C3 | Email | P1 | 3 | Planned |
+| C3 | Email | P1 | 3 | Built (inbound mail, threaded replies, SMTP sending, loop and auto-reply protection; see the Channels document) |
 | C4 | SMS and messaging apps | P1 | 3 | SMS built (Twilio-compatible); WhatsApp built (Meta Cloud API, several numbers, pictures and documents in, approved templates out); Telegram built; other messaging apps, sending media and buttons planned |
 | C5 | Voice (phone) | P2 | 5 | Built as the conversation side with a provider-neutral WebSocket bridge protocol (disclosure, recording consent, speakable replies, keypad, hand-off to a phone queue or callback, silence, call records); no telephony or speech provider included and not tested on a real line |
 | C6 | Voice: multilingual, language switching, barge-in | P2 | 5 | Built (barge-in that keeps only what the caller heard, per-utterance language detection with mid-call switching, platform phrases in four languages) |
@@ -132,7 +132,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | U2 | Test console with live trace | P1 | 4 | Built (streamed replies, trace, environment selector; opens from Studio) |
 | U3 | Simulation runner and results | P1 | 4 | Built (runner, results, release gate, and a scenario editor with saved scenarios) |
 | U4 | Conversation review and failure tagging | P1 | 4 | Built |
-| U5 | Approval queue | P1 | 4 | Planned |
+| U5 | Approval queue | P1 | 4 | Built (Studio Approvals page: pending approvals with the tool call and reason, approve or reject with a note) |
 | U6 | Knowledge management | P1 | 4 | Built (sources, documents with editing, freshness, try-a-question) |
 | U7 | Publish workflow with required checks | P1 | 4 | Built (checklist of required checks and warnings per version and environment; staged rollout built under Q11) |
 | U8 | Role-based views | P1 | 4 | Early version built (navigation, buttons and forms follow the signed-in role) |
