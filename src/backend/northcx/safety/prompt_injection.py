@@ -1,45 +1,45 @@
-# Adapted from agno-agi/agno, libs/agno/agno/guardrails/prompt_injection.py (commit b21807bb6d86d2a62efeb42d492c04e566ee7f90)
-# Original: Copyright Agno, licensed under the Apache License, Version 2.0 (see third_party/agno/LICENSE).
-# Changes by NorthCX: rewritten to the NorthCX InputGuardrail interface (async, returns a result instead of raising).
-# The pattern list is unchanged. Keyword matching has false positives (for example "system prompt") and is a first
-# line of defence only; supervisors and tool policies remain the main controls.
+"""First-line screen for customer messages that try to take over the agent. Written for NorthCX; no third-party code.
+
+This is a deliberately blunt alarm for obvious attempts (wording that addresses the model instead of the company). It will
+miss clever phrasing and occasionally flag an innocent message; approvals, tool policies, tool scopes and supervisors are the
+real controls.
+"""
 from __future__ import annotations
+
+import re
 
 from ..guardrails import InputGuardrail, InputResult
 
 DEFAULT_PATTERNS = [
-    "ignore previous instructions",
-    "ignore your instructions",
-    "you are now a",
-    "forget everything above",
-    "developer mode",
-    "override safety",
-    "disregard guidelines",
-    "system prompt",
-    "jailbreak",
-    "act as if",
-    "pretend you are",
-    "roleplay as",
-    "simulate being",
-    "bypass restrictions",
-    "ignore safeguards",
-    "admin override",
-    "root access",
-    "forget everything",
+    r"ignor\w*\s+(?:all\s+|any\s+|your\s+|the\s+)?(?:previous|prior|above|earlier|preceding)\s+(?:instructions?|rules?|messages?|prompts?)",
+    r"ignor\w*\s+(?:your|the)\s+(?:instructions?|guidelines|rules|safeguards|restrictions)",
+    r"(?:disregard|forget|override|bypass|circumvent)\s+(?:all\s+|everything\s+|any\s+|the\s+|your\s+)?(?:above|previous|prior|instructions?|guidelines|rules|safeguards|restrictions|safety)",
+    r"forget\s+everything",
+    r"you\s+are\s+now\s+(?:a|an|in)\b",
+    r"(?:developer|debug|admin|god|dan)\s+mode",
+    r"(?:pretend|act|behave|roleplay|role-play|simulate)\s+(?:to\s+be\s+|as\s+(?:if\s+)?|that\s+you\s+are\s+|like\s+|being\s+)?(?:you\s+are\s+)?(?:a|an|the)\s+(?:store\s+)?(?:owner|admin|administrator|developer|manager|root)",
+    r"(?:pretend|act|behave)\s+(?:as\s+if|like|that)\b",
+    r"(?:reveal|show|print|repeat|output|leak|tell\s+me)\s+(?:me\s+)?(?:your|the)\s+(?:hidden\s+|secret\s+)?(?:system\s+)?(?:prompt|instructions)",
+    r"system\s+prompt",
+    r"jailbreak",
+    r"(?:admin|root|sudo)\s+(?:override|access|privileges?)",
+    r"(?:^|\n)\s*(?:system|assistant)\s*:",
 ]
 
 
 class PromptInjection(InputGuardrail):
-    """Denies customer input that matches known prompt-injection phrases."""
+    """Refuses customer input that matches known takeover phrasing. `injection_patterns` replaces the list (regular expressions,
+    case-insensitive; plain phrases work too)."""
 
     name = "prompt-injection"
 
     def __init__(self, injection_patterns: list[str] | None = None):
-        self.patterns = [p.lower() for p in (injection_patterns or DEFAULT_PATTERNS)]
+        try:
+            self.patterns = [re.compile(p, re.I) for p in (injection_patterns or DEFAULT_PATTERNS)]
+        except re.error as e:
+            raise ValueError(f"invalid injection pattern: {e}") from e
 
     async def check_input(self, text: str) -> InputResult:
-        low = text.lower()
-        for p in self.patterns:
-            if p in low:
-                return InputResult(False, reason="Potential jailbreaking or prompt injection detected.")
+        if any(p.search(text) for p in self.patterns):
+            return InputResult(False, reason="Potential jailbreaking or prompt injection detected.")
         return InputResult(True)

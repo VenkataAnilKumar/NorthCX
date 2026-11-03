@@ -1,77 +1,67 @@
-# Adapted from agno-agi/agno, libs/agno/agno/guardrails/pii.py (commit b21807bb6d86d2a62efeb42d492c04e566ee7f90)
-# Original: Copyright Agno, licensed under the Apache License, Version 2.0 (see third_party/agno/LICENSE).
-# Changes by NorthCX: rewritten to the NorthCX InputGuardrail interface (async, returns a result instead of
-# raising); credit-card detection uses the Luhn check on 13-19 digit runs; the generic 10-digit "phone" pattern
-# now requires a separator or leading + so plain order and tracking numbers are not flagged; one shared check path.
+"""Personal-data detection for customer input and exported traces. Written for NorthCX; no third-party code."""
 from __future__ import annotations
 
 import re
-from typing import Dict, Union
+from typing import Mapping
 
 from ..guardrails import InputGuardrail, InputResult, _luhn
 
-_CARD = re.compile(r"\b\d(?:[ -]?\d){12,18}\b")
+_CARD_RUN = re.compile(r"\b\d(?:[ -]?\d){12,18}\b")
+_BUILTIN = {
+    "SSN": ("enable_ssn_check", re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
+    "Email": ("enable_email_check", re.compile(r"\b[\w.%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b")),
+    # A phone number needs structure (separators or a leading +) so plain ten-digit order numbers are not flagged.
+    "Phone": ("enable_phone_check", re.compile(r"(?:\+\d{1,3}[\s.-]?)?\(?\b\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b")),
+}
 
 
 class PIIDetection(InputGuardrail):
-    """Detects PII in customer input. With `mask_pii` the PII is masked and the message continues;
-    otherwise the message is denied."""
+    """Finds social security numbers, emails, phone numbers and payment card numbers (Luhn-checked) plus any custom patterns.
+    With `mask_pii` the matches are replaced by asterisks and the message continues; otherwise the message is refused."""
 
     name = "pii-detection"
 
-    def __init__(
-        self,
-        mask_pii: bool = True,
-        enable_ssn_check: bool = True,
-        enable_credit_card_check: bool = True,
-        enable_email_check: bool = True,
-        enable_phone_check: bool = True,
-        custom_patterns: Dict[str, Union[str, "re.Pattern[str]"]] | None = None,
-    ):
+    def __init__(self, mask_pii: bool = True, enable_ssn_check: bool = True, enable_credit_card_check: bool = True,
+                 enable_email_check: bool = True, enable_phone_check: bool = True,
+                 custom_patterns: Mapping[str, "str | re.Pattern[str]"] | None = None):
         self.mask_pii = mask_pii
-        self.patterns: dict[str, re.Pattern[str]] = {}
-        if enable_ssn_check:
-            self.patterns["SSN"] = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
-        if enable_email_check:
-            self.patterns["Email"] = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
-        if enable_phone_check:
-            self.patterns["Phone"] = re.compile(r"(?:\+\d{1,3}[\s.-]?)?\(?\b\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b")
+        switches = {"enable_ssn_check": enable_ssn_check, "enable_email_check": enable_email_check, "enable_phone_check": enable_phone_check}
+        self.patterns: dict[str, re.Pattern[str]] = {kind: rx for kind, (flag, rx) in _BUILTIN.items() if switches[flag]}
         self.card = enable_credit_card_check
-        for name, pat in (custom_patterns or {}).items():
+        for kind, pat in (custom_patterns or {}).items():
             if isinstance(pat, str):
-                self.patterns[name] = re.compile(pat)
-            elif isinstance(pat, re.Pattern):
-                self.patterns[name] = pat
-            else:
-                raise TypeError(f"custom_patterns['{name}'] must be a str or re.Pattern, got {type(pat).__name__}")
+                pat = re.compile(pat)
+            if not isinstance(pat, re.Pattern):
+                raise TypeError(f"custom pattern '{kind}' must be a string or a compiled expression, not {type(pat).__name__}")
+            self.patterns[kind] = pat
 
     def mask(self, text: str) -> tuple[str, list[str]]:
-        """Mask every PII match; returns the masked text and the kinds found. Used for input checks and trace export."""
-        detected: list[str] = []
-        masked = text
-
-        def mask_(m: "re.Match[str]") -> str:
-            return "*" * len(m.group(0))
-
-        for name, pat in self.patterns.items():
-            if pat.search(masked):
-                detected.append(name)
-                masked = pat.sub(mask_, masked)
+        """The text with every match replaced by asterisks, and the kinds of personal data that were found."""
+        found: list[str] = []
+        for kind, rx in self.patterns.items():
+            text, n = rx.subn(lambda m: "*" * len(m.group(0)), text)
+            if n:
+                found.append(kind)
         if self.card:
-            def mask_card(m: "re.Match[str]") -> str:
-                digits = re.sub(r"\D", "", m.group(0))
-                return "*" * len(m.group(0)) if 13 <= len(digits) <= 19 and _luhn(digits) else m.group(0)
+            hit = False
 
-            after = _CARD.sub(mask_card, masked)
-            if after != masked:
-                detected.append("Credit Card")
-                masked = after
-        return masked, detected
+            def hide(m: "re.Match[str]") -> str:
+                nonlocal hit
+                digits = re.sub(r"\D", "", m.group(0))
+                if 13 <= len(digits) <= 19 and _luhn(digits):
+                    hit = True
+                    return "*" * len(m.group(0))
+                return m.group(0)
+
+            text = _CARD_RUN.sub(hide, text)
+            if hit:
+                found.append("Credit Card")
+        return text, found
 
     async def check_input(self, text: str) -> InputResult:
-        masked, detected = self.mask(text)
-        if not detected:
+        masked, found = self.mask(text)
+        if not found:
             return InputResult(True)
         if self.mask_pii:
-            return InputResult(True, reason=f"PII masked: {', '.join(detected)}", text=masked)
-        return InputResult(False, reason=f"Potential PII detected in input: {', '.join(detected)}")
+            return InputResult(True, reason=f"PII masked: {', '.join(found)}", text=masked)
+        return InputResult(False, reason=f"Potential PII detected in input: {', '.join(found)}")

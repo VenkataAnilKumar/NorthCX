@@ -2,12 +2,9 @@
 
 Provenance of code copied or adapted from other projects. Policy: `docs/05-technical/NorthCX_Code-Reuse-Policy.md`.
 
-| Source | Source path | Upstream commit | Licence | NorthCX file | Local changes |
-|---|---|---|---|---|---|
-| agno-agi/agno | `libs/agno/agno/guardrails/pii.py` | b21807bb6d86d2a62efeb42d492c04e566ee7f90 | Apache-2.0 | `src/backend/northcx/safety/pii.py` | Rewritten to the async `InputGuardrail` interface and a result object instead of exceptions; credit cards use the Luhn check; phone pattern requires separators so plain order numbers are not flagged |
-| agno-agi/agno | `libs/agno/agno/guardrails/prompt_injection.py` | b21807bb6d86d2a62efeb42d492c04e566ee7f90 | Apache-2.0 | `src/backend/northcx/safety/prompt_injection.py` | Rewritten to the async `InputGuardrail` interface; pattern list unchanged |
+**Current state: no third-party source code is copied or adapted into NorthCX.** Open-source projects are used as reference only (read to understand an idea or an API contract), and the product has no dependency on any of them. The only third-party packages the product installs are ordinary infrastructure libraries (web server, database driver, HTTP client, YAML, and the web framework), listed in `src/backend/pyproject.toml` and `src/web/package.json`.
 
-Unmodified originals for diffing are kept in `third_party/agno/original/` with the upstream `LICENSE` in `third_party/agno/LICENSE`.
+History: two small input-screening files were once adapted from a reference project under Apache-2.0. They were rewritten from scratch in NorthCX style (`northcx/safety/pii.py`, `northcx/safety/prompt_injection.py`) and the copied originals and their licence file were removed from the repository.
 
 ## Assessed and not copied
 | Source | Module | Reason |

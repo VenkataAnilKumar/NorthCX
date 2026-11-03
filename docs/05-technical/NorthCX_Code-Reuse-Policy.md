@@ -53,3 +53,7 @@ Apache-2.0, MIT and BSD code can be included in an Apache-2.0 project. The proje
 | Divergence from upstream | Record upstream commits; isolate local changes |
 | Mixed languages complicate the build | Decide the backend language before copying (see Decision Log) |
 | Code quality or security issues inherited | Review, tests and scans on every import |
+
+
+## Current rule (supersedes any earlier permission to copy)
+Open-source projects are **reference only**. NorthCX does not depend on them, does not copy or adapt their source, and does not vendor their files. Read them to learn an idea or an API contract, check the licence, and write the code independently in NorthCX style. Ordinary infrastructure libraries (web server, database driver, YAML, the web framework) are dependencies, not references, and are listed in the package manifests. The earlier cases of adapted code were rewritten and removed.
