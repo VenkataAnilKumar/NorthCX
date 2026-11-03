@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { formatTime, getHandoff, getRouting, listHandoffs, resolveHandoff, type HandoffSummary } from "@/lib/api";
+import { formatTime, getHandoff, getRouting, listHandoffs, replyToCustomer, resolveHandoff, suggestHelp, type HandoffSummary } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { useMe } from "@/lib/me";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/states";
@@ -12,7 +12,7 @@ const triggerLabel: Record<string, string> = {
   budget_exceeded: "Model budget used up", agent_handoff: "Agent handed off", forced_topic: "Always-to-a-person topic", input_blocked: "Input blocked",
   supervisor_rejections: "Replies rejected", step_limit: "Step limit", model_error: "Model unavailable", approval_expired: "Approval expired",
 };
-const who: Record<string, string> = { customer: "Customer", agent: "Agent", platform: "Platform" };
+const who: Record<string, string> = { customer: "Customer", agent: "Agent", platform: "Platform", person: "Teammate" };
 
 function Detail({ id, onChanged }: { id: string; onChanged: () => void }) {
   const { data, error, loading, reload } = useLoad(() => getHandoff(id), [id]);
@@ -20,14 +20,28 @@ function Detail({ id, onChanged }: { id: string; onChanged: () => void }) {
   const [by, setBy] = useState("jo");
   const [note, setNote] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [back, setBack] = useState(true);
+  const [reply, setReply] = useState("");
+  const [sent, setSent] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   if (loading && !data) return <Loading />;
   if (error) return <ErrorBox message={error} onRetry={reload} />;
   const h = data!, p = h.package;
 
   async function resolve() {
     setErr(null);
-    try { await resolveHandoff(h.id, askForName ? by.trim() || "agent" : undefined, note.trim() || undefined); setNote(""); reload(); onChanged(); }
+    try { await resolveHandoff(h.id, askForName ? by.trim() || "agent" : undefined, note.trim() || undefined, back); setNote(""); reload(); onChanged(); }
     catch (e) { setErr((e as Error).message); reload(); onChanged(); }
+  }
+
+  async function suggest() {
+    setErr(null); setBusy(true);
+    try { await suggestHelp(h.id); reload(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+  }
+  async function send() {
+    setErr(null); setSent(null);
+    try { await replyToCustomer(h.id, reply.trim()); setReply(""); setSent("Sent. Web and app customers receive it in their chat; for email and text, reply from your helpdesk."); reload(); }
+    catch (e) { setErr((e as Error).message); }
   }
 
   return (
@@ -72,10 +86,30 @@ function Detail({ id, onChanged }: { id: string; onChanged: () => void }) {
           <p className="mt-3 text-sm"><Link className="text-primary underline" href={`/conversations/${h.traceId}`}>Open the trace</Link></p>
         </div>
       </div>
+      {h.state === "open" && (
+        <section aria-label="Suggested help" className="space-y-2 rounded-lg border border-border p-3 text-sm">
+          <div className="flex items-center justify-between gap-2"><h3 className="font-medium">Suggested help</h3>
+            <button onClick={() => void suggest()} disabled={busy || !can("handoffs:resolve")} className="rounded-lg border border-border px-3 py-1 hover:bg-border/40 disabled:opacity-50">{busy ? "Thinking…" : p.assist ? "Refresh suggestions" : "Suggest help"}</button></div>
+          {p.assist ? (
+            <>
+              {p.assist.suggestedReply && <div><p className="text-xs text-muted">Suggested reply</p><p>{p.assist.suggestedReply}</p>
+                <button onClick={() => setReply(p.assist!.suggestedReply)} className="mt-1 rounded-lg border border-border px-2 py-0.5 text-xs hover:bg-border/40">Use as my reply</button></div>}
+              {([["Next steps", p.assist.nextSteps], ["Key facts", p.assist.keyFacts], ["Be careful about", p.assist.cautions]] as const).map(([t, items]) => items.length > 0 && (
+                <div key={t}><p className="text-xs text-muted">{t}</p><ul className="list-disc pl-5">{items.map((x, i) => <li key={i}>{x}</li>)}</ul></div>))}
+              <p className="text-xs text-muted">{p.assist.note}</p>
+            </>
+          ) : <p className="text-muted">A draft reply, next steps and key facts for this conversation. Nothing is sent to the customer unless you send it.</p>}
+          <label className="block text-sm">Your reply to the customer
+            <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={3} maxLength={2000} className="mt-1 w-full rounded-lg border border-border bg-bg px-2 py-1.5" /></label>
+          <button onClick={() => void send()} disabled={!reply.trim() || !can("handoffs:resolve")} className="rounded-lg bg-primary px-3 py-1.5 font-medium text-primary-text disabled:opacity-50">Send to customer</button>
+          {sent && <p role="status" className="text-xs text-muted">{sent}</p>}
+        </section>
+      )}
       {h.state === "open" ? (
         <div className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
           {askForName && <label className="text-sm">Your name <input value={by} onChange={(e) => setBy(e.target.value)} className="ml-1 w-32 rounded-lg border border-border bg-bg px-2 py-1.5" /></label>}
           <label className="text-sm">Note <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" className="ml-1 w-56 rounded-lg border border-border bg-bg px-2 py-1.5" /></label>
+          <label className="text-sm"><input type="checkbox" checked={back} onChange={(e) => setBack(e.target.checked)} /> Hand back to the agent</label>
           <button onClick={resolve} disabled={!can("handoffs:resolve")} title={can("handoffs:resolve") ? undefined : "Your role cannot resolve handoffs"} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text disabled:opacity-50">Mark resolved</button>
           {err && <ErrorBox message={err} />}
         </div>

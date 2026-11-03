@@ -29,6 +29,7 @@ class InboxConnector(Protocol):
 
     async def created(self, handoff: Handoff) -> str: ...  # returns the system's reference for this hand-off
     async def resolved(self, handoff: Handoff, ref: str | None) -> None: ...
+    async def assist(self, handoff: Handoff, ref: str | None) -> None: ...  # suggestions arrived after the hand-off was created
 
 
 def event_payload(event: str, h: Handoff, console_url: str | None) -> dict[str, Any]:
@@ -78,6 +79,9 @@ class WebhookInbox:
 
     async def resolved(self, h: Handoff, ref: str | None) -> None:
         await self._post("handoff.resolved", h)
+
+    async def assist(self, h: Handoff, ref: str | None) -> None:
+        await self._post("handoff.assist", h)
 
 
 class ChatwootInbox:
@@ -146,6 +150,24 @@ class ChatwootInbox:
         if m.status_code >= 300:
             raise _fail("chatwoot add note", status=m.status_code)
         return cid
+
+    @staticmethod
+    def assist_note(h: Handoff) -> str:
+        a = h.package.get("assist") or {}
+        lines = ["NorthCX suggestions (a draft for you; nothing has been sent to the customer)", ""]
+        if a.get("suggestedReply"):
+            lines += ["Suggested reply:", a["suggestedReply"], ""]
+        for title, key in (("Next steps", "nextSteps"), ("Key facts", "keyFacts"), ("Be careful about", "cautions")):
+            if a.get(key):
+                lines += [f"{title}:"] + [f"- {x}" for x in a[key]] + [""]
+        return "\n".join(lines).strip()[:6000]
+
+    async def assist(self, h: Handoff, ref: str | None) -> None:
+        if not ref or not ref.isdigit() or not h.package.get("assist"):
+            return
+        m = await self._call("POST", f"/conversations/{ref}/messages", "add suggestions", json={"content": self.assist_note(h), "message_type": "outgoing", "private": True})
+        if m.status_code >= 300:
+            raise _fail("chatwoot add suggestions", status=m.status_code)
 
     async def resolved(self, h: Handoff, ref: str | None) -> None:
         if not ref or not ref.isdigit():
@@ -237,11 +259,13 @@ class InboxDispatcher:
                 await self.repo.record(e.id, True, None, None, now)
                 continue
             ref = next((x.external_ref for x in await self.repo.for_handoff(e.handoff_id) if x.connector == e.connector and x.event == "created" and x.delivered_at), None)
-            if e.event == "resolved" and ref is None and any(x.connector == e.connector and x.event == "created" and x.delivered_at is None for x in await self.repo.for_handoff(e.handoff_id)):
+            if e.event in ("resolved", "assist") and ref is None and any(x.connector == e.connector and x.event == "created" and x.delivered_at is None for x in await self.repo.for_handoff(e.handoff_id)):
                 continue
             try:
                 if e.event == "created":
                     ref = await conn.created(h)
+                elif e.event == "assist":
+                    await conn.assist(h, ref)
                 else:
                     await conn.resolved(h, ref)
                 await self.repo.record(e.id, True, ref if e.event == "created" else None, None, now)

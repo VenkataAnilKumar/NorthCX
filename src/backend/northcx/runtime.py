@@ -1,6 +1,7 @@
 """The agent run loop. Semantics are ported from the TypeScript reference implementation in prototype/."""
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import inspect
@@ -24,7 +25,7 @@ from .memory import MemoryService, render_block
 from .privacy import InMemoryPrivacy
 from .reliability import UsageLedger
 from .guardrails import GuardrailContext, InputResult
-from .handoffs import Handoff, HandoffRepo, InMemoryHandoffs, build_package
+from .handoffs import HOLD_REPLY, Handoff, HandoffRepo, InMemoryHandoffs, build_package
 from .outbox import Outbox
 from .secrets import NO_SECRETS, SecretStore
 from .store import MemoryStore
@@ -63,6 +64,9 @@ class Runtime:
                  context: CachedContext | None = None, memories: MemoryService | None = None, router: Router | None = None,
                  inbox: InboxDispatcher | None = None, exports: ExportService | None = None):
         self.llm, self.store, self.traces = llm, store, traces
+        self.assist: Any = None  # AssistService: suggestions for the people who take over (set by the server)
+        self.assist_auto = False  # generate them as soon as a hand-off is created
+        self._background: set[Any] = set()
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
         self.handoffs = handoffs or InMemoryHandoffs()
@@ -86,6 +90,10 @@ class Runtime:
         trace = Trace(agent.id, session_id, agent_version=agent.version, environment=environment)
         await self.privacy.link(session_id, customer_id)  # so the conversation can be exported, erased and aged out
         messages: list[Message] = await self.store.load_messages(session_id)
+        if not trusted and not self.dry_run:
+            open_handoff = next(iter(await self.handoffs.list("open", session_id, 1)), None)
+            if open_handoff is not None:  # a person has this conversation: keep the customer's message for them and do not answer
+                return await self.hold(agent, session_id, message, messages, trace, open_handoff)
         if self.compactor is not None and not self.dry_run:
             done = await self.compactor.compact(messages)
             if done is not None:
@@ -339,6 +347,43 @@ class Runtime:
             return {"withheld": "The result of this tool was withheld by policy. Do not act on it; hand off to a person if you cannot continue."}
         return screened
 
+    async def add_assist(self, h: Handoff) -> dict[str, Any] | None:
+        """Draft help for the person who takes this hand-off, store it with the hand-off and tell the inbox. Failures never affect the customer."""
+        try:
+            package = self.secrets.redact(h.package)
+            out = self.secrets.redact(await self.assist.suggest(package))
+            if not await self.handoffs.set_package_field(h.id, "assist", out):
+                return None
+            if self.inbox is not None:
+                fresh = await self.handoffs.get(h.id)
+                if fresh is not None and fresh.state == "open":
+                    await self.inbox.enqueue(fresh, "assist")
+            return out
+        except Exception:
+            log.warning("could not draft assist suggestions for hand-off %s", h.id, exc_info=True)
+            return None
+
+    async def hold(self, agent: Agent, session_id: str, message: str, messages: list[Message], trace: Trace, handoff: Handoff) -> RunResult:
+        """The customer wrote while a person has the conversation. Their message is kept (after the input checks) and the person sees it;
+        the agent does not answer."""
+        for g in agent.input_guardrails:
+            res = await g.check_input(message)
+            if res.reason:
+                trace.add("guardrail", guardrail=g.name, reason=res.reason, stage="input")
+            if not res.allow:
+                message = "[message withheld by input policy]"
+                break
+            if res.text is not None:
+                message = res.text
+        trace.add("user", message=message)
+        trace.add("held", handoff=handoff.id)
+        messages.append({"role": "user", "content": message})
+        messages.append({"role": "assistant", "content": HOLD_REPLY})
+        trace.add("reply", reply=HOLD_REPLY, status="with_person")
+        await self.store.save_messages(session_id, self.secrets.redact(messages))
+        await self.traces.save(trace)
+        return RunResult(HOLD_REPLY, "with_person", trace, [], handoff.id)
+
     async def create_handoff(self, *, agent_id: str, session_id: str, customer_id: str | None, trace: Trace,
                              messages: list[Message], trigger: str, reason: str, topics: list[str],
                              extra_facts: dict[str, str] | None = None, route: Route | None = None) -> Handoff:
@@ -356,6 +401,10 @@ class Runtime:
         added = await self.handoffs.add(Handoff(
             session_id=session_id, trace_id=trace.id, agent_id=agent_id, customer_id=customer_id, trigger=trigger,
             reason=reason, topics=topics, package=package, queue=route.queue, after_hours=not route.open_now))
+        if self.assist is not None and self.assist_auto and trace.environment == "production" and not self.dry_run:
+            task = asyncio.ensure_future(self.add_assist(added))
+            self._background.add(task)
+            task.add_done_callback(self._background.discard)
         if self.inbox is not None and trace.environment == "production":  # only real conversations reach the helpdesk; queued for delivery to the helpdesk; a failure here must not lose the hand-off
             try:
                 await self.inbox.enqueue(added, "created")

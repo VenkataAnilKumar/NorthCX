@@ -53,6 +53,7 @@ class HandoffRepo(Protocol):
     async def get(self, handoff_id: str) -> Handoff | None: ...
     async def list(self, state: str | None = None, session_id: str | None = None, limit: int = 200, queue: str | None = None) -> list[Handoff]: ...
     async def resolve(self, handoff_id: str, by: str, note: str | None = None) -> Handoff: ...
+    async def set_package_field(self, handoff_id: str, key: str, value: Any) -> bool: ...
 
 
 class InMemoryHandoffs:
@@ -80,6 +81,24 @@ class InMemoryHandoffs:
         h.state, h.resolved_by, h.resolved_at, h.note = RESOLVED, by, time.time(), note
         return h
 
+    async def set_package_field(self, handoff_id: str, key: str, value: Any) -> bool:
+        h = self._items.get(handoff_id)
+        if h is None:
+            return False
+        h.package = {**h.package, key: value}
+        return True
+
+
+PERSON_PREFIX = "[person]"
+HOLD_REPLY = "A teammate is looking after this conversation and will reply here. Your message has been passed on."
+
+
+def return_note(by: str, note: str | None) -> str:
+    """What the agent is told when a person hands the conversation back to it."""
+    said = f" Their note: {note.strip()}" if note and note.strip() else ""
+    return (f"[system] A teammate ({by}) has finished helping and handed this conversation back to you.{said} "
+            f"Messages starting with {PERSON_PREFIX} were written by the teammate; do not repeat that marker. Carry on from where they left off.")
+
 
 def transcript(messages: list[Message]) -> list[dict[str, str]]:
     """What was said, in order. Tool plumbing is left out; actions are listed separately."""
@@ -98,7 +117,10 @@ def transcript(messages: list[Message]) -> list[dict[str, str]]:
                 elif not c.startswith("[supervisor]"):
                     out.append({"from": "customer", "text": c})
         elif isinstance(c, str):
-            out.append({"from": "agent", "text": c})
+            if c.startswith(PERSON_PREFIX):
+                out.append({"from": "person", "text": c.removeprefix(PERSON_PREFIX).strip()})
+            else:
+                out.append({"from": "agent", "text": c})
         else:
             text = "".join(b.get("text", "") for b in c if b.get("type") == "text").strip()
             if text:

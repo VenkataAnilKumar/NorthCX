@@ -31,7 +31,8 @@ from .journeys import SYSTEM as JOURNEY_SYSTEM, DraftError, JourneySpec, draft_p
 from .sso import Sso, SsoError
 from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms, rollout_json
 from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
-from .handoffs import transcript
+from .assist import AssistError
+from .handoffs import PERSON_PREFIX, return_note, transcript
 from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .simulation.managed import parse_definition
 from .regression import RegressionRunner, scenario_from_traces
@@ -140,6 +141,12 @@ class DecisionBody(BaseModel):
 class ResolveBody(BaseModel):
     by: str | None = Field(default=None, max_length=200)
     note: str | None = Field(default=None, max_length=1000)
+    returnToAgent: bool = True  # the agent carries on with the customer, told what the person did
+
+
+class ReplyBody(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    by: str | None = Field(default=None, max_length=200)
 
 
 class SimRunBody(BaseModel):
@@ -291,6 +298,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/handoffs/[^/]+/inbox", "handoffs:read"),
     ("GET", r"/v1/handoffs/[^/]+", "handoffs:read"),
     ("POST", r"/v1/handoffs/[^/]+/resolve", "handoffs:resolve"),
+    ("POST", r"/v1/handoffs/[^/]+/reply", "handoffs:resolve"),
+    ("POST", r"/v1/handoffs/[^/]+/assist", "handoffs:resolve"),
     ("GET", r"/v1/simulations/(scenarios|runs|gate)", "simulations:read"),
     ("GET", r"/v1/simulations/scenarios/[^/]+", "simulations:read"),
     ("POST", r"/v1/simulations/scenarios", "scenarios:write"),
@@ -1140,18 +1149,63 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     @app.post("/v1/handoffs/{handoff_id}/resolve")
     async def resolve_handoff(handoff_id: str, body: ResolveBody, request: Request) -> Any:
         try:
-            done = await runtime.handoffs.resolve(handoff_id, actor(request, body.by), body.note)
+            who = actor(request, body.by)
+            done = await runtime.handoffs.resolve(handoff_id, who, body.note)
+            if body.returnToAgent:  # the agent is told what happened, so it can carry on from where the person left off
+                msgs = await runtime.store.load_messages(done.session_id)
+                msgs.append({"role": "user", "content": return_note(who, runtime.secrets.redact_text(body.note or ""))})
+                await runtime.store.save_messages(done.session_id, msgs)
             if runtime.inbox is not None:
                 try:
                     await runtime.inbox.enqueue(done, "resolved")
                 except Exception:
                     log.exception("could not queue the resolution for the inbox")
-            await record(request, "handoff.resolve", handoff_id, trigger=done.trigger, note=bool(body.note))
+            await record(request, "handoff.resolve", handoff_id, trigger=done.trigger, note=bool(body.note), returned=body.returnToAgent)
             return handoff_json(done)
         except KeyError:
             return _err(404, "not_found", "Unknown handoff")
         except ValueError as e:
             return _err(409, "conflict", str(e))
+
+    @app.post("/v1/handoffs/{handoff_id}/reply")
+    async def handoff_reply(handoff_id: str, body: ReplyBody, request: Request) -> Any:
+        """A person's message to the customer. It joins the conversation and reaches the customer through the outbox (web chat and apps poll or are
+        pushed it); conversations on email and text are answered from the helpdesk instead."""
+        h = await runtime.handoffs.get(handoff_id)
+        if h is None:
+            return _err(404, "not_found", "Unknown handoff")
+        if h.state != "open":
+            return _err(409, "conflict", "This hand-off is already resolved")
+        who = actor(request, body.by)
+        text = runtime.secrets.redact_text(body.text.strip())
+        msgs = await runtime.store.load_messages(h.session_id)
+        msgs.append({"role": "assistant", "content": f"{PERSON_PREFIX} {text}"})
+        await runtime.store.save_messages(h.session_id, msgs)
+        m = await runtime.outbox.publish(h.session_id, "person_reply", {"reply": text, "by": who, "handoffId": h.id})
+        await record(request, "handoff.reply", handoff_id, length=len(text))
+        return {"sent": True, "messageId": m.id}
+
+    @app.post("/v1/handoffs/{handoff_id}/assist")
+    async def handoff_assist(handoff_id: str, request: Request) -> Any:
+        """Draft suggestions (reply, next steps, key facts, cautions) for the person handling this hand-off. Suggestions only: nothing is sent."""
+        if runtime.assist is None:
+            return _err(501, "not_configured", "Agent assist is switched off on this server")
+        h = await runtime.handoffs.get(handoff_id)
+        if h is None:
+            return _err(404, "not_found", "Unknown handoff")
+        who: Identity = request.state.identity
+        if not access.limiter.allow(f"assist:{who.key_id or 'open'}", 20)[0]:
+            return too_many(60, "assist requests")
+        try:
+            out = runtime.secrets.redact(await runtime.assist.suggest(runtime.secrets.redact(h.package)))
+        except AssistError as e:
+            return _err(422, "unusable_suggestions", str(e))
+        except Exception:
+            log.exception("assist failed")
+            return _err(502, "model_unavailable", "The model could not be reached; try again")
+        await runtime.handoffs.set_package_field(h.id, "assist", out)
+        await record(request, "handoff.assist", handoff_id)
+        return {"assist": out}
 
     def need_sim() -> SimulationService | JSONResponse:
         return simulations or _err(501, "not_configured", "Simulations are not configured on this server")

@@ -92,7 +92,7 @@ describe("handoff calls", () => {
     await resolveHandoff("h1", "jo", "called back");
     expect(calls[0][0]).toBe("/api/northcx/v1/handoffs?state=open");
     expect(calls[1][0]).toBe("/api/northcx/v1/handoffs/h1");
-    expect(JSON.parse(String(calls[2][1]?.body))).toEqual({ by: "jo", note: "called back" });
+    expect(JSON.parse(String(calls[2][1]?.body))).toEqual({ by: "jo", note: "called back", returnToAgent: true });
   });
 
   it("renders open and resolved badges", () => {
@@ -179,11 +179,13 @@ describe("access calls", () => {
     await decideApproval("a1", true, undefined, "ok");
     expect(JSON.parse(String(calls[2][1]?.body))).toEqual({ approved: true, note: "ok" });
     await resolveHandoff("h1");
-    expect(JSON.parse(String(calls[3][1]?.body))).toEqual({});
+    expect(JSON.parse(String(calls[3][1]?.body))).toEqual({ returnToAgent: true });
+    await resolveHandoff("h1", undefined, undefined, false);
+    expect(JSON.parse(String(calls[4][1]?.body))).toEqual({ returnToAgent: false });
     await publishVersion("support", 2, "claimed");
-    expect(JSON.parse(String(calls[4][1]?.body))).toEqual({ version: 2, by: "claimed" });
+    expect(JSON.parse(String(calls[5][1]?.body))).toEqual({ version: 2, by: "claimed" });
     await getMe();
-    expect(calls[5][0]).toBe("/api/northcx/v1/me");
+    expect(calls[6][0]).toBe("/api/northcx/v1/me");
   });
 
   it("shows a 403's message from the server", async () => {

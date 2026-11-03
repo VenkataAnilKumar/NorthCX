@@ -84,8 +84,10 @@ async def test_handoff():
 @pytest.mark.parametrize("first", [tool_call("handoff_to_human", {"reason": "x"}, "t1"), tool_call("refund", {"amount": 500}, "t1")])
 async def test_history_valid_after_handoff_and_approval(first):
     llm, store, rt, agent = make([first, text("welcome back")])
-    await rt.run(agent, "s", "one")
+    first_run = await rt.run(agent, "s", "one")
     assert valid_history(await store.load_messages("s"))
+    if first_run.handoff_id:  # while a person has the conversation the agent stays quiet; once they hand it back it carries on
+        await rt.handoffs.resolve(first_run.handoff_id, "person")
     await rt.run(agent, "s", "two")
     assert valid_history(llm.requests[1].messages[:3])
 

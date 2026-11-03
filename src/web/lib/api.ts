@@ -1,4 +1,4 @@
-export type Status = "completed" | "escalated" | "needs_approval" | "unknown";
+export type Status = "completed" | "escalated" | "needs_approval" | "with_person" | "unknown";
 
 export interface TraceEvent { t: number; type: string; data: Record<string, unknown> }
 export interface Trace { id: string; agent_id: string; session_id: string; agent_version: number | null; events: TraceEvent[] }
@@ -10,7 +10,8 @@ export interface OutboxMessage { id: number; kind: string; createdAt: number; re
 export interface AgentInfo { id: string; version: number | null; digest: string | null; instructions: string; model: string | null; maxSteps: number; tools: { name: string; description: string; approval: boolean }[]; guardrails: string[]; inputGuardrails: string[] }
 export interface ChatReply { reply: string; status: Status; traceId: string; pendingApprovals: { id: string; tool: string; reason: string }[]; handoffId: string | null; agentVersion: number | null }
 export interface HandoffSummary { id: string; sessionId: string; traceId: string; agentId: string; customerId: string | null; trigger: string; reason: string; topics: string[]; state: "open" | "resolved"; createdAt: number; resolvedBy: string | null; resolvedAt: number | null; note: string | null; summary: string; queue?: string | null; afterHours?: boolean }
-export interface HandoffPackage { summary: string; trigger: string; triggerDescription: string; reason: string; topics: string[]; transcript: { from: "customer" | "agent" | "platform"; text: string }[]; customerFacts: Record<string, string>; language?: string | null; actions: { tool: string; input: unknown; outcome: string; detail: unknown; traceId: string }[]; approvals: { id: string; tool: string; state: string; reason: string; input: unknown; note: string | null }[] }
+export interface Assist { suggestedReply: string; nextSteps: string[]; keyFacts: string[]; cautions: string[]; generatedAt: number; note: string }
+export interface HandoffPackage { summary: string; trigger: string; triggerDescription: string; reason: string; topics: string[]; transcript: { from: "customer" | "agent" | "platform" | "person"; text: string }[]; assist?: Assist; customerFacts: Record<string, string>; language?: string | null; actions: { tool: string; input: unknown; outcome: string; detail: unknown; traceId: string }[]; approvals: { id: string; tool: string; state: string; reason: string; input: unknown; note: string | null }[] }
 export interface Handoff extends HandoffSummary { package: HandoffPackage }
 
 const KEY = "northcx.apiKey";
@@ -52,8 +53,8 @@ export const listHandoffs = (state?: string, queue?: string) => {
 export interface RoutingQueue { name: string; open: boolean; nextOpen: number | null; topics: string[]; triggers: string[] }
 export const getRouting = () => api<{ timezone: string; defaultQueue: string; holidays: string[]; queues: RoutingQueue[] }>("/v1/routing");
 export const getHandoff = (id: string) => api<Handoff>(`/v1/handoffs/${id}`);
-export const resolveHandoff = (id: string, by?: string, note?: string) =>
-  api<HandoffSummary>(`/v1/handoffs/${id}/resolve`, { method: "POST", body: JSON.stringify({ ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
+export const resolveHandoff = (id: string, by?: string, note?: string, returnToAgent = true) =>
+  api<HandoffSummary>(`/v1/handoffs/${id}/resolve`, { method: "POST", body: JSON.stringify({ ...(by ? { by } : {}), ...(note ? { note } : {}), returnToAgent }) });
 export interface SimScenario { name: string; agent: string; required: boolean; description: string; steps: number; judge: boolean; digest: string; tags?: string[]; source?: "file" | "managed"; editable?: boolean }
 export interface SimFailure { where: string; check: string; expected: unknown; actual: unknown }
 export interface SimScenarioResult { name: string; required: boolean; passed: boolean; pass_rate: number; agent: string; notes: string[]; trials: { failures: SimFailure[] }[] }
@@ -298,3 +299,6 @@ export const draftJourney = (agent: string, description: string) =>
   api<{ journey: Journey; yaml: string; warnings: string[]; note: string }>(`/v1/agents/${encodeURIComponent(agent)}/journeys/draft`, { method: "POST", body: JSON.stringify({ description }) });
 export const journeyScenarios = (agent: string, journey: Journey) =>
   api<{ scenarios: Record<string, unknown>[]; yaml: string }>(`/v1/agents/${encodeURIComponent(agent)}/journeys/scenarios`, { method: "POST", body: JSON.stringify({ journey }) });
+
+export const replyToCustomer = (id: string, text: string) => api<{ sent: boolean }>(`/v1/handoffs/${id}/reply`, { method: "POST", body: JSON.stringify({ text }) });
+export const suggestHelp = (id: string) => api<{ assist: Assist }>(`/v1/handoffs/${id}/assist`, { method: "POST" }).then((r) => r.assist);

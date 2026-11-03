@@ -5,6 +5,7 @@ from pathlib import Path
 import uvicorn
 
 from .access import AccessControl, InMemoryKeys, LimitConfig
+from .assist import AssistService
 from .sso import Sso, config_from_env as sso_config_from_env
 from .tokens import TokenSigner, derive_secret
 from .inbox import ChatwootInbox, InboxDispatcher, InMemoryInbox, WebhookInbox
@@ -227,6 +228,12 @@ def run() -> None:
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
                                  if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),
                       ledger=UsageLedger(int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None))
+    assist_mode = os.environ.get("NORTHCX_ASSIST", "").strip() or "on-demand"
+    if assist_mode not in ("off", "on-demand", "auto"):
+        sys.exit("NORTHCX_ASSIST must be off, on-demand or auto")
+    if assist_mode != "off":
+        runtime.assist = AssistService(llm, os.environ.get("NORTHCX_ASSIST_MODEL") or None)
+        runtime.assist_auto = assist_mode == "auto"
 
     # Agents and scenarios are files; the registry maps their tool names to code (the example registry for now).
     specs_dir = os.environ.get("NORTHCX_AGENTS_DIR") or str(examples_dir)

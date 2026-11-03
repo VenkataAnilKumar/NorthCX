@@ -65,8 +65,8 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | H3 | Approvals API (list, decide) | P0 | 1 | Built |
 | H4 | Handoff package: transcript, customer profile, actions taken, summary | P0 | 2 | Built (deterministic summary) |
 | H5 | Human inbox integration | P1 | 3 | Built (signed webhook and Chatwoot adapter, queued retried delivery); inbound sync from the helpdesk via the resolve API |
-| H6 | Agent assist for humans: suggested replies, next steps, call scripts | P2 | 5 | Planned |
-| H7 | Return conversation to the agent after human help | P2 | 5 | Planned |
+| H6 | Agent assist for humans: suggested replies, next steps, call scripts | P2 | 5 | Built for chat (suggested reply, next steps, key facts, cautions on demand or automatically, shown in Studio and added to Chatwoot or webhook inboxes); call scripts come with voice |
+| H7 | Return conversation to the agent after human help | P2 | 5 | Built (the agent stays quiet while a person has the conversation, people reply from Studio, and resolving hands the conversation back with the person's note) |
 | H8 | Business hours and queue routing | P1 | 3 | Built (routing file, queues, holidays, after-hours message, queue filter) |
 
 ## 6. Channels

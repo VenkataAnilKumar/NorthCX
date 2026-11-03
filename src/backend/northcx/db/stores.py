@@ -251,6 +251,12 @@ class PgHandoffs(_Base):
         async with self._sm() as s:
             return [self._to_handoff(r) for r in (await s.execute(q)).scalars().all()]
 
+    async def set_package_field(self, handoff_id: str, key: str, value: Any) -> bool:
+        async with self._sm.begin() as s:
+            r = await s.execute(text("update handoffs set package = jsonb_set(package, cast(:k as text[]), cast(:v as jsonb), true) where id = :id"),
+                                {"k": [key], "v": json.dumps(_jsonable(value)), "id": handoff_id})
+            return r.rowcount > 0
+
     async def resolve(self, handoff_id: str, by: str, note: str | None = None) -> Handoff:
         """Atomic: only an open handoff can be resolved, once."""
         async with self._sm.begin() as s:
