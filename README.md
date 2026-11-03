@@ -28,7 +28,7 @@ cp .env.example .env
 docker compose up -d --build --wait
 # Studio: http://localhost:3001  (Settings > paste the API key)     API: http://localhost:3000
 ```
-The demo model is a handful of keyword rules, not an AI: try "where is order 1042?", "refund 60 for order 1042" (needs approval) and "I want a person". For real conversations set `ANTHROPIC_API_KEY` instead of `NORTHCX_DEMO=1`.
+The demo model is a handful of keyword rules, not an AI: try "where is order 1042?", "refund 500 for order 1042" (over the limit, so it waits for approval) and "I want a person". For real conversations set `ANTHROPIC_API_KEY` instead of `NORTHCX_DEMO=1`.
 
 ## Run from source
 ```bash
