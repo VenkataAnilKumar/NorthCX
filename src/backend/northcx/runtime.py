@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from .agent import Agent, ToolContext
 from .approvals import ApprovalRepo, ApprovalStore
 from .monitor import Monitor
+from .privacy import InMemoryPrivacy
 from .reliability import UsageLedger
 from .guardrails import GuardrailContext, InputResult
 from .handoffs import Handoff, HandoffRepo, InMemoryHandoffs, build_package
@@ -48,7 +49,7 @@ class Runtime:
     def __init__(self, llm: LLM, store: MemoryStore, traces: TraceRepo, approvals: ApprovalRepo | None = None,
                  outbox: Outbox | None = None, handoffs: HandoffRepo | None = None,
                  secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None,
-                 ledger: UsageLedger | None = None):
+                 ledger: UsageLedger | None = None, privacy: Any = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
@@ -56,6 +57,7 @@ class Runtime:
         self.secrets = secrets or NO_SECRETS
         self.monitor = monitor or Monitor()
         self.ledger = ledger or UsageLedger()
+        self.privacy = privacy if privacy is not None else InMemoryPrivacy(self)
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
@@ -63,6 +65,7 @@ class Runtime:
         """`trusted=True` is for messages the platform itself writes (for example an approval outcome); they skip
         the customer input checks and are traced as `system` events."""
         trace = Trace(agent.id, session_id, agent_version=agent.version)
+        await self.privacy.link(session_id, customer_id)  # so the conversation can be exported, erased and aged out
         messages: list[Message] = await self.store.load_messages(session_id)
         facts = await self.store.get_facts(customer_id) if customer_id else {}
         ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets)

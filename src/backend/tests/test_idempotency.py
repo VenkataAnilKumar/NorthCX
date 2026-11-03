@@ -101,7 +101,7 @@ def test_a_request_still_in_progress_is_not_run_a_second_time():
     from northcx.idempotency import Outcome
 
     class Busy(InMemoryIdempotency):
-        async def begin(self, scope, req_hash, now=None):
+        async def begin(self, scope, req_hash, now=None, session_id=None):
             return Outcome("in_progress")
 
     llm = ScriptedLLM([text("never")])

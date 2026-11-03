@@ -93,7 +93,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | K5 | Knowledge source connectors and freshness | P1 | 3 | Partly built: document API and freshness flags; connectors and file parsing planned |
 | K6 | History summarisation for long sessions | P1 | 3 | Planned |
 | K7 | Customer context pulled from business systems at conversation start | P1 | 3 | Planned |
-| K8 | Retention, export and deletion per customer | P1 | 3 | Planned |
+| K8 | Retention, export and deletion per customer | P1 | 3 | Built |
 
 ## 8. Testing and release
 | ID | Feature | Pri | Phase | State |

@@ -420,11 +420,11 @@ class PgAudit(_Base):
 
 
 class PgIdempotency(_Base):
-    async def begin(self, scope: str, req_hash: str, now: float | None = None) -> Outcome:
+    async def begin(self, scope: str, req_hash: str, now: float | None = None, session_id: str | None = None) -> Outcome:
         now = time.time() if now is None else now
         async with self._sm.begin() as s:
             await s.execute(delete(IdempotencyRow).where(IdempotencyRow.created_at < now - TTL_SECONDS))
-            ins = await s.execute(pg_insert(IdempotencyRow).values(scope=scope, req_hash=req_hash, response=None, created_at=now)
+            ins = await s.execute(pg_insert(IdempotencyRow).values(scope=scope, req_hash=req_hash, response=None, created_at=now, session_id=session_id)
                                   .on_conflict_do_nothing().returning(IdempotencyRow.scope))
             if ins.first() is not None:
                 return Outcome("new")
@@ -433,7 +433,7 @@ class PgIdempotency(_Base):
                 await s.execute(pg_insert(IdempotencyRow).values(scope=scope, req_hash=req_hash, response=None, created_at=now).on_conflict_do_nothing())
                 return Outcome("new")
             if row.response is None and row.created_at < now - STALE_AFTER:
-                row.req_hash, row.created_at = req_hash, now  # the earlier attempt never finished: take over
+                row.req_hash, row.created_at, row.session_id = req_hash, now, session_id  # the earlier attempt never finished: take over
                 return Outcome("new")
             if row.req_hash != req_hash:
                 return Outcome("conflict")
@@ -442,6 +442,10 @@ class PgIdempotency(_Base):
     async def complete(self, scope: str, response: dict[str, Any]) -> None:
         async with self._sm.begin() as s:
             await s.execute(update(IdempotencyRow).where(IdempotencyRow.scope == scope).values(response=_jsonable(response)))
+
+    async def forget_session(self, session_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(delete(IdempotencyRow).where(IdempotencyRow.session_id == session_id))).rowcount
 
     async def abandon(self, scope: str) -> None:
         async with self._sm.begin() as s:
@@ -560,6 +564,81 @@ class PgKnowledge(_Base):
             out.append(Passage(r.doc_id, r.source_id, r.title, r.url, r.heading, r.body, round(float(r.rank), 4),
                                r.source_updated_at or r.ingested_at, is_stale(d, r.stale_after_days, now)))
         return out
+
+
+class PgPrivacy(_Base):
+    """Export and erasure across every table that holds conversation data."""
+
+    async def link(self, session_id: str, customer_id: str | None, now: float | None = None) -> None:
+        now = time.time() if now is None else now
+        async with self._sm.begin() as s:
+            await s.execute(text("insert into session_index (session_id, customer_id, first_seen, last_seen) values (:s, :c, :n, :n) "
+                                 "on conflict (session_id, customer_id) do update set last_seen = excluded.last_seen"),
+                            {"s": session_id, "c": customer_id or "", "n": now})
+
+    async def sessions_for_customer(self, customer_id: str) -> list[str]:
+        async with self._sm() as s:
+            rows = (await s.execute(text(
+                "select session_id from session_index where customer_id = :c union select session_id from approvals where customer_id = :c "
+                "union select session_id from handoffs where customer_id = :c union select session_id from email_sessions where customer_id = :c "
+                "order by 1"), {"c": customer_id})).all()
+        return [r[0] for r in rows]
+
+    async def sessions_idle_since(self, cutoff: float, limit: int = 1000) -> list[str]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select session_id from session_index group by session_id having max(last_seen) < :c order by max(last_seen) limit :n"),
+                                    {"c": cutoff, "n": limit})).all()
+        return [r[0] for r in rows]
+
+    async def _rows(self, s: Any, sql: str, **p: Any) -> list[dict[str, Any]]:
+        return [_jsonable(dict(r._mapping)) for r in (await s.execute(text(sql), p)).all()]
+
+    async def export_session(self, session_id: str) -> dict[str, Any]:
+        async with self._sm() as s:
+            q = lambda sql: self._rows(s, sql, s_=session_id)  # noqa: E731
+            traces = []
+            for t in await q("select * from traces where session_id = :s_ order by started_at"):
+                t["events"] = await self._rows(s, "select seq, type, t, data from trace_events where trace_id = :i order by seq", i=t["id"])
+                traces.append(t)
+            email_s = await q("select * from email_sessions where session_id = :s_")
+            return {
+                "sessionId": session_id,
+                "messages": [{"role": m["role"], "content": m["content"]} for m in await q("select role, content from messages where session_id = :s_ order by seq")],
+                "traces": traces,
+                "outbox": await q("select id, kind, payload, created_at from outbox where session_id = :s_ order by id"),
+                "approvals": await q("select * from approvals where session_id = :s_ order by created_at"),
+                "handoffs": await q("select * from handoffs where session_id = :s_ order by created_at"),
+                "findings": await q("select * from monitor_findings where session_id = :s_ order by created_at"),
+                "email": {"session": email_s[0], "messages": await q("select * from email_messages where session_id = :s_")} if email_s else None,
+            }
+
+    async def erase_session(self, session_id: str) -> dict[str, int]:
+        p = {"s": session_id}
+        async with self._sm.begin() as s:
+            await s.execute(text("select pg_advisory_xact_lock(hashtext(:s))"), p)  # not while the conversation is being saved
+            out = {
+                "messages": (await s.execute(text("select count(*) from messages where session_id = :s"), p)).scalar_one(),
+                "traces": (await s.execute(text("delete from traces where session_id = :s"), p)).rowcount,  # events cascade
+                "outbox": (await s.execute(text("delete from outbox where session_id = :s"), p)).rowcount,
+                "approvals": (await s.execute(text("delete from approvals where session_id = :s"), p)).rowcount,
+                "handoffs": (await s.execute(text("delete from handoffs where session_id = :s"), p)).rowcount,
+                "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
+                "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,
+            }
+            out["email"] = ((await s.execute(text("delete from email_messages where session_id = :s"), p)).rowcount
+                            + (await s.execute(text("delete from email_sessions where session_id = :s"), p)).rowcount)
+            await s.execute(text("delete from sessions where id = :s"), p)  # messages cascade
+            await s.execute(text("delete from session_index where session_id = :s"), p)
+        return {k: int(v) for k, v in out.items()}
+
+    async def export_facts(self, customer_id: str) -> dict[str, str]:
+        async with self._sm() as s:
+            rows = (await s.execute(select(FactRow.key, FactRow.value).where(FactRow.customer_id == customer_id))).all()
+        return {r.key: r.value for r in rows}
+
+    async def erase_facts(self, customer_id: str) -> int:
+        async with self._sm.begin() as s:
+            return (await s.execute(delete(FactRow).where(FactRow.customer_id == customer_id))).rowcount
 
 
 class PgMonitor(_Base):

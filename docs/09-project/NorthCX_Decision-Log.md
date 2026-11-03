@@ -77,3 +77,5 @@
 | 73 | Streaming sends progress and the already-checked reply in pieces; raw model tokens are not streamed because supervisors must approve a reply before a customer sees it | Decided, built | Web test console uses it |
 | 74 | Knowledge is built natively on Postgres full-text search with an in-memory twin; no connector framework or vector database yet | Decided, built | The reference indexing code is coupled to its own services; assessed, not copied (THIRD_PARTY.md) |
 | 75 | Documents are submitted through the API as text or Markdown, keyed by the caller's external id; unchanged content is skipped; staleness is measured from the company's own update time | Decided, built | |
+| 76 | A session index links conversations to customers; export, erasure and retention walk it and every store that holds conversation data | Decided, built | Pre-index conversations are found by id or age only |
+| 77 | The audit log is retained through erasure; privacy actions are logged with a one-way customer reference | Decided, built | Backups and downstream copies are out of scope and documented |

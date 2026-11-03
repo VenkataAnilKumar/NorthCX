@@ -19,6 +19,7 @@ from .access import ROLES, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
 from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
+from .privacy import InMemoryPrivacy, PrivacyService, customer_ref
 from .knowledge import InMemoryKnowledge, KnowledgeError, KnowledgeStore, Source
 from .idempotency import IdempotencyStore, InMemoryIdempotency, scope_hash, request_hash, valid_key
 from .audit import AuditEntry, AuditRepo, InMemoryAudit
@@ -50,6 +51,11 @@ class DocumentBody(BaseModel):
     text: str = Field(min_length=1, max_length=500_000)
     url: str | None = Field(default=None, max_length=2000)
     source_updated_at: float | None = Field(default=None, alias="sourceUpdatedAt")
+    model_config = {"populate_by_name": True}
+
+
+class RetentionBody(BaseModel):
+    older_than_days: float = Field(alias="olderThanDays", ge=1, le=3650)
     model_config = {"populate_by_name": True}
 
 
@@ -138,6 +144,10 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/agents/[^/]+/chat", "chat:send"),
     ("POST", r"/v1/agents/[^/]+/chat/stream", "chat:send"),
     ("GET", r"/v1/sessions/[^/]+/outbox", "outbox:read"),
+    ("GET", r"/v1/privacy/customers/.+/export", "privacy:manage"),
+    ("DELETE", r"/v1/privacy/customers/.+", "privacy:manage"),
+    ("DELETE", r"/v1/privacy/sessions/.+", "privacy:manage"),
+    ("POST", r"/v1/privacy/retention/run", "privacy:manage"),
     ("GET", r"/v1/knowledge/sources", "knowledge:read"),
     ("POST", r"/v1/knowledge/sources", "knowledge:write"),
     ("DELETE", r"/v1/knowledge/sources/[^/]+", "knowledge:write"),
@@ -186,7 +196,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                approval_ttl_seconds: float | None = None, simulations: SimulationService | None = None,
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
-               idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None) -> FastAPI:
+               idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
+               retention_days: float | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -195,6 +206,11 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     audit = audit or InMemoryAudit()
     idem = idempotency or InMemoryIdempotency()
     kb = knowledge or InMemoryKnowledge()
+    privacy = PrivacyService(runtime.privacy)
+    if isinstance(runtime.privacy, InMemoryPrivacy):  # the in-memory backend reaches the other in-memory stores through these
+        runtime.privacy.idempotency = idem
+        if email is not None:
+            runtime.privacy.email = email.repo
     provider = as_provider(agents)
     agents = provider  # everything below resolves agents through the provider
     flow = ApprovalFlow(runtime)
@@ -222,8 +238,22 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                         pass
 
             task = asyncio.create_task(sweep())
+        retention = None
+        if retention_days:  # age out old conversations once an hour
+            async def retain() -> None:
+                while True:
+                    await asyncio.sleep(3600)
+                    try:
+                        r = await privacy.purge_idle(retention_days)
+                        if r["sessions"]:
+                            await audit.append(AuditEntry(actor="system", role="system", key_id=None, action="privacy.retention", target=f"older than {retention_days:g} days",
+                                                          outcome="success", detail=r))
+                    except Exception:
+                        log.exception("retention sweep failed")
+
+            retention = asyncio.create_task(retain())
         yield
-        for t in (task, flusher):
+        for t in (task, flusher, retention):
             if t:
                 t.cancel()
 
@@ -390,7 +420,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             if not valid_key(ikey):
                 return _err(400, "bad_idempotency_key", "Idempotency-Key must be 1-200 visible ASCII characters")
             scope = scope_hash(who.key_id or who.name, agent_id, body.session_id, ikey)
-            out = await idem.begin(scope, request_hash([body.message, customer_id]))
+            out = await idem.begin(scope, request_hash([body.message, customer_id]), session_id=body.session_id)
             if out.state == "replay":
                 return JSONResponse(out.response, headers={"Idempotent-Replay": "true"})
             if out.state == "conflict":
@@ -423,6 +453,31 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def get_trace(trace_id: str) -> Any:
         t = await traces.get(trace_id)
         return t.to_dict() if t else _err(404, "not_found", "Unknown trace")
+
+    # ---- privacy: export, erasure, retention ----
+    @app.get("/v1/privacy/customers/{customer_id:path}/export")
+    async def privacy_export(customer_id: str, request: Request) -> Any:
+        data = await privacy.export_customer(customer_id)
+        await record(request, "privacy.export", customer_ref(customer_id), sessions=len(data["sessions"]))
+        return JSONResponse(data, headers={"Cache-Control": "no-store", "Content-Disposition": 'attachment; filename="customer-export.json"'})
+
+    @app.delete("/v1/privacy/customers/{customer_id:path}")
+    async def privacy_erase_customer(customer_id: str, request: Request) -> Any:
+        r = await privacy.erase_customer(customer_id)
+        await record(request, "privacy.erase.customer", customer_ref(customer_id), **r)
+        return r
+
+    @app.delete("/v1/privacy/sessions/{session_id:path}")
+    async def privacy_erase_session(session_id: str, request: Request) -> Any:
+        r = await privacy.erase_session(session_id)
+        await record(request, "privacy.erase.session", customer_ref(session_id), removed=r)
+        return {"removed": r}
+
+    @app.post("/v1/privacy/retention/run")
+    async def privacy_retention(body: RetentionBody, request: Request) -> Any:
+        r = await privacy.purge_idle(body.older_than_days)
+        await record(request, "privacy.retention", f"older than {body.older_than_days:g} days", **r)
+        return r
 
     # ---- knowledge ----
     @app.get("/v1/knowledge/sources")

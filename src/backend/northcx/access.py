@@ -17,7 +17,7 @@ VIEW = {"agents:read", "traces:read", "handoffs:read", "approvals:read", "simula
 DEVELOP = VIEW | {"knowledge:write", "versions:create", "simulations:run", "chat:send", "outbox:read"}
 ROLES: dict[str, frozenset[str]] = {
     "admin": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "approvals:decide", "handoffs:resolve",
-                                  "keys:manage", "audit:read", "chat:mint", "channel:inbound"}),
+                                  "keys:manage", "audit:read", "chat:mint", "channel:inbound", "privacy:manage"}),
     "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback"}),
     "developer": frozenset(DEVELOP),
     "reviewer": frozenset(VIEW | {"approvals:decide", "handoffs:resolve"}),

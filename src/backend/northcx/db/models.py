@@ -235,13 +235,24 @@ class KnowledgeChunkRow(Base):
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
+class SessionIndexRow(Base):
+    """Which conversations belong to which customer ('' = no known customer), and when each was last active."""
+    __tablename__ = "session_index"
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    customer_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    first_seen: Mapped[float] = mapped_column(Float, nullable=False)
+    last_seen: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_session_index_customer", "customer_id"), Index("ix_session_index_seen", "last_seen"))
+
+
 class IdempotencyRow(Base):
     __tablename__ = "idempotency_keys"
     scope: Mapped[str] = mapped_column(String(64), primary_key=True)
     req_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     response: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
-    __table_args__ = (Index("ix_idempotency_created", "created_at"),)
+    session_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    __table_args__ = (Index("ix_idempotency_created", "created_at"), Index("ix_idempotency_session", "session_id"))
 
 
 class MonitorFindingRow(Base):
