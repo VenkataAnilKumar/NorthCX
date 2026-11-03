@@ -103,6 +103,8 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | POST | `/handoffs/{id}/reply` | `text`: a person's message to the customer, delivered through the outbox as kind `person_reply` (`handoffs:resolve`) (built) |
 | POST | `/handoffs/{id}/assist` | draft suggestions for the person handling the hand-off, stored with it; 20 per minute per key (`handoffs:resolve`) (built) |
 | POST | `/agents/{id}/journeys/draft` | `description`: a journey drafted by the model from plain language, checked against the agent's tools; 10 per minute per key; needs `versions:create` (built) |
+| POST | `/builder/draft` | `agentId`, `goal`, `sources` (1-8 of `{kind: procedure\|transcript, name, text}`, 20,000 characters each): a first draft of an agent (YAML, warnings, notes, typical questions) from procedures and conversation transcripts. Saves nothing; needs `versions:create`; 5 a minute per key |
+| POST | `/insights/ask` | `question`: a performance question answered from the recorded figures (see Observability) |
 | POST | `/agents/{id}/journeys/scenarios` | `journey`: test scenario drafts, one per sample message (`simulations:run`) (built) |
 | GET | `/auth/sso/config`, `/auth/sso/login`, `/auth/sso/callback` | outside `/v1`, no key: start and finish a single sign-on (built) |
 | POST | `/me/logout` | end the caller's single-sign-on session (other keys are untouched) (built) |

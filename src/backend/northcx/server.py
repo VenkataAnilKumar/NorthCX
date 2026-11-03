@@ -43,6 +43,7 @@ from .voice import CallRepo, CallSession, InMemoryCalls, VoiceConfig
 from .attachments import MAX_BYTES, MAX_PER_MESSAGE, AttachmentError, AttachmentRepo, InMemoryAttachments, Scanner, accept as accept_attachment, check_accepted
 from .handoffs import PERSON_PREFIX, return_note, transcript
 from .analytics_qa import ask as ask_insights
+from .builder import BuildError, draft_agent
 from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
 from .simulation.managed import parse_definition
 from .regression import RegressionRunner, scenario_from_traces
@@ -108,6 +109,19 @@ class CrawlBody(BaseModel):
     exclude_paths: list[str] = Field(default_factory=list, alias="excludePaths")
     use_sitemap: bool = Field(default=True, alias="useSitemap")
     prune: bool = False
+    model_config = {"populate_by_name": True}
+
+
+class BuilderSource(BaseModel):
+    kind: str
+    name: str = Field(default="", max_length=80)
+    text: str = Field(min_length=1, max_length=20000)
+
+
+class BuilderBody(BaseModel):
+    agent_id: str = Field(alias="agentId", min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_.-]+$")
+    goal: str = Field(min_length=10, max_length=2000)
+    sources: list[BuilderSource] = Field(min_length=1, max_length=8)
     model_config = {"populate_by_name": True}
 
 
@@ -300,6 +314,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/sessions/[^/]+/attachments", "traces:read"),
     ("GET", r"/v1/attachments/[^/]+", "traces:read"),
     ("POST", r"/v1/agents/[^/]+/journeys/draft", "versions:create"),
+    ("POST", r"/v1/builder/draft", "versions:create"),
     ("POST", r"/v1/agents/[^/]+/journeys/scenarios", "simulations:run"),
     ("GET", r"/v1/trace-export", "traces:read"),
     ("GET", r"/v1/traces/[^/]+/exports", "traces:read"),
@@ -1110,6 +1125,26 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def regression_status() -> Any:
         """Whether simulations re-run when the knowledge changes, and how the last re-run went."""
         return regression.status() if regression is not None else {"enabled": False}
+
+    @app.post("/v1/builder/draft")
+    async def builder_draft(body: BuilderBody, request: Request) -> Any:
+        """A first draft of an agent from procedures and conversation transcripts. Names are checked against what this deployment has;
+        personal details are masked before the model sees anything; nothing is saved."""
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        who: Identity = request.state.identity
+        if not access.limiter.allow(f"builder:{who.key_id or 'open'}", 5)[0]:
+            return too_many(60, "agent drafts")
+        try:
+            out = await draft_agent(runtime.llm, svc.registry, body.agent_id, body.goal, [s.model_dump() for s in body.sources])
+        except BuildError as e:
+            return _err(422, "unusable_draft", str(e))
+        except Exception:
+            log.exception("agent draft failed")
+            return _err(502, "model_unavailable", "The model could not be reached; try again")
+        await record(request, "builder.draft", body.agent_id, sources=len(body.sources), warnings=len(out["warnings"]))
+        return out
 
     @app.post("/v1/agents/{agent_id}/journeys/draft")
     async def journey_draft(agent_id: str, body: JourneyDraftBody, request: Request) -> Any:

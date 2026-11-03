@@ -10,7 +10,9 @@ export default function Agents() {
   if (error) return <ErrorBox message={error} onRetry={reload} />;
   return (
     <>
-      <PageHeader title="Agents" subtitle="What is live for each agent. Create, test and release new versions from Versions and releases." />
+      <PageHeader title="Agents" subtitle="What is live for each agent. Create, test and release new versions from Versions and releases.">
+        <Link href="/agents/build" className="text-sm text-primary underline">Build an agent from your material</Link>
+      </PageHeader>
       {!data?.length ? <Empty>No agents are configured.</Empty> : (
         <ul className="space-y-4">{data.map((a) => (
           <li key={a.id} className="rounded-xl border border-border bg-surface p-4">

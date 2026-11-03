@@ -223,6 +223,9 @@ export const getSeries = (hours: number, agent?: string, env?: string) => {
 };
 export interface AskAnswer { answerable: boolean; answer: string; plan?: { metric: string; days: number; offsetDays: number; agent: string | null; compare: boolean; trend: boolean }; supported?: string[] }
 export const askInsights = (question: string, environment?: string) => api<AskAnswer>("/v1/insights/ask", { method: "POST", body: JSON.stringify({ question, ...(environment ? { environment } : {}) }) });
+export interface AgentDraft { specYaml: string; spec: Record<string, unknown>; warnings: string[]; notes: string[]; examples: string[]; note: string; sources: { kind: string; name: string; characters: number }[] }
+export const draftAgent = (body: { agentId: string; goal: string; sources: { kind: string; name: string; text: string }[] }) =>
+  api<AgentDraft>("/v1/builder/draft", { method: "POST", body: JSON.stringify(body) });
 export const getFailures = (hours: number, agent?: string, env?: string) => api<{ causes: FailureCause[] }>(`/v1/insights/failures?${windowQuery(hours, agent, env)}`).then((r) => r.causes);
 export const getGaps = (hours: number, agent?: string, env?: string) => api<Gaps>(`/v1/insights/gaps?${windowQuery(hours, agent, env)}`);
 export const getAlerts = () => api<AlertStatus>("/v1/alerts");
