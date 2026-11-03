@@ -37,7 +37,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | T2 | Tool errors returned to the model | P0 | 1 | Built |
 | T3 | Approval rules per tool and per input | P0 | 1 | Built |
 | T4 | Idempotency keys and retries for writes | P1 | 3 | Built |
-| T5 | Connector library (orders, billing, accounts, helpdesk) | P1 | 3 | Built (connectors as YAML data with host allowlist; four generic starting points, not product-specific integrations) |
+| T5 | Connector library (orders, billing, accounts, helpdesk) | P1 | 3 | Built (connectors as YAML data with host allowlist; five generic starting points, not product-specific integrations; paged lists with four styles; OAuth 2 client-credentials and refresh-token sign-in) |
 | T6 | Tool permissions per agent and per customer scope | P1 | 3 | Built (customer, facts and channel scopes) |
 | T7 | Secrets management for tool credentials | P0 | 2 | Built (environment or mounted files, scrubbed from everything stored) |
 | T8 | Tool sandbox or dry-run mode for testing | P1 | 2 | Built (write tools are simulated in simulations) |

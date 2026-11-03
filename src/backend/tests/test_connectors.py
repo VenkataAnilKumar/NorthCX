@@ -192,13 +192,16 @@ def test_directory_loading_skips_examples_and_rejects_name_clashes(tmp_path):
 
 def test_the_shipped_example_connectors_are_valid_starting_points():
     files = sorted(glob.glob("examples/connectors/*.example.yaml"))
-    assert len(files) == 4
+    assert len(files) == 5
     names = []
     for f in files:
         d = yaml.safe_load(open(f))
-        c = Connector(d, {urllib.parse.urlsplit(d["base_url"]).hostname}, f)
+        hosts = {urllib.parse.urlsplit(d["base_url"]).hostname}
+        if isinstance(d.get("auth"), dict) and d["auth"].get("token_url"):
+            hosts.add(urllib.parse.urlsplit(d["auth"]["token_url"]).hostname)
+        c = Connector(d, hosts, f)
         names += [t.name for t in c.tools]
-    assert names == sorted(set(names), key=names.index) and {"orders_lookup", "orders_refund", "billing_invoice", "accounts_lookup", "helpdesk_create_ticket"} <= set(names)
+    assert names == sorted(set(names), key=names.index) and {"orders_lookup", "orders_refund", "billing_invoice", "accounts_lookup", "helpdesk_create_ticket", "crm_recent_cases"} <= set(names)
 
 
 # ---- through the runtime ----
@@ -222,3 +225,280 @@ async def test_an_agent_uses_a_connector_tool_end_to_end_with_approval_for_large
     await ApprovalFlow(rt).resolve({"a": agent}, (await rt.approvals.list("pending"))[0].id, True, "rae")
     assert len(posted) == 1 and posted[0][0] == {"amount": 250} and posted[0][1]  # executed once, with the approval's idempotency key
     assert "tok-SECRET" not in json.dumps([e.data for e in r.trace.events], default=str)
+
+
+# ---- pagination ----
+HOSTS2 = {"api.shop.example.com", "login.shop.example.com"}
+
+
+def list_cfg(pagination, **extra):
+    t = {"name": "orders_list", "path": "/orders", "inputs": {"status": {"type": "string", "required": False}}, "query": {"status": "{status}"},
+         "response": {"fields": ["id", "status"]}, "pagination": pagination}
+    return cfg(tools=[t], **extra)
+
+
+def pconn(handler, pagination, **extra):
+    return Connector(list_cfg(pagination, **extra), HOSTS2, "t.yaml", httpx.AsyncClient(transport=httpx.MockTransport(handler), follow_redirects=False))
+
+
+async def run_list(c, **inputs):
+    t = tool(c, "orders_list")
+    return await t.execute(t.input_model(**inputs), ctx())
+
+
+def item(i):
+    return {"id": f"O-{i}", "status": "shipped", "internal": "hidden"}
+
+
+async def test_cursor_pages_are_followed_until_the_system_has_no_more():
+    seen = []
+
+    def handler(req):
+        seen.append(dict(req.url.params))
+        cur = req.url.params.get("cursor")
+        nxt = {None: "c2", "c2": "c3", "c3": None}[cur]
+        start = {None: 0, "c2": 2, "c3": 4}[cur]
+        return httpx.Response(200, json={"data": [item(start), item(start + 1)], "meta": {"next_cursor": nxt}})
+    out = await run_list(pconn(handler, {"style": "cursor", "items": "data", "next": "meta.next_cursor", "param": "cursor", "size_param": "limit", "page_size": 2}), status="shipped")
+    assert out == {"items": [{"id": f"O-{i}", "status": "shipped"} for i in range(6)], "count": 6, "truncated": False}   # only the listed fields, from every page
+    assert seen == [{"status": "shipped", "limit": "2"}, {"status": "shipped", "limit": "2", "cursor": "c2"}, {"status": "shipped", "limit": "2", "cursor": "c3"}]
+
+
+async def test_paging_stops_at_the_page_and_item_limits_and_says_it_was_cut_short():
+    calls = []
+
+    def handler(req):
+        calls.append(1)
+        n = len(calls)
+        return httpx.Response(200, json={"data": [item(n * 10 + k) for k in range(10)], "next": f"c{n}"})
+    out = await run_list(pconn(handler, {"style": "cursor", "items": "data", "next": "next", "param": "c", "max_pages": 3, "max_items": 100}))
+    assert len(calls) == 3 and out["count"] == 30 and out["truncated"] is True
+    calls.clear()
+    out = await run_list(pconn(handler, {"style": "cursor", "items": "data", "next": "next", "param": "c", "max_pages": 10, "max_items": 15}))
+    assert out["count"] == 15 and out["truncated"] is True and len(calls) == 2
+
+
+async def test_page_number_and_offset_styles():
+    def by_page(req):
+        page = int(req.url.params["page"])
+        return httpx.Response(200, json=[item(i) for i in range(3)] if page < 3 else [item(99)])
+    out = await run_list(pconn(by_page, {"style": "page", "param": "page", "size_param": "per_page", "page_size": 3}))
+    assert out["count"] == 7 and out["truncated"] is False                                  # two full pages, then a short one ends it
+
+    offsets = []
+
+    def by_offset(req):
+        o = int(req.url.params["offset"])
+        offsets.append(o)
+        return httpx.Response(200, json={"results": [item(o + k) for k in range(5)] if o < 10 else []})
+    out = await run_list(pconn(by_offset, {"style": "offset", "param": "offset", "items": "results", "max_pages": 10}))
+    assert offsets == [0, 5, 10] and out["count"] == 10 and out["truncated"] is False       # an empty page ends it
+
+
+async def test_link_header_pages_stay_on_the_connectors_own_address_and_keep_the_credentials():
+    seen = []
+
+    def handler(req):
+        seen.append((str(req.url), req.headers.get("authorization")))
+        if "page=2" not in str(req.url):
+            return httpx.Response(200, json=[item(1), item(2)], headers={"link": '<https://api.shop.example.com/v1/orders?page=2>; rel="next", <https://api.shop.example.com/v1/orders?page=9>; rel="last"'})
+        return httpx.Response(200, json=[item(3)])
+    out = await run_list(pconn(handler, {"style": "link_header"}))
+    assert out["count"] == 3 and seen[1][0] == "https://api.shop.example.com/v1/orders?page=2" and all(a == "Bearer tok-SECRET" for _, a in seen)
+
+
+@pytest.mark.parametrize("target", ["https://evil.example.net/v1/orders?page=2", "http://api.shop.example.com/v1/orders?page=2", "https://api.shop.example.com/admin/orders",
+                                    "https://user:pw@api.shop.example.com/v1/orders", "https://api.shop.example.com:8443/v1/orders"])
+async def test_a_link_to_somewhere_else_is_never_followed(target):
+    calls = []
+
+    def handler(req):
+        calls.append(str(req.url))
+        return httpx.Response(200, json=[item(1)], headers={"link": f'<{target}>; rel="next"'})
+    with pytest.raises(CallFailed, match="outside its own address"):
+        await run_list(pconn(handler, {"style": "link_header"}))
+    assert len(calls) == 1 and "tok-SECRET" not in str(calls)                               # the credentials never went to the other address
+
+
+async def test_unusable_answers_while_paging_are_reported_safely():
+    def not_a_list(req):
+        return httpx.Response(200, json={"data": {"oops": 1}})
+    with pytest.raises(CallFailed, match="did not contain the list"):
+        await run_list(pconn(not_a_list, {"style": "cursor", "items": "data", "next": "n", "param": "c"}))
+
+    def complex_cursor(req):
+        return httpx.Response(200, json={"data": [item(1)], "n": {"a": 1}})
+    with pytest.raises(CallFailed, match="not a simple value"):
+        await run_list(pconn(complex_cursor, {"style": "cursor", "items": "data", "next": "n", "param": "c"}))
+
+    def second_page_fails(req):
+        return httpx.Response(500) if req.url.params.get("c") else httpx.Response(200, json={"data": [item(1)], "n": "x"})
+    with pytest.raises(CallFailed, match="returned 500"):
+        await run_list(pconn(second_page_fails, {"style": "cursor", "items": "data", "next": "n", "param": "c"}))
+    assert await run_list(pconn(lambda r: httpx.Response(404), {"style": "page", "param": "p"})) == {"found": False}
+
+
+async def test_a_huge_page_is_trimmed_not_passed_on():
+    big = [{"id": "x" * 2000, "status": "s"} for _ in range(120)]
+    out = await run_list(pconn(lambda r: httpx.Response(200, json=big), {"style": "page", "param": "p", "max_items": 500, "max_pages": 1}))
+    assert out["truncated"] is True and len(json.dumps(out["items"])) <= MAX_RESPONSE
+
+
+@pytest.mark.parametrize("pagination,msg", [({"style": "rolling"}, "style must be"), ({"style": "cursor", "param": "c"}, "needs 'next'"), ({"style": "page"}, "needs 'param'"),
+                                            ({"style": "page", "param": "status"}, "also set in the tool's own query"), ({"style": "page", "param": "p", "max_pages": 50}, "max_pages must be"),
+                                            ({"style": "page", "param": "p", "max_items": 5000}, "max_items 1-500"), ({"style": "page", "param": "p?x=1"}, "must be a query parameter"),
+                                            ({"style": "cursor", "param": "c", "next": "a b"}, "dotted field path"), ({"style": "page", "param": "p", "bogus": 1}, "pagination takes")])
+def test_pagination_settings_are_checked(pagination, msg):
+    with pytest.raises(ConnectorError, match=msg):
+        Connector(list_cfg(pagination), HOSTS2, "t.yaml")
+
+
+def test_only_reads_can_be_paginated():
+    c = cfg()
+    c["tools"][1]["pagination"] = {"style": "page", "param": "p"}
+    with pytest.raises(ConnectorError, match="only GET tools"):
+        Connector(c, HOSTS2, "t.yaml")
+
+
+# ---- OAuth 2 ----
+def oauth(**kw):
+    a = {"type": "oauth2_client_credentials", "token_url": "https://login.shop.example.com/oauth/token", "client_id": "SHOP_ID", "client_secret": "SHOP_SECRET", "scope": "orders.read"}
+    a.update(kw)
+    return a
+
+
+def oconn(api, token, auth=None, **kw):
+    def handler(req):
+        return token(req) if req.url.host == "login.shop.example.com" else api(req)
+    c = Connector(cfg(auth=auth or oauth()), HOSTS2, "t.yaml", httpx.AsyncClient(transport=httpx.MockTransport(handler), follow_redirects=False))
+    c._now = lambda: clock[0]  # type: ignore[method-assign]
+    return c
+
+
+clock = [1000.0]
+OSECRETS = SecretStore({"shop_id": "client-123", "shop_secret": "s3cr3t-value", "shop_refresh": "refresh-abc"})
+
+
+def octx():
+    return ctx(secrets=OSECRETS)
+
+
+async def lookup(c):
+    t = tool(c, "orders_lookup")
+    return await t.execute(t.input_model(order_id="A-1042"), octx())
+
+
+async def test_client_credentials_fetch_one_token_and_reuse_it_until_it_is_about_to_expire():
+    clock[0] = 1000.0
+    forms, bearers = [], []
+
+    def token(req):
+        forms.append(urllib.parse.parse_qs(req.content.decode()))
+        return httpx.Response(200, json={"access_token": f"at-{len(forms)}", "expires_in": 300, "token_type": "bearer"})
+
+    def api(req):
+        bearers.append(req.headers["authorization"])
+        return httpx.Response(200, json={"id": "A-1", "status": "ok"})
+    c = oconn(api, token)
+    await lookup(c)
+    await lookup(c)
+    assert len(forms) == 1 and forms[0] == {"grant_type": ["client_credentials"], "client_id": ["client-123"], "client_secret": ["s3cr3t-value"], "scope": ["orders.read"]}
+    clock[0] += 200
+    await lookup(c)
+    assert len(forms) == 1                                                                   # still good (more than 30 s left)
+    clock[0] += 80
+    await lookup(c)
+    assert len(forms) == 2 and bearers == ["Bearer at-1", "Bearer at-1", "Bearer at-1", "Bearer at-2"]
+
+
+async def test_the_client_can_sign_in_with_a_basic_header_instead_of_the_form():
+    seen = {}
+
+    def token(req):
+        seen["auth"], seen["form"] = req.headers.get("authorization"), urllib.parse.parse_qs(req.content.decode())
+        return httpx.Response(200, json={"access_token": "at", "expires_in": 60})
+    await lookup(oconn(lambda r: httpx.Response(200, json={"id": "A"}), token, oauth(client_auth="basic")))
+    import base64
+    assert seen["auth"] == "Basic " + base64.b64encode(b"client-123:s3cr3t-value").decode() and "client_secret" not in seen["form"] and "client_id" not in seen["form"]
+
+
+async def test_a_refused_token_is_renewed_once_and_then_given_up_on():
+    clock[0] = 1000.0
+    issued = []
+
+    def token(req):
+        issued.append(1)
+        return httpx.Response(200, json={"access_token": f"at-{len(issued)}", "expires_in": 3600})
+    seen = []
+
+    def api(req):
+        seen.append(req.headers["authorization"])
+        return httpx.Response(401) if req.headers["authorization"] == "Bearer at-1" else httpx.Response(200, json={"id": "A-1", "status": "ok"})
+    out = await lookup(oconn(api, token))
+    assert out["id"] == "A-1" and seen == ["Bearer at-1", "Bearer at-2"] and len(issued) == 2
+    always = oconn(lambda r: httpx.Response(401), token)
+    with pytest.raises(CallFailed, match="returned 401"):
+        await lookup(always)
+
+
+async def test_sign_in_failures_are_reported_without_secrets_or_what_the_system_said():
+    def refused(req):
+        return httpx.Response(400, json={"error": "invalid_client", "error_description": "client s3cr3t-value is wrong"})
+    with pytest.raises(CallFailed) as e:
+        await lookup(oconn(lambda r: httpx.Response(200), refused))
+    assert "token address returned 400" in str(e.value) and "s3cr3t" not in str(e.value) and "invalid_client" not in str(e.value)
+
+    def down(req):
+        raise httpx.ConnectError("boom login.shop.example.com s3cr3t-value")
+    with pytest.raises(CallFailed) as e2:
+        await lookup(oconn(lambda r: httpx.Response(200), down))
+    assert "ConnectError" in str(e2.value) and "s3cr3t" not in str(e2.value) and "login.shop" not in str(e2.value)
+    for body in (httpx.Response(200, json={"nope": 1}), httpx.Response(200, content=b"<html>"), httpx.Response(200, json=["x"]), httpx.Response(200, json={"access_token": ""})):
+        with pytest.raises(CallFailed, match="usable token"):
+            await lookup(oconn(lambda r: httpx.Response(200), lambda r, b=body: b))
+
+
+async def test_the_token_never_appears_in_what_the_agent_sees():
+    c = oconn(lambda r: httpx.Response(200, json={"id": "A-1", "status": "ok", "echo": "Bearer at-secret-token"}), lambda r: httpx.Response(200, json={"access_token": "at-secret-token", "expires_in": 60}))
+    out = await lookup(c)
+    assert "at-secret-token" not in json.dumps(out)
+
+
+async def test_a_refresh_token_grant_uses_the_stored_refresh_token_and_remembers_a_new_one():
+    clock[0] = 1000.0
+    forms = []
+
+    def token(req):
+        forms.append(urllib.parse.parse_qs(req.content.decode()))
+        return httpx.Response(200, json={"access_token": f"at-{len(forms)}", "expires_in": 31, "refresh_token": "refresh-NEW"})
+    c = oconn(lambda r: httpx.Response(200, json={"id": "A"}), token, {"type": "oauth2_refresh_token", "token_url": "https://login.shop.example.com/oauth/token", "client_id": "SHOP_ID", "refresh_token": "SHOP_REFRESH"})
+    await lookup(c)
+    clock[0] += 5
+    await lookup(c)
+    assert forms[0]["grant_type"] == ["refresh_token"] and forms[0]["refresh_token"] == ["refresh-abc"] and "client_secret" not in forms[0]
+    assert forms[1]["refresh_token"] == ["refresh-NEW"]                                       # providers that rotate refresh tokens are followed while the process runs
+
+
+async def test_simultaneous_calls_share_one_sign_in():
+    import asyncio
+    clock[0] = 1000.0
+    n = []
+
+    def token(req):
+        n.append(1)
+        return httpx.Response(200, json={"access_token": "at", "expires_in": 600})
+    c = oconn(lambda r: httpx.Response(200, json={"id": "A"}), token)
+    await asyncio.gather(*(lookup(c) for _ in range(8)))
+    assert len(n) == 1
+
+
+@pytest.mark.parametrize("auth,msg", [(oauth(token_url="https://login.evil.example.net/t"), "token host 'login.evil.example.net' is not in NORTHCX_CONNECTOR_HOSTS"),
+                                      (oauth(token_url="http://login.shop.example.com/t"), "must use https"), (oauth(token_url="https://u:p@login.shop.example.com/t"), "no credentials"),
+                                      (oauth(token_url="https://login.shop.example.com/t?x=1"), "no credentials, query or fragment"), (oauth(client_secret=None), "needs client_secret"),
+                                      (oauth(client_id="abc-123"), "name of a secret"), (oauth(client_secret="the actual secret value!"), "name of a secret"),
+                                      (oauth(client_auth="query"), "client_auth"), (oauth(scope=5), "scope"), (oauth(bogus="x"), "auth needs type"),
+                                      ({"type": "oauth2_refresh_token", "token_url": "https://login.shop.example.com/t", "client_id": "SHOP_ID"}, "needs refresh_token")])
+def test_oauth_settings_are_checked(auth, msg):
+    auth = {k: v for k, v in auth.items() if v is not None}
+    with pytest.raises(ConnectorError, match=msg):
+        Connector(cfg(auth=auth), HOSTS2, "t.yaml")

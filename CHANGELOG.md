@@ -8,6 +8,7 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Monitoring page in Studio: active alerts, rules, recent alert events with delivery status, a test-alert button, and the conversations flagged by the always-on checks.
 
 ### Changed
+- Connectors can read paged lists (cursor, page number, offset, Link header) and sign in with OAuth 2 (client credentials, refresh token).
 - Alert webhook deliveries are retried (three attempts) and each event records whether it was delivered.
 
 ## [1.0.0-rc.1] - 2026-11-03

@@ -96,6 +96,7 @@ Disposition: **M** mitigated, **A** accepted with the residual noted, **T** tran
 | # | Threat | Handling | Disp. |
 |---|---|---|---|
 | S1 | Server-side request forgery | Every outbound URL is operator configuration (webhooks, scanner, identity provider, connectors with a host allow-list), https required except localhost, redirects never followed (a test enforces it), no URL is taken from a customer or from API input | M |
+| S3 | A paged list or an OAuth token address used to reach somewhere else | A `Link` address is followed only on the connector's own scheme, host, port and path (credentials never leave it); the token address must be on the operator's allowed hosts and https; page and item counts are capped; tokens live in memory only and never appear in results, traces or errors | M |
 | S2 | A webhook receiver being forged to | Outgoing webhooks are signed with a timestamp; incoming SMS is signature checked | M |
 
 ### Supply chain and build

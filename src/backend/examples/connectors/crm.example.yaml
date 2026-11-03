@@ -1,0 +1,32 @@
+# A starting point for a system that signs in with OAuth 2 and hands out lists page by page. Adapt it, remove ".example" from the
+# file name, put it in NORTHCX_CONNECTORS_DIR, and allow BOTH hosts with
+#   NORTHCX_CONNECTOR_HOSTS=api.crm.example.com,login.crm.example.com
+name: crm
+description: Customers and their recent cases
+base_url: https://api.crm.example.com/v2
+auth:
+  type: oauth2_client_credentials            # the token is fetched, kept in memory until shortly before it expires, and renewed if the system refuses it
+  token_url: https://login.crm.example.com/oauth/token
+  client_id: CRM_CLIENT_ID                   # NAMES of secrets (NORTHCX_SECRET_CRM_CLIENT_ID, ...), never the values
+  client_secret: CRM_CLIENT_SECRET
+  scope: cases.read customers.read
+  # client_auth: basic                       # send the client id and secret in a Basic header instead of the form body
+tools:
+  - name: crm_recent_cases
+    description: List a customer's most recent support cases (newest first, up to 50).
+    method: GET
+    path: /customers/{customer_id}/cases
+    inputs:
+      customer_id: {type: string, pattern: '^[A-Za-z0-9-]{3,40}$'}
+      status: {type: string, required: false, enum: [open, closed]}
+    query: {status: "{status}", sort: "-created"}
+    response: {fields: [id, subject, status, created_at]}
+    pagination:
+      style: cursor                          # or page, offset, link_header
+      items: data                            # where the list is in the answer
+      next: meta.next_cursor                 # where the next-page marker is
+      param: cursor                          # the query parameter that carries it
+      size_param: limit
+      page_size: 25
+      max_pages: 3                           # never more than 10 pages ...
+      max_items: 50                          # ... or 500 items; the tool says when the list was cut short
