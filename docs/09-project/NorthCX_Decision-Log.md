@@ -83,3 +83,6 @@
 | 79 | Customer context comes from either a Python hook or a signed HTTPS endpoint, cached per customer, size-limited and screened; not stored with facts; failure means no context, not an error | Decided, built | Company values win over agent-stored facts |
 | 80 | Long-term memory is built in (Postgres full-text, in-memory twin) behind a five-method `MemoryService` interface rather than adopting an external memory library first | Decided, built | An external library can sit behind the same interface later |
 | 81 | The agent chooses what to remember; notes are screened, shown as untrusted data, limited to 200 per customer, and erased with the customer | Decided, built | No automatic extraction yet |
+| 82 | SMS is a public webhook authenticated by the provider's signature over a configured public URL (never the request's Host); the sender number is the customer identity | Decided, built | Provider behind a two-method interface |
+| 83 | STOP opt-outs persist by one-way hash through erasure; messages with no conversation are recorded under a hash, not the number | Decided, built | |
+| 84 | Channel-specific style lives in the agent spec (`channel_styles`), one agent across channels | Decided, built | Replaces a shared channel-adapter refactor for now; email and SMS share patterns, not code |

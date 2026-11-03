@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Callable
 
@@ -56,6 +57,7 @@ class AgentSpec(BaseModel):
     model: str | None = None
     max_steps: int = Field(default=8, ge=1, le=50)
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
+    channel_styles: dict[str, str] = Field(default_factory=dict)
     tools: list[str] = Field(default_factory=list)
     guardrails: list[ComponentRef] = Field(default_factory=list)
     input_guardrails: list[ComponentRef] = Field(default_factory=list)
@@ -70,6 +72,16 @@ class AgentSpec(BaseModel):
         # Authors may write a plain string instead of {name: ...}
         return [{"name": x} if isinstance(x, str) else x for x in (v or [])]
 
+    @field_validator("channel_styles")
+    @classmethod
+    def _styles(cls, v: dict[str, str]) -> dict[str, str]:
+        for k, text in v.items():
+            if not re.fullmatch(r"[a-z][a-z0-9_-]{1,19}", k):
+                raise ValueError(f"channel name '{k}' must be 2-20 lowercase letters, digits, - or _")
+            if not text.strip() or len(text) > 1000:
+                raise ValueError(f"style for '{k}' must be 1-1000 characters")
+        return v
+
     @field_validator("spec_version")
     @classmethod
     def _known_version(cls, v: int) -> int:
@@ -81,6 +93,8 @@ class AgentSpec(BaseModel):
         data = self.model_dump(mode="json")
         if data.get("max_run_tokens") is None:
             del data["max_run_tokens"]  # keeps digests of specs written before this field existed
+        if not data["channel_styles"]:
+            del data["channel_styles"]  # keeps digests of specs written before this field existed
         if not data["output_guardrails"]:
             del data["output_guardrails"]  # keeps the digest of specs written before this field existed
         return json.dumps(data, sort_keys=True, separators=(",", ":"))
@@ -170,6 +184,7 @@ class Registry:
                 model=spec.model,
                 max_steps=spec.max_steps,
                 max_run_tokens=spec.max_run_tokens,
+                channel_styles=dict(spec.channel_styles),
                 tools=[self._tools[t] for t in spec.tools],
                 guardrails=[self._guardrails[g.name](g.config, ctx) for g in spec.guardrails],
                 input_guardrails=[self._input_guardrails[g.name](g.config, ctx) for g in spec.input_guardrails],

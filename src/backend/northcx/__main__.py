@@ -9,6 +9,7 @@ from .tokens import TokenSigner, derive_secret
 from .config import load_context_provider, load_registry
 from .context import CachedContext, HttpContextProvider
 from .audit import InMemoryAudit
+from .channels.sms import InMemorySmsRepo, SmsChannel, SmsConfig, SmsNotifier, TwilioProvider, valid_number
 from .channels.email import EmailChannel, EmailConfig, EmailNotifier, InMemoryEmailRepo, SmtpSender
 from .summarize import Compactor
 from .reliability import ReliableLLM, UsageLedger
@@ -17,7 +18,7 @@ from .memory import InMemoryMemories, memory_tools
 from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgIdempotency, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgIdempotency, PgKeys, PgKnowledge, PgMemories, PgMemoryStore, PgMonitor, PgPrivacy, PgOutbox, PgSmsRepo, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -88,6 +89,7 @@ def run() -> None:
         versions_repo, releases_repo = PgVersions(engine), PgReleases(engine)
         keys_repo, audit_repo = PgKeys(engine), PgAudit(engine)
         email_repo = PgEmailRepo(engine)
+        sms_repo = PgSmsRepo(engine)
         monitor_repo, idem_repo = PgMonitor(engine), PgIdempotency(engine)
         knowledge_repo = PgKnowledge(engine)
         privacy_backend = PgPrivacy(engine)
@@ -99,6 +101,7 @@ def run() -> None:
         versions_repo, releases_repo = InMemoryVersions(), InMemoryReleases()
         keys_repo, audit_repo = InMemoryKeys(), InMemoryAudit()
         email_repo = InMemoryEmailRepo()
+        sms_repo = InMemorySmsRepo()
         monitor_repo, idem_repo = InMemoryMonitor(), InMemoryIdempotency()
         knowledge_repo = InMemoryKnowledge()
         privacy_backend = None  # the runtime builds the in-memory one
@@ -129,6 +132,22 @@ def run() -> None:
         from .notify import CompositeNotifier
 
         notifier = CompositeNotifier(*[n for n in (notifier, email_notifier) if n])
+    sms_channel = sms_notifier = None
+    if os.environ.get("NORTHCX_SMS_NUMBER"):
+        token = env_or_file("NORTHCX_SMS_AUTH_TOKEN")
+        sid_ = os.environ.get("NORTHCX_SMS_ACCOUNT_SID", "")
+        url_ = os.environ.get("NORTHCX_SMS_WEBHOOK_URL", "")
+        if not (token and sid_ and url_):
+            sys.exit("NORTHCX_SMS_NUMBER needs NORTHCX_SMS_ACCOUNT_SID, NORTHCX_SMS_AUTH_TOKEN (or _FILE) and NORTHCX_SMS_WEBHOOK_URL")
+        if not valid_number(os.environ["NORTHCX_SMS_NUMBER"]):
+            sys.exit("NORTHCX_SMS_NUMBER must be in international format, for example +14155550100")
+        sms_config = SmsConfig(os.environ["NORTHCX_SMS_NUMBER"], os.environ.get("NORTHCX_SMS_AGENT", "support"), webhook_url=url_,
+                               max_replies_per_number_per_hour=int(os.environ.get("NORTHCX_SMS_MAX_REPLIES_PER_HOUR", 20)))
+        sms_provider = TwilioProvider(sid_, token)
+        sms_notifier = SmsNotifier(sms_repo, sms_provider, sms_config)
+        from .notify import CompositeNotifier
+
+        notifier = CompositeNotifier(*[n for n in (notifier, sms_notifier) if n])
     context_source = None
     try:
         provider = None
@@ -213,6 +232,7 @@ def run() -> None:
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
                       access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
+                      sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,
                       retention_days=float(os.environ["NORTHCX_RETENTION_DAYS"]) if os.environ.get("NORTHCX_RETENTION_DAYS") else None,
                       email=EmailChannel(runtime, agents, email_repo, email_config) if email_config else None)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))

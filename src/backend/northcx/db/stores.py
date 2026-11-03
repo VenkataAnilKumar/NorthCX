@@ -16,6 +16,7 @@ from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
 from ..monitor import Finding
+from ..channels.sms import SmsSession, phone_hash
 from ..memory import MAX_PER_CUSTOMER, Memory, check_note, text_hash
 from ..knowledge import Document, KnowledgeError, Passage, Source, UpsertResult, _prepare, chunk_text, content_hash, is_stale, tokens, valid_id
 from ..idempotency import STALE_AFTER, TTL_SECONDS, Outcome
@@ -567,6 +568,57 @@ class PgKnowledge(_Base):
         return out
 
 
+class PgSmsRepo(_Base):
+    @staticmethod
+    def _s(r: Any) -> SmsSession:
+        return SmsSession(r.session_id, r.phone, r.our_number, r.created_at, r.last_seen)
+
+    async def latest_session(self, phone: str, our_number: str) -> SmsSession | None:
+        async with self._sm() as s:
+            r = (await s.execute(text("select * from sms_sessions where phone = :p and our_number = :o order by last_seen desc limit 1"),
+                                 {"p": phone, "o": our_number})).first()
+        return self._s(r) if r else None
+
+    async def get_session(self, session_id: str) -> SmsSession | None:
+        async with self._sm() as s:
+            r = (await s.execute(text("select * from sms_sessions where session_id = :i"), {"i": session_id})).first()
+        return self._s(r) if r else None
+
+    async def save_session(self, session: SmsSession) -> None:
+        async with self._sm.begin() as s:
+            await s.execute(text("insert into sms_sessions (session_id, phone, our_number, created_at, last_seen) values (:i, :p, :o, :c, :l) "
+                                 "on conflict (session_id) do update set last_seen = excluded.last_seen"),
+                            {"i": session.session_id, "p": session.phone, "o": session.our_number, "c": session.created_at, "l": session.last_seen})
+
+    async def has_message(self, message_id: str) -> bool:
+        async with self._sm() as s:
+            return (await s.execute(text("select 1 from sms_messages where message_id = :i"), {"i": message_id})).first() is not None
+
+    async def record_message(self, message_id: str, session_id: str, direction: str, outcome: str, peer: str) -> bool:
+        async with self._sm.begin() as s:
+            r = await s.execute(text("insert into sms_messages (message_id, session_id, direction, outcome, peer, created_at) values (:i,:s,:d,:o,:p,:t) "
+                                     "on conflict do nothing returning message_id"),
+                                {"i": message_id[:400], "s": session_id, "d": direction, "o": outcome, "p": peer, "t": time.time()})
+            return r.first() is not None
+
+    async def recent_count(self, peer: str, direction: str, since: float) -> int:
+        async with self._sm() as s:
+            return int((await s.execute(text("select count(*) from sms_messages where peer = :p and direction = :d and created_at >= :t"),
+                                        {"p": peer, "d": direction, "t": since})).scalar_one())
+
+    async def set_opt_out(self, phone: str, opted_out: bool) -> None:
+        async with self._sm.begin() as s:
+            if opted_out:
+                await s.execute(text("insert into sms_opt_outs (phone_hash, updated_at) values (:h, :t) on conflict (phone_hash) do update set updated_at = excluded.updated_at"),
+                                {"h": phone_hash(phone), "t": time.time()})
+            else:
+                await s.execute(text("delete from sms_opt_outs where phone_hash = :h"), {"h": phone_hash(phone)})
+
+    async def is_opted_out(self, phone: str) -> bool:
+        async with self._sm() as s:
+            return (await s.execute(text("select 1 from sms_opt_outs where phone_hash = :h"), {"h": phone_hash(phone)})).first() is not None
+
+
 class PgMemories(_Base):
     @staticmethod
     def _m(r: Any) -> Memory:
@@ -661,6 +713,7 @@ class PgPrivacy(_Base):
                 "handoffs": await q("select * from handoffs where session_id = :s_ order by created_at"),
                 "findings": await q("select * from monitor_findings where session_id = :s_ order by created_at"),
                 "email": {"session": email_s[0], "messages": await q("select * from email_messages where session_id = :s_")} if email_s else None,
+                "sms": {"session": sms_s[0], "messages": await q("select * from sms_messages where session_id = :s_")} if (sms_s := await q("select * from sms_sessions where session_id = :s_")) else None,
             }
 
     async def erase_session(self, session_id: str) -> dict[str, int]:
@@ -678,6 +731,8 @@ class PgPrivacy(_Base):
             }
             out["email"] = ((await s.execute(text("delete from email_messages where session_id = :s"), p)).rowcount
                             + (await s.execute(text("delete from email_sessions where session_id = :s"), p)).rowcount)
+            out["sms"] = ((await s.execute(text("delete from sms_messages where session_id = :s"), p)).rowcount
+                          + (await s.execute(text("delete from sms_sessions where session_id = :s"), p)).rowcount)
             await s.execute(text("delete from sessions where id = :s"), p)  # messages cascade
             await s.execute(text("delete from session_index where session_id = :s"), p)
         return {k: int(v) for k, v in out.items()}

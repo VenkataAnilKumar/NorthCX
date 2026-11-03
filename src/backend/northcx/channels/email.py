@@ -364,7 +364,8 @@ class EmailChannel:
                 return InboundResult("duplicate", reason="this message was already handled")
             result = await self._handle(mail)
             outcome = result.status if result.status != "ignored" else f"ignored:{result.reason}"
-            await self.repo.record_message(mail.message_id, result.session_id or "-", "in", outcome[:32], mail.sender)
+            await self.repo.record_message(mail.message_id, result.session_id or "-", "in", outcome[:32],
+                                           mail.sender if result.session_id else "h:" + hashlib.sha256(mail.sender.encode()).hexdigest()[:24])
             return result
 
     async def _handle(self, mail: ParsedEmail) -> InboundResult:
@@ -403,7 +404,7 @@ class EmailChannel:
             text = f"Subject: {mail.subject}\n\n{mail.text}" if new else mail.text
             if mail.attachments:
                 text += f"\n\n[The email had {len(mail.attachments)} attachment(s) that were not read.]"
-            run = await self.rt.run(agent, session.session_id, text, session.customer_id)
+            run = await self.rt.run(agent, session.session_id, text, session.customer_id, channel="email")
             await self.rt.outbox.publish(session.session_id, "email_reply", {
                 "reply": run.reply, "status": run.status, "traceId": run.trace_id, "handoffId": run.handoff_id,
                 "inReplyTo": mail.message_id})

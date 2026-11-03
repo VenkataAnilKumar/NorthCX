@@ -68,7 +68,8 @@ class Runtime:
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
-                  trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None) -> RunResult:
+                  trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None,
+                  channel: str | None = None) -> RunResult:
         """`trusted=True` is for messages the platform itself writes (for example an approval outcome); they skip
         the customer input checks and are traced as `system` events."""
         trace = Trace(agent.id, session_id, agent_version=agent.version)
@@ -107,7 +108,9 @@ class Runtime:
                     trace.add("memory", recalled=len(recalled))  # how many, never the text
             except Exception:  # memory is a convenience; the conversation goes on without it
                 trace.add("memory", error=True)
-        system = agent.instructions + facts_block + memory_block + f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}."
+        style = agent.channel_styles.get(channel or "")
+        style_block = f"\n\nStyle for this channel ({channel}): {style}" if style else ""
+        system = agent.instructions + style_block + facts_block + memory_block + f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}."
         tools = [t.spec() for t in agent.tools] + [HANDOFF_SPEC]
 
         async def finish(reply: str, status: str, trigger: str | None = None, reason: str = "",

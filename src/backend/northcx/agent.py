@@ -73,4 +73,5 @@ class Agent:
     digest: str | None = None
     model: str | None = None
     max_steps: int = 8
+    channel_styles: dict[str, str] = field(default_factory=dict)  # per-channel writing style, e.g. {"sms": "Two short sentences"}
     max_run_tokens: int | None = None  # stop and hand off when one turn has used this many model tokens

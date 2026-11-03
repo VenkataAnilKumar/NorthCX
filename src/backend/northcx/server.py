@@ -12,13 +12,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .access import ROLES, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
 from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
+from .channels.sms import SmsChannel, parse_form
 from .privacy import InMemoryPrivacy, PrivacyService, customer_ref
 from .knowledge import InMemoryKnowledge, KnowledgeError, KnowledgeStore, Source
 from .idempotency import IdempotencyStore, InMemoryIdempotency, scope_hash, request_hash, valid_key
@@ -36,6 +37,7 @@ class ChatBody(BaseModel):
     session_id: str = Field(alias="sessionId", min_length=1, max_length=200)
     message: str = Field(min_length=1, max_length=8000)
     customer_id: str | None = Field(default=None, alias="customerId", max_length=200)
+    channel: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_-]{1,19}$")
     model_config = {"populate_by_name": True}
 
 
@@ -200,7 +202,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
                idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None,
-               retention_days: float | None = None) -> FastAPI:
+               retention_days: float | None = None, sms: SmsChannel | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -214,6 +216,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         runtime.privacy.idempotency = idem
         if email is not None:
             runtime.privacy.email = email.repo
+        if sms is not None:
+            runtime.privacy.sms = sms.repo
     provider = as_provider(agents)
     agents = provider  # everything below resolves agents through the provider
     flow = ApprovalFlow(runtime)
@@ -371,7 +375,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
         async def work() -> None:
             try:
-                r = await runtime.run(agent, body.session_id, body.message, customer_id, progress=lambda e: queue.put_nowait(("progress", e)))
+                r = await runtime.run(agent, body.session_id, body.message, customer_id, progress=lambda e: queue.put_nowait(("progress", e)),
+                                      channel=body.channel or ("web" if who.session_id else None))
                 queue.put_nowait(("result", r))
             except Exception:
                 queue.put_nowait(("error", {"code": "internal", "message": "Run failed"}))
@@ -441,7 +446,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                 await idem.abandon(scope)
             return _err(404, "not_found", "Unknown agent")
         try:
-            r = await runtime.run(agent, body.session_id, body.message, customer_id)
+            r = await runtime.run(agent, body.session_id, body.message, customer_id, channel=body.channel or ("web" if who.session_id else None))
         except Exception:
             if scope:
                 await idem.abandon(scope)
@@ -755,6 +760,37 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(500, "internal", "Could not process the message; it can be delivered again")
         return {"status": res.status, "sessionId": res.session_id, "reason": res.reason, "traceId": res.trace_id,
                 "handoffId": res.handoff_id}
+
+    # ---------------- SMS ----------------
+    @app.post("/channels/sms/twilio")
+    async def sms_inbound(request: Request) -> Any:
+        """Public webhook for the SMS provider. It is not behind an API key: every request must carry the provider's signature."""
+        if sms is None:
+            return _err(501, "not_configured", "The SMS channel is not configured")
+        ip = request.client.host if request.client else "unknown"
+        raw = b""
+        async for chunk in request.stream():
+            raw += chunk
+            if len(raw) > 65536:
+                return _err(413, "too_large", "Request is too large")
+        try:
+            params = parse_form(raw)
+        except ValueError:
+            return _err(400, "bad_request", "Unreadable request")
+        if not sms.authentic(params, request.headers.get("x-twilio-signature", "")):
+            if limits and not access.limiter.allow(f"smsfail:{ip}", limits.auth_failures_per_minute)[0]:
+                return too_many(60, "unsigned requests")  # only failures count, so real traffic is never throttled by this
+            if access.limiter.allow(f"smslog:{ip}", 6)[0]:
+                await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/sms/twilio", outcome="denied", detail={"client": ip}))
+            return _err(403, "forbidden", "Invalid signature")
+        try:
+            await sms.receive(params)
+        except ValueError as e:
+            return _err(400, "bad_request", str(e))
+        except Exception:
+            log.exception("sms inbound failed")
+            return _err(500, "internal", "Could not process the message; it can be delivered again")
+        return Response(content="<Response></Response>", media_type="text/xml")  # replies go out through the outbox
 
     # ---------------- chat tokens ----------------
     @app.post("/v1/chat-tokens", status_code=201)

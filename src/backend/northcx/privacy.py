@@ -43,6 +43,7 @@ class InMemoryPrivacy:
     def __init__(self, runtime: Any) -> None:
         self.rt = runtime
         self.email: Any = None  # attach the email repository to include email threads
+        self.sms: Any = None  # likewise for texts
         self.index: dict[tuple[str, str], list[float]] = {}  # (session, customer) -> [first_seen, last_seen]
 
     async def link(self, session_id, customer_id, now=None) -> None:
@@ -81,6 +82,9 @@ class InMemoryPrivacy:
         if self.email is not None:
             s = self.email.sessions.get(session_id)
             out["email"] = {"session": _plain(s), "messages": [{"messageId": k, **v} for k, v in self.email.messages.items() if v["session_id"] == session_id]} if s else None
+        if self.sms is not None:
+            s = self.sms.sessions.get(session_id)
+            out["sms"] = {"session": _plain(s), "messages": [{"messageId": k, **v} for k, v in self.sms.messages.items() if v["session_id"] == session_id]} if s else None
         return _plain(out)
 
     async def erase_session(self, session_id) -> dict[str, int]:
@@ -119,6 +123,13 @@ class InMemoryPrivacy:
             for k in mids:
                 del self.email.messages[k]
             n["email"] = len(mids) + (1 if had else 0)
+        if self.sms is not None:
+            had = session_id in self.sms.sessions
+            self.sms.sessions.pop(session_id, None)
+            mids = [k for k, v in self.sms.messages.items() if v["session_id"] == session_id]
+            for k in mids:
+                del self.sms.messages[k]
+            n["sms"] = len(mids) + (1 if had else 0)
         idem = getattr(self, "idempotency", None)
         n["replies"] = await idem.forget_session(session_id) if idem is not None else 0
         for k in [k for k in self.index if k[0] == session_id]:

@@ -235,6 +235,34 @@ class KnowledgeChunkRow(Base):
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
+class SmsSessionRow(Base):
+    __tablename__ = "sms_sessions"
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    phone: Mapped[str] = mapped_column(String(20), nullable=False)
+    our_number: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    last_seen: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_sms_sessions_phone", "phone", "our_number", "last_seen"),)
+
+
+class SmsMessageRow(Base):
+    __tablename__ = "sms_messages"
+    message_id: Mapped[str] = mapped_column(String(400), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    direction: Mapped[str] = mapped_column(String(3), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False)
+    peer: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (Index("ix_sms_messages_session", "session_id"), Index("ix_sms_messages_peer", "peer", "direction", "created_at"))
+
+
+class SmsOptOutRow(Base):
+    """Opt-outs are kept by one-way hash of the number so a STOP is honoured even after the customer's data is erased."""
+    __tablename__ = "sms_opt_outs"
+    phone_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class CustomerMemoryRow(Base):
     __tablename__ = "customer_memories"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
