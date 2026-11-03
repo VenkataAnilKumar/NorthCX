@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import time
+import uuid
 from typing import Any
 
 from sqlalchemy import delete, func, select, text, update
@@ -15,6 +16,7 @@ from ..channels.email import EmailSession
 from ..audit import GENESIS, AuditEntry, Verification, entry_hash, verify_entries
 from ..handoffs import Handoff
 from ..monitor import Finding
+from ..knowledge import Document, KnowledgeError, Passage, Source, UpsertResult, _prepare, chunk_text, content_hash, is_stale, tokens, valid_id
 from ..idempotency import STALE_AFTER, TTL_SECONDS, Outcome
 from ..simulation.store import SimRun
 from ..versions import AgentVersion, Release
@@ -444,6 +446,120 @@ class PgIdempotency(_Base):
     async def abandon(self, scope: str) -> None:
         async with self._sm.begin() as s:
             await s.execute(delete(IdempotencyRow).where(IdempotencyRow.scope == scope, IdempotencyRow.response.is_(None)))
+
+
+class PgKnowledge(_Base):
+    async def create_source(self, source: Source) -> Source:
+        if not valid_id(source.id):
+            raise KnowledgeError("source id must be 1-200 characters: letters, digits and . _ : / -")
+        if not source.name.strip() or len(source.name) > 200:
+            raise KnowledgeError("name must be 1-200 characters")
+        if source.stale_after_days is not None and not 1 <= source.stale_after_days <= 3650:
+            raise KnowledgeError("stale_after_days must be between 1 and 3650")
+        async with self._sm.begin() as s:
+            r = await s.execute(text("insert into knowledge_sources (id, name, stale_after_days, created_at) values (:i, :n, :d, :c) on conflict do nothing returning id"),
+                                {"i": source.id, "n": source.name, "d": source.stale_after_days, "c": source.created_at})
+            if r.first() is None:
+                raise KnowledgeError(f"Source '{source.id}' already exists")
+        return source
+
+    @staticmethod
+    def _src(r: Any) -> Source:
+        return Source(r.id, r.name, r.stale_after_days, r.created_at)
+
+    async def get_source(self, source_id: str) -> Source | None:
+        async with self._sm() as s:
+            r = (await s.execute(text("select * from knowledge_sources where id = :i"), {"i": source_id})).first()
+        return self._src(r) if r else None
+
+    async def list_sources(self) -> list[Source]:
+        async with self._sm() as s:
+            rows = (await s.execute(text("select * from knowledge_sources order by created_at"))).all()
+        return [self._src(r) for r in rows]
+
+    async def upsert(self, source_id, external_id, title, url, text_, source_updated_at, now=None) -> UpsertResult:
+        src = await self.get_source(source_id)
+        _prepare(src, source_id, external_id, title, text_)
+        now = time.time() if now is None else now
+        h = content_hash(title, url, text_)
+        parts = chunk_text(text_)
+        async with self._sm.begin() as s:
+            await s.execute(text("select pg_advisory_xact_lock(hashtext(:k))"), {"k": f"kn:{source_id}:{external_id}"})
+            old = (await s.execute(text("select * from knowledge_documents where source_id = :s and external_id = :e"),
+                                   {"s": source_id, "e": external_id})).first()
+            if old and old.content_hash == h:
+                if source_updated_at is not None:
+                    await s.execute(text("update knowledge_documents set source_updated_at = :u where id = :i"), {"u": source_updated_at, "i": old.id})
+                    old = (await s.execute(text("select * from knowledge_documents where id = :i"), {"i": old.id})).first()
+                return UpsertResult(self._doc(old), "unchanged")
+            doc_id = old.id if old else uuid.uuid4().hex
+            if old:
+                await s.execute(text("delete from knowledge_chunks where document_id = :i"), {"i": doc_id})
+                await s.execute(text("update knowledge_documents set title=:t, url=:u, content_hash=:h, chunks=:c, source_updated_at=:su, ingested_at=:n where id=:i"),
+                                {"t": title.strip(), "u": url, "h": h, "c": len(parts), "su": source_updated_at, "n": now, "i": doc_id})
+            else:
+                await s.execute(text("insert into knowledge_documents (id, source_id, external_id, title, url, content_hash, chunks, source_updated_at, ingested_at) "
+                                     "values (:i,:s,:e,:t,:u,:h,:c,:su,:n)"),
+                                {"i": doc_id, "s": source_id, "e": external_id, "t": title.strip(), "u": url, "h": h, "c": len(parts), "su": source_updated_at, "n": now})
+            if parts:
+                await s.execute(text("insert into knowledge_chunks (document_id, seq, heading, body, search_text) values (:d,:q,:h,:b,:x)"),
+                                [{"d": doc_id, "q": i, "h": hd, "b": tx, "x": f"{title} {hd} {tx}"} for i, (hd, tx) in enumerate(parts)])
+            row = (await s.execute(text("select * from knowledge_documents where id = :i"), {"i": doc_id})).first()
+        return UpsertResult(self._doc(row), "updated" if old else "created")
+
+    @staticmethod
+    def _doc(r: Any) -> Document:
+        return Document(r.source_id, r.external_id, r.title, r.url, r.content_hash, r.chunks, r.source_updated_at, r.ingested_at, id=r.id)
+
+    async def delete(self, source_id: str, external_id: str) -> bool:
+        async with self._sm.begin() as s:
+            r = await s.execute(text("delete from knowledge_documents where source_id = :s and external_id = :e returning id"), {"s": source_id, "e": external_id})
+            return r.first() is not None
+
+    async def delete_source(self, source_id: str) -> int:
+        async with self._sm.begin() as s:
+            n = (await s.execute(text("select count(*) from knowledge_documents where source_id = :s"), {"s": source_id})).scalar_one()
+            await s.execute(text("delete from knowledge_sources where id = :s"), {"s": source_id})
+        return int(n)
+
+    async def documents(self, source_id=None, stale_only=False, limit=200, now=None):
+        q = "select d.*, s.stale_after_days from knowledge_documents d join knowledge_sources s on s.id = d.source_id"
+        params: dict[str, Any] = {}
+        if source_id:
+            q += " where d.source_id = :s"
+            params["s"] = source_id
+        q += " order by d.ingested_at desc"
+        async with self._sm() as s:
+            rows = (await s.execute(text(q), params)).all()
+        out = []
+        for r in rows:
+            d = self._doc(r)
+            if stale_only and not is_stale(d, r.stale_after_days, now):
+                continue
+            out.append((d, r.stale_after_days))
+        return out[:limit]
+
+    async def search(self, query, limit=5, source_id=None, now=None) -> list[Passage]:
+        terms = list(dict.fromkeys(tokens(query)))
+        if not terms:
+            return []
+        q = ("select c.heading, c.body, d.id as doc_id, d.source_id, d.title, d.url, d.source_updated_at, d.ingested_at, d.content_hash, "
+             "d.external_id, d.chunks, s.stale_after_days, ts_rank_cd(c.tsv, to_tsquery('english', :q)) as rank "
+             "from knowledge_chunks c join knowledge_documents d on d.id = c.document_id join knowledge_sources s on s.id = d.source_id "
+             "where c.tsv @@ to_tsquery('english', :q)")
+        params: dict[str, Any] = {"q": " | ".join(terms), "n": limit}  # any word may match; ranking puts the best passages first
+        if source_id:
+            q += " and d.source_id = :s"
+            params["s"] = source_id
+        q += " order by rank desc, c.id limit :n"
+        async with self._sm() as s:
+            rows = (await s.execute(text(q), params)).all()
+        out = []
+        for r in rows:
+            d = Document(r.source_id, r.external_id, r.title, r.url, r.content_hash, r.chunks, r.source_updated_at, r.ingested_at, id=r.doc_id)
+            out.append(Passage(r.doc_id, r.source_id, r.title, r.url, r.heading, r.body, round(float(r.rank), 4),
+                               r.source_updated_at or r.ingested_at, is_stale(d, r.stale_after_days, now)))
+        return out
 
 
 class PgMonitor(_Base):

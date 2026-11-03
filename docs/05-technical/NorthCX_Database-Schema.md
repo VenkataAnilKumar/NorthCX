@@ -15,6 +15,9 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 | `email_messages` (built) | `message_id` pk, `session_id`, `direction` (in/out), `status`, `peer`, `created_at` | Dedupe by Message-ID; index (`peer`, `direction`, `created_at`) for per-sender limits; `outbox.last_attempt_at` drives back-off |
 | `monitor_findings` (built) | `id` pk, `rule`, `severity`, `detail`, `trace_id`, `session_id`, `agent_id`, `agent_version`, `created_at` | Indexes on time, (rule, time), session |
 | `idempotency_keys` (built) | `scope` pk (hash of caller, agent, conversation, key), `req_hash`, `response` jsonb (null while running), `created_at` | Expired after 24 h |
+| `knowledge_sources` (built) | `id` pk, `name`, `stale_after_days`, `created_at` | |
+| `knowledge_documents` (built) | `id` pk, `source_id` fk (cascade), `external_id`, `title`, `url`, `content_hash`, `chunks`, `source_updated_at`, `ingested_at` | Unique (`source_id`, `external_id`) |
+| `knowledge_chunks` (built) | `id` identity pk, `document_id` fk (cascade), `seq`, `heading`, `body`, `search_text`, `tsv` (generated full-text vector) | GIN index on `tsv`; deleting a document removes its passages |
 | `agents` | `id` pk, `definition` jsonb, `version`, `published_at` | For Studio, Phase 4 |
 | `api_keys` (built) | `key_id` pk, `name`, `role`, `key_hash`, `created_by`, `created_at`, `expires_at`, `revoked_at`, `revoked_by`, `last_used_at` | Only the SHA-256 hash of the secret is stored (migration 0006) |
 

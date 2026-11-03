@@ -19,6 +19,7 @@ from .access import ROLES, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
 from .channels.email import EmailChannel, EmailParseError
 from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
+from .knowledge import InMemoryKnowledge, KnowledgeError, KnowledgeStore, Source
 from .idempotency import IdempotencyStore, InMemoryIdempotency, scope_hash, request_hash, valid_key
 from .audit import AuditEntry, AuditRepo, InMemoryAudit
 from .catalog import AgentUnavailable, as_provider
@@ -34,6 +35,21 @@ class ChatBody(BaseModel):
     session_id: str = Field(alias="sessionId", min_length=1, max_length=200)
     message: str = Field(min_length=1, max_length=8000)
     customer_id: str | None = Field(default=None, alias="customerId", max_length=200)
+    model_config = {"populate_by_name": True}
+
+
+class SourceBody(BaseModel):
+    id: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=200)
+    stale_after_days: int | None = Field(default=None, alias="staleAfterDays")
+    model_config = {"populate_by_name": True}
+
+
+class DocumentBody(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    text: str = Field(min_length=1, max_length=500_000)
+    url: str | None = Field(default=None, max_length=2000)
+    source_updated_at: float | None = Field(default=None, alias="sourceUpdatedAt")
     model_config = {"populate_by_name": True}
 
 
@@ -122,6 +138,13 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/agents/[^/]+/chat", "chat:send"),
     ("POST", r"/v1/agents/[^/]+/chat/stream", "chat:send"),
     ("GET", r"/v1/sessions/[^/]+/outbox", "outbox:read"),
+    ("GET", r"/v1/knowledge/sources", "knowledge:read"),
+    ("POST", r"/v1/knowledge/sources", "knowledge:write"),
+    ("DELETE", r"/v1/knowledge/sources/[^/]+", "knowledge:write"),
+    ("PUT", r"/v1/knowledge/sources/[^/]+/documents/.+", "knowledge:write"),
+    ("DELETE", r"/v1/knowledge/sources/[^/]+/documents/.+", "knowledge:write"),
+    ("GET", r"/v1/knowledge/documents", "knowledge:read"),
+    ("GET", r"/v1/knowledge/search", "knowledge:read"),
     ("GET", r"/v1/monitor/findings", "monitor:read"),
     ("GET", r"/v1/monitor/summary", "monitor:read"),
     ("GET", r"/v1/traces", "traces:read"),
@@ -163,7 +186,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                approval_ttl_seconds: float | None = None, simulations: SimulationService | None = None,
                releases: ReleaseService | None = None, access: AccessControl | None = None,
                audit: AuditRepo | None = None, email: EmailChannel | None = None,
-               idempotency: IdempotencyStore | None = None) -> FastAPI:
+               idempotency: IdempotencyStore | None = None, knowledge: KnowledgeStore | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -171,6 +194,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         access.signer = TokenSigner(secret)
     audit = audit or InMemoryAudit()
     idem = idempotency or InMemoryIdempotency()
+    kb = knowledge or InMemoryKnowledge()
     provider = as_provider(agents)
     agents = provider  # everything below resolves agents through the provider
     flow = ApprovalFlow(runtime)
@@ -399,6 +423,56 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def get_trace(trace_id: str) -> Any:
         t = await traces.get(trace_id)
         return t.to_dict() if t else _err(404, "not_found", "Unknown trace")
+
+    # ---- knowledge ----
+    @app.get("/v1/knowledge/sources")
+    async def kb_sources() -> Any:
+        return {"sources": [{"id": s.id, "name": s.name, "staleAfterDays": s.stale_after_days, "createdAt": s.created_at} for s in await kb.list_sources()]}
+
+    @app.post("/v1/knowledge/sources", status_code=201)
+    async def kb_create_source(body: SourceBody, request: Request) -> Any:
+        try:
+            s = await kb.create_source(Source(body.id, body.name, body.stale_after_days))
+        except KnowledgeError as e:
+            return _err(400 if "already exists" not in str(e) else 409, "bad_request" if "already exists" not in str(e) else "conflict", str(e))
+        await record(request, "knowledge.source.create", s.id, name=s.name)
+        return {"id": s.id, "name": s.name, "staleAfterDays": s.stale_after_days}
+
+    @app.delete("/v1/knowledge/sources/{source_id}")
+    async def kb_delete_source(source_id: str, request: Request) -> Any:
+        if await kb.get_source(source_id) is None:
+            return _err(404, "not_found", "Unknown source")
+        n = await kb.delete_source(source_id)
+        await record(request, "knowledge.source.delete", source_id, documents=n)
+        return {"deleted": True, "documents": n}
+
+    @app.put("/v1/knowledge/sources/{source_id}/documents/{external_id:path}")
+    async def kb_put_document(source_id: str, external_id: str, body: DocumentBody, request: Request) -> Any:
+        try:
+            r = await kb.upsert(source_id, external_id, body.title, body.url, body.text, body.source_updated_at)
+        except KnowledgeError as e:
+            return _err(404 if str(e).startswith("Unknown source") else 400, "not_found" if str(e).startswith("Unknown source") else "bad_request", str(e))
+        if r.status != "unchanged":
+            await record(request, "knowledge.document.put", f"{source_id}/{external_id}", status=r.status, chunks=r.document.chunks)
+        return {"status": r.status, "document": r.document.to_dict()}
+
+    @app.delete("/v1/knowledge/sources/{source_id}/documents/{external_id:path}")
+    async def kb_delete_document(source_id: str, external_id: str, request: Request) -> Any:
+        if not await kb.delete(source_id, external_id):
+            return _err(404, "not_found", "Unknown document")
+        await record(request, "knowledge.document.delete", f"{source_id}/{external_id}")
+        return {"deleted": True}
+
+    @app.get("/v1/knowledge/documents")
+    async def kb_documents(source: str | None = None, stale: bool = False, limit: int = 200) -> Any:
+        rows = await kb.documents(source, stale, max(1, min(limit, 1000)))
+        return {"documents": [d.to_dict(days) for d, days in rows]}
+
+    @app.get("/v1/knowledge/search")
+    async def kb_search(q: str, source: str | None = None, limit: int = 5) -> Any:
+        found = await kb.search(q, max(1, min(limit, 20)), source)
+        return {"passages": [{"documentId": p.document_id, "sourceId": p.source_id, "title": p.title, "url": p.url, "section": p.heading,
+                              "text": p.text, "score": p.score, "updatedAt": p.updated_at, "stale": p.stale} for p in found]}
 
     @app.get("/v1/monitor/findings")
     async def monitor_findings(rule: str | None = None, severity: str | None = None, agentId: str | None = None,

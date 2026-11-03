@@ -11,9 +11,10 @@ from .audit import InMemoryAudit
 from .channels.email import EmailChannel, EmailConfig, EmailNotifier, InMemoryEmailRepo, SmtpSender
 from .reliability import ReliableLLM, UsageLedger
 from .llm import DEFAULT_MODEL
+from .knowledge import InMemoryKnowledge, knowledge_tool
 from .idempotency import InMemoryIdempotency
 from .monitor import InMemoryMonitor, Monitor
-from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgIdempotency, PgKeys, PgMemoryStore, PgMonitor, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
+from .db import (PgApprovalStore, PgAudit, PgEmailRepo, PgHandoffs, PgIdempotency, PgKeys, PgKnowledge, PgMemoryStore, PgMonitor, PgOutbox, PgReleases, PgSimRuns, PgTraceStore,
                  PgVersions, create_engine, database_url_from_env, migrate)
 from .llm import AnthropicLLM
 from .outbox import Outbox
@@ -85,6 +86,7 @@ def run() -> None:
         keys_repo, audit_repo = PgKeys(engine), PgAudit(engine)
         email_repo = PgEmailRepo(engine)
         monitor_repo, idem_repo = PgMonitor(engine), PgIdempotency(engine)
+        knowledge_repo = PgKnowledge(engine)
         print("Using Postgres storage.")
     else:
         store, traces, approvals = InMemoryStore(), TraceStore(os.environ.get("NORTHCX_TRACE_DIR")), None
@@ -93,6 +95,7 @@ def run() -> None:
         keys_repo, audit_repo = InMemoryKeys(), InMemoryAudit()
         email_repo = InMemoryEmailRepo()
         monitor_repo, idem_repo = InMemoryMonitor(), InMemoryIdempotency()
+        knowledge_repo = InMemoryKnowledge()
         print("Using in-memory storage: state is lost on restart. Set NORTHCX_DATABASE_URL for Postgres.")
 
     notifier = None
@@ -127,6 +130,8 @@ def run() -> None:
     scenarios_dir = os.environ.get("NORTHCX_SCENARIOS_DIR") or str(examples_dir / "scenarios")
     try:
         reg = registry()
+        if "search_knowledge" not in reg.tool_names():
+            reg.tool(knowledge_tool(knowledge_repo))
         print(f"Tool secrets available: {', '.join(secrets.names()) or 'none'}")
         specs = {s.id: s for s in load_specs(specs_dir)}
         baseline = {}
@@ -181,7 +186,7 @@ def run() -> None:
 
     ttl = os.environ.get("NORTHCX_APPROVAL_TTL_SECONDS")
     app = create_app(runtime, traces, agents, os.environ.get("NORTHCX_API_KEY"), float(ttl) if ttl else None, simulations, release_service,
-                      access=access, audit=audit_repo, idempotency=idem_repo,
+                      access=access, audit=audit_repo, idempotency=idem_repo, knowledge=knowledge_repo,
                       email=EmailChannel(runtime, agents, email_repo, email_config) if email_config else None)
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
 

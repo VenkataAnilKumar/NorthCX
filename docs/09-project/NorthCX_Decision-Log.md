@@ -75,3 +75,5 @@
 | 71 | Token budgets are per run (spec `max_run_tokens`) and per server per day; exceeding either hands the conversation to a person | Decided, built | Daily count is per process |
 | 72 | Chat requests accept `Idempotency-Key` (24 h, scoped to caller, agent and conversation); tool calls get per-call keys; identical writes in a turn run once; reads retry once, writes never | Decided, built | |
 | 73 | Streaming sends progress and the already-checked reply in pieces; raw model tokens are not streamed because supervisors must approve a reply before a customer sees it | Decided, built | Web test console uses it |
+| 74 | Knowledge is built natively on Postgres full-text search with an in-memory twin; no connector framework or vector database yet | Decided, built | The reference indexing code is coupled to its own services; assessed, not copied (THIRD_PARTY.md) |
+| 75 | Documents are submitted through the API as text or Markdown, keyed by the caller's external id; unchanged content is skipped; staleness is measured from the company's own update time | Decided, built | |

@@ -4,8 +4,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Identity, Index, Integer, String, Text, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import BigInteger, Computed, DateTime, Float, ForeignKey, Identity, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -199,6 +199,40 @@ class EmailSessionRow(Base):
     references: Mapped[Any] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
     __table_args__ = (Index("ix_email_sessions_sender", "sender"),)
+
+
+class KnowledgeSourceRow(Base):
+    __tablename__ = "knowledge_sources"
+    id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    stale_after_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class KnowledgeDocumentRow(Base):
+    __tablename__ = "knowledge_documents"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    source_id: Mapped[str] = mapped_column(ForeignKey("knowledge_sources.id", ondelete="CASCADE"), nullable=False)
+    external_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    chunks: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_updated_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ingested_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (UniqueConstraint("source_id", "external_id", name="uq_knowledge_doc"),)
+
+
+class KnowledgeChunkRow(Base):
+    __tablename__ = "knowledge_chunks"
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    document_id: Mapped[str] = mapped_column(ForeignKey("knowledge_documents.id", ondelete="CASCADE"), nullable=False)
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    heading: Mapped[str] = mapped_column(Text, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    search_text: Mapped[str] = mapped_column(Text, nullable=False)
+    tsv: Mapped[Any] = mapped_column(TSVECTOR, Computed("to_tsvector('english', search_text)", persisted=True))
+    __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
 class IdempotencyRow(Base):

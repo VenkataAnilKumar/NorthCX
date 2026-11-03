@@ -9,6 +9,12 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 | GET | `/health` | Liveness (public) |
 | POST | `/chat-tokens` | `{sessionId?, customerId?, agent?, ttlSeconds?}`: mint a chat token for one conversation (channel or admin key); returns `token`, `sessionId`, `expiresAt` (built) |
 | POST | `/agents/{id}/chat/stream` | Same request and access rules as chat, answered as server-sent events: `started`, `progress` (`{type: tool, name}`) while tools run, `delta` pieces of the approved reply, then `done` (the full chat response) or `error`. No `Idempotency-Key` (400) (built) |
+| GET, POST | `/knowledge/sources` | List or create a knowledge source (`id`, `name`, optional `staleAfterDays`); `knowledge:read` / `knowledge:write` (built) |
+| DELETE | `/knowledge/sources/{id}` | Delete a source and all its documents (built) |
+| PUT | `/knowledge/sources/{id}/documents/{externalId}` | Add or update a document (`title`, `text`, optional `url`, `sourceUpdatedAt`); returns `created`, `updated` or `unchanged` (built) |
+| DELETE | `/knowledge/sources/{id}/documents/{externalId}` | Delete a document and its passages at once (built) |
+| GET | `/knowledge/documents` | List documents with freshness; `source`, `stale=true`, `limit` (built) |
+| GET | `/knowledge/search` | `q`, `source`, `limit`: ranked passages with title, URL, section, `updatedAt`, `stale` (built) |
 | GET | `/monitor/findings` | Monitoring flags, newest first; filters `rule`, `severity`, `agentId`, `sessionId`, `since`, `limit` (`monitor:read`, built) |
 | GET | `/monitor/summary` | Counts per rule and severity, rule names, total (built) |
 | POST | `/channels/email/inbound` | Raw RFC 822 message as the body (≤ 1,000,000 bytes), `channel:inbound` permission; returns `{status, sessionId, reason, traceId, handoffId}`; 400 unusable, 413 too large, 501 not configured (built) |
