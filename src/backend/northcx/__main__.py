@@ -6,7 +6,8 @@ import uvicorn
 
 from .access import AccessControl, InMemoryKeys, LimitConfig
 from .tokens import TokenSigner, derive_secret
-from .config import load_registry
+from .config import load_context_provider, load_registry
+from .context import CachedContext, HttpContextProvider
 from .audit import InMemoryAudit
 from .channels.email import EmailChannel, EmailConfig, EmailNotifier, InMemoryEmailRepo, SmtpSender
 from .summarize import Compactor
@@ -125,7 +126,19 @@ def run() -> None:
         from .notify import CompositeNotifier
 
         notifier = CompositeNotifier(*[n for n in (notifier, email_notifier) if n])
-    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend,
+    context_source = None
+    try:
+        provider = None
+        if os.environ.get("NORTHCX_CONTEXT_PROVIDER"):
+            provider = load_context_provider(os.environ["NORTHCX_CONTEXT_PROVIDER"])
+        elif os.environ.get("NORTHCX_CONTEXT_URL"):
+            provider = HttpContextProvider(os.environ["NORTHCX_CONTEXT_URL"], env_or_file("NORTHCX_CONTEXT_SECRET") or "")
+        if provider is not None:
+            context_source = CachedContext(provider, float(os.environ.get("NORTHCX_CONTEXT_TTL_SECONDS", 300)),
+                                           float(os.environ.get("NORTHCX_CONTEXT_TIMEOUT", 3)))
+    except (ValueError, ConfigError) as e:
+        sys.exit(f"Configuration error: {e}")
+    runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, context=context_source,
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
                                  if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),
                       ledger=UsageLedger(int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None))

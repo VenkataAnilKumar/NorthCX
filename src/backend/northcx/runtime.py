@@ -13,6 +13,7 @@ from .agent import Agent, ToolContext
 from .approvals import ApprovalRepo, ApprovalStore
 from .monitor import Monitor
 from .summarize import Compactor
+from .context import CachedContext
 from .privacy import InMemoryPrivacy
 from .reliability import UsageLedger
 from .guardrails import GuardrailContext, InputResult
@@ -50,7 +51,8 @@ class Runtime:
     def __init__(self, llm: LLM, store: MemoryStore, traces: TraceRepo, approvals: ApprovalRepo | None = None,
                  outbox: Outbox | None = None, handoffs: HandoffRepo | None = None,
                  secrets: SecretStore | None = None, dry_run: bool = False, monitor: Monitor | None = None,
-                 ledger: UsageLedger | None = None, privacy: Any = None, compactor: Compactor | None = None):
+                 ledger: UsageLedger | None = None, privacy: Any = None, compactor: Compactor | None = None,
+                 context: CachedContext | None = None):
         self.llm, self.store, self.traces = llm, store, traces
         self.approvals = approvals or ApprovalStore()
         self.outbox = outbox or Outbox()
@@ -59,6 +61,7 @@ class Runtime:
         self.monitor = monitor or Monitor()
         self.ledger = ledger or UsageLedger()
         self.compactor = compactor
+        self.context = context
         self.privacy = privacy if privacy is not None else InMemoryPrivacy(self)
         self.dry_run = dry_run  # simulations: tools marked as writes are not executed
 
@@ -75,6 +78,15 @@ class Runtime:
                 messages = done.messages
                 trace.add("summary", tokens_before=done.before, tokens_after=done.after, turns_summarised=done.dropped)
         facts = await self.store.get_facts(customer_id) if customer_id else {}
+        company_context: dict[str, str] = {}
+        if self.context is not None and customer_id and not self.dry_run and not trusted:
+            got = await self.context.get(customer_id, session_id)
+            if got.status in ("error", "timeout"):
+                trace.add("context", status=got.status)  # carry on without it; the agent can still help or hand off
+            elif got.facts or got.dropped:
+                company_context = got.facts
+                facts = {**facts, **got.facts}  # the company's systems are the source of truth
+                trace.add("context", status=got.status, keys=sorted(got.facts), dropped=got.dropped)
         ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets)
         pending: list[dict[str, Any]] = []
 
@@ -105,7 +117,8 @@ class Runtime:
             if status == "escalated":
                 handoff_id = (await self.create_handoff(
                     agent_id=agent.id, session_id=session_id, customer_id=customer_id, trace=trace, messages=safe,
-                    trigger=trigger or "agent_handoff", reason=reason, topics=topics or [])).id
+                    trigger=trigger or "agent_handoff", reason=reason, topics=topics or [],
+                    extra_facts=company_context)).id
             await self.monitor.observe(trace, status, trigger)
             return RunResult(reply, status, trace, pending, handoff_id)
 
@@ -279,14 +292,15 @@ class Runtime:
         return screened
 
     async def create_handoff(self, *, agent_id: str, session_id: str, customer_id: str | None, trace: Trace,
-                             messages: list[Message], trigger: str, reason: str, topics: list[str]) -> Handoff:
+                             messages: list[Message], trigger: str, reason: str, topics: list[str],
+                             extra_facts: dict[str, str] | None = None) -> Handoff:
         """Build the package a person receives and put the conversation in the handoff queue."""
         reason = self.secrets.redact_text(reason)
         traces = [t for t in [await self.traces.get(s.id) for s in await self.traces.summaries(session_id, 50)
                               if s.id != trace.id] if t is not None]
         traces.sort(key=lambda t: t.events[0].t if t.events else 0)
         approvals = [a for a in await self.approvals.list() if a.session_id == session_id]
-        facts = await self.store.get_facts(customer_id) if customer_id else {}
+        facts = {**(await self.store.get_facts(customer_id) if customer_id else {}), **(extra_facts or {})}
         package = self.secrets.redact(build_package(messages=messages, traces=traces + [trace], approvals=approvals, facts=facts,
                                                     trigger=trigger, reason=reason, topics=topics))
         return await self.handoffs.add(Handoff(

@@ -21,6 +21,8 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 |---|---|---|
 | `ANTHROPIC_API_KEY` (`_FILE`) | Model key | required unless `NORTHCX_DEMO=1` |
 | `NORTHCX_DEMO` | `1` uses the offline demo model (not an AI) | off |
+| `NORTHCX_CONTEXT_PROVIDER` | `package.module:function` returning an object with `async fetch(customer_id, session_id) -> dict`; gives agents customer context from your systems | off |
+| `NORTHCX_CONTEXT_URL`, `NORTHCX_CONTEXT_SECRET` (`_FILE`), `NORTHCX_CONTEXT_TTL_SECONDS`, `NORTHCX_CONTEXT_TIMEOUT` | Same, through a signed HTTPS call to your endpoint; cached (default 300 s) and limited to 3 s per call | off |
 | `NORTHCX_API_KEY` (`_FILE`) | Bootstrap admin key | none; without any key the server is open |
 | `NORTHCX_REQUIRE_AUTH` | `1` refuses to start without any key | off (compose sets it) |
 | `NORTHCX_DATABASE_URL` (`_FILE`) | Postgres URL; migrations run at start | in-memory storage |

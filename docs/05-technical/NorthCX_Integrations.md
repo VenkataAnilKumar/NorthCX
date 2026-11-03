@@ -60,3 +60,16 @@ Credentials come from environment or a secrets manager, never from prompts or tr
 
 ## Open
 Which connectors ship in-tree vs as separate packages.
+
+
+## Customer context (K7)
+
+Agents often need to know who they are talking to: plan, region, account status, open orders. NorthCX asks the company's own systems once when a conversation with a known customer starts and then reuses the answer for a short time.
+
+**Two ways to supply it** (use one):
+- **Python hook:** `NORTHCX_CONTEXT_PROVIDER=package.module:function`, where the function returns an object with `async fetch(customer_id, session_id) -> dict`.
+- **Signed HTTPS endpoint:** `NORTHCX_CONTEXT_URL` with `NORTHCX_CONTEXT_SECRET`. NorthCX POSTs `{"customerId", "sessionId"}` with `x-northcx-timestamp` and `x-northcx-signature` (HMAC-SHA256 over `timestamp.body`, the same scheme as webhooks, so receivers should verify both). The endpoint answers 200 with `{"facts": {...}}`. Redirects are not followed and responses over 64 KB are refused.
+
+**Rules applied to whatever comes back:** at most 30 entries; names are letters, digits, spaces and `_ . -`; values are text, numbers or yes/no, cut at 500 characters; nested values are dropped; any value that reads like instructions to the model is dropped and noted in the trace. The agent receives the entries with the customer facts as untrusted data, and the company's values win over facts the agent stored itself.
+
+**Behaviour:** results are cached per customer (default 300 s) and simultaneous messages share one call; a call that takes longer than the timeout (default 3 s) or fails gives no context, is remembered for 30 s so a system that is down is not hammered, and the conversation carries on (the agent can still help or hand off). Context is not saved with the customer's facts and not written to traces (only the names of the entries are); it does appear in a hand-off package so the person sees it, and is erased with that hand-off. Erasing a customer also drops their cached context. Anonymous visitors, platform messages and simulations do not fetch context.

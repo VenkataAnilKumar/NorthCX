@@ -464,6 +464,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     @app.delete("/v1/privacy/customers/{customer_id:path}")
     async def privacy_erase_customer(customer_id: str, request: Request) -> Any:
         r = await privacy.erase_customer(customer_id)
+        if runtime.context is not None:
+            runtime.context.forget(customer_id)  # do not keep serving the cached copy
         await record(request, "privacy.erase.customer", customer_ref(customer_id), **r)
         return r
 

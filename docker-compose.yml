@@ -49,6 +49,11 @@ services:
       NORTHCX_RETENTION_DAYS: ${NORTHCX_RETENTION_DAYS:-}
       NORTHCX_SUMMARIZE_AFTER_TOKENS: ${NORTHCX_SUMMARIZE_AFTER_TOKENS:-}
       NORTHCX_SUMMARY_MODEL: ${NORTHCX_SUMMARY_MODEL:-}
+      NORTHCX_CONTEXT_PROVIDER: ${NORTHCX_CONTEXT_PROVIDER:-}
+      NORTHCX_CONTEXT_URL: ${NORTHCX_CONTEXT_URL:-}
+      NORTHCX_CONTEXT_SECRET: ${NORTHCX_CONTEXT_SECRET:-}
+      NORTHCX_CONTEXT_TTL_SECONDS: ${NORTHCX_CONTEXT_TTL_SECONDS:-}
+      NORTHCX_CONTEXT_TIMEOUT: ${NORTHCX_CONTEXT_TIMEOUT:-}
     # To keep secrets out of the environment, mount files and use the *_FILE variants instead, for example:
     #   environment: { NORTHCX_API_KEY_FILE: /run/secrets/northcx_api_key }   (and remove NORTHCX_API_KEY)
     #   secrets: [northcx_api_key]

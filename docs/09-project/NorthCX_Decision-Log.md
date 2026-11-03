@@ -80,3 +80,4 @@
 | 76 | A session index links conversations to customers; export, erasure and retention walk it and every store that holds conversation data | Decided, built | Pre-index conversations are found by id or age only |
 | 77 | The audit log is retained through erasure; privacy actions are logged with a one-way customer reference | Decided, built | Backups and downstream copies are out of scope and documented |
 | 78 | Long conversations are compacted by replacing older turns with model-written notes at the front of the first kept customer message; failure keeps the full history | Decided, built | Off unless NORTHCX_SUMMARIZE_AFTER_TOKENS is set |
+| 79 | Customer context comes from either a Python hook or a signed HTTPS endpoint, cached per customer, size-limited and screened; not stored with facts; failure means no context, not an error | Decided, built | Company values win over agent-stored facts |

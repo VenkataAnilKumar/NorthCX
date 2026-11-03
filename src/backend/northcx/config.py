@@ -7,6 +7,22 @@ from .secrets import ConfigError
 from .spec import Registry
 
 
+def load_context_provider(ref: str):
+    """`module:function` returning an object with `async fetch(customer_id, session_id) -> dict`."""
+    module, sep, func = ref.partition(":")
+    if not sep or not module or not func:
+        raise ConfigError(f"NORTHCX_CONTEXT_PROVIDER must look like 'package.module:function', got {ref!r}")
+    try:
+        provider = getattr(importlib.import_module(module), func)()
+    except ImportError as e:
+        raise ConfigError(f"NORTHCX_CONTEXT_PROVIDER: cannot import {module!r}: {e}") from e
+    except AttributeError:
+        raise ConfigError(f"NORTHCX_CONTEXT_PROVIDER: module {module!r} has no {func!r}") from None
+    if not callable(getattr(provider, "fetch", None)):
+        raise ConfigError(f"NORTHCX_CONTEXT_PROVIDER: {ref} did not return an object with a fetch method")
+    return provider
+
+
 def load_registry(ref: str) -> Registry:
     """`module:function` returning the tool registry; this is how a deployment supplies its own tools."""
     module, sep, func = ref.partition(":")
