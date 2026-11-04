@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-labelledby="t d">
+  <title id="t">NorthCX</title>
+  <desc id="d">NorthCX: supervised AI agents that resolve customer issues end to end</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1f4d"/><stop offset="1" stop-color="#1747b8"/></linearGradient>
+    <linearGradient id="star" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#bcd2ff"/></linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="24" fill="url(#bg)"/>
+  <g opacity="0.10" fill="none" stroke="#fff" stroke-width="1">
+    <circle cx="1030" cy="150" r="60"/><circle cx="1030" cy="150" r="110"/><circle cx="1030" cy="150" r="160"/><circle cx="1030" cy="150" r="210"/>
+  </g>
+  <g transform="translate(110 150)">
+    <path d="M0 -62 L16 -16 L62 0 L16 16 L0 62 L-16 16 L-62 0 L-16 -16 Z" fill="url(#star)"/>
+    <circle r="7" fill="#1747b8"/>
+  </g>
+  <text x="215" y="150" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="92" font-weight="800" fill="#ffffff" letter-spacing="-2">NorthCX</text>
+  <text x="219" y="205" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="30" font-weight="500" fill="#d7e4ff">Supervised AI agents that resolve customer issues, end to end.</text>
+  <text x="219" y="250" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" fill="#9fb9ee">Open source · self-hosted · built on the Claude API</text>
+</svg>
