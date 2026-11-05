@@ -17,10 +17,13 @@ class AppDeps:
     actor: Any
     alerts: Any
     audit: Any
+    crawl_scheduler: Any
+    crawler: Any
     email: Any
     events: Any
     fb: Any
     insight: Any
+    kb: Any
     limits: Any
     need_rel: Any
     privacy: Any
