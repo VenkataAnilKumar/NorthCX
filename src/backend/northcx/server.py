@@ -3,69 +3,49 @@ from __future__ import annotations
 from typing import Any
 
 import asyncio
-import json
 import logging
 import re
 import secrets
-import time
-import uuid
 
-import yaml
-from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import WebSocket, WebSocketDisconnect, Query, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from urllib.parse import urlencode, urlsplit
 
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
-from pydantic import BaseModel, Field
 
-from .access import ROLES, SSO_CREATOR, AccessControl, Identity, LimitConfig, OPEN_IDENTITY
-from .channels.email import EmailChannel, EmailParseError
-from .tokens import DEFAULT_TTL, MAX_TTL, MIN_TTL, TokenSigner, derive_secret
+from .access import AccessControl, OPEN_IDENTITY
+from .channels.email import EmailChannel
+from .tokens import TokenSigner, derive_secret
 from .approval_flow import ApprovalFlow
-from .channels.sms import SmsChannel, parse_form, phone_hash
+from .channels.sms import SmsChannel
 from .channels.telegram import TelegramChannel
-from .channels.whatsapp import TemplateRefused, WhatsAppChannel
-from .templates import Template, TemplateError, render
+from .channels.whatsapp import WhatsAppChannel
+from .templates import Template
 from .alerts import AlertManager
-from .journeys import SYSTEM as JOURNEY_SYSTEM, DraftError, JourneySpec, draft_prompt, parse_draft, scenarios as journey_scenarios_list, scenarios_yaml as journey_scenarios_yaml
-from .sso import Sso, SsoError
-from .rollout import CANDIDATE, CONTROL, RolloutService, compare as compare_arms, rollout_json
-from .reviews import FAILURES, HANDOFF_JUDGEMENTS, VERDICTS, InMemoryReviews, Review, ReviewError, ReviewRepo, queue as review_queue_rows, quality, review_json, validate as review_validate
-from .assist import AssistError
-from . import __version__
-from .events import EVENTS, EventFeed, EventingAudit
-from .crawler import Crawler, CrawlConfig, CrawlRefused
+from .sso import Sso
+from .rollout import RolloutService
+from .reviews import InMemoryReviews, ReviewRepo
+from .events import EventFeed, EventingAudit
+from .crawler import Crawler
 from .crawl_schedule import CrawlScheduler
-from .ingest import IngestError, extract as extract_file
 from .hardening import BodyLimit, SecurityHeaders
-from .voice import CallRepo, CallSession, InMemoryCalls, VoiceConfig
-from .attachments import MAX_BYTES, MAX_PER_MESSAGE, AttachmentError, AttachmentRepo, InMemoryAttachments, Scanner, accept as accept_attachment, check_accepted
-from .handoffs import PERSON_PREFIX, return_note, transcript
-from .analytics_qa import ask as ask_insights
-from .builder import BuildError, draft_agent, refine_agent
-from .scenario_draft import draft_scenarios
-from .transcribe import HttpTranscriber, TranscribeError
-from .insights import TAG, InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
-from .simulation.managed import parse_definition
-from .regression import RegressionRunner, scenario_from_traces
-from .simulation.scenario import ScenarioError
-from .privacy import InMemoryPrivacy, PrivacyService, customer_ref
-from .knowledge import InMemoryKnowledge, KnowledgeError, KnowledgeStore, Source
-from .idempotency import IdempotencyStore, InMemoryIdempotency, scope_hash, request_hash, valid_key
+from .voice import CallRepo, InMemoryCalls, VoiceConfig
+from .attachments import AttachmentRepo, InMemoryAttachments, Scanner
+from .transcribe import HttpTranscriber
+from .insights import InMemoryTags, TagRepo, FeedbackRepo, InMemoryFeedback, InMemoryInsightsSource, InsightsService
+from .regression import RegressionRunner
+from .privacy import InMemoryPrivacy, PrivacyService
+from .knowledge import InMemoryKnowledge, KnowledgeStore
+from .idempotency import IdempotencyStore, InMemoryIdempotency
 from .audit import AuditEntry, AuditRepo, InMemoryAudit
-from .catalog import AgentUnavailable, as_provider
-from .types import LLMRequest, text_of
+from .agent import Agent
+from .catalog import as_provider
 from .runtime import Runtime
-from .simulation import Busy, SimulationService
-from .spec import AgentSpec, SpecError, parse_spec
-from .versions import check_environment,  Conflict, GateBlocked, InvalidSpec, NotFound, ReleaseService, diff_specs, spec_yaml
+from .simulation import SimulationService
+from .versions import ReleaseService
 from .trace import TraceRepo
-from .widget import WIDGET_HTML
-from .api.common import SDK_FILES, STATIC_DIR, _err, _pieces
+from .api.common import _err, _pieces  # noqa: F401  (re-exported: a test imports it from here)
 from .api.deps import AppDeps
 from .api.routers import templates as _templates_router
 from .api.routers import memory as _memory_router
@@ -89,7 +69,7 @@ from .api.routers import voice as _voice_router
 from .api.routers import public as _public_router
 from .api.routers import chat as _chat_router
 from .api.routers import releases as _releases_router
-from .api.models import AskBody, BuilderBody, BuilderSource, ChatBody, CrawlBody, DecisionBody, DocumentBody, EnabledBody, ExpireBody, FeedbackBody, JourneyDraftBody, JourneyScenariosBody, KeyBody, PercentBody, PromoteBody, PublishBody, RefineBody, ReplyBody, ResolveBody, RetentionBody, ReviewBody, RollbackBody, RolloutBody, ScenarioBody, ScenarioDraftBody, ScheduleBody, SimRunBody, SourceBody, TemplateBody, TemplateSendBody, TokenBody, VersionBody
+from .api.helpers import actor, make_guards, rel_error, too_many, version_json
 
 
 # Every /v1 route must appear here. A route that is not listed is refused (a test checks the table against the app).
@@ -363,26 +343,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     app = FastAPI(title="NorthCX", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.rollouts = rollouts
     limits = access.limits
-
-    def too_many(retry: float, what: str) -> JSONResponse:
-        r = _err(429, "rate_limited", f"Too many {what}; retry in {max(1, round(retry))} s")
-        r.headers["Retry-After"] = str(max(1, round(retry)))
-        return r
-
-    async def record(request: Request | None, action: str, target: str = "", outcome: str = "success", **detail: Any) -> None:
-        """Write an audit entry for the caller. A failure to record is raised: a privileged action must not go unrecorded."""
-        who: Identity = getattr(request.state, "identity", OPEN_IDENTITY) if request is not None else OPEN_IDENTITY
-        try:
-            await audit.append(AuditEntry(actor=who.name, role=who.role, key_id=who.key_id, action=action, target=target,
-                                          outcome=outcome, detail=detail))
-        except Exception:
-            log.exception("AUDIT FAILURE: could not record %s on %s", action, target)
-            raise
-
-    def actor(request: Request, claimed: str | None) -> str:
-        """Who is acting. With authentication it is the key's name; a name in the body is only trusted without it."""
-        who: Identity = request.state.identity
-        return (claimed.strip() if claimed and claimed.strip() else "anonymous") if who.open_mode else who.name
+    record, need_rel, need_env = make_guards(audit, releases)
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
@@ -433,44 +394,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
     SSO_COOKIE = "northcx_sso"
     secure_cookie = bool(sso and sso.cfg.redirect_uri.startswith("https://"))
-
-
-    def need_rel() -> ReleaseService | JSONResponse:
-        return releases or _err(501, "not_configured", "Versions and releases are not configured on this server")
-
-    def version_json(v: Any, live_number: int | None = None, released: set[int] | None = None, full: bool = False) -> dict[str, Any]:
-        out = {"id": v.id, "agentId": v.agent_id, "number": v.number, "digest": v.digest, "author": v.author, "note": v.note,
-               "createdAt": v.created_at, "live": live_number == v.number, "everReleased": v.number in (released or set())}
-        if full:
-            out["spec"] = v.spec
-            out["specYaml"] = spec_yaml(v.spec)
-        return out
-
-
-    def rel_error(e: Exception) -> JSONResponse:
-        if isinstance(e, NotFound):
-            return _err(404, "not_found", str(e))
-        if isinstance(e, GateBlocked):
-            resp = _err(409, "gate_not_satisfied", str(e))
-            resp.body = json.dumps({"error": {"code": "gate_not_satisfied", "message": str(e), "reasons": e.reasons}}).encode()
-            resp.headers["content-length"] = str(len(resp.body))
-            return resp
-        if isinstance(e, Conflict):
-            return _err(409, "conflict", str(e))
-        return _err(400, "bad_request", str(e))
-
-
-    async def need_env(request: Request, environment: str, perm: str) -> JSONResponse | None:
-        """Dev and staging are for developers; production needs the release permission."""
-        try:
-            check_environment(environment)
-        except ValueError as e:
-            return _err(400, "bad_request", str(e))
-        who: Identity = request.state.identity
-        if environment == "production" and not who.can(perm):
-            await record(request, "auth.denied", f"{request.method} {request.url.path}", "denied", permission=perm)
-            return _err(403, "forbidden", f"The '{who.role}' role cannot do this (needs {perm})")
-        return None
 
 
     # [routers] generated by the WP0.1 split; one module per area of routes under northcx/api/routers

@@ -13,7 +13,7 @@ Status: Snapshot (2026-11-05). A one-page summary of where the project stands an
 
 **Still to do in Wave 0:**
 Groundwork that can be built and verified here:
-- Finish WP0.1: type the shared-dependencies object (`__main__.py` is already split into `northcx/bootstrap/`), move the remaining shared helpers out of `create_app`; and move design tokens into `packages/ui`.
+- Finish WP0.1 by moving the design tokens into `packages/ui` (WP0.2); the backend split, typed `AppDeps` and shared helpers are done.
 - Lock dependencies.
 - Make rate limits shared across processes, and make the API ready for several replicas.
 - Add a masked-text option for PDFs.

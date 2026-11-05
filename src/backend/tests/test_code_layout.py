@@ -29,7 +29,7 @@ def test_every_router_module_has_a_register_function_and_is_wired_in():
 
 
 def test_the_dependencies_object_has_exactly_the_fields_the_routers_use():
-    fields = set(re.findall(r"^    (\w+): Any$", (NORTHCX / "api" / "deps.py").read_text(), re.M))
+    fields = set(re.findall(r"^    (\w+): ", (NORTHCX / "api" / "deps.py").read_text().split("class AppDeps:")[1], re.M))
     used = set()
     for p in (NORTHCX / "api" / "routers").glob("*.py"):
         used |= set(re.findall(r"= d\.(\w+)", p.read_text()))
