@@ -33,8 +33,8 @@ def test_sql_values_are_always_bound_never_pasted_in():
         for n in ast.walk(tree):
             if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "text" and n.args and isinstance(n.args[0], ast.JoinedStr):
                 pasted.append((p.name, n.lineno))
-    assert pasted == [("stores.py", pasted[0][1])] and len(pasted) == 1, pasted      # the single allowed helper: PgRollouts._one(where, params)
-    tree = ast.parse((ROOT / "db" / "stores.py").read_text())
+    assert pasted == [("releases.py", pasted[0][1])] and len(pasted) == 1, pasted      # the single allowed helper: PgRollouts._one(where, params), in db/stores/releases.py
+    tree = ast.parse((ROOT / "db" / "stores" / "releases.py").read_text())
     calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "_one"]
     assert calls and all(isinstance(c.args[0], ast.Constant) and isinstance(c.args[0].value, str) for c in calls)
 

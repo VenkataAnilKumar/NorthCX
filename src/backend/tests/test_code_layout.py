@@ -12,7 +12,7 @@ def lines(p: Path) -> int:
 
 
 def test_no_module_in_the_http_layer_is_longer_than_the_limit():
-    files = [NORTHCX / "server.py", *sorted((NORTHCX / "api").rglob("*.py"))]
+    files = [NORTHCX / "server.py", *sorted((NORTHCX / "api").rglob("*.py")), *sorted((NORTHCX / "db" / "stores").glob("*.py"))]
     too_long = {str(p.relative_to(NORTHCX)): lines(p) for p in files if lines(p) > LIMIT}
     assert too_long == {}, f"split these (limit {LIMIT} lines): {too_long}"
 
