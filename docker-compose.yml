@@ -157,7 +157,8 @@ services:
 
   web:
     build:
-      context: ./src/web
+      context: ./src
+      dockerfile: apps/studio/Dockerfile
       args:
         NORTHCX_API_URL: http://backend:3000
     image: northcx/web:local

@@ -1,0 +1,9 @@
+# Build context for the web app images is src/ (the workspace root); keep everything else out.
+**/node_modules
+**/.next
+**/tsconfig.tsbuildinfo
+**/tests
+**/e2e
+backend
+sdk
+prototype

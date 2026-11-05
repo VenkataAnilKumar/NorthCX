@@ -1,0 +1,221 @@
+"use client";
+import Link from "next/link";
+import { use, useEffect, useState } from "react";
+import { type AgentVersion, ApiError, type Checklist, createVersion, diffVersions, formatTime, type Gate, getChecklist, getEnvironments, getLive, getVersionDetail, listReleases, listVersions, promoteAgent, publishVersion, rollbackAgent, runForVersion, useLoad, useMe, type VersionDiff, versionGate } from "@northcx/api-client";
+import { RolloutPanel } from "@/components/rollout-panel";
+import { Empty, ErrorBox, Loading, PageHeader, StatusBadge } from "@northcx/ui";
+
+function DiffView({ d }: { d: VersionDiff }) {
+  if (d.identical) return <p className="text-sm text-muted">No differences.</p>;
+  const groups: [string, { added: string[]; removed: string[]; changed?: string[] }][] = [
+    ["Tools", d.tools], ["Reply guardrails", d.guardrails], ["Input guardrails", d.input_guardrails], ["Always-to-a-person topics", d.forced_handoff]];
+  return (
+    <div className="space-y-3 text-sm">
+      {d.instructions && <pre aria-label="Instructions diff" className="overflow-x-auto rounded-lg bg-bg p-3 text-xs">{d.instructions}</pre>}
+      {groups.filter(([, g]) => g.added.length || g.removed.length || g.changed?.length).map(([name, g]) => (
+        <p key={name}><span className="font-medium">{name}:</span>{" "}
+          {g.added.map((x) => <span key={x} className="mr-2 text-[var(--ok)]">+ {x}</span>)}
+          {g.removed.map((x) => <span key={x} className="mr-2 text-[var(--bad)]">− {x}</span>)}
+          {g.changed?.map((x) => <span key={x} className="mr-2 text-[var(--warn)]">~ {x}</span>)}</p>
+      ))}
+      {Object.entries(d.other).map(([k, v]) => <p key={k}><span className="font-medium">{k}:</span> {JSON.stringify(v.from)} → {JSON.stringify(v.to)}</p>)}
+    </div>
+  );
+}
+
+function VersionRow({ agent, v, liveNumber, by, note, tick, onChanged }: { agent: string; v: AgentVersion; liveNumber: number | null; by: string | undefined; note: string; tick: number; onChanged: () => void }) {
+  const { can } = useMe();
+  const [gate, setGate] = useState<Gate | null>(null);
+  const [diff, setDiff] = useState<VersionDiff | null>(null);
+  const [spec, setSpec] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<{ message: string; reasons: string[] } | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const [list, setList] = useState<Checklist | null>(null);
+  const refreshGate = () => {
+    getChecklist(agent, v.number).then(setList).catch(() => setList(null));
+    return versionGate(agent, v.number).then(setGate).catch(() => setGate(null));
+  };
+  useEffect(() => { refreshGate(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [v.number, tick]);
+
+  async function act(name: string, fn: () => Promise<unknown>, message: string) {
+    setBusy(name); setErr(null); setDone(null);
+    try { await fn(); setDone(message); onChanged(); }
+    catch (e) { setErr({ message: (e as Error).message, reasons: e instanceof ApiError ? e.reasons : [] }); }
+    finally { setBusy(null); refreshGate(); }
+  }
+
+  return (
+    <li className="rounded-xl border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold">Version {v.number}{v.live && <span className="ml-2"><StatusBadge status="live" /></span>}</h3>
+        <span className="text-xs text-muted">{v.author} · {formatTime(v.createdAt)} · {v.digest.slice(0, 8)}</span>
+      </div>
+      {v.note && <p className="mt-1 text-sm text-muted">{v.note}</p>}
+      {gate && (
+        <p className="mt-2 text-sm">Release gate: <StatusBadge status={gate.satisfied ? "satisfied" : "blocked"} />{" "}
+          <span className="text-muted">{gate.covered} of {gate.required} required scenarios passed for this version</span></p>
+      )}
+      {list && !v.live && (
+        <section aria-label={`Publish checklist for version ${v.number}`} className="mt-3 rounded-lg border border-border p-3 text-sm">
+          <h4 className="font-medium">Before publishing to production <span className="text-muted">— {list.ready ? "ready" : "not ready"}</span></h4>
+          <ul className="mt-2 space-y-1">
+            {list.checks.map((c) => (
+              <li key={c.key}>
+                <span aria-label={c.status} className={c.status === "pass" ? "text-[var(--ok)]" : c.status === "fail" ? "text-[var(--bad)]" : "text-muted"}>{c.status === "pass" ? "✓" : c.status === "fail" ? "✗" : c.status === "warn" ? "!" : "·"}</span>{" "}
+                {c.title}{c.detail && <span className="text-muted"> — {c.detail}</span>}
+              </li>
+            ))}
+          </ul>
+          {list.changes && !list.changes.identical && (
+            <p className="mt-2 text-xs text-muted">Compared with v{list.liveVersion ?? "baseline"}: {[list.changes.instructionsChanged && "instructions", list.changes.toolsAdded.length > 0 && `tools added (${list.changes.toolsAdded.join(", ")})`, list.changes.toolsRemoved.length > 0 && `tools removed (${list.changes.toolsRemoved.join(", ")})`, list.changes.guardrailsChanged.length > 0 && `checks (${list.changes.guardrailsChanged.join(", ")})`, list.changes.otherChanged.length > 0 && `settings (${list.changes.otherChanged.join(", ")})`].filter(Boolean).join("; ") || "no visible change"}</p>
+          )}
+        </section>
+      )}
+      <div className="mt-3 flex flex-wrap gap-2 text-sm">
+        <button disabled={busy !== null || !can("simulations:run")} onClick={() => act("run", () => runForVersion(agent, v.number), "Scenarios finished; the gate above is up to date.")}
+          className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40 disabled:opacity-50">{busy === "run" ? "Running…" : "Run scenarios"}</button>
+        {!v.live && <button disabled={busy !== null || !can("releases:publish") || (list !== null && !list.ready)} title={!can("releases:publish") ? "Your role cannot publish" : list && !list.ready ? "Some required checks have not passed" : undefined} onClick={() => act("publish", () => publishVersion(agent, v.number, by, note || undefined), `Version ${v.number} is now live.`)}
+          className="rounded-lg bg-primary px-3 py-1.5 font-medium text-primary-text disabled:opacity-50">{busy === "publish" ? "Publishing…" : "Publish"}</button>}
+        <button disabled={busy !== null} onClick={async () => { setSpec(spec === null ? (await getVersionDetail(agent, v.number)).specYaml ?? "" : null); }}
+          className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">{spec === null ? "View spec" : "Hide spec"}</button>
+        {liveNumber !== null && liveNumber !== v.number && (
+          <button disabled={busy !== null} onClick={async () => { setDiff(diff ? null : await diffVersions(agent, liveNumber, v.number)); }}
+            className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">{diff ? "Hide changes" : `Changes from live (v${liveNumber})`}</button>
+        )}
+      </div>
+      {done && <p role="status" className="mt-2 text-sm text-[var(--ok)]">{done}</p>}
+      {err && (
+        <div role="alert" className="mt-2 rounded-lg border border-[var(--bad)] bg-[var(--bad-bg)] p-3 text-sm text-[var(--bad)]">
+          <p>{err.message}</p>
+          {err.reasons.length > 0 && <ul className="mt-1 list-disc pl-5">{err.reasons.slice(0, 5).map((r) => <li key={r}>{r}</li>)}</ul>}
+        </div>
+      )}
+      {diff && <div className="mt-3"><DiffView d={diff} /></div>}
+      {spec !== null && <pre aria-label="Spec" className="mt-3 max-h-80 overflow-auto rounded-lg bg-bg p-3 text-xs">{spec}</pre>}
+    </li>
+  );
+}
+
+export default function AgentVersions({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [tick, setTick] = useState(0);
+  const live = useLoad(() => getLive(id), [id, tick]);
+  const versions = useLoad(() => listVersions(id), [id, tick]);
+  const releases = useLoad(() => listReleases(id), [id, tick]);
+  const envs = useLoad(() => getEnvironments(id), [id, tick]);
+  const [envErr, setEnvErr] = useState<string | null>(null);
+  const { can, askForName } = useMe();
+  const [by, setBy] = useState("dev");
+  const [note, setNote] = useState("");
+  const [yamlText, setYamlText] = useState<string | null>(null);
+  const [formErr, setFormErr] = useState<string | null>(null);
+  const [created, setCreated] = useState<string | null>(null);
+  const [rollErr, setRollErr] = useState<string | null>(null);
+  const refresh = () => setTick((t) => t + 1);
+
+  useEffect(() => { if (live.data && yamlText === null) setYamlText(live.data.specYaml); }, [live.data, yamlText]);
+  if (live.loading && !live.data) return <Loading />;
+  if (live.error) return <ErrorBox message={live.error} onRetry={live.reload} />;
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault(); setFormErr(null); setCreated(null);
+    try { const v = await createVersion(id, yamlText ?? "", askForName ? by.trim() || "dev" : undefined, note.trim() || undefined); setCreated(`Saved as version ${v.number}.`); setNote(""); refresh(); }
+    catch (err) { setFormErr((err as Error).message); }
+  }
+  async function promote(to: "staging" | "production") {
+    setEnvErr(null);
+    try { await promoteAgent(id, to, askForName ? by.trim() || "dev" : undefined, note.trim() || undefined); refresh(); }
+    catch (err) { setEnvErr((err as Error).message); }
+  }
+  async function rollback() {
+    setRollErr(null);
+    try { await rollbackAgent(id, askForName ? by.trim() || "on-call" : undefined, note.trim() || undefined); refresh(); }
+    catch (err) { setRollErr((err as Error).message); }
+  }
+
+  const l = live.data!;
+  return (
+    <>
+      <p className="mb-2 flex items-center justify-between text-sm"><Link className="text-primary underline" href="/agents">← Agents</Link>{can("versions:create") && <Link className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40" href={`/agents/${id}/edit`}>Edit in Studio</Link>}</p>
+      <PageHeader title={`${id}: versions and releases`} subtitle="A version is a saved copy of the agent's spec. It can go live only after every required scenario has passed for that exact version.">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {askForName && (<>
+            <label htmlFor="by">Your name</label>
+            <input id="by" value={by} onChange={(e) => setBy(e.target.value)} className="w-28 rounded-lg border border-border bg-surface px-2 py-1.5" />
+          </>)}
+          <label htmlFor="note">Note</label>
+          <input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" className="w-44 rounded-lg border border-border bg-surface px-2 py-1.5" />
+        </div>
+      </PageHeader>
+      {envs.data && (
+        <section aria-label="Environments" className="mb-6 rounded-xl border border-border bg-surface p-4">
+          <h2 className="mb-2 text-sm font-medium text-muted">Environments{envs.data.strictPromotion ? " · production only takes versions that were live in staging" : ""}</h2>
+          <ul className="grid gap-3 sm:grid-cols-3">
+            {(["dev", "staging", "production"] as const).map((name, i, all) => {
+              const e = envs.data!.environments[name];
+              const next = all[i + 1];
+              return (
+                <li key={name} className="rounded-lg border border-border p-3 text-sm">
+                  <p className="font-medium">{name}</p>
+                  <p>{e.version ? `Version ${e.version}` : e.servedFrom !== name ? `Serves ${e.servedFrom}` : "Spec file"}</p>
+                  {next && next !== "dev" && (
+                    <button onClick={() => promote(next)} disabled={!can(next === "production" ? "releases:publish" : "versions:create") || !e.version}
+                      title={!e.version ? "Nothing released here to promote" : undefined}
+                      className="mt-2 rounded-lg border border-border px-2 py-1 text-xs hover:bg-border/40 disabled:opacity-50">Promote to {next}</button>)}
+                </li>);
+            })}
+          </ul>
+          {envErr && <p role="alert" className="mt-2 text-sm text-[var(--bad)]">{envErr}</p>}
+        </section>)}
+      <RolloutPanel agent={id} versions={(versions.data ?? []).map((v) => v.number)} tick={tick} onChanged={refresh} />
+
+      <section aria-label="Live" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4">
+        <div>
+          <p className="text-sm text-muted">Serving customers now</p>
+          <p className="text-lg font-semibold">{l.source === "release" ? `Version ${l.version}` : "The spec file (no version released yet)"}</p>
+          {l.release && <p className="text-xs text-muted">{l.release.action === "rollback" ? "Rolled back" : "Published"} by {l.release.by} · {formatTime(l.release.createdAt)}{l.release.note ? ` · “${l.release.note}”` : ""}</p>}
+        </div>
+        <div>
+          <button onClick={rollback} disabled={!l.release || !can("releases:rollback")} title={can("releases:rollback") ? undefined : "Your role cannot roll back"} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-border/40 disabled:opacity-50">Roll back</button>
+          {rollErr && <p role="alert" className="mt-1 text-sm text-[var(--bad)]">{rollErr}</p>}
+        </div>
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+        <section aria-label="Versions">
+          <h2 className="mb-2 font-medium">Versions</h2>
+          {versions.loading && !versions.data ? <Loading /> : !versions.data?.length ? <Empty>No versions yet. Save one with the form.</Empty> : (
+            <ul className="space-y-3">{versions.data.map((v) => (
+              <VersionRow key={v.id} agent={id} v={v} liveNumber={l.version} by={askForName ? by.trim() || "release-manager" : undefined} note={note} tick={tick} onChanged={refresh} />))}</ul>
+          )}
+        </section>
+        <div className="space-y-6">
+          <form onSubmit={save} className="rounded-xl border border-border bg-surface p-4" aria-label="New version">
+            <h2 className="mb-1 font-medium">New version</h2>
+            <p className="mb-2 text-xs text-muted">Edit the spec below (it starts from what is live) and save it as the next version.</p>
+            <label htmlFor="spec" className="sr-only">Agent spec</label>
+            <textarea id="spec" value={yamlText ?? ""} onChange={(e) => setYamlText(e.target.value)} spellCheck={false} rows={14}
+              className="w-full rounded-lg border border-border bg-bg p-2 font-mono text-xs" />
+            <button disabled={!can("versions:create")} className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-text disabled:opacity-50">Save as new version</button>
+            {created && <p role="status" className="mt-2 text-sm text-[var(--ok)]">{created}</p>}
+            {formErr && <p role="alert" className="mt-2 break-words text-sm text-[var(--bad)]">{formErr}</p>}
+          </form>
+          <section aria-label="Release history">
+            <h2 className="mb-2 font-medium">Release history</h2>
+            {!releases.data?.length ? <Empty>Nothing released yet.</Empty> : (
+              <ol className="space-y-2">{releases.data.map((r) => (
+                <li key={r.id} className="rounded-lg border border-border bg-surface p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2"><StatusBadge status={r.action} /><span className="text-xs text-muted">{formatTime(r.createdAt)}</span></div>
+                  <p className="mt-1">{r.toBaseline ? "Back to the spec file" : `Version ${r.version}`}{r.previousVersion ? ` (was ${r.previousVersion})` : ""} · {r.by}</p>
+                  {r.note && <p className="text-muted">“{r.note}”</p>}
+                  {r.action === "publish" && r.gate?.required ? <p className="text-xs text-muted">Gate: {r.gate.covered}/{r.gate.required} scenarios</p> : null}
+                </li>))}
+              </ol>
+            )}
+          </section>
+        </div>
+      </div>
+    </>
+  );
+}

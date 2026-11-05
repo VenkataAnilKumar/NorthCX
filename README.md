@@ -8,7 +8,7 @@
 [![Licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-1747b8)](LICENSE)
 [![Status: release candidate](https://img.shields.io/badge/status-1.0.0--rc.1-f59e0b)](CHANGELOG.md)
 [![Backend: Python 3.12+](https://img.shields.io/badge/backend-Python%203.12%2B-3776ab)](src/backend)
-[![Studio: Next.js](https://img.shields.io/badge/studio-Next.js-111827)](src/web)
+[![Studio: Next.js](https://img.shields.io/badge/studio-Next.js-111827)](src/apps/studio)
 [![Self-hosted](https://img.shields.io/badge/deploy-self--hosted-16a34a)](docs/08-implementation/NorthCX_Deployment-Guide.md)
 
 **[Quick start](#-try-it-in-five-minutes)** · **[What you get](#-what-you-get)** · **[How it works](#-how-it-works)** · **[Safety](#-safety-you-can-explain-to-your-risk-team)** · **[Docs](#-documentation)** · **[Status](#-honest-status)**
@@ -192,7 +192,7 @@ NORTHCX_DEMO=1 NORTHCX_API_KEY=$(python -c "import secrets;print(secrets.token_u
 # meaning-based search additionally needs the pgvector extension)
 
 # Studio
-cd src/web && npm ci && npm test && NORTHCX_API_URL=http://localhost:3000 npm run dev      # http://localhost:3001
+cd src && npm ci && npm test && NORTHCX_API_URL=http://localhost:3000 npm run dev      # http://localhost:3001 (npm workspaces: apps/studio and the shared packages)
 
 # browser SDK and widget
 cd src/sdk && npm ci && npm test && npm run build
@@ -237,7 +237,8 @@ Start at [`docs/README.md`](docs/README.md) for the full map.
 | Path | Contents |
 |---|---|
 | `src/backend/` | Python backend (FastAPI): runtime, guardrails, stores, server, channels, tools (`loadtest`, `cost`, `simulation`, `voice_sim`), example agent, tests |
-| `src/web/` | Studio web console (Next.js) |
+| `src/apps/studio/` | Studio, the operator console (Next.js); more apps (staff workspace, admin, ops) are planned as separate apps |
+| `src/packages/` | Code shared by the web apps: `ui` (components) and `api-client` (typed API client and session helpers) |
 | `src/sdk/` | Browser SDK and `<northcx-chat>` widget (TypeScript, no runtime dependencies) |
 | `src/prototype/` | TypeScript reference implementation of the runtime semantics |
 | `docs/` | Documentation, including the screenshots in `docs/assets/` |

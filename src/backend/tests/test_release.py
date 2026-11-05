@@ -24,9 +24,11 @@ def pep440_to_semver(v: str) -> str:
 def test_every_part_of_the_product_has_the_same_version_and_licence():
     py = (ROOT / "src/backend/pyproject.toml").read_text()
     assert f'version = "{__version__}"' in py and 'license = { text = "Apache-2.0" }' in py
-    for pkg in ("web", "sdk"):
-        data = json.loads((ROOT / f"src/{pkg}/package.json").read_text())
-        assert data["version"] == pep440_to_semver(__version__) and data["license"] == "Apache-2.0", pkg
+    manifests = [ROOT / "src/package.json", ROOT / "src/sdk/package.json", *sorted((ROOT / "src/apps").glob("*/package.json")), *sorted((ROOT / "src/packages").glob("*/package.json"))]
+    assert len(manifests) >= 5, "the workspace root, the SDK, Studio and the two shared packages"
+    for path in manifests:
+        data = json.loads(path.read_text())
+        assert data["version"] == pep440_to_semver(__version__) and data["license"] == "Apache-2.0", str(path)
     assert re.search(rf"## \[{re.escape(pep440_to_semver(__version__))}\]", (ROOT / "CHANGELOG.md").read_text())
 
 

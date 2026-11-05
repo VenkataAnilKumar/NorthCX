@@ -38,13 +38,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - run: npm ci
-        working-directory: src/web
+        working-directory: src
       - run: npm run typecheck
-        working-directory: src/web
+        working-directory: src
       - run: npm test
-        working-directory: src/web
+        working-directory: src
       - run: npm run build
-        working-directory: src/web
+        working-directory: src
   sdk:
     runs-on: ubuntu-latest
     steps:

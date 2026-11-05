@@ -1,6 +1,6 @@
 # NorthCX Repo Structure
 
-Status: Draft. All code lives under `src/`. One repository holds every part of the product; deployment is separate (each app ships as its own container or static site). Decision log entry 140 (proposed: the target layout below is not yet confirmed by the owner).
+Status: Draft. All code lives under `src/`. One repository holds every part of the product; deployment is separate (each app ships as its own container or static site). Decision log entry 140 (decided): several apps plus shared packages in one repository. Studio and the two shared packages are in place; the other apps are created when their first feature arrives.
 
 ## Today
 ```
@@ -12,21 +12,24 @@ northcx/
 ├── docs/                     numbered documentation phases; docs/assets holds the README screenshots
 ├── deploy/                   reserved for the deployment kit (Helm, Terraform, upgrade tool)
 └── src/
+    ├── package.json          npm workspace root (apps/* and packages/*), one lock file
     ├── backend/              Python (FastAPI): runtime, supervision, memory, safety, channels, API (one package, `northcx/`)
-    │   ├── northcx/          package
-    │   ├── examples/         example agents, scenarios, connectors, config samples
-    │   └── tests/
-    ├── web/                  Studio, the operator console (Next.js)
-    ├── sdk/                  browser SDK and `<northcx-chat>` widget (TypeScript, no runtime dependencies)
+    ├── apps/
+    │   └── studio/           the operator console (Next.js); its Dockerfile builds from `src/`
+    ├── packages/
+    │   ├── ui/               shared components: states, badges, trace timeline, answer charts
+    │   └── api-client/       typed API client, session and role helpers, loading hook
+    ├── sdk/                  browser SDK and `<northcx-chat>` widget (TypeScript, no runtime dependencies; its own lock file)
     └── prototype/            TypeScript reference implementation of the runtime semantics
 ```
+One-way dependencies: `apps/studio` uses `packages/ui` and `packages/api-client`; `packages/ui` uses `packages/api-client`; nothing uses an app. Run it with `cd src && npm ci && npm run dev`; test with `npm test`; build with `npm run build`.
 
 ## Target layout (planned in `08-implementation/NorthCX_Gap-Closure-Plan.md`, items E0.7 and E0.8)
 ```
 src/
 ├── backend/                  unchanged: one Python package, scaled by replicas and background workers
 ├── apps/                     one Next.js app per audience, each its own image
-│   ├── studio/               operator console (today's src/web, renamed)
+│   ├── studio/               operator console (built)
 │   ├── workspace/            staff workspace (created when its first feature arrives)
 │   ├── admin/                tenant admin portal
 │   ├── ops/                  ops console, shipped only to private deployments

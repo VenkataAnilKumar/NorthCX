@@ -8,7 +8,7 @@ We will acknowledge a report and aim to share a plan for a fix; this is an early
 
 ## What is in scope
 
-The backend (`src/backend`), the Studio web console (`src/web`), the browser SDK and widget (`src/sdk`), and the deployment files. Out of scope: weaknesses that need access to the host or database, third-party services you connect, and denial of service by sheer traffic volume.
+The backend (`src/backend`), the Studio web console and its shared packages (`src/apps/studio`, `src/packages`), the browser SDK and widget (`src/sdk`), and the deployment files. Out of scope: weaknesses that need access to the host or database, third-party services you connect, and denial of service by sheer traffic volume.
 
 ## What we have done and what we have not
 

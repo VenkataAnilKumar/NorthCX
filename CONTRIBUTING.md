@@ -9,7 +9,7 @@ NORTHCX_REQUIRE_DB=1 python -m pytest        # needs Postgres 16 (docker compose
 cd ../web && npm ci && npm test && npx tsc --noEmit
 cd ../sdk && npm ci && npm test              # then `npm run build` if you changed src/sdk/src: the built bundle is committed and a test checks it
 ```
-Browser checks: `src/web/e2e/smoke.mjs` and `src/sdk/e2e/smoke.mjs` (see the deployment guide).
+Browser checks: `src/apps/studio/e2e/smoke.mjs` and `src/sdk/e2e/smoke.mjs` (see the deployment guide).
 
 ## What a good change looks like
 1. **Tests first-class.** Behaviour changes come with tests; a bug fix comes with a test that failed before. A change to what an agent does comes with a scenario in `src/backend/examples/scenarios`. No network in unit tests.

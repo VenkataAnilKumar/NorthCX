@@ -1,0 +1,61 @@
+@import "tailwindcss";
+@source "../../../packages/ui/src"; /* class names used by the shared components */
+
+:root {
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --muted: #5b6678;
+  --border: #d9e0ea;
+  --primary: #0b3d91;
+  --primary-text: #ffffff;
+  --ok: #0f7b3f;
+  --ok-bg: #dcf5e6;
+  --warn: #8a5300;
+  --warn-bg: #fdecc8;
+  --info: #0b4fb3;
+  --info-bg: #dce9ff;
+  --bad: #a11d1d;
+  --bad-bg: #fde0e0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220;
+    --surface: #131c2e;
+    --text: #e8edf6;
+    --muted: #9aa7bd;
+    --border: #26324a;
+    --primary: #6ea0ff;
+    --primary-text: #0b1220;
+    --ok: #6fe3a0;
+    --ok-bg: #12331f;
+    --warn: #ffd27a;
+    --warn-bg: #3a2a0a;
+    --info: #9cc2ff;
+    --info-bg: #122a52;
+    --bad: #ff9a9a;
+    --bad-bg: #3d1414;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-text: var(--primary-text);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
