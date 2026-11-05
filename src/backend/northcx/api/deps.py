@@ -15,6 +15,7 @@ class AppDeps:
     SSO_COOKIE: Any
     access: Any
     actor: Any
+    alerts: Any
     audit: Any
     email: Any
     events: Any
@@ -25,8 +26,10 @@ class AppDeps:
     privacy: Any
     provider: Any
     record: Any
+    regression: Any
     rel_error: Any
     releases: Any
+    residency: Any
     review_repo: Any
     runtime: Any
     secure_cookie: Any

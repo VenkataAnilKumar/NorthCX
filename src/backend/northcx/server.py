@@ -78,6 +78,7 @@ from .api.routers import whatsapp as _whatsapp_router
 from .api.routers import telegram as _telegram_router
 from .api.routers import identity as _identity_router
 from .api.routers import insights as _insights_router
+from .api.routers import observability as _observability_router
 from .api.models import AskBody, BuilderBody, BuilderSource, ChatBody, CrawlBody, DecisionBody, DocumentBody, EnabledBody, ExpireBody, FeedbackBody, JourneyDraftBody, JourneyScenariosBody, KeyBody, PercentBody, PromoteBody, PublishBody, RefineBody, ReplyBody, ResolveBody, RetentionBody, ReviewBody, RollbackBody, RolloutBody, ScenarioBody, ScenarioDraftBody, ScheduleBody, SimRunBody, SourceBody, TemplateBody, TemplateSendBody, TokenBody, VersionBody
 
 
@@ -743,32 +744,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return result
 
 
-    @app.get("/v1/alerts")
-    async def alert_status() -> Any:
-        """The alert rules, which are firing now, and recent alert events."""
-        return alerts.status() if alerts is not None else {"enabled": False}
-
-    @app.get("/v1/regression")
-    async def regression_status() -> Any:
-        """Whether simulations re-run when the knowledge changes, and how the last re-run went."""
-        return regression.status() if regression is not None else {"enabled": False}
-
-    @app.get("/v1/events/types")
-    async def event_types() -> Any:
-        return {"enabled": events is not None, "types": [{"type": k, "description": v, "subscribed": events is not None and k in events.types} for k, v in EVENTS.items()]}
-
-    @app.get("/v1/events")
-    async def event_feed(after: int = 0, limit: int = 100) -> Any:
-        """The same events the webhook sends, for receivers that would rather poll. `after` is the id of the last event already seen."""
-        if events is None:
-            return _err(501, "not_configured", "Status events are not configured: set NORTHCX_EVENTS_WEBHOOK_URL (and NORTHCX_EVENTS_WEBHOOK_SECRET)")
-        return {"events": await events.listing(max(0, after), limit)}
-
-    @app.get("/v1/residency")
-    async def residency_report() -> Any:
-        """Where this deployment keeps data and where it sends it, checked against the residency file (evidence for a data-processing agreement)."""
-        return residency or {"configured": False, "flows": [], "compliant": False, "problems": [], "note": "Residency is not reported by this server."}
-
     @app.post("/v1/builder/draft")
     async def builder_draft(body: BuilderBody, request: Request) -> Any:
         """A first draft of an agent from procedures and conversation transcripts. Names are checked against what this deployment has;
@@ -903,27 +878,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             return _err(404 if not found else 400, "not_found" if not found else "bad_request", str(e))
         await record(request, "scenario.draft", customer_ref(session_id), turns=len(d.scenario["turns"]))
         return {"yaml": d.yaml, "scenario": d.scenario, "warnings": d.warnings}
-
-    @app.get("/v1/trace-export")
-    async def trace_export_status() -> Any:
-        """Whether export is on, where traces go, what content is sent, and how deliveries are doing."""
-        x = runtime.exports
-        if x is None:
-            return {"configured": False}
-        return {"configured": True, "exporters": sorted(x.exporters), "content": x.redactor.mode, "sample": x.sample, "environment": x.environment,
-                **await x.repo.counts()}
-
-    @app.get("/v1/traces/{trace_id}/exports")
-    async def trace_exports(trace_id: str) -> Any:
-        if await traces.get(trace_id) is None:
-            return _err(404, "not_found", "Unknown trace")
-        jobs = await runtime.exports.repo.for_trace(trace_id) if runtime.exports is not None else []
-        return {"configured": runtime.exports is not None, "deliveries": [j.to_dict() for j in jobs]}
-
-    @app.get("/v1/traces/{trace_id}")
-    async def get_trace(trace_id: str) -> Any:
-        t = await traces.get(trace_id)
-        return t.to_dict() if t else _err(404, "not_found", "Unknown trace")
 
 
     # ---- knowledge ----
@@ -1090,34 +1044,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         await record(request, "knowledge.index.rebuild", "knowledge", cleared=n)
         return {"cleared": n}
 
-    @app.post("/v1/alerts/test")
-    async def alert_test(request: Request) -> Any:
-        """Sends a test alert through the real delivery path and reports whether the receiver accepted it."""
-        if alerts is None:
-            return _err(501, "not_configured", "Alerts are not configured on this server")
-        e = await alerts.send_test()
-        await record(request, "alert.test", "alerts", delivery=e["delivery"]["status"])
-        return e
-
-    @app.get("/v1/monitor/findings")
-    async def monitor_findings(rule: str | None = None, severity: str | None = None, agentId: str | None = None,
-                               sessionId: str | None = None, since: float | None = None, limit: int = 100) -> Any:
-        items = await runtime.monitor.repo.list(rule=rule, severity=severity, agent_id=agentId, session_id=sessionId,
-                                                since=since, limit=max(1, min(limit, 500)))
-        return {"findings": [f.to_dict() for f in items]}
-
-    @app.get("/v1/monitor/summary")
-    async def monitor_summary(since: float | None = None) -> Any:
-        counts = await runtime.monitor.repo.counts(since)
-        return {"rules": sorted(runtime.monitor.rules), "counts": counts,
-                "total": sum(n for by in counts.values() for n in by.values())}
-
-    @app.get("/v1/traces")
-    async def list_traces(sessionId: str | None = None, limit: int = 200) -> Any:
-        items = await traces.summaries(sessionId, max(1, min(limit, 1000)))
-        return {"traces": [{"id": t.id, "agentId": t.agent_id, "sessionId": t.session_id, "events": t.events,
-                            "status": t.status, "startedAt": t.started_at, "tools": t.tools,
-                            "agentVersion": t.agent_version, "environment": t.environment} for t in items]}
 
     @app.get("/v1/agents")
     async def list_agents() -> Any:
@@ -1776,7 +1702,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return {"messages": [{"id": m.id, "kind": m.kind, "createdAt": m.created_at, **m.payload} for m in items]}
 
     # [routers] generated by the WP0.1 split; one module per area of routes under northcx/api/routers
-    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, audit=audit, email=email, events=events, fb=fb, insight=insight, limits=limits, need_rel=need_rel, privacy=privacy, provider=provider, record=record, rel_error=rel_error, releases=releases, review_repo=review_repo, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, tag_repo=tag_repo, telegram=telegram, templates=templates, too_many=too_many, traces=traces, version_json=version_json, whatsapp=whatsapp)
+    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, alerts=alerts, audit=audit, email=email, events=events, fb=fb, insight=insight, limits=limits, need_rel=need_rel, privacy=privacy, provider=provider, record=record, regression=regression, rel_error=rel_error, releases=releases, residency=residency, review_repo=review_repo, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, tag_repo=tag_repo, telegram=telegram, templates=templates, too_many=too_many, traces=traces, version_json=version_json, whatsapp=whatsapp)
     _templates_router.register(app, deps)
     _memory_router.register(app, deps)
     _privacy_router.register(app, deps)
@@ -1788,5 +1714,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _telegram_router.register(app, deps)
     _identity_router.register(app, deps)
     _insights_router.register(app, deps)
+    _observability_router.register(app, deps)
     # [/routers]
     return app
