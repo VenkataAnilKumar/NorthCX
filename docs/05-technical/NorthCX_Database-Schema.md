@@ -1,6 +1,6 @@
 # NorthCX Database Schema
 
-Status: Draft. The tables marked **built** exist in migration `0001` and match `northcx/db/models.py`; the rest are proposals for later sprints.
+Status: Draft. The tables marked **built** exist in the migrations (`0001` to `0028`) and match `northcx/db/models.py` (a test checks that the migrations and the models agree); rows without that marker are early proposals that were not built as written (agents and releases became `agent_versions` and `releases`, scenarios became `managed_scenarios`, experiments became `rollouts`).
 
 | Table | Columns | Notes |
 |---|---|---|
@@ -47,3 +47,9 @@ Status: Draft. The tables marked **built** exist in migration `0001` and match `
 Indexes on `sessions(customer_id)`, `traces(session_id)`, `approvals(state)`. Retention jobs delete old `messages` and `trace_events` by policy.
 | `managed_scenarios` (built) | `name` pk, `agent_id`, `required`, `definition` jsonb, `created_by`, `updated_by`, `created_at`, `updated_at`, `revision` | Scenarios saved by the editor; run and gated like file scenarios; a name used by a file belongs to the file |
 | `knowledge_documents.body` (built) | `text`, nullable | The document as submitted, so it can be edited; null for documents saved before this column existed |
+| `sms_sessions` (built) | `session_id` pk, `phone`, `our_number`, `created_at`, `last_seen` | Shared by SMS, WhatsApp and Telegram: `phone` is the sender (`+number`, or `tg:<id>` for Telegram) and `our_number` is the number, phone-number id or bot id it came in on; index (`phone`, `our_number`, `last_seen`) |
+| `sms_messages` (built) | `message_id` pk, `session_id`, `direction` (in/out), `outcome`, `peer`, `created_at` | Dedupe by provider message id; per-sender hourly limits; messages that belong to no conversation are recorded under a one-way reference, so erasing a customer leaves no number behind |
+| `sms_opt_outs` (built) | `phone_hash` pk (SHA-256 of the sender), `updated_at` | STOP is honoured even after the customer's data is erased; covers every messaging channel |
+| `crawl_schedules` (built) | `id` pk, `source_id` fk (cascade), `config` jsonb, `every_hours`, `next_run`, `last_run`, `last_job_id`, `last_result`, `enabled`, `created_by`, `created_at` | A saved crawl request; due runs are claimed atomically so several server processes run each once per interval; index (`enabled`, `next_run`) |
+| `verification_codes` (built) | `session_id` pk, `customer_id`, `channel`, `dest_hash`, `code_hash` (null once used or cancelled), `expires_at`, `attempts`, `sends` jsonb, `verified_until`, `updated_at` | One-time identity codes: only keyed hashes are stored, never the code or the address; erased with the conversation |
+| `knowledge_embeddings` (built, created on demand) | `chunk_id` pk fk (cascade to `knowledge_chunks`), `model`, `embedding` (pgvector, any size), `created_at` | Created at start-up when meaning-based search is configured (needs the pgvector extension), so deployments without it never need the extension; an HNSW index per vector size (`ix_ke_hnsw_<size>`) is built automatically past a size threshold; dropped by a full downgrade |
