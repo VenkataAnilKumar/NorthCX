@@ -11,6 +11,7 @@ from typing import Any
 
 @dataclass
 class AppDeps:
+    access: Any
     actor: Any
     need_rel: Any
     privacy: Any
