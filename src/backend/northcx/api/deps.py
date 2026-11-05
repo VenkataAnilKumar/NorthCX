@@ -11,10 +11,12 @@ from typing import Any
 
 @dataclass
 class AppDeps:
+    MAX_EMAIL_BYTES: Any
     SSO_COOKIE: Any
     access: Any
     actor: Any
     audit: Any
+    email: Any
     need_rel: Any
     privacy: Any
     record: Any
