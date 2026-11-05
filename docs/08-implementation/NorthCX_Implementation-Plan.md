@@ -314,7 +314,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 ## 14. Living checklist
 
 **Wave 0**
-- [~] WP0.1 router, bootstrap and store split (routers and stores done; bootstrap split, typed `AppDeps` and helper move pending)
+- [x] WP0.1 router, bootstrap and store split, typed `AppDeps`, shared helpers (design tokens move to WP0.2)
 - [ ] WP0.2 design tokens into `packages/ui`
 - [ ] WP0.3 locked backend dependencies
 - [ ] WP0.4 shared rate limits and budgets
