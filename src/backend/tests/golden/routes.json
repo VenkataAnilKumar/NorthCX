@@ -1,0 +1,798 @@
+{
+ "dispatch": {
+  "DELETE /v1/knowledge/schedules/x": "/v1/knowledge/schedules/{schedule_id} -> kb_schedule_delete",
+  "DELETE /v1/knowledge/sources/x": "/v1/knowledge/sources/{source_id} -> kb_delete_source",
+  "DELETE /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_delete_document",
+  "DELETE /v1/memories": "/v1/memories -> memories_forget_all",
+  "DELETE /v1/memories/x": "/v1/memories/{memory_id} -> memories_forget",
+  "DELETE /v1/privacy/customers/a/b": "/v1/privacy/customers/{customer_id:path} -> privacy_erase_customer",
+  "DELETE /v1/privacy/sessions/a/b": "/v1/privacy/sessions/{session_id:path} -> privacy_erase_session",
+  "DELETE /v1/sessions/x/tags/x": "/v1/sessions/{session_id}/tags/{tag} -> remove_tag",
+  "DELETE /v1/simulations/scenarios/x": "/v1/simulations/scenarios/{name} -> delete_scenario",
+  "GET /": "/ -> widget",
+  "GET /auth/sso/callback": "/auth/sso/callback -> sso_callback",
+  "GET /auth/sso/config": "/auth/sso/config -> sso_config",
+  "GET /auth/sso/login": "/auth/sso/login -> sso_login",
+  "GET /channels/whatsapp/meta": "/channels/whatsapp/meta -> whatsapp_verify",
+  "GET /health": "/health -> health",
+  "GET /ready": "/ready -> ready",
+  "GET /sdk/x": "/sdk/{name} -> sdk_file",
+  "GET /v1/agents": "/v1/agents -> list_agents",
+  "GET /v1/agents/x/environments": "/v1/agents/{agent_id}/environments -> agent_environments",
+  "GET /v1/agents/x/live": "/v1/agents/{agent_id}/live -> live",
+  "GET /v1/agents/x/releases": "/v1/agents/{agent_id}/releases -> release_history",
+  "GET /v1/agents/x/rollouts": "/v1/agents/{agent_id}/rollouts -> list_rollouts",
+  "GET /v1/agents/x/rollouts/x/comparison": "/v1/agents/{agent_id}/rollouts/{rollout_id}/comparison -> rollout_comparison",
+  "GET /v1/agents/x/versions": "/v1/agents/{agent_id}/versions -> list_versions",
+  "GET /v1/agents/x/versions/x": "/v1/agents/{agent_id}/versions/{number} -> get_version",
+  "GET /v1/agents/x/versions/x/checklist": "/v1/agents/{agent_id}/versions/{number}/checklist -> version_checklist",
+  "GET /v1/agents/x/versions/x/diff/x": "/v1/agents/{agent_id}/versions/{a}/diff/{b} -> version_diff",
+  "GET /v1/alerts": "/v1/alerts -> alert_status",
+  "GET /v1/approvals": "/v1/approvals -> list_approvals",
+  "GET /v1/attachments/x": "/v1/attachments/{attachment_id} -> download_attachment",
+  "GET /v1/audit": "/v1/audit -> audit_log",
+  "GET /v1/audit/verify": "/v1/audit/verify -> audit_verify",
+  "GET /v1/catalog": "/v1/catalog -> catalog",
+  "GET /v1/conversations/search": "/v1/conversations/search -> conversation_search",
+  "GET /v1/events": "/v1/events -> event_feed",
+  "GET /v1/events/types": "/v1/events/types -> event_types",
+  "GET /v1/handoffs": "/v1/handoffs -> list_handoffs",
+  "GET /v1/handoffs/x": "/v1/handoffs/{handoff_id} -> get_handoff",
+  "GET /v1/handoffs/x/inbox": "/v1/handoffs/{handoff_id}/inbox -> handoff_inbox",
+  "GET /v1/insights/failures": "/v1/insights/failures -> insights_failures",
+  "GET /v1/insights/gaps": "/v1/insights/gaps -> insights_gaps",
+  "GET /v1/insights/overview": "/v1/insights/overview -> insights_overview",
+  "GET /v1/insights/review-quality": "/v1/insights/review-quality -> review_quality",
+  "GET /v1/insights/timeseries": "/v1/insights/timeseries -> insights_series",
+  "GET /v1/keys": "/v1/keys -> list_keys",
+  "GET /v1/knowledge/crawls": "/v1/knowledge/crawls -> kb_crawls",
+  "GET /v1/knowledge/crawls/x": "/v1/knowledge/crawls/{job_id} -> kb_crawl_status",
+  "GET /v1/knowledge/documents": "/v1/knowledge/documents -> kb_documents",
+  "GET /v1/knowledge/index": "/v1/knowledge/index -> kb_index",
+  "GET /v1/knowledge/schedules": "/v1/knowledge/schedules -> kb_schedules",
+  "GET /v1/knowledge/search": "/v1/knowledge/search -> kb_search",
+  "GET /v1/knowledge/sources": "/v1/knowledge/sources -> kb_sources",
+  "GET /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_get_document",
+  "GET /v1/me": "/v1/me -> me",
+  "GET /v1/memories": "/v1/memories -> memories_list",
+  "GET /v1/monitor/findings": "/v1/monitor/findings -> monitor_findings",
+  "GET /v1/monitor/summary": "/v1/monitor/summary -> monitor_summary",
+  "GET /v1/privacy/customers/a/b/export": "/v1/privacy/customers/{customer_id:path}/export -> privacy_export",
+  "GET /v1/regression": "/v1/regression -> regression_status",
+  "GET /v1/residency": "/v1/residency -> residency_report",
+  "GET /v1/reviews/queue": "/v1/reviews/queue -> review_queue",
+  "GET /v1/routing": "/v1/routing -> routing_status",
+  "GET /v1/sessions/x/attachments": "/v1/sessions/{session_id}/attachments -> list_attachments",
+  "GET /v1/sessions/x/outbox": "/v1/sessions/{session_id}/outbox -> outbox",
+  "GET /v1/sessions/x/scenario-draft": "/v1/sessions/{session_id}/scenario-draft -> scenario_draft",
+  "GET /v1/sessions/x/tags": "/v1/sessions/{session_id}/tags -> get_tags",
+  "GET /v1/sessions/x/transcript": "/v1/sessions/{session_id}/transcript -> session_transcript",
+  "GET /v1/simulations/gate": "/v1/simulations/gate -> sim_gate",
+  "GET /v1/simulations/runs": "/v1/simulations/runs -> sim_runs",
+  "GET /v1/simulations/runs/x": "/v1/simulations/runs/{run_id} -> sim_run_detail",
+  "GET /v1/simulations/scenarios": "/v1/simulations/scenarios -> sim_scenarios",
+  "GET /v1/simulations/scenarios/x": "/v1/simulations/scenarios/{name} -> get_scenario",
+  "GET /v1/skills": "/v1/skills -> list_skills",
+  "GET /v1/templates": "/v1/templates -> list_templates",
+  "GET /v1/templates/x": "/v1/templates/{template_id} -> get_template",
+  "GET /v1/trace-export": "/v1/trace-export -> trace_export_status",
+  "GET /v1/traces": "/v1/traces -> list_traces",
+  "GET /v1/traces/x": "/v1/traces/{trace_id} -> get_trace",
+  "GET /v1/traces/x/exports": "/v1/traces/{trace_id}/exports -> trace_exports",
+  "GET /v1/voice/calls": "/v1/voice/calls -> voice_calls",
+  "POST /channels/sms/twilio": "/channels/sms/twilio -> sms_inbound",
+  "POST /channels/telegram/webhook": "/channels/telegram/webhook -> telegram_inbound",
+  "POST /channels/whatsapp/meta": "/channels/whatsapp/meta -> whatsapp_inbound",
+  "POST /v1/agents/x/chat": "/v1/agents/{agent_id}/chat -> chat",
+  "POST /v1/agents/x/chat/stream": "/v1/agents/{agent_id}/chat/stream -> chat_stream",
+  "POST /v1/agents/x/journeys/draft": "/v1/agents/{agent_id}/journeys/draft -> journey_draft",
+  "POST /v1/agents/x/journeys/scenarios": "/v1/agents/{agent_id}/journeys/scenarios -> journey_scenarios",
+  "POST /v1/agents/x/promote": "/v1/agents/{agent_id}/promote -> promote",
+  "POST /v1/agents/x/releases": "/v1/agents/{agent_id}/releases -> publish",
+  "POST /v1/agents/x/rollback": "/v1/agents/{agent_id}/rollback -> rollback",
+  "POST /v1/agents/x/rollouts": "/v1/agents/{agent_id}/rollouts -> start_rollout",
+  "POST /v1/agents/x/rollouts/x/abort": "/v1/agents/{agent_id}/rollouts/{rollout_id}/abort -> rollout_abort",
+  "POST /v1/agents/x/rollouts/x/promote": "/v1/agents/{agent_id}/rollouts/{rollout_id}/promote -> rollout_promote",
+  "POST /v1/agents/x/versions": "/v1/agents/{agent_id}/versions -> create_version",
+  "POST /v1/agents/x/versions/preview": "/v1/agents/{agent_id}/versions/preview -> preview_version",
+  "POST /v1/alerts/test": "/v1/alerts/test -> alert_test",
+  "POST /v1/approvals/expire": "/v1/approvals/expire -> expire",
+  "POST /v1/approvals/x/decision": "/v1/approvals/{approval_id}/decision -> decide",
+  "POST /v1/builder/draft": "/v1/builder/draft -> builder_draft",
+  "POST /v1/builder/refine": "/v1/builder/refine -> builder_refine",
+  "POST /v1/builder/scenarios": "/v1/builder/scenarios -> builder_scenarios",
+  "POST /v1/builder/transcribe": "/v1/builder/transcribe -> builder_transcribe",
+  "POST /v1/channels/email/inbound": "/v1/channels/email/inbound -> email_inbound",
+  "POST /v1/channels/whatsapp/templates/send": "/v1/channels/whatsapp/templates/send -> whatsapp_template",
+  "POST /v1/chat-tokens": "/v1/chat-tokens -> mint_chat_token",
+  "POST /v1/handoffs/x/assist": "/v1/handoffs/{handoff_id}/assist -> handoff_assist",
+  "POST /v1/handoffs/x/reply": "/v1/handoffs/{handoff_id}/reply -> handoff_reply",
+  "POST /v1/handoffs/x/resolve": "/v1/handoffs/{handoff_id}/resolve -> resolve_handoff",
+  "POST /v1/insights/ask": "/v1/insights/ask -> insights_ask",
+  "POST /v1/keys": "/v1/keys -> create_key",
+  "POST /v1/keys/x/revoke": "/v1/keys/{key_id}/revoke -> revoke_key",
+  "POST /v1/knowledge/index/rebuild": "/v1/knowledge/index/rebuild -> kb_index_rebuild",
+  "POST /v1/knowledge/schedules/x/enabled": "/v1/knowledge/schedules/{schedule_id}/enabled -> kb_schedule_enabled",
+  "POST /v1/knowledge/sources": "/v1/knowledge/sources -> kb_create_source",
+  "POST /v1/knowledge/sources/x/crawl": "/v1/knowledge/sources/{source_id}/crawl -> kb_crawl",
+  "POST /v1/knowledge/sources/x/import": "/v1/knowledge/sources/{source_id}/import -> kb_import",
+  "POST /v1/knowledge/sources/x/schedule": "/v1/knowledge/sources/{source_id}/schedule -> kb_schedule",
+  "POST /v1/me/logout": "/v1/me/logout -> logout",
+  "POST /v1/privacy/retention/run": "/v1/privacy/retention/run -> privacy_retention",
+  "POST /v1/sessions/x/feedback": "/v1/sessions/{session_id}/feedback -> post_feedback",
+  "POST /v1/simulations/runs": "/v1/simulations/runs -> sim_run",
+  "POST /v1/simulations/scenarios": "/v1/simulations/scenarios -> create_scenario",
+  "POST /v1/simulations/scenarios/validate": "/v1/simulations/scenarios/validate -> validate_scenario",
+  "POST /v1/templates/x/create-version": "/v1/templates/{template_id}/create-version -> template_version",
+  "POST /v1/templates/x/render": "/v1/templates/{template_id}/render -> render_template",
+  "PUT /v1/agents/x/rollouts/x/percent": "/v1/agents/{agent_id}/rollouts/{rollout_id}/percent -> rollout_percent",
+  "PUT /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_put_document",
+  "PUT /v1/sessions/x/attachments": "/v1/sessions/{session_id}/attachments -> upload_attachment",
+  "PUT /v1/sessions/x/review": "/v1/sessions/{session_id}/review -> put_review",
+  "PUT /v1/sessions/x/tags/x": "/v1/sessions/{session_id}/tags/{tag} -> add_tag",
+  "PUT /v1/simulations/scenarios/x": "/v1/simulations/scenarios/{name} -> update_scenario",
+  "WS /v1/voice/stream": "/v1/voice/stream -> voice_stream"
+ },
+ "routes": [
+  [
+   "DELETE",
+   "/v1/knowledge/schedules/{schedule_id}",
+   "kb_schedule_delete"
+  ],
+  [
+   "DELETE",
+   "/v1/knowledge/sources/{source_id}",
+   "kb_delete_source"
+  ],
+  [
+   "DELETE",
+   "/v1/knowledge/sources/{source_id}/documents/{external_id:path}",
+   "kb_delete_document"
+  ],
+  [
+   "DELETE",
+   "/v1/memories",
+   "memories_forget_all"
+  ],
+  [
+   "DELETE",
+   "/v1/memories/{memory_id}",
+   "memories_forget"
+  ],
+  [
+   "DELETE",
+   "/v1/privacy/customers/{customer_id:path}",
+   "privacy_erase_customer"
+  ],
+  [
+   "DELETE",
+   "/v1/privacy/sessions/{session_id:path}",
+   "privacy_erase_session"
+  ],
+  [
+   "DELETE",
+   "/v1/sessions/{session_id}/tags/{tag}",
+   "remove_tag"
+  ],
+  [
+   "DELETE",
+   "/v1/simulations/scenarios/{name}",
+   "delete_scenario"
+  ],
+  [
+   "GET",
+   "/",
+   "widget"
+  ],
+  [
+   "GET",
+   "/auth/sso/callback",
+   "sso_callback"
+  ],
+  [
+   "GET",
+   "/auth/sso/config",
+   "sso_config"
+  ],
+  [
+   "GET",
+   "/auth/sso/login",
+   "sso_login"
+  ],
+  [
+   "GET",
+   "/channels/whatsapp/meta",
+   "whatsapp_verify"
+  ],
+  [
+   "GET",
+   "/health",
+   "health"
+  ],
+  [
+   "GET",
+   "/ready",
+   "ready"
+  ],
+  [
+   "GET",
+   "/sdk/{name}",
+   "sdk_file"
+  ],
+  [
+   "GET",
+   "/v1/agents",
+   "list_agents"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/environments",
+   "agent_environments"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/live",
+   "live"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/releases",
+   "release_history"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/rollouts",
+   "list_rollouts"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/rollouts/{rollout_id}/comparison",
+   "rollout_comparison"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/versions",
+   "list_versions"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/versions/{a}/diff/{b}",
+   "version_diff"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/versions/{number}",
+   "get_version"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/versions/{number}/checklist",
+   "version_checklist"
+  ],
+  [
+   "GET",
+   "/v1/alerts",
+   "alert_status"
+  ],
+  [
+   "GET",
+   "/v1/approvals",
+   "list_approvals"
+  ],
+  [
+   "GET",
+   "/v1/attachments/{attachment_id}",
+   "download_attachment"
+  ],
+  [
+   "GET",
+   "/v1/audit",
+   "audit_log"
+  ],
+  [
+   "GET",
+   "/v1/audit/verify",
+   "audit_verify"
+  ],
+  [
+   "GET",
+   "/v1/catalog",
+   "catalog"
+  ],
+  [
+   "GET",
+   "/v1/conversations/search",
+   "conversation_search"
+  ],
+  [
+   "GET",
+   "/v1/events",
+   "event_feed"
+  ],
+  [
+   "GET",
+   "/v1/events/types",
+   "event_types"
+  ],
+  [
+   "GET",
+   "/v1/handoffs",
+   "list_handoffs"
+  ],
+  [
+   "GET",
+   "/v1/handoffs/{handoff_id}",
+   "get_handoff"
+  ],
+  [
+   "GET",
+   "/v1/handoffs/{handoff_id}/inbox",
+   "handoff_inbox"
+  ],
+  [
+   "GET",
+   "/v1/insights/failures",
+   "insights_failures"
+  ],
+  [
+   "GET",
+   "/v1/insights/gaps",
+   "insights_gaps"
+  ],
+  [
+   "GET",
+   "/v1/insights/overview",
+   "insights_overview"
+  ],
+  [
+   "GET",
+   "/v1/insights/review-quality",
+   "review_quality"
+  ],
+  [
+   "GET",
+   "/v1/insights/timeseries",
+   "insights_series"
+  ],
+  [
+   "GET",
+   "/v1/keys",
+   "list_keys"
+  ],
+  [
+   "GET",
+   "/v1/knowledge/crawls",
+   "kb_crawls"
+  ],
+  [
+   "GET",
+   "/v1/knowledge/crawls/{job_id}",
+   "kb_crawl_status"
+  ],
+  [
+   "GET",
+   "/v1/knowledge/documents",
+   "kb_documents"
+  ],
+  [
+   "GET",
+   "/v1/knowledge/index",
+   "kb_index"
+  ],
+  [
+   "GET",
+   "/v1/knowledge/schedules",
+   "kb_schedules"
+  ],
+  [
+   "GET",
+   "/v1/knowledge/search",
+   "kb_search"
+  ],
+  [
+   "GET",
+   "/v1/knowledge/sources",
+   "kb_sources"
+  ],
+  [
+   "GET",
+   "/v1/knowledge/sources/{source_id}/documents/{external_id:path}",
+   "kb_get_document"
+  ],
+  [
+   "GET",
+   "/v1/me",
+   "me"
+  ],
+  [
+   "GET",
+   "/v1/memories",
+   "memories_list"
+  ],
+  [
+   "GET",
+   "/v1/monitor/findings",
+   "monitor_findings"
+  ],
+  [
+   "GET",
+   "/v1/monitor/summary",
+   "monitor_summary"
+  ],
+  [
+   "GET",
+   "/v1/privacy/customers/{customer_id:path}/export",
+   "privacy_export"
+  ],
+  [
+   "GET",
+   "/v1/regression",
+   "regression_status"
+  ],
+  [
+   "GET",
+   "/v1/residency",
+   "residency_report"
+  ],
+  [
+   "GET",
+   "/v1/reviews/queue",
+   "review_queue"
+  ],
+  [
+   "GET",
+   "/v1/routing",
+   "routing_status"
+  ],
+  [
+   "GET",
+   "/v1/sessions/{session_id}/attachments",
+   "list_attachments"
+  ],
+  [
+   "GET",
+   "/v1/sessions/{session_id}/outbox",
+   "outbox"
+  ],
+  [
+   "GET",
+   "/v1/sessions/{session_id}/scenario-draft",
+   "scenario_draft"
+  ],
+  [
+   "GET",
+   "/v1/sessions/{session_id}/tags",
+   "get_tags"
+  ],
+  [
+   "GET",
+   "/v1/sessions/{session_id}/transcript",
+   "session_transcript"
+  ],
+  [
+   "GET",
+   "/v1/simulations/gate",
+   "sim_gate"
+  ],
+  [
+   "GET",
+   "/v1/simulations/runs",
+   "sim_runs"
+  ],
+  [
+   "GET",
+   "/v1/simulations/runs/{run_id}",
+   "sim_run_detail"
+  ],
+  [
+   "GET",
+   "/v1/simulations/scenarios",
+   "sim_scenarios"
+  ],
+  [
+   "GET",
+   "/v1/simulations/scenarios/{name}",
+   "get_scenario"
+  ],
+  [
+   "GET",
+   "/v1/skills",
+   "list_skills"
+  ],
+  [
+   "GET",
+   "/v1/templates",
+   "list_templates"
+  ],
+  [
+   "GET",
+   "/v1/templates/{template_id}",
+   "get_template"
+  ],
+  [
+   "GET",
+   "/v1/trace-export",
+   "trace_export_status"
+  ],
+  [
+   "GET",
+   "/v1/traces",
+   "list_traces"
+  ],
+  [
+   "GET",
+   "/v1/traces/{trace_id}",
+   "get_trace"
+  ],
+  [
+   "GET",
+   "/v1/traces/{trace_id}/exports",
+   "trace_exports"
+  ],
+  [
+   "GET",
+   "/v1/voice/calls",
+   "voice_calls"
+  ],
+  [
+   "POST",
+   "/channels/sms/twilio",
+   "sms_inbound"
+  ],
+  [
+   "POST",
+   "/channels/telegram/webhook",
+   "telegram_inbound"
+  ],
+  [
+   "POST",
+   "/channels/whatsapp/meta",
+   "whatsapp_inbound"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/chat",
+   "chat"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/chat/stream",
+   "chat_stream"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/journeys/draft",
+   "journey_draft"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/journeys/scenarios",
+   "journey_scenarios"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/promote",
+   "promote"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/releases",
+   "publish"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/rollback",
+   "rollback"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/rollouts",
+   "start_rollout"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/rollouts/{rollout_id}/abort",
+   "rollout_abort"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/rollouts/{rollout_id}/promote",
+   "rollout_promote"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/versions",
+   "create_version"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/versions/preview",
+   "preview_version"
+  ],
+  [
+   "POST",
+   "/v1/alerts/test",
+   "alert_test"
+  ],
+  [
+   "POST",
+   "/v1/approvals/expire",
+   "expire"
+  ],
+  [
+   "POST",
+   "/v1/approvals/{approval_id}/decision",
+   "decide"
+  ],
+  [
+   "POST",
+   "/v1/builder/draft",
+   "builder_draft"
+  ],
+  [
+   "POST",
+   "/v1/builder/refine",
+   "builder_refine"
+  ],
+  [
+   "POST",
+   "/v1/builder/scenarios",
+   "builder_scenarios"
+  ],
+  [
+   "POST",
+   "/v1/builder/transcribe",
+   "builder_transcribe"
+  ],
+  [
+   "POST",
+   "/v1/channels/email/inbound",
+   "email_inbound"
+  ],
+  [
+   "POST",
+   "/v1/channels/whatsapp/templates/send",
+   "whatsapp_template"
+  ],
+  [
+   "POST",
+   "/v1/chat-tokens",
+   "mint_chat_token"
+  ],
+  [
+   "POST",
+   "/v1/handoffs/{handoff_id}/assist",
+   "handoff_assist"
+  ],
+  [
+   "POST",
+   "/v1/handoffs/{handoff_id}/reply",
+   "handoff_reply"
+  ],
+  [
+   "POST",
+   "/v1/handoffs/{handoff_id}/resolve",
+   "resolve_handoff"
+  ],
+  [
+   "POST",
+   "/v1/insights/ask",
+   "insights_ask"
+  ],
+  [
+   "POST",
+   "/v1/keys",
+   "create_key"
+  ],
+  [
+   "POST",
+   "/v1/keys/{key_id}/revoke",
+   "revoke_key"
+  ],
+  [
+   "POST",
+   "/v1/knowledge/index/rebuild",
+   "kb_index_rebuild"
+  ],
+  [
+   "POST",
+   "/v1/knowledge/schedules/{schedule_id}/enabled",
+   "kb_schedule_enabled"
+  ],
+  [
+   "POST",
+   "/v1/knowledge/sources",
+   "kb_create_source"
+  ],
+  [
+   "POST",
+   "/v1/knowledge/sources/{source_id}/crawl",
+   "kb_crawl"
+  ],
+  [
+   "POST",
+   "/v1/knowledge/sources/{source_id}/import",
+   "kb_import"
+  ],
+  [
+   "POST",
+   "/v1/knowledge/sources/{source_id}/schedule",
+   "kb_schedule"
+  ],
+  [
+   "POST",
+   "/v1/me/logout",
+   "logout"
+  ],
+  [
+   "POST",
+   "/v1/privacy/retention/run",
+   "privacy_retention"
+  ],
+  [
+   "POST",
+   "/v1/sessions/{session_id}/feedback",
+   "post_feedback"
+  ],
+  [
+   "POST",
+   "/v1/simulations/runs",
+   "sim_run"
+  ],
+  [
+   "POST",
+   "/v1/simulations/scenarios",
+   "create_scenario"
+  ],
+  [
+   "POST",
+   "/v1/simulations/scenarios/validate",
+   "validate_scenario"
+  ],
+  [
+   "POST",
+   "/v1/templates/{template_id}/create-version",
+   "template_version"
+  ],
+  [
+   "POST",
+   "/v1/templates/{template_id}/render",
+   "render_template"
+  ],
+  [
+   "PUT",
+   "/v1/agents/{agent_id}/rollouts/{rollout_id}/percent",
+   "rollout_percent"
+  ],
+  [
+   "PUT",
+   "/v1/knowledge/sources/{source_id}/documents/{external_id:path}",
+   "kb_put_document"
+  ],
+  [
+   "PUT",
+   "/v1/sessions/{session_id}/attachments",
+   "upload_attachment"
+  ],
+  [
+   "PUT",
+   "/v1/sessions/{session_id}/review",
+   "put_review"
+  ],
+  [
+   "PUT",
+   "/v1/sessions/{session_id}/tags/{tag}",
+   "add_tag"
+  ],
+  [
+   "PUT",
+   "/v1/simulations/scenarios/{name}",
+   "update_scenario"
+  ],
+  [
+   "WS",
+   "/v1/voice/stream",
+   "voice_stream"
+  ]
+ ]
+}
