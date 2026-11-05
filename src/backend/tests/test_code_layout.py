@@ -12,7 +12,7 @@ def lines(p: Path) -> int:
 
 
 def test_no_module_in_the_http_layer_is_longer_than_the_limit():
-    files = [NORTHCX / "server.py", *sorted((NORTHCX / "api").rglob("*.py")), *sorted((NORTHCX / "db" / "stores").glob("*.py"))]
+    files = [NORTHCX / "server.py", *sorted((NORTHCX / "api").rglob("*.py")), *sorted((NORTHCX / "db" / "stores").glob("*.py")), NORTHCX / "__main__.py", *sorted((NORTHCX / "bootstrap").glob("*.py"))]
     too_long = {str(p.relative_to(NORTHCX)): lines(p) for p in files if lines(p) > LIMIT}
     assert too_long == {}, f"split these (limit {LIMIT} lines): {too_long}"
 
@@ -43,7 +43,7 @@ def test_the_dependencies_object_has_exactly_the_fields_the_routers_use():
 def test_moved_modules_use_absolute_imports_everywhere():
     """A relative import inside a function body is only checked when that code runs; moving a module one level deeper silently breaks it."""
     offenders = []
-    for folder in (NORTHCX / "api", NORTHCX / "db" / "stores"):
+    for folder in (NORTHCX / "api", NORTHCX / "db" / "stores", NORTHCX / "bootstrap"):
         for p in folder.rglob("*.py"):
             for node in ast.walk(ast.parse(p.read_text())):
                 if isinstance(node, ast.ImportFrom) and node.level > 0 and not (p.name == "__init__.py" and node.level == 1):
@@ -54,7 +54,7 @@ def test_moved_modules_use_absolute_imports_everywhere():
 def test_every_module_in_the_moved_packages_imports_cleanly_including_lazy_imports():
     import importlib
     import importlib.util
-    for folder in (NORTHCX / "api", NORTHCX / "db" / "stores"):
+    for folder in (NORTHCX / "api", NORTHCX / "db" / "stores", NORTHCX / "bootstrap"):
         for p in folder.rglob("*.py"):
             for node in ast.walk(ast.parse(p.read_text())):
                 if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module and node.module.startswith("northcx"):
