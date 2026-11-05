@@ -6,7 +6,7 @@ Status: Draft for decision (2026-11-05). Turns `00-reference/NorthCX_North-Gap-A
 
 The gap analysis concludes that NorthCX has a strong **customer-facing** agent engine and is missing four things: a **staff-facing workspace**, **enterprise connectors and identity**, **multi-tenancy and billing**, and **flexible deployment**. This plan keeps the engine untouched and adds those layers in an order that never puts a later layer on an unfinished earlier one.
 
-**Out of scope for this repository's build, and why** (each is listed again in section 12 with what is needed):
+**Out of scope for this repository's build, and why** (each is listed again in section 13 with what is needed):
 SOC 2 / ISO audits, the independent penetration test, a hosted managed cloud, native iOS and Android apps, and anything that needs a vendor account, a signed contract or real customers. The plan prepares the ground for them (documentation packs, Helm and Terraform skeletons, a vendor-neutral design) but does not claim them.
 
 ## 2. Principles (unchanged from the project so far)
@@ -50,21 +50,24 @@ Wave 2  Staff workspace                                 -> release 1.2     (need
         E5 workspace chat, staff memory, permission-aware search
         E6 libraries and generated outputs
         E7 QA scoring and digests (first users of E8)
+        E16 guardrail policy management, E18 support access (portals, section 10)
 
 Wave 3  Automations and connectors                      -> release 1.3     (E8 needs E5; E9 needs E2, E4)
         E8 automations
         E9 connector SDK, OAuth app flow, native connectors
+        E14 visual workflow editor, E15 workspace analytics (portals, section 10)
 
 Wave 4  Commercial and deployment                       -> release 1.4     (needs E2)
         E10 metering, plans, usage export
         E11 deployment kit (Helm, Terraform skeleton, ops console, upgrade tool)
         E12 trust pack (compliance documents, customer-managed keys design, developer portal)
+        E17 legal center, E19 private-deployment console extras (portals, section 10)
 
 Wave 5  Reach                                           -> later
-        E13 marketing site; Slack/Teams/helpdesk surfaces; native mobile; marketplace
+        E13 marketing site and demo booking (E21); Slack/Teams/helpdesk surfaces; E20 Office add-ins; browser extension; native mobile; marketplace
 ```
 
-New catalog IDs are reserved per epic (section 9). Decision-log entries continue from #138.
+New catalog IDs are reserved per epic (section 11). Decision-log entries continue from #138.
 
 ## 5. Wave 0: finish 1.0 and prepare the ground
 
@@ -107,7 +110,7 @@ This is the largest engineering item. It touches **38 tables, 30 store classes a
 
 **Design**
 - **Tenant identity.** New `tenants` table (id, name, plan, region, state). Every API key, SSO configuration, channel binding and webhook secret belongs to a tenant. Chat tokens carry the tenant. Inbound channel calls are resolved to a tenant by what they are addressed to (WhatsApp phone number id, Telegram bot id, SMS number, email domain, voice agent number) through a `channel_bindings` table.
-- **Data isolation, two layers.** (1) Every tenant-owned table gets `tenant_id` (migration backfills the existing data as tenant `default`) and every store query is written through a base-class helper that adds the predicate, so a missing filter is a code-review-visible mistake in one place rather than 118 places. (2) **Row-level security** as defence in depth: `FORCE ROW LEVEL SECURITY` with policies on `current_setting('app.tenant_id')`, set per transaction with `set_config(..., true)`. Note the performance trade: the current read path avoids a transaction per statement (a deliberate optimisation); tenant-scoped reads need either a short transaction or the explicit predicate only. Acceptance includes a load-test comparison (section 10).
+- **Data isolation, two layers.** (1) Every tenant-owned table gets `tenant_id` (migration backfills the existing data as tenant `default`) and every store query is written through a base-class helper that adds the predicate, so a missing filter is a code-review-visible mistake in one place rather than 118 places. (2) **Row-level security** as defence in depth: `FORCE ROW LEVEL SECURITY` with policies on `current_setting('app.tenant_id')`, set per transaction with `set_config(..., true)`. Note the performance trade: the current read path avoids a transaction per statement (a deliberate optimisation); tenant-scoped reads need either a short transaction or the explicit predicate only. Acceptance includes a load-test comparison (section 11).
 - **Tenant configuration service.** The settings that are environment variables today and must become per tenant: agents directory, connectors, crawl host allow-list, SSO provider, channel credentials, secrets (encrypted with a master key; KMS-backed later in E12), residency region, alert and event webhooks, knowledge and embedding settings. Platform-wide settings stay in the environment (database URL, provider catalog, master key, global caps). The resolution order is tenant value, then platform default, and the single-tenant deployment keeps working with environment values only.
 - **Per-tenant limits** (shared limiter from E0.3): requests, tokens in currency (E1), concurrent crawls, storage.
 - **Tenant admin vs platform admin.** A platform role can create and suspend tenants and sees only metadata; it cannot read conversations. A suspended tenant's keys and tokens stop working immediately.
@@ -208,7 +211,73 @@ The product shift: the same engine, a different audience. A **staff principal** 
 - **Developer portal:** the generated API reference (E0.5), SDK guides, a sandbox tenant recipe and the webhook tester (E0.6) as a static site in the repository.
 - **Size:** M (mostly documents, about 800 lines of code).
 
-## 10. Cross-cutting requirements
+## 10. Portals and surfaces
+
+The target set is ten portals and surfaces. This section maps each to the epics that deliver it, lists the **eight additions** that were not yet in the plan (E14 to E21), and says what can be verified here. Nothing below changes the principle that every surface goes through roles, approvals, audit and residency.
+
+### 10.1 Map of the ten
+
+| # | Portal or surface | Delivered by | Wave | Verified here? |
+|---|---|---|---|---|
+| 1 | **Marketing site** (product, use cases by team and industry, deployment options, security, customer stories, demo booking) | E13 with E21 | 5 | Static site and demo-request flow: yes. Customer stories: **only with real customers and their permission** |
+| 2 | **End-user workspace** (chat, agents, automations, libraries, apps, history) | E5, E6, E8 | 2 and 3 | Yes, against the offline demo model; answer quality needs a live model |
+| 3 | **Agent and automation builder** (natural-language plus visual workflow editor) | E8 (natural language) and **E14** (visual) | 3 | Yes |
+| 4 | **Admin portal** (users, groups, SAML/OIDC, SCIM, roles, agent catalog, guardrail policies, connectors, usage, cost, audit) | E3, E9, E10, **E16** | 1 to 4 | Yes, except SAML and SCIM against a live identity provider |
+| 5 | **Developer portal** (APIs, SDKs, MCP, webhooks, keys, sandbox, docs) | E0.5, E0.6, E4, E12 | 0, 1, 4 | Yes; the sandbox tenant needs E2 |
+| 6 | **Analytics and observability dashboard** (adoption, runs, success, latency, cost per team) | E7, E10, **E15** | 3 | Yes |
+| 7 | **Trust Center and Legal Center** | E12 and **E17** | 4 | Pages and generated sub-processor list: yes. Compliance reports need an auditor; legal texts need counsel |
+| 8 | **Deployment and ops console** (health, upgrades, GPU usage, logs) | E11 and **E19** | 4 | Health, versions, migrations, queues: yes. GPU usage only against fixtures |
+| 9 | **Internal back office** (tenants, licenses, feature flags, support access) | E2, E10, E11 and **E18** | 1 to 4 | Tenants, flags, support access: yes. Licenses depend on D1 |
+| 10 | **Embedded surfaces** (Slack and Teams bots, Outlook and Word add-ins, browser extension) | E13 surfaces, **E20** | 5 | Browser extension: partly. Bots and add-ins need vendor accounts and store review |
+
+### 10.2 The additions
+
+**E14. Visual workflow editor (agents and automations)** *(Wave 3, depends on E8; size M, about 1,500 lines plus about 60 tests)*
+- A node-and-edge canvas for journeys and automations. **The graph is a view of the same validated definition, never a second format:** loading parses the existing spec into a graph, saving writes the same spec back, so versions, digests, scenarios and release gates are unchanged.
+- Node types follow the spec: trigger, agent step, tool step, approval gate, built-in action, branch, hand-off, end. Validation runs as you edit (unknown tools, strict-order conflicts, unreachable steps, missing approval on write steps) using the server's own checks.
+- Accessible by design: every action also works from the keyboard and a list view; read-only diff view between versions; undo and redo.
+- Uses an ordinary open-source graph library (MIT or similar) behind one wrapper component, so it can be replaced.
+- Tests: round-trip property tests (spec to graph to spec equals the spec), component tests, browser tests that build a workflow, save a version and run its scenarios. *Verified here.*
+
+**E15. Workspace analytics** *(Wave 3, depends on E5, E8, E1; size M, about 1,200 lines plus about 50 tests)*
+- Dashboard for **adoption** (active staff, sessions, saved prompts used), **runs** (automation and agent runs, success rate, failures with causes), **latency** and **cost per team** (from the currency usage of E1 and the team model of E3), with every figure showing what it is a share of, as in Insights.
+- Staff usage is personal data: the default view is aggregated by team, individual views need the audit permission and are themselves audited, and retention follows the tenant's privacy settings.
+- Tests: figures computed from fixtures, aggregation thresholds (small groups are not shown individually), tenant isolation. *Verified here.*
+
+**E16. Guardrail policy management** *(Wave 2, depends on E2, E3; size M, about 1,500 lines plus about 70 tests)*
+- A policy library screen: the shipped policies with their allow and block cases, tenant and team policy sets, and **a policy cannot be switched on for production until its test cases pass** (the library already carries the cases). Changes are versioned, reviewed and audited like agent versions, and appear in the release checklist.
+- Staff-side policies from E5 (export rules, per-role approved models and tools) are managed here too.
+- Tests: enabling and disabling with and without passing cases, versioning, isolation, audit. *Verified here.*
+
+**E17. Legal Center** *(Wave 4, with E12; size S)*
+- Pages and **template** documents: privacy policy, terms, acceptable use, a DPA template, the subprocessor list generated from the residency report. Every template is labelled as a starting point that **needs review by qualified counsel**; the product never presents them as legal advice or as agreed terms.
+- Verified here: generation, versioning, publishing. Not verifiable here: legal sufficiency.
+
+**E18. Support access** *(Wave 2, depends on E2; size S-M, about 800 lines plus about 40 tests)*
+- A platform support person can enter a tenant only through a **customer-approved, time-limited session** (default 2 hours, hard maximum 24), read-only unless the customer grants more, shown to the customer while active (banner and a log entry), revocable at any time, and every action recorded in the **tenant's** audit log under the support identity.
+- Tests: no access without an unexpired approval, expiry and revocation take effect immediately, read-only is enforced on every route (generated from the route table), the tenant sees every action. *Verified here.*
+
+**E19. Private-deployment console extras** *(Wave 4, depends on E11, E1; size M, about 1,200 lines plus about 50 tests)*
+- **GPU usage and inference health** through an adapter that reads the metrics endpoint of the inference server and node exporter in common text formats; **logs** through a structured, tenant-scoped, size-capped viewer with personal-data redaction on by default and access limited to a platform role.
+- Verified here: adapters and the viewer against fixtures and generated logs. **Not verifiable here:** real GPUs and real inference servers.
+
+**E20. Outlook and Word add-ins** *(Wave 5, depends on E5, E9; size M)*
+- Web apps plus manifests that reuse the workspace API with the user's own sign-in and permissions: summarise a thread, draft a reply, insert a cited policy answer, send a document to a library.
+- The web parts can be built and tested here; **loading them in Office, tenant admin approval and store review need Microsoft accounts**, so they are never labelled verified until run there.
+
+**E21. Demo booking** *(Wave 5, with E13; size S)*
+- A request form on the marketing site that stores the request, is rate limited and spam-protected, and notifies through the event webhook or email; scheduling itself is a link to an external calendar tool you choose.
+- Verified here: the form, storage and notification.
+
+**Marketing content rule (E13).** The site states only what the repository can back up. It carries **no invented customer stories, logos, quotes, numbers or certifications**; the stories section ships as a placeholder with a documented way to add real ones with written permission.
+
+### 10.3 Dependencies in one line each
+- The admin portal, back office, workspace, developer sandbox and support access all need **multi-tenancy (E2)** and **identity (E3)**; build those first.
+- The visual editor needs **automations (E8)**; workspace analytics needs **E5, E8** and **currency usage (E1)**.
+- Policy management needs **E3** and the staff guardrails of **E5**.
+- Embedded surfaces need the **workspace API (E5)** and, for vendor surfaces, **vendor accounts**.
+
+## 11. Cross-cutting requirements
 
 | Area | Rule |
 |---|---|
@@ -216,19 +285,19 @@ The product shift: the same engine, a different audience. A **staff principal** 
 | **Tests** | Standing security tests extend with each epic (no pasted SQL, no dangerous constructs, redirects off, CORS, parsers fuzz). New: generated **tenant-isolation sweeps** from the route table. Real-Postgres tests for every store (the existing in-memory plus Postgres parameterisation) |
 | **Performance** | The load tool is the gate: E0.3, E2 and E5 each re-run it; the documented figures in `NorthCX_Performance.md` are updated, never silently lowered |
 | **Security** | Threat-model entries per epic before merge; new outbound hosts go through the SSRF checks, https, no redirects, and the residency report; anything a model returns is validated against a fixed list; nothing a model drafts is saved without a person |
-| **Docs** | Feature catalog IDs, decision log, Deployment Guide (every new setting), `.env.example`, compose pass-through, CHANGELOG, README status. Reserved catalog IDs: E1 `M1-M5`, E2 `P10`, E3 `P12-P17`, E4 `T11-T12`, E5 `W1-W5`, E6 `W6-W8`, E7 `O11-O12`, E8 `X1-X5`, E9 `T13-T16`, E10 `P11`, E11 `P18-P20`, E12 `P21-P23` |
+| **Docs** | Feature catalog IDs, decision log, Deployment Guide (every new setting), `.env.example`, compose pass-through, CHANGELOG, README status. Reserved catalog IDs: E1 `M1-M5`, E2 `P10`, E3 `P12-P17`, E4 `T11-T12`, E5 `W1-W5`, E6 `W6-W8`, E7 `O11-O12`, E8 `X1-X5`, E9 `T13-T16`, E10 `P11`, E11 `P18-P20`, E12 `P21-P23`, E13 `P28-P29`, E14 `X6-X7`, E15 `O13-O14`, E16 `S12-S14`, E17 `P24`, E18 `P25`, E19 `P26-P27`, E20 `C11`, E21 `P30` |
 | **Studio** | Each epic ships its UI with accessible components (table versions of charts, keyboard use) and a browser smoke step in `e2e/smoke.mjs` |
 | **Versioning** | Wave releases are 1.1 to 1.4; each ships release notes that restate what is verified here, partly verified, and not verified |
 
-## 11. Milestones and the first slice
+## 12. Milestones and the first slice
 
 | Release | Contents | Gate |
 |---|---|---|
 | **1.0.0** | Wave 0 hardening plus the items only you can do (live-model pass, penetration test, tag) | The release checklist |
 | **1.1** | E1, E3, E4 (E2 may follow immediately) | Conformance suite on all adapters; keys, groups and SCIM sweeps; MCP client against a fake server |
-| **1.2** | E2 then E5, E6, E7 | Tenant-isolation sweeps and fuzz; load-test gate; staff-tool permission matrix |
-| **1.3** | E8, E9 | Automation safety suite; connector contract tests; honest connector labels |
-| **1.4** | E10, E11, E12 | Metering idempotency; Helm/Terraform validation; compliance documents reviewed |
+| **1.2** | E2 then E5, E6, E7, E16, E18 | Tenant-isolation sweeps and fuzz; load-test gate; staff-tool permission matrix; policy and support-access sweeps |
+| **1.3** | E8, E9, E14, E15 | Automation safety suite; connector contract tests; honest connector labels; workflow round-trip tests |
+| **1.4** | E10, E11, E12, E17, E19 | Metering idempotency; Helm/Terraform validation; compliance and legal documents reviewed by the owner and counsel |
 
 **Reordering from the gap analysis's "MVP", and why.** The gap analysis puts managed cloud, the staff workspace, two vendor copilots, three connectors, SAML/SCIM and metering in one stage. This plan splits them: the model layer and identity pieces are cheap and unlock the rest; tenancy comes **before** anything that stores per-customer credentials or workspace data; the workspace needs tenancy and actor-aware tools; vendor copilots and connectors wait for the connector SDK so each vendor is a small pack, not a project.
 
@@ -243,7 +312,7 @@ The product shift: the same engine, a different audience. A **staff principal** 
 
 Each step ends with the full backend suite, the web checks, a real-Postgres run, and a verified push to both branches.
 
-## 12. What needs you or an outside party
+## 13. What needs you or an outside party
 
 | Item | What is needed |
 |---|---|
@@ -256,8 +325,12 @@ Each step ends with the full backend suite, the web checks, a real-Postgres run,
 | Native iOS and Android SDKs | Platform toolchains and devices; the web widget in a WebView is the interim answer |
 | Billing provider | An account and a decision on D8 |
 | Naming, open model, trademarks | D1 and D2, with qualified advice |
+| Customer stories, logos, quotes (marketing) | Real customers and their written permission |
+| Legal Center texts | Review by qualified counsel; compliance reports need an auditor |
+| GPU and inference views (E19) | Real GPUs and an inference server to verify against |
+| Outlook and Word add-ins (E20) | Microsoft accounts, tenant admin approval and store review |
 
-## 13. Risks
+## 14. Risks
 
 | Risk | Mitigation |
 |---|---|
@@ -269,6 +342,6 @@ Each step ends with the full backend suite, the web checks, a real-Postgres run,
 | **Open-source vs commercial conflict** | Decide D1 before E10 and E11; keep any enterprise code in a separate directory |
 | **Maintainability** | E0.1 first; file-size and test-count discipline; the decision log keeps the reasons |
 
-## 14. Definition of done for any epic
+## 15. Definition of done for any epic
 
 Tests (unit, real-Postgres, standing security) pass; the full backend suite, web and SDK checks pass; Studio smoke passes where there is UI; docs, catalog, decision log, CHANGELOG, `.env.example`, compose and residency report updated; threat-model entry added; the verification label (verified here / partly / outside) is written in the release notes; the change is pushed to both branches and the remote SHA verified.

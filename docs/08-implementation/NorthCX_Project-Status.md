@@ -32,6 +32,9 @@ Items only the owner or an outside party can do:
 | **1.4** | Metering and plans; deployment kit (Helm, Terraform, ops console); compliance documents and developer portal |
 | **Later** | Marketing site; Slack, Teams and helpdesk surfaces; native mobile apps; a marketplace |
 
+## Portals and surfaces
+The ten target portals and surfaces (marketing site, workspace, builder, admin portal, developer portal, analytics, trust and legal centers, ops console, back office, embedded surfaces) are mapped to epics in section 10 of the gap-closure plan, including eight additions (E14 to E21) and what can be verified here.
+
 ## Decisions waiting on the owner
 Open model (open versus commercial), naming of the staff product, tenancy model, first staff surface, SAML approach, first connectors, MCP approach, billing unit, first model providers. The first two should be settled first because they shape billing and the staff product. Recommendations are in section 3 of the gap-closure plan.
 
