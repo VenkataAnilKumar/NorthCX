@@ -15,6 +15,7 @@ class AppDeps:
     SSO_COOKIE: Any
     access: Any
     actor: Any
+    agents: Any
     alerts: Any
     audit: Any
     crawl_scheduler: Any
@@ -22,6 +23,7 @@ class AppDeps:
     email: Any
     events: Any
     fb: Any
+    flow: Any
     insight: Any
     kb: Any
     limits: Any
