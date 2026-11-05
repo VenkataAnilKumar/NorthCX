@@ -13,6 +13,7 @@ from typing import Any
 class AppDeps:
     actor: Any
     need_rel: Any
+    privacy: Any
     record: Any
     rel_error: Any
     releases: Any
