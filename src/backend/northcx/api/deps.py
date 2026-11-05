@@ -17,6 +17,8 @@ class AppDeps:
     actor: Any
     agents: Any
     alerts: Any
+    attachment_repo: Any
+    attachment_scanner: Any
     audit: Any
     call_repo: Any
     crawl_scheduler: Any
@@ -25,6 +27,7 @@ class AppDeps:
     events: Any
     fb: Any
     flow: Any
+    idem: Any
     insight: Any
     kb: Any
     limits: Any
