@@ -18,6 +18,7 @@ class AppDeps:
     agents: Any
     alerts: Any
     audit: Any
+    call_repo: Any
     crawl_scheduler: Any
     crawler: Any
     email: Any
@@ -51,4 +52,5 @@ class AppDeps:
     traces: Any
     transcriber: Any
     version_json: Any
+    voice: Any
     whatsapp: Any

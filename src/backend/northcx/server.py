@@ -85,6 +85,7 @@ from .api.routers import knowledge as _knowledge_router
 from .api.routers import approvals as _approvals_router
 from .api.routers import handoffs as _handoffs_router
 from .api.routers import rollouts as _rollouts_router
+from .api.routers import voice as _voice_router
 from .api.models import AskBody, BuilderBody, BuilderSource, ChatBody, CrawlBody, DecisionBody, DocumentBody, EnabledBody, ExpireBody, FeedbackBody, JourneyDraftBody, JourneyScenariosBody, KeyBody, PercentBody, PromoteBody, PublishBody, RefineBody, ReplyBody, ResolveBody, RetentionBody, ReviewBody, RollbackBody, RolloutBody, ScenarioBody, ScenarioDraftBody, ScheduleBody, SimRunBody, SourceBody, TemplateBody, TemplateSendBody, TokenBody, VersionBody
 
 
@@ -425,92 +426,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def bad_request(request: Request, exc: RequestValidationError):
         return _err(400, "bad_request", str(exc.errors()))
 
-    @app.get("/v1/voice/calls")
-    async def voice_calls(limit: int = 50) -> Any:
-        """Recent phone calls: outcome, consent, turns, barge-ins, languages and reply latency. No audio and no phone numbers."""
-        return {"enabled": voice is not None, "calls": [c.summary() for c in await call_repo.recent(max(1, min(limit, 200)))]}
-
-    @app.websocket("/v1/voice/stream")
-    async def voice_stream(ws: WebSocket) -> None:
-        """The telephony bridge's connection for one call (JSON messages both ways; see docs/05-technical/NorthCX_Voice.md). Authenticated with a
-        channel key in the Authorization header, because the HTTP key check does not cover WebSockets."""
-        if voice is None:
-            await ws.close(code=4404)
-            return
-        ip = ws.client.host if ws.client else "unknown"
-        if not access.limiter.allow(f"voice:{ip}", 60)[0]:
-            await ws.close(code=4429)
-            return
-        if await access.enabled():
-            header = ws.headers.get("authorization", "")
-            ident, _ = await access.authenticate_detail(header[7:] if header.startswith("Bearer ") else None)
-            if ident is None:
-                await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/v1/voice/stream", outcome="denied", detail={"client": ip}))
-                await ws.close(code=4401)
-                return
-            if not ident.can("channel:inbound"):
-                await audit.append(AuditEntry(actor=ident.name, role=ident.role, action="auth.denied", target="/v1/voice/stream", outcome="denied", detail={"permission": "channel:inbound"}))
-                await ws.close(code=4403)
-                return
-        else:
-            ident = OPEN_IDENTITY
-        await ws.accept()
-
-        async def send(msg: dict[str, Any]) -> None:
-            try:
-                await ws.send_json(msg)
-            except Exception:  # the bridge went away; the call is ending anyway
-                pass
-
-        async def resolve(agent_id: str, session_id: str) -> Any:
-            return await provider.get(agent_id, "production", session_id)
-        call = CallSession(runtime, resolve, voice, call_repo, send)
-        tokens, stamp = [300.0], [time.monotonic()]
-
-        def bucket_allow() -> bool:
-            now = time.monotonic()
-            tokens[0] = min(300.0, tokens[0] + (now - stamp[0]) * 100)  # 100 messages a second sustained, bursts of 300
-            stamp[0] = now
-            tokens[0] -= 1
-            return tokens[0] >= 0
-        try:
-            while True:
-                raw = await ws.receive_text()
-                if len(raw) > 65536:
-                    await ws.close(code=1009)
-                    break
-                if not bucket_allow():
-                    await ws.close(code=4429)  # a bridge that floods the stream is cut off
-                    break
-                try:
-                    msg = json.loads(raw)
-                except ValueError:
-                    continue
-                if not isinstance(msg, dict):
-                    continue
-                if msg.get("type") == "transcript" and msg.get("final", True) and not access.limiter.allow(f"voice-turns:{ident.key_id or ip}", 120)[0]:
-                    continue  # at most 120 spoken turns a minute per key; the rest are ignored
-                if msg.get("type") == "start" and call.rec is None:
-                    await call.handle(msg)
-                    await audit.append(AuditEntry(actor=ident.name, role=ident.role, action="voice.call", target=call.session_id, outcome="ok", detail={"callId": call.rec.call_id if call.rec else None}))
-                else:
-                    await call.handle(msg)
-                if call.state == "ended":
-                    break
-        except WebSocketDisconnect:
-            pass
-        finally:
-            if call._turn is not None and not call._turn.done():
-                try:
-                    await asyncio.wait_for(asyncio.shield(call._turn), 20)  # an answer in progress is still saved to the conversation
-                except Exception:
-                    pass
-            if call.state != "ended":
-                await call.handle({"type": "end", "reason": "caller_hung_up"})
-            try:
-                await ws.close()
-            except Exception:
-                pass
 
     @app.get("/sdk/{name}")
     async def sdk_file(name: str) -> Any:
@@ -1000,7 +915,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return {"messages": [{"id": m.id, "kind": m.kind, "createdAt": m.created_at, **m.payload} for m in items]}
 
     # [routers] generated by the WP0.1 split; one module per area of routes under northcx/api/routers
-    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, agents=agents, alerts=alerts, audit=audit, crawl_scheduler=crawl_scheduler, crawler=crawler, email=email, events=events, fb=fb, flow=flow, insight=insight, kb=kb, limits=limits, need_env=need_env, need_rel=need_rel, privacy=privacy, provider=provider, record=record, regression=regression, rel_error=rel_error, releases=releases, residency=residency, review_repo=review_repo, rollouts=rollouts, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, tag_repo=tag_repo, telegram=telegram, templates=templates, too_many=too_many, traces=traces, transcriber=transcriber, version_json=version_json, whatsapp=whatsapp)
+    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, agents=agents, alerts=alerts, audit=audit, call_repo=call_repo, crawl_scheduler=crawl_scheduler, crawler=crawler, email=email, events=events, fb=fb, flow=flow, insight=insight, kb=kb, limits=limits, need_env=need_env, need_rel=need_rel, privacy=privacy, provider=provider, record=record, regression=regression, rel_error=rel_error, releases=releases, residency=residency, review_repo=review_repo, rollouts=rollouts, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, tag_repo=tag_repo, telegram=telegram, templates=templates, too_many=too_many, traces=traces, transcriber=transcriber, version_json=version_json, voice=voice, whatsapp=whatsapp)
     _templates_router.register(app, deps)
     _memory_router.register(app, deps)
     _privacy_router.register(app, deps)
@@ -1019,5 +934,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _approvals_router.register(app, deps)
     _handoffs_router.register(app, deps)
     _rollouts_router.register(app, deps)
+    _voice_router.register(app, deps)
     # [/routers]
     return app
