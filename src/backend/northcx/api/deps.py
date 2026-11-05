@@ -17,6 +17,7 @@ class AppDeps:
     actor: Any
     audit: Any
     email: Any
+    limits: Any
     need_rel: Any
     privacy: Any
     record: Any
@@ -26,6 +27,7 @@ class AppDeps:
     secure_cookie: Any
     simulations: Any
     skills: Any
+    sms: Any
     sso: Any
     templates: Any
     too_many: Any
