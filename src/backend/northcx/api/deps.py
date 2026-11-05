@@ -16,6 +16,7 @@ class AppDeps:
     record: Any
     rel_error: Any
     releases: Any
+    runtime: Any
     simulations: Any
     skills: Any
     templates: Any
