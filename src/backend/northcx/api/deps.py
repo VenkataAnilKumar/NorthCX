@@ -29,6 +29,7 @@ class AppDeps:
     skills: Any
     sms: Any
     sso: Any
+    telegram: Any
     templates: Any
     too_many: Any
     version_json: Any
