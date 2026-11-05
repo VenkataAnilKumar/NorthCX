@@ -1,0 +1,216 @@
+"""Request bodies for the HTTP API (moved out of server.py; behaviour unchanged)."""
+from __future__ import annotations
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from northcx.tokens import DEFAULT_TTL
+
+
+class ChatBody(BaseModel):
+    session_id: str = Field(alias="sessionId", min_length=1, max_length=200)
+    message: str = Field(min_length=1, max_length=8000)
+    customer_id: str | None = Field(default=None, alias="customerId", max_length=200)
+    channel: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_-]{1,19}$")
+    environment: str | None = Field(default=None, pattern=r"^(dev|staging|production)$")  # internal keys only; customers always get production
+    attachments: list[str] = Field(default_factory=list, max_length=5)  # ids returned by the attachment upload
+    model_config = {"populate_by_name": True}
+
+
+class SourceBody(BaseModel):
+    id: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=200)
+    stale_after_days: int | None = Field(default=None, alias="staleAfterDays")
+    model_config = {"populate_by_name": True}
+
+
+class DocumentBody(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    text: str = Field(min_length=1, max_length=500_000)
+    url: str | None = Field(default=None, max_length=2000)
+    source_updated_at: float | None = Field(default=None, alias="sourceUpdatedAt")
+    model_config = {"populate_by_name": True}
+
+
+class RetentionBody(BaseModel):
+    older_than_days: float = Field(alias="olderThanDays", ge=1, le=3650)
+    model_config = {"populate_by_name": True}
+
+
+class RolloutBody(BaseModel):
+    version: int
+    percent: int
+    environment: str = "production"
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class CrawlBody(BaseModel):
+    url: str = Field(min_length=8, max_length=500)
+    max_pages: int = Field(default=50, alias="maxPages")
+    max_depth: int = Field(default=2, alias="maxDepth")
+    delay_seconds: float = Field(default=1.0, alias="delaySeconds")
+    include_paths: list[str] = Field(default_factory=list, alias="includePaths")
+    exclude_paths: list[str] = Field(default_factory=list, alias="excludePaths")
+    use_sitemap: bool = Field(default=True, alias="useSitemap")
+    prune: bool = False
+    model_config = {"populate_by_name": True}
+
+
+class ScheduleBody(CrawlBody):
+    every_hours: float = Field(alias="everyHours")
+
+
+class TemplateSendBody(BaseModel):
+    phone_id: str | None = Field(default=None, alias="phoneId", max_length=20)
+    to: str = Field(min_length=8, max_length=16)
+    template: str = Field(min_length=1, max_length=100, pattern=r"^[a-z0-9_]+$")
+    params: list[str] = Field(default_factory=list, max_length=10)
+    model_config = {"populate_by_name": True}
+
+
+class EnabledBody(BaseModel):
+    enabled: bool
+
+
+class BuilderSource(BaseModel):
+    kind: str
+    name: str = Field(default="", max_length=80)
+    text: str = Field(min_length=1, max_length=20000)
+
+
+class ScenarioDraftBody(BaseModel):
+    spec: str = Field(min_length=10, max_length=60000)
+    examples: list[str] = Field(default_factory=list, max_length=8)
+
+
+class RefineBody(BaseModel):
+    current: str = Field(min_length=10, max_length=60000)
+    instruction: str = Field(min_length=5, max_length=1000)
+
+
+class BuilderBody(BaseModel):
+    agent_id: str = Field(alias="agentId", min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_.-]+$")
+    goal: str = Field(min_length=10, max_length=2000)
+    sources: list[BuilderSource] = Field(min_length=1, max_length=8)
+    model_config = {"populate_by_name": True}
+
+
+class AskBody(BaseModel):
+    question: str = Field(min_length=3, max_length=500)
+    environment: str = "production"
+
+
+class JourneyDraftBody(BaseModel):
+    description: str = Field(min_length=10, max_length=3000)
+
+
+class JourneyScenariosBody(BaseModel):
+    journey: dict[str, Any]
+
+
+class PercentBody(BaseModel):
+    percent: int
+
+
+class PromoteBody(BaseModel):
+    to: str
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class TemplateBody(BaseModel):
+    agent_id: str = Field(alias="agentId", min_length=2, max_length=40)
+    params: dict[str, Any] = Field(default_factory=dict)
+    save_scenarios: bool = Field(default=False, alias="saveScenarios")
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
+    model_config = {"populate_by_name": True}
+
+
+class FeedbackBody(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str = Field(default="", max_length=1000)
+
+
+class ScenarioBody(BaseModel):
+    yaml: str | None = Field(default=None, max_length=100_000)
+    scenario: dict[str, Any] | None = None
+
+
+class ReviewBody(BaseModel):
+    verdict: str
+    handoff: str = "not_applicable"
+    failures: list[str] = Field(default_factory=list, max_length=9)
+    note: str = Field(default="", max_length=1000)
+
+
+class DecisionBody(BaseModel):
+    approved: bool
+    by: str | None = Field(default=None, max_length=200)  # only used when the server has no authentication configured
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class ResolveBody(BaseModel):
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
+    returnToAgent: bool = True  # the agent carries on with the customer, told what the person did
+
+
+class ReplyBody(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    by: str | None = Field(default=None, max_length=200)
+
+
+class SimRunBody(BaseModel):
+    mode: str = "scripted"
+    only: str | None = Field(default=None, max_length=100)
+    skip_judge: bool = Field(default=False, alias="skipJudge")
+    agent: str | None = None
+    version: int | None = Field(default=None, ge=1)  # run against this saved version of `agent`
+    model_config = {"populate_by_name": True}
+
+
+class VersionBody(BaseModel):
+    spec: dict[str, Any] | None = None
+    spec_yaml: str | None = Field(default=None, alias="specYaml", max_length=100_000)
+    from_baseline: bool = Field(default=False, alias="fromBaseline")
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
+    model_config = {"populate_by_name": True}
+
+
+class PublishBody(BaseModel):
+    version: int = Field(ge=1)
+    environment: str = "production"
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class RollbackBody(BaseModel):
+    environment: str = "production"
+    to_version: int | None = Field(default=None, alias="toVersion", ge=1)
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
+    model_config = {"populate_by_name": True}
+
+
+class TokenBody(BaseModel):
+    session_id: str | None = Field(default=None, alias="sessionId", pattern=r"^[A-Za-z0-9_.:-]{1,200}$")
+    customer_id: str | None = Field(default=None, alias="customerId", max_length=200)
+    agent: str | None = Field(default=None, max_length=200)
+    ttl_seconds: float = Field(default=DEFAULT_TTL, alias="ttlSeconds")
+    model_config = {"populate_by_name": True}
+
+
+class KeyBody(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    role: str
+    expires_in_days: float | None = Field(default=None, alias="expiresInDays")
+    model_config = {"populate_by_name": True}
+
+
+class ExpireBody(BaseModel):
+    older_than_seconds: float = Field(alias="olderThanSeconds", ge=0)
+    model_config = {"populate_by_name": True}
