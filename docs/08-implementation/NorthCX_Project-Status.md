@@ -8,11 +8,14 @@ Status: Snapshot (2026-11-05). A one-page summary of where the project stands an
 - **Presentation and release readiness:** the README is a landing page with real screenshots; the release checklist and CI fixes are in; the commits are authored as the project owner.
 - **Verification:** more than 1,300 backend tests plus Studio and SDK tests; a clean-checkout run of the install, tests and builds.
 
-## Wave 0: finish 1.0 (not started)
+## Wave 0: finish 1.0 (started)
+**Done so far:** web split into apps and shared packages; WP0.1 router split (132 routes in 21 modules, `server.py` 2,516 to about 500 lines) and store split, guarded by a golden route-dispatch snapshot and a layout test.
+
+**Still to do in Wave 0:**
 Groundwork that can be built and verified here:
-- Split the 2,500-line `server.py` into router modules.
+- Finish WP0.1: split `__main__.py`, type the shared-dependencies object, move the remaining shared helpers out of `create_app`; and move design tokens into `packages/ui`.
 - Lock dependencies.
-- Make rate limits shared across processes.
+- Make rate limits shared across processes, and make the API ready for several replicas.
 - Add a masked-text option for PDFs.
 - Publish the API reference.
 - Add a webhook tester.

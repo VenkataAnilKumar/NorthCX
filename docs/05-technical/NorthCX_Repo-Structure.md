@@ -13,7 +13,7 @@ northcx/
 ├── deploy/                   reserved for the deployment kit (Helm, Terraform, upgrade tool)
 └── src/
     ├── package.json          npm workspace root (apps/* and packages/*), one lock file
-    ├── backend/              Python (FastAPI): runtime, supervision, memory, safety, channels, API (one package, `northcx/`)
+    ├── backend/              Python (FastAPI): one package, `northcx/`. `server.py` builds the app (setup, middleware, shared helpers); `api/routers/` has one module per area of routes (132 routes in 21 modules), `api/models.py` the request bodies, `api/deps.py` the shared-dependencies object; `db/stores/` has the Postgres stores in nine domain modules; runtime, supervision, safety and channels are beside them
     ├── apps/
     │   └── studio/           the operator console (Next.js); its Dockerfile builds from `src/`
     ├── packages/

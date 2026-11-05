@@ -66,7 +66,8 @@ The first web split (Studio in `src/apps/studio`, shared packages in `src/packag
 
 Goal: the release candidate becomes 1.0.0, and the codebase is ready to take multi-tenancy without a rewrite. Sequence: WP0.1, WP0.2, WP0.3 in order; WP0.4 to WP0.9 in any order afterwards; WP0.10 to WP0.12 in parallel with the owner.
 
-### WP0.1 Router split and bootstrap split (size L, V)
+### WP0.1 Router split and bootstrap split (size L, V) — **routers and stores done; bootstrap split pending**
+**Status (2026-11-05):** done: `create_app` went from about 2,100 lines to a setup function, `server.py` from 2,516 to about 500 lines; 132 routes now live in 21 modules under `northcx/api/routers/` (each with `register(app, d)`), the request models in `northcx/api/models.py`, shared helpers in `northcx/api/common.py`, the shared-dependencies object in `northcx/api/deps.py` (fields typed `Any` for now; typing them is a follow-up); `db/stores.py` became a package of nine domain modules; guards in place: a golden route-dispatch snapshot (every route and the handler that wins for it), the layout test (600-line cap, one `register` per router, deps fields exactly match use, absolute imports only in moved packages), and the full suite (1356 passing) and the Studio browser smoke test on the result. Pending: splitting `__main__.py` (526 lines, under the cap) into `northcx/bootstrap/` modules, typing `AppDeps`, and moving the remaining shared helpers (`record`, `actor`, `too_many`, the `need_*` and `*_json` helpers) out of `create_app` into `api/helpers.py`.
 **Why:** `create_app` is one function of about 2,100 lines with 131 route handlers and about 40 parameters; `__main__.py` is 526 lines of wiring; `db/stores.py` is 1,439 lines with 30 store classes. Every later epic adds routes and stores.
 **Steps**
 1. Introduce `northcx/api/deps.py` with an `AppDeps` dataclass holding the objects `create_app` builds today (runtime, traces, agent provider, access, audit, knowledge, insights, channels, releases, simulations, and so on). `create_app` keeps its current signature (the tests call it with keyword arguments), builds `AppDeps`, and registers routers.
@@ -313,7 +314,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 ## 14. Living checklist
 
 **Wave 0**
-- [ ] WP0.1 router, bootstrap and store split
+- [~] WP0.1 router, bootstrap and store split (routers and stores done; bootstrap split, typed `AppDeps` and helper move pending)
 - [ ] WP0.2 design tokens into `packages/ui`
 - [ ] WP0.3 locked backend dependencies
 - [ ] WP0.4 shared rate limits and budgets
