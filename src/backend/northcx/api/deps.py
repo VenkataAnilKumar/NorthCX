@@ -11,15 +11,20 @@ from typing import Any
 
 @dataclass
 class AppDeps:
+    SSO_COOKIE: Any
     access: Any
     actor: Any
+    audit: Any
     need_rel: Any
     privacy: Any
     record: Any
     rel_error: Any
     releases: Any
     runtime: Any
+    secure_cookie: Any
     simulations: Any
     skills: Any
+    sso: Any
     templates: Any
+    too_many: Any
     version_json: Any
