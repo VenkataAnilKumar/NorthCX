@@ -49,5 +49,8 @@ Open model (open versus commercial), naming of the staff product, tenancy model,
 ## Outside what can be built or verified in this repository
 SOC 2 and ISO audits, a hosted managed cloud, vendor connector verification (needs sandbox accounts), native iOS and Android apps, and the penetration test. The plans say so and label every deliverable as verified here, partly verified, or needing outside verification.
 
+## Detailed plan
+`NorthCX_Implementation-Plan.md` breaks every wave into work packages with steps, tests, gates, sizes, verification labels and a living checklist (section 14), plus the register of actions only the owner or an outside party can take.
+
 ## Where to start
 Take the first slice of Wave 0 (split `server.py`, lock dependencies, shared rate limits), then the model-provider layer; or settle the open-model and naming decisions first and record them in the decision log.

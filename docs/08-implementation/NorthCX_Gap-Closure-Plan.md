@@ -1,6 +1,6 @@
 # NorthCX Gap-Closure Plan
 
-Status: Draft for decision (2026-11-05). Turns `00-reference/NorthCX_North-Gap-Analysis.md` into an implementation plan: what to build, in what order, how each piece is designed, how it is proven, and what needs a person or an outside party. Sizes are estimates; the first milestone is detailed enough to start, later ones are outlines to be re-planned when they begin.
+Status: Draft for decision (2026-11-05). Turns `00-reference/NorthCX_North-Gap-Analysis.md` into an implementation plan: what to build, in what order, how each piece is designed, how it is proven, and what needs a person or an outside party. The work packages, steps and checklist that implement it are in `NorthCX_Implementation-Plan.md`. Sizes are estimates; the first milestone is detailed enough to start, later ones are outlines to be re-planned when they begin.
 
 ## 1. What this plan covers
 

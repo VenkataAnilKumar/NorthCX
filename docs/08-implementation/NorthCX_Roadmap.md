@@ -19,4 +19,6 @@ Safety and testability before reach; reach before polish; Studio after the defin
 Studio build vs adopt, initial vertical focus, connector scope.
 
 ## After 1.0
+The step-by-step work packages, gates and owner actions are in `NorthCX_Implementation-Plan.md`.
+
 The detailed plan for the work that follows 1.0 (model providers, multi-tenancy, identity, the staff workspace, automations, connectors, metering and deployment) is `NorthCX_Gap-Closure-Plan.md`. It reorders the stages proposed in `00-reference/NorthCX_North-Gap-Analysis.md` so that tenancy comes before anything that stores per-customer credentials or workspace data.
