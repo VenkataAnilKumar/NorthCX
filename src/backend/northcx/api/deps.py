@@ -17,20 +17,27 @@ class AppDeps:
     actor: Any
     audit: Any
     email: Any
+    events: Any
+    fb: Any
+    insight: Any
     limits: Any
     need_rel: Any
     privacy: Any
+    provider: Any
     record: Any
     rel_error: Any
     releases: Any
+    review_repo: Any
     runtime: Any
     secure_cookie: Any
     simulations: Any
     skills: Any
     sms: Any
     sso: Any
+    tag_repo: Any
     telegram: Any
     templates: Any
     too_many: Any
+    traces: Any
     version_json: Any
     whatsapp: Any
