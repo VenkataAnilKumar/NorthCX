@@ -79,6 +79,7 @@ from .api.routers import telegram as _telegram_router
 from .api.routers import identity as _identity_router
 from .api.routers import insights as _insights_router
 from .api.routers import observability as _observability_router
+from .api.routers import builder as _builder_router
 from .api.models import AskBody, BuilderBody, BuilderSource, ChatBody, CrawlBody, DecisionBody, DocumentBody, EnabledBody, ExpireBody, FeedbackBody, JourneyDraftBody, JourneyScenariosBody, KeyBody, PercentBody, PromoteBody, PublishBody, RefineBody, ReplyBody, ResolveBody, RetentionBody, ReviewBody, RollbackBody, RolloutBody, ScenarioBody, ScenarioDraftBody, ScheduleBody, SimRunBody, SourceBody, TemplateBody, TemplateSendBody, TokenBody, VersionBody
 
 
@@ -743,130 +744,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             await idem.complete(scope, result)
         return result
 
-
-    @app.post("/v1/builder/draft")
-    async def builder_draft(body: BuilderBody, request: Request) -> Any:
-        """A first draft of an agent from procedures and conversation transcripts. Names are checked against what this deployment has;
-        personal details are masked before the model sees anything; nothing is saved."""
-        svc = need_rel()
-        if isinstance(svc, JSONResponse):
-            return svc
-        who: Identity = request.state.identity
-        if not access.limiter.allow(f"builder:{who.key_id or 'open'}", 5)[0]:
-            return too_many(60, "agent drafts")
-        try:
-            out = await draft_agent(runtime.llm, svc.registry, body.agent_id, body.goal, [s.model_dump() for s in body.sources])
-        except BuildError as e:
-            return _err(422, "unusable_draft", str(e))
-        except Exception:
-            log.exception("agent draft failed")
-            return _err(502, "model_unavailable", "The model could not be reached; try again")
-        await record(request, "builder.draft", body.agent_id, sources=len(body.sources), warnings=len(out["warnings"]))
-        return out
-
-    @app.post("/v1/builder/scenarios")
-    async def builder_scenarios(body: ScenarioDraftBody, request: Request) -> Any:
-        """Test scenarios for a drafted agent: platform-guarantee tests that are run against the draft, and question tests that need a live model. Saves nothing."""
-        svc = need_rel()
-        if isinstance(svc, JSONResponse):
-            return svc
-        who: Identity = request.state.identity
-        if not access.limiter.allow(f"builder:{who.key_id or 'open'}", 5)[0]:
-            return too_many(60, "agent drafts")
-        try:
-            spec = parse_spec(body.spec)
-        except SpecError as e:
-            return _err(400, "bad_request", str(e)[:400])
-        try:
-            out = await draft_scenarios(runtime.llm, svc.registry, spec, body.examples)
-        except ValueError as e:
-            return _err(422, "unusable_draft", str(e))
-        except Exception:
-            log.exception("scenario draft failed")
-            return _err(502, "model_unavailable", "The model could not be reached; try again")
-        await record(request, "builder.scenarios", spec.id, checked=len(out["checked"]), needLiveModel=len(out["needLiveModel"]))
-        return out
-
-    @app.post("/v1/builder/refine")
-    async def builder_refine(body: RefineBody, request: Request) -> Any:
-        """Revise a draft after an instruction ("never promise delivery dates"). Same limits as a first draft; settings the model may not set are carried over untouched."""
-        svc = need_rel()
-        if isinstance(svc, JSONResponse):
-            return svc
-        who: Identity = request.state.identity
-        if not access.limiter.allow(f"builder:{who.key_id or 'open'}", 5)[0]:
-            return too_many(60, "agent drafts")
-        try:
-            out = await refine_agent(runtime.llm, svc.registry, body.current, body.instruction)
-        except BuildError as e:
-            return _err(422, "unusable_draft", str(e))
-        except Exception:
-            log.exception("agent refine failed")
-            return _err(502, "model_unavailable", "The model could not be reached; try again")
-        await record(request, "builder.refine", out["spec"]["id"], changes=len(out["changes"]), warnings=len(out["warnings"]))
-        return out
-
-    @app.post("/v1/builder/transcribe")
-    async def builder_transcribe(request: Request, language: str | None = None) -> Any:
-        """Turn a recording (the request body is the audio file) into transcript text with the operator's transcription service. Nothing is stored."""
-        if transcriber is None:
-            return _err(501, "not_configured", "Transcription is not configured: set NORTHCX_TRANSCRIBE_URL and NORTHCX_TRANSCRIBE_MODEL")
-        who: Identity = request.state.identity
-        if not access.limiter.allow(f"transcribe:{who.key_id or 'open'}", 5)[0]:
-            return too_many(60, "transcriptions")
-        if language is not None and not re.fullmatch(r"[a-z]{2,3}", language):
-            return _err(400, "bad_request", "language must be a short code such as en")
-        cap = 25 * 1024 * 1024
-        declared = request.headers.get("content-length")
-        if declared and declared.isdigit() and int(declared) > cap:
-            return _err(413, "too_large", "The recording is too large")
-        data = b""
-        async for chunk in request.stream():
-            data += chunk
-            if len(data) > cap:
-                return _err(413, "too_large", "The recording is too large")
-        try:
-            text_ = await transcriber.transcribe(data, language)
-        except TranscribeError as e:
-            return _err(422, "unusable_recording", str(e))
-        await record(request, "builder.transcribe", "recording", size=len(data))
-        return {"text": text_, "characters": len(text_), "note": "Read it before using it: transcripts can contain mistakes. Personal details are masked when it is used to draft an agent."}
-
-    @app.post("/v1/agents/{agent_id}/journeys/draft")
-    async def journey_draft(agent_id: str, body: JourneyDraftBody, request: Request) -> Any:
-        """A journey drafted from a plain-language description by the model. Checked against the agent's real tools; never saved by itself."""
-        who: Identity = request.state.identity
-        if not access.limiter.allow(f"journey-draft:{who.key_id or 'open'}", 10)[0]:
-            return too_many(60, "journey drafts")
-        try:
-            agent = await provider.get(agent_id)
-        except AgentUnavailable as e:
-            return _err(503, "agent_unavailable", str(e))
-        if agent is None:
-            return _err(404, "not_found", "Unknown agent")
-        tools = [(t.name, t.description) for t in agent.tools]
-        try:
-            res = await runtime.llm.complete(LLMRequest(system=JOURNEY_SYSTEM, messages=[{"role": "user", "content": draft_prompt(body.description, tools)}], max_tokens=1500))
-        except Exception:
-            log.exception("journey draft failed")
-            return _err(502, "model_unavailable", "The model could not be reached; try again")
-        try:
-            journey, warnings = parse_draft(text_of(res.content), {n for n, _ in tools})
-        except DraftError as e:
-            return _err(422, "unusable_draft", str(e))
-        await record(request, "journey.draft", agent_id, steps=len(journey.steps), warnings=len(warnings))
-        data = journey.model_dump(mode="json")
-        return {"journey": data, "yaml": yaml.safe_dump(data, sort_keys=False, allow_unicode=True), "warnings": warnings,
-                "note": "A draft for a person to review. Nothing is saved until it is added to the agent and a version is created."}
-
-    @app.post("/v1/agents/{agent_id}/journeys/scenarios")
-    async def journey_scenarios(agent_id: str, body: JourneyScenariosBody) -> Any:
-        """Test scenario drafts for a journey, one per sample opening message (not required until someone relies on them)."""
-        try:
-            j = JourneySpec.model_validate(body.journey)
-        except ValueError as e:
-            return _err(400, "bad_request", "; ".join(f"{'.'.join(str(p) for p in x['loc'])}: {x['msg']}" for x in getattr(e, "errors", lambda: [])()[:5]) or str(e))
-        return {"scenarios": journey_scenarios_list(j, agent_id), "yaml": journey_scenarios_yaml(j, agent_id)}
 
     @app.get("/v1/sessions/{session_id}/scenario-draft")
     async def scenario_draft(session_id: str, request: Request) -> Any:
@@ -1702,7 +1579,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return {"messages": [{"id": m.id, "kind": m.kind, "createdAt": m.created_at, **m.payload} for m in items]}
 
     # [routers] generated by the WP0.1 split; one module per area of routes under northcx/api/routers
-    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, alerts=alerts, audit=audit, email=email, events=events, fb=fb, insight=insight, limits=limits, need_rel=need_rel, privacy=privacy, provider=provider, record=record, regression=regression, rel_error=rel_error, releases=releases, residency=residency, review_repo=review_repo, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, tag_repo=tag_repo, telegram=telegram, templates=templates, too_many=too_many, traces=traces, version_json=version_json, whatsapp=whatsapp)
+    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, alerts=alerts, audit=audit, email=email, events=events, fb=fb, insight=insight, limits=limits, need_rel=need_rel, privacy=privacy, provider=provider, record=record, regression=regression, rel_error=rel_error, releases=releases, residency=residency, review_repo=review_repo, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, tag_repo=tag_repo, telegram=telegram, templates=templates, too_many=too_many, traces=traces, transcriber=transcriber, version_json=version_json, whatsapp=whatsapp)
     _templates_router.register(app, deps)
     _memory_router.register(app, deps)
     _privacy_router.register(app, deps)
@@ -1715,5 +1592,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _identity_router.register(app, deps)
     _insights_router.register(app, deps)
     _observability_router.register(app, deps)
+    _builder_router.register(app, deps)
     # [/routers]
     return app

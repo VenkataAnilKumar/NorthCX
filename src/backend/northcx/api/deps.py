@@ -42,5 +42,6 @@ class AppDeps:
     templates: Any
     too_many: Any
     traces: Any
+    transcriber: Any
     version_json: Any
     whatsapp: Any
