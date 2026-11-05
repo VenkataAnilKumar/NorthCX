@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from fastapi.responses import JSONResponse
+
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"  # the browser SDK files served at /sdk
+SDK_FILES = {n: STATIC_DIR / n for n in ("northcx-widget.js", "northcx-client.js")}
 
 
 def _pieces(reply: str, size: int = 40) -> list[str]:

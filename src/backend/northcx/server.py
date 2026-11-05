@@ -65,7 +65,7 @@ from .spec import AgentSpec, SpecError, parse_spec
 from .versions import check_environment,  Conflict, GateBlocked, InvalidSpec, NotFound, ReleaseService, diff_specs, spec_yaml
 from .trace import TraceRepo
 from .widget import WIDGET_HTML
-from .api.common import _err, _pieces
+from .api.common import SDK_FILES, STATIC_DIR, _err, _pieces
 from .api.deps import AppDeps
 from .api.routers import templates as _templates_router
 from .api.routers import memory as _memory_router
@@ -86,6 +86,7 @@ from .api.routers import approvals as _approvals_router
 from .api.routers import handoffs as _handoffs_router
 from .api.routers import rollouts as _rollouts_router
 from .api.routers import voice as _voice_router
+from .api.routers import public as _public_router
 from .api.models import AskBody, BuilderBody, BuilderSource, ChatBody, CrawlBody, DecisionBody, DocumentBody, EnabledBody, ExpireBody, FeedbackBody, JourneyDraftBody, JourneyScenariosBody, KeyBody, PercentBody, PromoteBody, PublishBody, RefineBody, ReplyBody, ResolveBody, RetentionBody, ReviewBody, RollbackBody, RolloutBody, ScenarioBody, ScenarioDraftBody, ScheduleBody, SimRunBody, SourceBody, TemplateBody, TemplateSendBody, TokenBody, VersionBody
 
 
@@ -210,8 +211,6 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/audit", "audit:read"),
     ("GET", r"/v1/audit/verify", "audit:read"),
 ]
-STATIC_DIR = Path(__file__).parent / "static"
-SDK_FILES = {n: STATIC_DIR / n for n in ("northcx-widget.js", "northcx-client.js")}
 PUBLIC_ROUTES = {("GET", "/"), ("GET", "/health"), ("GET", "/ready")}
 _COMPILED = [(m, re.compile(p), perm) for m, p, perm in ROUTE_PERMISSIONS]
 log = logging.getLogger("northcx.server")
@@ -426,34 +425,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def bad_request(request: Request, exc: RequestValidationError):
         return _err(400, "bad_request", str(exc.errors()))
 
-
-    @app.get("/sdk/{name}")
-    async def sdk_file(name: str) -> Any:
-        """The browser SDK and the drop-in <northcx-chat> widget, so a site can load them from the same place it calls."""
-        f = SDK_FILES.get(name)
-        if f is None:
-            return _err(404, "not_found", "No such file")
-        return Response(f.read_bytes(), media_type="text/javascript; charset=utf-8", headers={"Cache-Control": "public, max-age=3600", "X-Content-Type-Options": "nosniff"})
-
-    @app.get("/", response_class=HTMLResponse)
-    async def widget() -> str:
-        return WIDGET_HTML
-
-    @app.get("/health")
-    async def health() -> dict[str, bool]:
-        """Liveness: the process is up."""
-        return {"ok": True}
-
-    @app.get("/ready")
-    async def ready() -> Any:
-        """Readiness: the stores answer (for Postgres, the database is reachable). Used by load balancers and orchestrators."""
-        try:
-            await runtime.store.load_messages("__readiness_probe__")
-            await traces.summaries(limit=1)
-        except Exception:
-            log.exception("readiness check failed")
-            return JSONResponse({"ready": False}, status_code=503)
-        return {"ready": True}
 
     async def chat_environment(request: Request, body: ChatBody) -> JSONResponse | None:
         """Only people with developer access may talk to dev or staging; customers and channels always get production."""
@@ -935,5 +906,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _handoffs_router.register(app, deps)
     _rollouts_router.register(app, deps)
     _voice_router.register(app, deps)
+    _public_router.register(app, deps)
     # [/routers]
     return app
