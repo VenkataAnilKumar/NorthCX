@@ -30,6 +30,8 @@ SOC 2 / ISO audits, the independent penetration test, a hosted managed cloud, na
 | D7 | **MCP implementation.** | Official SDK; a thin own client | Thin own client over HTTP (the subset needed: list tools, call tool, resources read-only), isolated like the model SDK |
 | D8 | **Billing unit.** | Per conversation, per resolution, per seat, per token | Meter all of them; bill on conversations and seats first. "Resolved" needs an agreed definition (today the product reports *containment* and says so) |
 | D9 | **Which model providers first.** | OpenAI-compatible (covers many hosts and self-hosted servers) then others | OpenAI-compatible adapter first, then one more |
+| D10 | **Web layout.** | One app with route groups; several apps with shared packages in one repository; separate repositories per app | Several apps with shared packages in one repository (proposed, awaiting the owner's confirmation); back office and ops console as their own apps, the back office on an internal network with its own `/platform/v1` API prefix on a separate listener |
+| D11 | **Where the marketing site, Trust Center and back office live.** | Same repository; separate repositories | Marketing, trust, legal and developer portal under `src/site` in this repository for now; the back office in this repository until D1 is decided, then in a private repository if the project goes open core |
 
 ## 4. How the work is organised
 
@@ -37,7 +39,8 @@ Epics are grouped in **waves**; each wave ends in a tagged release with the full
 
 ```
 Wave 0  Finish 1.0 and prepare the ground
-        E0 groundwork (split server.py, lockfile, shared limits, PDF masking option)
+        E0 groundwork (split server.py, lockfile, shared limits, PDF masking option,
+           web apps split into apps and shared packages, multi-replica readiness)
         -- live-model pass, pen test, tag, 1.0.0 (need you / outside)
 
 Wave 1  Foundations                                     -> release 1.1
@@ -80,6 +83,8 @@ New catalog IDs are reserved per epic (section 11). Decision-log entries continu
 | **E0.4 PDF text path with masking** (extract text, mask personal data, send as text) as an option per agent, instead of sending the PDF itself; images stay opt-in with an explicit acknowledgement in the spec | Known limit 2 | New attachment mode with tests; the Threat Model entry is updated from "unmasked" to "masked text option" |
 | **E0.5 Publish the API reference** generated from the app's schema into `docs/` (the live docs endpoint stays off) | Gap analysis, developer portal | A script produces the reference; a test checks it covers every route in the permission table |
 | **E0.6 Webhook tester** generalising the alert test: `POST /v1/events/test` sends a signed sample of any event type to the configured webhook | Developer experience; used by the portal later | Test and audit entry |
+| **E0.7 Split the web code into apps and shared packages** (decision D10): `src/apps/studio` (today's `src/web`), shared `src/packages/ui` and `src/packages/api-client`, managed as npm workspaces; later apps (`workspace`, `admin`, `ops`, `backoffice`) are created only when their first feature arrives; marketing, trust, legal and developer portal live in `src/site`; embedded surfaces in `src/surfaces/*` | The staff workspace, admin portal, ops console and back office have different audiences, auth policies, traffic and shipping rules (the back office must never be in a customer bundle; the ops console only in private deployments). The code is about 3,000 lines now, so extracting the shared parts is cheap | No behaviour change: the web tests, type-check, production build and browser smoke pass before and after; CI, compose and docs updated; no app imports another app, only packages |
+| **E0.8 Multi-replica readiness** | The API is mostly stateless but several parts are per process: rate limits and abuse counters (E0.3), background loops that run in every copy (outbox retries and alert evaluation can duplicate), alert state and crawl job status held in memory, attachments in the database, sticky voice and streaming connections | A setting to run the background loops only on dedicated workers; claims on the outbox and export queues; alert state in the database; documented topology (web, API replicas, workers, pooler, Postgres); a two-replica test in CI that sends each outbox message once and fires each alert once |
 
 **Not mine to do, needed to call it 1.0:** live-model pass, judge calibration, penetration test, tag push (see the release checklist).
 
@@ -113,7 +118,7 @@ This is the largest engineering item. It touches **38 tables, 30 store classes a
 - **Data isolation, two layers.** (1) Every tenant-owned table gets `tenant_id` (migration backfills the existing data as tenant `default`) and every store query is written through a base-class helper that adds the predicate, so a missing filter is a code-review-visible mistake in one place rather than 118 places. (2) **Row-level security** as defence in depth: `FORCE ROW LEVEL SECURITY` with policies on `current_setting('app.tenant_id')`, set per transaction with `set_config(..., true)`. Note the performance trade: the current read path avoids a transaction per statement (a deliberate optimisation); tenant-scoped reads need either a short transaction or the explicit predicate only. Acceptance includes a load-test comparison (section 11).
 - **Tenant configuration service.** The settings that are environment variables today and must become per tenant: agents directory, connectors, crawl host allow-list, SSO provider, channel credentials, secrets (encrypted with a master key; KMS-backed later in E12), residency region, alert and event webhooks, knowledge and embedding settings. Platform-wide settings stay in the environment (database URL, provider catalog, master key, global caps). The resolution order is tenant value, then platform default, and the single-tenant deployment keeps working with environment values only.
 - **Per-tenant limits** (shared limiter from E0.3): requests, tokens in currency (E1), concurrent crawls, storage.
-- **Tenant admin vs platform admin.** A platform role can create and suspend tenants and sees only metadata; it cannot read conversations. A suspended tenant's keys and tokens stop working immediately.
+- **Tenant admin vs platform admin.** A platform role can create and suspend tenants and sees only metadata; it cannot read conversations. Platform routes live under their own prefix (`/platform/v1`) served on a separate listener that can be firewalled, so a customer-facing deployment cannot expose them by mistake. A suspended tenant's keys and tokens stop working immediately.
 - **Residency per tenant:** the residency policy becomes tenant data; a tenant in region `eu` cannot be configured with a provider or connector host mapped outside its allowed regions.
 - **Dedicated deployments** use the same code with one tenant and, if wanted, one database; no separate code path.
 
@@ -307,7 +312,7 @@ The target set is ten portals and surfaces. This section maps each to the epics 
 3. E1 provider interface, capability flags and the conformance suite with the Anthropic adapter first; then the OpenAI-compatible adapter against the fake server; then the providers file, qualified names and residency entries.
 4. E1 currency budgets and mixed fallback chains.
 5. E3.1 agent- and environment-scoped keys (smallest identity change, highest value).
-6. E0.4, E0.5, E0.6.
+6. E0.4, E0.5, E0.6, then E0.7 (web split) and E0.8 (multi-replica readiness).
 7. E4 MCP client, then server (read-only).
 
 Each step ends with the full backend suite, the web checks, a real-Postgres run, and a verified push to both branches.
