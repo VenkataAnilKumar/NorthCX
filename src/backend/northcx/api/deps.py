@@ -27,6 +27,7 @@ class AppDeps:
     insight: Any
     kb: Any
     limits: Any
+    need_env: Any
     need_rel: Any
     privacy: Any
     provider: Any
@@ -36,6 +37,7 @@ class AppDeps:
     releases: Any
     residency: Any
     review_repo: Any
+    rollouts: Any
     runtime: Any
     secure_cookie: Any
     simulations: Any

@@ -84,6 +84,7 @@ from .api.routers import simulations as _simulations_router
 from .api.routers import knowledge as _knowledge_router
 from .api.routers import approvals as _approvals_router
 from .api.routers import handoffs as _handoffs_router
+from .api.routers import rollouts as _rollouts_router
 from .api.models import AskBody, BuilderBody, BuilderSource, ChatBody, CrawlBody, DecisionBody, DocumentBody, EnabledBody, ExpireBody, FeedbackBody, JourneyDraftBody, JourneyScenariosBody, KeyBody, PercentBody, PromoteBody, PublishBody, RefineBody, ReplyBody, ResolveBody, RetentionBody, ReviewBody, RollbackBody, RolloutBody, ScenarioBody, ScenarioDraftBody, ScheduleBody, SimRunBody, SourceBody, TemplateBody, TemplateSendBody, TokenBody, VersionBody
 
 
@@ -913,111 +914,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         await record(request, "release.publish", target, previous=rel.previous_number, gate=rel.gate, note=bool(body.note), environment=body.environment)
         return release_json(rel)
 
-    def need_rollouts() -> RolloutService | JSONResponse:
-        return rollouts or _err(501, "not_configured", "Staged rollouts are not configured on this server")
-
-    def rollout_error(e: Exception) -> JSONResponse:
-        if isinstance(e, ValueError) and not isinstance(e, (Conflict, GateBlocked)):
-            return _err(400, "bad_request", str(e))
-        return rel_error(e)
-
-    @app.post("/v1/agents/{agent_id}/rollouts", status_code=201)
-    async def start_rollout(agent_id: str, body: RolloutBody, request: Request) -> Any:
-        svc = need_rollouts()
-        if isinstance(svc, JSONResponse):
-            return svc
-        if (denied := await need_env(request, body.environment, "releases:publish")) is not None:
-            return denied
-        try:
-            r = await svc.start(agent_id, body.version, body.percent, actor(request, body.by), body.environment, body.note)
-        except GateBlocked as e:
-            await record(request, "rollout.start", f"{agent_id}@{body.version}", "blocked", reasons=e.reasons[:10], environment=body.environment)
-            return rel_error(e)
-        except (NotFound, Conflict, ValueError) as e:
-            return rollout_error(e)
-        await record(request, "rollout.start", f"{agent_id}@{r.candidate_number}", percent=r.percent, environment=r.environment, control=r.control_number)
-        return rollout_json(r)
-
-    @app.get("/v1/agents/{agent_id}/rollouts")
-    async def list_rollouts(agent_id: str) -> Any:
-        svc = need_rollouts()
-        if isinstance(svc, JSONResponse):
-            return svc
-        return {"rollouts": [rollout_json(r) for r in await svc.repo.history(agent_id)]}
-
-    async def rollout_for(svc: RolloutService, agent_id: str, rollout_id: str) -> Any:
-        r = await svc.repo.get(rollout_id)
-        return r if r is not None and r.agent_id == agent_id else None
-
-    @app.put("/v1/agents/{agent_id}/rollouts/{rollout_id}/percent")
-    async def rollout_percent(agent_id: str, rollout_id: str, body: PercentBody, request: Request) -> Any:
-        svc = need_rollouts()
-        if isinstance(svc, JSONResponse):
-            return svc
-        cur = await rollout_for(svc, agent_id, rollout_id)
-        if cur is None:
-            return _err(404, "not_found", "Unknown rollout")
-        if (denied := await need_env(request, cur.environment, "releases:publish")) is not None:
-            return denied
-        try:
-            r = await svc.set_percent(agent_id, rollout_id, body.percent)
-        except (NotFound, Conflict, ValueError) as e:
-            return rollout_error(e)
-        await record(request, "rollout.percent", f"{agent_id}@{r.candidate_number}", percent=r.percent, environment=r.environment)
-        return rollout_json(r)
-
-    @app.post("/v1/agents/{agent_id}/rollouts/{rollout_id}/promote")
-    async def rollout_promote(agent_id: str, rollout_id: str, request: Request, body: PromoteBody | None = None) -> Any:
-        svc = need_rollouts()
-        if isinstance(svc, JSONResponse):
-            return svc
-        cur = await rollout_for(svc, agent_id, rollout_id)
-        if cur is None:
-            return _err(404, "not_found", "Unknown rollout")
-        if (denied := await need_env(request, cur.environment, "releases:publish")) is not None:
-            return denied
-        try:
-            r = await svc.promote(agent_id, rollout_id, actor(request, body.by if body else None), body.note if body else None)
-        except GateBlocked as e:
-            await record(request, "rollout.promote", f"{agent_id}@{cur.candidate_number}", "blocked", reasons=e.reasons[:10], environment=cur.environment)
-            return rel_error(e)
-        except (NotFound, Conflict, ValueError) as e:
-            return rollout_error(e)
-        await record(request, "rollout.promote", f"{agent_id}@{r.candidate_number}", environment=r.environment, percent=r.percent)
-        return rollout_json(r)
-
-    @app.post("/v1/agents/{agent_id}/rollouts/{rollout_id}/abort")
-    async def rollout_abort(agent_id: str, rollout_id: str, request: Request) -> Any:
-        svc = need_rollouts()
-        if isinstance(svc, JSONResponse):
-            return svc
-        cur = await rollout_for(svc, agent_id, rollout_id)
-        if cur is None:
-            return _err(404, "not_found", "Unknown rollout")
-        if (denied := await need_env(request, cur.environment, "releases:rollback")) is not None:
-            return denied
-        try:
-            r = await svc.abort(agent_id, rollout_id, actor(request, None))
-        except (NotFound, Conflict) as e:
-            return rel_error(e)
-        await record(request, "rollout.abort", f"{agent_id}@{r.candidate_number}", environment=r.environment)
-        return rollout_json(r)
-
-    @app.get("/v1/agents/{agent_id}/rollouts/{rollout_id}/comparison")
-    async def rollout_comparison(agent_id: str, rollout_id: str) -> Any:
-        """Control and candidate measured the same way, over the conversations assigned to each."""
-        svc = need_rollouts()
-        if isinstance(svc, JSONResponse):
-            return svc
-        r = await rollout_for(svc, agent_id, rollout_id)
-        if r is None:
-            return _err(404, "not_found", "Unknown rollout")
-        arms = await svc.repo.arm_sessions(r.id)
-        end = r.ended_at or time.time()
-        turns, handoffs, feedback = await insight._load(r.started_at, end + 1, agent_id, r.environment)
-        revs = await review_repo.for_sessions(arms[CONTROL] + arms[CANDIDATE])
-        return {"rollout": rollout_json(r), **compare_arms(arms, turns, handoffs, feedback, revs, r.started_at, end),
-                "versions": {CONTROL: r.control_number, CANDIDATE: r.candidate_number}}
 
     @app.post("/v1/agents/{agent_id}/promote")
     async def promote(agent_id: str, body: PromoteBody, request: Request) -> Any:
@@ -1104,7 +1000,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return {"messages": [{"id": m.id, "kind": m.kind, "createdAt": m.created_at, **m.payload} for m in items]}
 
     # [routers] generated by the WP0.1 split; one module per area of routes under northcx/api/routers
-    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, agents=agents, alerts=alerts, audit=audit, crawl_scheduler=crawl_scheduler, crawler=crawler, email=email, events=events, fb=fb, flow=flow, insight=insight, kb=kb, limits=limits, need_rel=need_rel, privacy=privacy, provider=provider, record=record, regression=regression, rel_error=rel_error, releases=releases, residency=residency, review_repo=review_repo, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, tag_repo=tag_repo, telegram=telegram, templates=templates, too_many=too_many, traces=traces, transcriber=transcriber, version_json=version_json, whatsapp=whatsapp)
+    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, agents=agents, alerts=alerts, audit=audit, crawl_scheduler=crawl_scheduler, crawler=crawler, email=email, events=events, fb=fb, flow=flow, insight=insight, kb=kb, limits=limits, need_env=need_env, need_rel=need_rel, privacy=privacy, provider=provider, record=record, regression=regression, rel_error=rel_error, releases=releases, residency=residency, review_repo=review_repo, rollouts=rollouts, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, tag_repo=tag_repo, telegram=telegram, templates=templates, too_many=too_many, traces=traces, transcriber=transcriber, version_json=version_json, whatsapp=whatsapp)
     _templates_router.register(app, deps)
     _memory_router.register(app, deps)
     _privacy_router.register(app, deps)
@@ -1122,5 +1018,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _knowledge_router.register(app, deps)
     _approvals_router.register(app, deps)
     _handoffs_router.register(app, deps)
+    _rollouts_router.register(app, deps)
     # [/routers]
     return app
