@@ -32,3 +32,4 @@ class AppDeps:
     templates: Any
     too_many: Any
     version_json: Any
+    whatsapp: Any

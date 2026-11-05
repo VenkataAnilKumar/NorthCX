@@ -74,6 +74,7 @@ from .api.routers import tokens as _tokens_router
 from .api.routers import sso as _sso_router
 from .api.routers import email as _email_router
 from .api.routers import sms as _sms_router
+from .api.routers import whatsapp as _whatsapp_router
 from .api.models import AskBody, BuilderBody, BuilderSource, ChatBody, CrawlBody, DecisionBody, DocumentBody, EnabledBody, ExpireBody, FeedbackBody, JourneyDraftBody, JourneyScenariosBody, KeyBody, PercentBody, PromoteBody, PublishBody, RefineBody, ReplyBody, ResolveBody, RetentionBody, ReviewBody, RollbackBody, RolloutBody, ScenarioBody, ScenarioDraftBody, ScheduleBody, SimRunBody, SourceBody, TemplateBody, TemplateSendBody, TokenBody, VersionBody
 
 
@@ -1582,66 +1583,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     MAX_EMAIL_BYTES = 1_000_000
 
 
-    # ---------------- WhatsApp ----------------
-    @app.get("/channels/whatsapp/meta")
-    async def whatsapp_verify(request: Request) -> Any:
-        """One-time webhook check by Meta: echoes the challenge only when the shared verify token matches."""
-        q = request.query_params
-        if whatsapp is None:
-            return _err(501, "not_configured", "The WhatsApp channel is not configured")
-        challenge = q.get("hub.challenge", "")
-        if q.get("hub.mode") != "subscribe" or not whatsapp.provider.valid_verify_token(q.get("hub.verify_token", "")) or not re.fullmatch(r"[0-9A-Za-z_.~-]{1,200}", challenge):
-            return _err(403, "forbidden", "Verification failed")
-        return Response(content=challenge, media_type="text/plain")
-
-    @app.post("/channels/whatsapp/meta")
-    async def whatsapp_inbound(request: Request) -> Any:
-        """Public webhook for WhatsApp. Authenticated by the body signature, never by an API key."""
-        if whatsapp is None:
-            return _err(501, "not_configured", "The WhatsApp channel is not configured")
-        ip = request.client.host if request.client else "unknown"
-        raw = b""
-        async for chunk in request.stream():
-            raw += chunk
-            if len(raw) > 262144:
-                return _err(413, "too_large", "Request is too large")
-        if not whatsapp.authentic(raw, request.headers.get("x-hub-signature-256", "")):
-            if limits and not access.limiter.allow(f"smsfail:{ip}", limits.auth_failures_per_minute)[0]:
-                return too_many(60, "unsigned requests")
-            if access.limiter.allow(f"smslog:{ip}", 6)[0]:
-                await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/whatsapp/meta", outcome="denied", detail={"client": ip}))
-            return _err(403, "forbidden", "Invalid signature")
-        try:
-            await whatsapp.receive_body(raw)
-        except ValueError as e:
-            return _err(400, "bad_request", str(e))
-        except Exception:
-            log.exception("whatsapp inbound failed")
-            return _err(500, "internal", "Could not process the message; it can be delivered again")
-        return {"status": "ok"}
-
-    # ---------------- Telegram ----------------
-    @app.post("/v1/channels/whatsapp/templates/send")
-    async def whatsapp_template(body: TemplateSendBody, request: Request) -> Any:
-        """Send an approved WhatsApp template (for example to reach someone after the 24-hour window). Only to people who already messaged that number or are on the opt-in list."""
-        if whatsapp is None:
-            return _err(501, "not_configured", "The WhatsApp channel is not configured")
-        who: Identity = request.state.identity
-        if not access.limiter.allow(f"watemplate:{who.key_id or 'open'}", 60)[0]:
-            return too_many(60, "template messages")
-        try:
-            mid = await whatsapp.send_template(body.phone_id, body.to, body.template, body.params)
-        except TemplateRefused as e:
-            return _err(403, "not_allowed", str(e))
-        except Exception as e:
-            from .channels.sms import PermanentSendError
-            if isinstance(e, PermanentSendError):
-                return _err(422, "refused_by_provider", str(e))
-            log.exception("whatsapp template failed")
-            return _err(502, "provider_unavailable", "WhatsApp could not be reached; try again")
-        await record(request, "whatsapp.template", body.template, to=phone_hash(body.to)[:12])
-        return {"sent": True, "messageId": mid}
-
     @app.post("/channels/telegram/webhook")
     async def telegram_inbound(request: Request) -> Any:
         """Public webhook for the Telegram bot. Authenticated by the secret token registered with setWebhook, never by an API key."""
@@ -2064,7 +2005,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         return {"messages": [{"id": m.id, "kind": m.kind, "createdAt": m.created_at, **m.payload} for m in items]}
 
     # [routers] generated by the WP0.1 split; one module per area of routes under northcx/api/routers
-    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, audit=audit, email=email, limits=limits, need_rel=need_rel, privacy=privacy, record=record, rel_error=rel_error, releases=releases, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, templates=templates, too_many=too_many, version_json=version_json)
+    deps = AppDeps(MAX_EMAIL_BYTES=MAX_EMAIL_BYTES, SSO_COOKIE=SSO_COOKIE, access=access, actor=actor, audit=audit, email=email, limits=limits, need_rel=need_rel, privacy=privacy, record=record, rel_error=rel_error, releases=releases, runtime=runtime, secure_cookie=secure_cookie, simulations=simulations, skills=skills, sms=sms, sso=sso, templates=templates, too_many=too_many, version_json=version_json, whatsapp=whatsapp)
     _templates_router.register(app, deps)
     _memory_router.register(app, deps)
     _privacy_router.register(app, deps)
@@ -2072,5 +2013,6 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _sso_router.register(app, deps)
     _email_router.register(app, deps)
     _sms_router.register(app, deps)
+    _whatsapp_router.register(app, deps)
     # [/routers]
     return app
