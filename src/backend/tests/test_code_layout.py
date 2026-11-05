@@ -38,3 +38,24 @@ def test_the_dependencies_object_has_exactly_the_fields_the_routers_use():
     server = (NORTHCX / "server.py").read_text()
     built = set(re.findall(r"(\w+)=\1\b", re.search(r"deps = AppDeps\((.*?)\)\n", server, re.S).group(1)))
     assert built == fields, "create_app must supply every field"
+
+
+def test_moved_modules_use_absolute_imports_everywhere():
+    """A relative import inside a function body is only checked when that code runs; moving a module one level deeper silently breaks it."""
+    offenders = []
+    for folder in (NORTHCX / "api", NORTHCX / "db" / "stores"):
+        for p in folder.rglob("*.py"):
+            for node in ast.walk(ast.parse(p.read_text())):
+                if isinstance(node, ast.ImportFrom) and node.level > 0 and not (p.name == "__init__.py" and node.level == 1):
+                    offenders.append(f"{p.relative_to(NORTHCX)}:{node.lineno}")
+    assert offenders == [], offenders
+
+
+def test_every_module_in_the_moved_packages_imports_cleanly_including_lazy_imports():
+    import importlib
+    import importlib.util
+    for folder in (NORTHCX / "api", NORTHCX / "db" / "stores"):
+        for p in folder.rglob("*.py"):
+            for node in ast.walk(ast.parse(p.read_text())):
+                if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module and node.module.startswith("northcx"):
+                    assert importlib.util.find_spec(node.module) is not None, f"{p.relative_to(NORTHCX)}:{node.lineno} imports {node.module}"

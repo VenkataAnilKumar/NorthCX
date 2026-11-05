@@ -79,7 +79,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         except TemplateRefused as e:
             return _err(403, "not_allowed", str(e))
         except Exception as e:
-            from .channels.sms import PermanentSendError
+            from northcx.channels.sms import PermanentSendError
             if isinstance(e, PermanentSendError):
                 return _err(422, "refused_by_provider", str(e))
             log.exception("whatsapp template failed")

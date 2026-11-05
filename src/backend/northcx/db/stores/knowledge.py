@@ -260,7 +260,7 @@ class PgKnowledge(_Base):
 class PgSchedules(_Base):
     @staticmethod
     def _s(r: Any) -> Any:
-        from ..crawl_schedule import Schedule
+        from northcx.crawl_schedule import Schedule
         return Schedule(r.source_id, r.config, r.every_hours, r.next_run, r.created_by, id=r.id, last_run=r.last_run, last_job_id=r.last_job_id,
                         last_result=r.last_result, enabled=r.enabled, created_at=r.created_at)
 
@@ -270,7 +270,7 @@ class PgSchedules(_Base):
         return [self._s(r) for r in rows]
 
     async def add(self, sc: Any) -> bool:
-        from ..crawl_schedule import MAX_SCHEDULES
+        from northcx.crawl_schedule import MAX_SCHEDULES
         async with self._sm.begin() as s:
             if (await s.execute(text("select count(*) from crawl_schedules"))).scalar_one() >= MAX_SCHEDULES:
                 return False

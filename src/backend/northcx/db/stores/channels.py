@@ -151,7 +151,7 @@ class PgCalls(_Base):
 
 class PgVerify(_Base):
     async def get(self, session_id: str) -> Any:
-        from ..verification import VerifyRecord
+        from northcx.verification import VerifyRecord
         async with self._ro() as s:
             r = (await s.execute(text("select * from verification_codes where session_id = :s"), {"s": session_id})).first()
         return VerifyRecord(r.session_id, r.customer_id, r.channel, r.dest_hash, r.code_hash, r.expires_at, r.attempts, list(r.sends), r.verified_until) if r else None
