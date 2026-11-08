@@ -4,7 +4,8 @@ from pathlib import Path
 from northcx.config import load_registry
 from northcx.reliability import ReliableLLM
 from northcx.llm import DEFAULT_MODEL
-from northcx.llm import AnthropicLLM
+from northcx.llm import AnthropicHttpLLM, AnthropicLLM
+from northcx.providers import ProviderRegistry
 from northcx.secrets import SecretStore, env_or_file
 from types import SimpleNamespace
 
@@ -29,7 +30,17 @@ def load_settings(c: SimpleNamespace) -> None:
 
         llm = DemoLLM()
     else:
-        llm = AnthropicLLM()
+        kind = os.environ.get("NORTHCX_ANTHROPIC_CLIENT", "sdk").strip() or "sdk"
+        if kind not in ("sdk", "http"):
+            sys.exit("NORTHCX_ANTHROPIC_CLIENT must be sdk or http")
+        try:
+            claude = AnthropicHttpLLM(anthropic_key) if kind == "http" else AnthropicLLM()
+        except ValueError as e:
+            sys.exit(f"Configuration error: {e}")
+        providers = ProviderRegistry()  # more providers are added here as they are configured; bare model names go to the default one
+        providers.register(claude, default=True)
+        c.providers = providers
+        llm = providers
         fallbacks = [m.strip() for m in os.environ.get("NORTHCX_MODEL_FALLBACKS", "").split(",") if m.strip()]
         llm = ReliableLLM(llm, ([DEFAULT_MODEL] + fallbacks) if fallbacks else [],
                           retries=int(os.environ.get("NORTHCX_MODEL_RETRIES", 2)),
@@ -39,5 +50,6 @@ def load_settings(c: SimpleNamespace) -> None:
     c.demo = demo
     c.examples_dir = examples_dir
     c.llm = llm
+    c.providers = getattr(c, "providers", None)
     c.registry = registry
     c.secrets = secrets

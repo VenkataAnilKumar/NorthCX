@@ -7,32 +7,7 @@ from typing import Callable, Union
 
 from .types import LLM, LLMRequest, LLMResponse
 
-DEFAULT_MODEL = "claude-sonnet-5-5"
-
-
-class AnthropicLLM:
-    """Claude backend using the official Anthropic SDK."""
-
-    def __init__(self, api_key: str | None = None, model: str = DEFAULT_MODEL):
-        from anthropic import AsyncAnthropic
-
-        self._client = AsyncAnthropic(api_key=api_key)
-        self._model = model
-
-    async def complete(self, req: LLMRequest) -> LLMResponse:
-        kwargs = dict(
-            model=req.model or self._model,
-            max_tokens=req.max_tokens,
-            system=req.system,
-            messages=req.messages,
-        )
-        if req.tools:
-            kwargs["tools"] = req.tools
-        res = await self._client.messages.create(**kwargs)
-        u = getattr(res, "usage", None)
-        usage = {"input_tokens": int(getattr(u, "input_tokens", 0) or 0), "output_tokens": int(getattr(u, "output_tokens", 0) or 0)} if u else {}
-        return LLMResponse(content=[b.model_dump() for b in res.content], stop_reason=res.stop_reason or "end_turn",
-                           usage=usage, model=getattr(res, "model", None))
+from .providers.anthropic import DEFAULT_MODEL, AnthropicHttpLLM, AnthropicLLM  # noqa: F401  (the adapters live in northcx/providers; re-exported here)
 
 
 Script = Union[LLMResponse, Callable[[LLMRequest], LLMResponse]]

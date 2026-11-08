@@ -24,6 +24,7 @@ class LLMResponse:
     usage: dict[str, int] = field(default_factory=dict)  # input_tokens, output_tokens when the backend reports them
     model: str | None = None  # the model that actually answered
     fallback: bool = False  # answered by a fallback model
+    provider: str | None = None  # which provider answered, when several are configured
 
 
 class LLM(Protocol):

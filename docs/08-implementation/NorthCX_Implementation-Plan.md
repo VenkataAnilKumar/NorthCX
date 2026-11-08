@@ -140,6 +140,7 @@ Commission the penetration test (scope: Threat Model and Security Review, with t
 | **1.6** | Currency budgets (per conversation, per day) computed from prices and reported usage; insights cost from the real model mix; Studio shows currency | M | V |
 | **1.7** | Experimental routing: a deterministic classifier chooses a cheaper model for simple turns; recorded in the trace; scenario type compares both | M | V, X (quality) |
 | **1.8** | One conformance suite over every adapter (plain reply, tool call, round trip, parallel tools, errors, usage, cancellation) with recorded fixtures; a local fake OpenAI-compatible server run through runtime, simulations and judge | L | V |
+**Status (2026-11-08):** WP1.1 and WP1.2 done: `northcx/providers/` (types, `ProviderRegistry` with `provider:model` names, `require_tools`), Claude moved to `providers/anthropic.py` with the SDK client and a direct HTTPS client (`NORTHCX_ANTHROPIC_CLIENT=http`), `llm.py` re-exports, the server builds a registry with Claude as the default; one conformance file runs over both clients (26 tests); the full suite is unchanged. Neither client has been run against the live API (no key). Remaining: WP1.3 to WP1.8.
 **Acceptance:** the existing suite passes unchanged on the Anthropic adapter; the same example scenarios pass on the fake server; budgets stop conversations in currency; a self-hosted-style server configuration works end to end in a browser run. **Depends on:** WP0.1, WP0.4.
 
 ### E3 Identity and governance (size XL, split into WP3.1 to WP3.6)

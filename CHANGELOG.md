@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (model providers, first part)
+- `northcx/providers/`: provider types, a registry that routes `provider:model` names (bare names keep going to the default provider), capability checks, and Claude as an adapter with two clients: the official SDK and an optional direct HTTPS client (`NORTHCX_ANTHROPIC_CLIENT=http`). The SDK's `citations: null` fields are no longer carried into conversation history.
+
 ### Added (resolution rate)
 - Provisional resolution rate beside containment in insights, Studio and plain-language analytics: completed, no hand-off, quiet for the window (`NORTHCX_RESOLUTION_WINDOW_DAYS`, default 3 days); conversations inside the window are pending. PRD scope wording updated for after 1.0.
 

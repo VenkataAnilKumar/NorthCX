@@ -5,10 +5,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1] / "northcx"
 
 
-def test_only_the_model_adapter_imports_the_ai_sdk():
+def test_only_the_anthropic_adapter_imports_the_ai_sdk():
     offenders = []
     for f in ROOT.rglob("*.py"):
-        if f.name == "llm.py" and f.parent == ROOT:
+        if f.parent == ROOT / "providers" and f.name == "anthropic.py":
             continue
         if re.search(r"^\s*(import|from)\s+anthropic\b", f.read_text(), re.M):
             offenders.append(str(f.relative_to(ROOT)))
