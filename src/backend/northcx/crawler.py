@@ -16,6 +16,7 @@ import time
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
+import logging
 from typing import Any, Awaitable, Callable
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
@@ -30,7 +31,9 @@ LOCAL = {"localhost", "127.0.0.1", "::1"}
 USER_AGENT = f"NorthCXBot/{__version__}"
 MAX_PAGES, MAX_DEPTH = 200, 4
 MIN_DELAY, MAX_DELAY = 0.25, 10.0
+log = logging.getLogger("northcx.crawler")
 MAX_TOTAL_BYTES = 40 * 1024 * 1024
+HEARTBEAT_STALE = 300.0  # a crawl on another server that has not reported progress for this long is treated as dead
 MAX_SITEMAP_URLS = 1000
 TEXT_TYPES = ("text/html", "application/xhtml+xml", "text/plain", "text/markdown", "text/x-markdown")
 _LOC = re.compile(r"<(?:url|sitemap)\b.*?</(?:url|sitemap)>", re.S | re.I)
@@ -134,11 +137,13 @@ def private_address(ip: str) -> bool:
 class Crawler:
     def __init__(self, store: KnowledgeStore, allowed_hosts: set[str], allow_private: bool = False, client: httpx.AsyncClient | None = None,
                  resolver: Resolver = system_resolver, sleep: Callable[[float], Awaitable[None]] = asyncio.sleep, clock: Callable[[], float] = time.monotonic,
-                 on_change: Callable[[str], None] | None = None):
+                 on_change: Callable[[str], None] | None = None, jobs_repo: Any = None):
         self.store, self.allowed, self.allow_private = store, allowed_hosts, allow_private
         self._client = client or httpx.AsyncClient(timeout=15.0, follow_redirects=False, headers={"user-agent": USER_AGENT})
         self.resolver, self.sleep, self.clock, self.on_change = resolver, sleep, clock, on_change
         self.jobs: dict[str, CrawlJob] = {}
+        self.jobs_repo = jobs_repo  # shared storage for job progress (several server processes); None keeps jobs in this process
+        self._saved_at = 0.0
         self.active: dict[str, str] = {}
         self._tasks: set[asyncio.Task] = set()
 
@@ -165,6 +170,37 @@ class Crawler:
     def jobs_list(self) -> list[dict[str, Any]]:
         return [j.to_dict() for j in sorted(self.jobs.values(), key=lambda j: -j.started_at)]
 
+    async def all_jobs(self) -> list[dict[str, Any]]:
+        """Recent crawls from every server process (this process's own are the freshest)."""
+        mine = {j.id: j.to_dict() for j in self.jobs.values()}
+        if self.jobs_repo is not None:
+            try:
+                for d in await self.jobs_repo.recent(20):
+                    mine.setdefault(d["jobId"], d)
+            except Exception:
+                log.exception("could not read crawl jobs from shared storage")
+        return sorted(mine.values(), key=lambda d: -d["startedAt"])[:20]
+
+    async def job_status(self, job_id: str) -> dict[str, Any] | None:
+        if job_id in self.jobs:
+            return self.jobs[job_id].to_dict()
+        if self.jobs_repo is not None:
+            try:
+                return await self.jobs_repo.get(job_id)
+            except Exception:
+                log.exception("could not read a crawl job from shared storage")
+        return None
+
+    async def _save(self, job: CrawlJob, force: bool = False) -> None:
+        """Write progress where every server process can see it, at most every couple of seconds (and always at the end)."""
+        if self.jobs_repo is None or (not force and time.time() - self._saved_at < 2.0):
+            return
+        self._saved_at = time.time()
+        try:
+            await self.jobs_repo.save(job.to_dict(), time.time())
+        except Exception:
+            log.exception("could not store crawl progress")
+
     async def start(self, source_id: str, cfg: CrawlConfig) -> CrawlJob:
         cfg.check()
         if await self.store.get_source(source_id) is None:
@@ -172,11 +208,14 @@ class Crawler:
         await self.check_url(cfg.start_url)
         if source_id in self.active:
             raise CrawlRefused("A crawl of this source is already running")
+        if self.jobs_repo is not None and await self.jobs_repo.running(source_id, time.time() - HEARTBEAT_STALE):
+            raise CrawlRefused("A crawl of this source is already running on another server")
         job = CrawlJob(source_id, urlsplit(cfg.start_url).netloc.lower())
         self.jobs[job.id] = job
         for old in sorted(self.jobs.values(), key=lambda j: j.started_at)[:-20]:
             self.jobs.pop(old.id, None)
         self.active[source_id] = job.id
+        await self._save(job, force=True)
         task = asyncio.ensure_future(self._run(job, cfg))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
@@ -312,6 +351,7 @@ class Crawler:
                     continue
                 r, body = got
                 job.fetched += 1
+                await self._save(job)
                 final = normalise(str(r.url))  # after any redirects: the page lives (and is stored) at the address it ended on
                 seen.add(final)
                 url = final
@@ -346,6 +386,7 @@ class Crawler:
         finally:
             job.finished_at = time.time()
             self.active.pop(job.source_id, None)
+            await self._save(job, force=True)
 
     def _skip_reason(self, url: str, host: str, cfg: CrawlConfig, rp: RobotFileParser | None) -> str | None:
         u = urlsplit(url)

@@ -112,6 +112,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if isinstance(svc, JSONResponse):
             return svc
         who: Identity = request.state.identity
+        if alerts is not None:
+            await alerts.refresh()
         firing = [f"{a['rule']} ({a['severity']})" for a in (alerts.status()["active"] if alerts is not None else [])]
         try:
             return await svc.checklist(agent_id, number, environment, environment != "production" or who.can("releases:publish"), firing)

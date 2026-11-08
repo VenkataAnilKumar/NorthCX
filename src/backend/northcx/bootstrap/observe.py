@@ -1,5 +1,6 @@
 import os
 import sys
+from northcx.db import PgAlertState
 from northcx.alerts import AlertConfigError, AlertManager, WebhookAlerts, load_rules
 from northcx.insights import InMemoryInsightsSource, InsightsService
 from northcx.regression import RegressionRunner
@@ -31,7 +32,8 @@ def build_observability(c: SimpleNamespace) -> None:
             alert_hook = None
             if os.environ.get("NORTHCX_ALERT_WEBHOOK_URL"):
                 alert_hook = WebhookAlerts(os.environ["NORTHCX_ALERT_WEBHOOK_URL"], env_or_file("NORTHCX_ALERT_WEBHOOK_SECRET") or "")
-            alert_manager = AlertManager(insights_service, monitor_repo, load_rules(os.environ["NORTHCX_ALERT_RULES"]) if os.environ.get("NORTHCX_ALERT_RULES") else None, alert_hook)
+            alert_manager = AlertManager(insights_service, monitor_repo, load_rules(os.environ["NORTHCX_ALERT_RULES"]) if os.environ.get("NORTHCX_ALERT_RULES") else None, alert_hook,
+                                         state=PgAlertState(c.engine) if c.db_url else None)
         except (AlertConfigError, ValueError) as e:
             sys.exit(f"Configuration error: {e}")
     c.alert_manager = alert_manager

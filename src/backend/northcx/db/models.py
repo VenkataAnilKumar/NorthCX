@@ -485,6 +485,41 @@ class UsageLedgerRow(Base):
     tokens: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
 
+class JobLeaseRow(Base):
+    """Which server process currently runs a named background job (see northcx/leases.py)."""
+    __tablename__ = "job_leases"
+    name: Mapped[str] = mapped_column(String(100), primary_key=True)
+    holder: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[float] = mapped_column(Float, nullable=False)  # epoch seconds on the database clock
+
+
+class AlertStateRow(Base):
+    """An alert that is firing right now, so whichever server evaluates the rules next knows not to fire it again."""
+    __tablename__ = "alert_state"
+    rule: Mapped[str] = mapped_column(String(100), primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+
+class AlertEventRow(Base):
+    """Recent alert events (fired, cleared, test) with their delivery status, visible from any server."""
+    __tablename__ = "alert_events"
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    at: Mapped[float] = mapped_column(Float, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+
+class CrawlJobRow(Base):
+    """A website crawl and how far it has got, visible from any server. `updated_at` is its heartbeat."""
+    __tablename__ = "crawl_jobs"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    source_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    state: Mapped[str] = mapped_column(String(20), nullable=False)
+    started_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    __table_args__ = (Index("ix_crawl_jobs_source_state", "source_id", "state"), Index("ix_crawl_jobs_started", "started_at"))
+
+
 class MonitorFindingRow(Base):
     __tablename__ = "monitor_findings"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)

@@ -123,7 +123,8 @@ def safe_error(e: Exception) -> str:
 
 class AlertManager:
     def __init__(self, insights: Any, monitor_repo: Any, rules: list[AlertRule] | None = None, notifier: WebhookAlerts | None = None,
-                 clock: Callable[[], float] = time.time, sleep: Callable[[float], Any] = asyncio.sleep):
+                 clock: Callable[[], float] = time.time, sleep: Callable[[float], Any] = asyncio.sleep, state: Any = None):
+        self.state = state  # shared storage for firing alerts and events (several server processes); None keeps them in this process
         self.insights, self.monitor, self.rules, self.notifier, self.clock = insights, monitor_repo, rules or list(DEFAULT_RULES), notifier, clock
         self.sleep = sleep
         self.feed: Any = None  # status events (events.py), when configured
@@ -139,12 +140,36 @@ class AlertManager:
             if wait:
                 await self.sleep(wait)
             try:
-                await self.notifier.send({k: v for k, v in e.items() if k != "delivery"})  # type: ignore[union-attr]
+                await self.notifier.send({k: v for k, v in e.items() if k not in ("delivery", "_id")})  # type: ignore[union-attr]
                 e["delivery"] = {"status": "sent", "attempts": n, "at": self.clock()}
+                await self._persist_delivery(e)
                 return
             except Exception as ex:
                 e["delivery"] = {"status": "retrying" if n < len(waits) else "failed", "attempts": n, "error": safe_error(ex), "at": self.clock()}
+                await self._persist_delivery(e)
         log.error("alert webhook failed after %d attempts: %s", len(waits), e["delivery"]["error"])
+
+    async def _persist_delivery(self, e: dict[str, Any]) -> None:
+        if self.state is not None and e.get("_id"):
+            try:
+                await self.state.update_event(e["_id"], {k: v for k, v in e.items() if k != "_id"})
+            except Exception:
+                log.exception("could not store the delivery status of an alert")
+
+    async def _remember_event(self, e: dict[str, Any]) -> None:
+        if self.state is not None:
+            try:
+                e["_id"] = await self.state.add_event({k: v for k, v in e.items() if k != "_id"})
+            except Exception:
+                log.exception("could not store an alert event")
+
+    async def refresh(self) -> None:
+        """Take the firing alerts and recent events from shared storage, so any server process continues where another left off."""
+        if self.state is None:
+            return
+        active, events = await self.state.load()
+        self.active = {k: ActiveAlert(**v) for k, v in active.items()}
+        self.events = events
 
     async def settle(self) -> None:
         """Waits for deliveries in progress (for tests and shutdown)."""
@@ -164,6 +189,7 @@ class AlertManager:
                 e["delivery"] = {"status": "failed", "attempts": 1, "error": safe_error(ex), "at": self.clock()}
         self.events.append(e)
         del self.events[:-200]
+        await self._remember_event(e)
         return e
 
     async def _emit(self, event: str, rule: AlertRule, detail: str, value: float | None, samples: int, now: float) -> None:
@@ -171,6 +197,7 @@ class AlertManager:
              "samples": samples, "windowMinutes": rule.window_minutes, "at": now, "detail": detail}
         self.events.append(e)
         del self.events[:-200]
+        await self._remember_event(e)
         try:
             await self.monitor.add([Finding(f"alert:{rule.name}" if event == "alert.fired" else f"alert_cleared:{rule.name}",
                                             rule.severity if event == "alert.fired" else "info", detail, "-", "-", "-")])
@@ -189,6 +216,7 @@ class AlertManager:
     async def evaluate(self) -> list[dict[str, Any]]:
         now = self.clock()
         self.last_run = now
+        await self.refresh()
         fired: list[dict[str, Any]] = []
         windows: dict[int, dict[str, Any]] = {}
         for rule in self.rules:
@@ -202,22 +230,30 @@ class AlertManager:
                 detail = f"{rule.metric} is {value:.3g}{unit} (limit {rule.threshold:g}{unit}) over the last {rule.window_minutes} min, {samples} samples"
                 if cur is None:
                     self.active[rule.name] = ActiveAlert(rule.name, now, now, value, samples, rule.severity)
+                    await self._save_active(rule.name)
                     await self._emit("alert.fired", rule, detail, value, samples, now)
                     fired.append(self.events[-1])
                 else:
                     cur.value, cur.samples = value, samples
                     if now - cur.last_fired >= rule.cooldown_minutes * 60:  # still bad: remind, but not every minute
                         cur.last_fired = now
+                        await self._save_active(rule.name)
                         await self._emit("alert.fired", rule, detail + " (still firing)", value, samples, now)
                         fired.append(self.events[-1])
             elif cur is not None and (value is None or samples >= 1):
                 del self.active[rule.name]
+                if self.state is not None:
+                    await self.state.clear_active(rule.name)
                 await self._emit("alert.cleared", rule, f"{rule.metric} is back within its limit", value, samples, now)
         return fired
+
+    async def _save_active(self, name: str) -> None:
+        if self.state is not None:
+            await self.state.set_active(name, self.active[name].__dict__)
 
     def status(self) -> dict[str, Any]:
         return {"enabled": True, "lastRun": self.last_run, "webhook": self.notifier is not None,
                 "rules": [{"name": r.name, "metric": r.metric, "threshold": r.threshold, "windowMinutes": r.window_minutes, "minSamples": r.min_samples,
                            "severity": r.severity, "cooldownMinutes": r.cooldown_minutes} for r in self.rules],
-                "active": [a.__dict__ for a in self.active.values()], "recent": self.events[-20:][::-1],
+                "active": [a.__dict__ for a in self.active.values()], "recent": [{k: v for k, v in e.items() if k != "_id"} for e in self.events[-20:][::-1]],
                 "undelivered": sum(1 for e in self.events if e.get("delivery", {}).get("status") == "failed")}

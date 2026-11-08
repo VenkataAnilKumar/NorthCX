@@ -22,6 +22,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
     @app.get("/v1/alerts")
     async def alert_status() -> Any:
         """The alert rules, which are firing now, and recent alert events."""
+        if alerts is not None:
+            await alerts.refresh()
         return alerts.status() if alerts is not None else {"enabled": False}
 
     @app.get("/v1/regression")

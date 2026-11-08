@@ -7,7 +7,7 @@ from northcx.residency import ResidencyError, build_report, parse_policy
 from northcx.crawl_schedule import CrawlScheduler, InMemorySchedules
 from northcx.transcribe import HttpTranscriber
 from northcx.embeddings import EmbeddingIndexer, HttpEmbedder, HybridKnowledge, parse_source_models
-from northcx.db import PgSchedules
+from northcx.db import PgSchedules, PgCrawlJobs
 from northcx.secrets import env_or_file
 from types import SimpleNamespace
 
@@ -42,7 +42,8 @@ def build_optional(c: SimpleNamespace) -> None:
     crawler = crawl_scheduler = None
     if os.environ.get("NORTHCX_CRAWL_HOSTS"):
         try:
-            crawler = Crawler(knowledge_repo, crawl_hosts_from(os.environ["NORTHCX_CRAWL_HOSTS"]), os.environ.get("NORTHCX_CRAWL_ALLOW_PRIVATE") == "1")
+            crawler = Crawler(knowledge_repo, crawl_hosts_from(os.environ["NORTHCX_CRAWL_HOSTS"]), os.environ.get("NORTHCX_CRAWL_ALLOW_PRIVATE") == "1",
+                                jobs_repo=PgCrawlJobs(engine) if db_url else None)
         except ValueError as e:
             sys.exit(str(e))
         print(f"Knowledge crawling is ON for: {', '.join(sorted(crawler.allowed))}.")

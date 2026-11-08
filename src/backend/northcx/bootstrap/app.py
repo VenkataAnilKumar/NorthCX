@@ -66,5 +66,6 @@ def build_app(c: SimpleNamespace) -> Any:
                       templates=load_templates(LIBRARY, *([os.environ["NORTHCX_TEMPLATES_DIR"]] if os.environ.get("NORTHCX_TEMPLATES_DIR") else [])),
                       sms=SmsChannel(runtime, agents, sms_repo, sms_provider, sms_config) if sms_notifier else None,
                       retention_days=float(os.environ["NORTHCX_RETENTION_DAYS"]) if os.environ.get("NORTHCX_RETENTION_DAYS") else None,
-                      email=EmailChannel(runtime, agents, email_repo, email_config) if email_config else None)
+                      email=EmailChannel(runtime, agents, email_repo, email_config) if email_config else None,
+                      role=c.role, leases=c.leases)
     return app

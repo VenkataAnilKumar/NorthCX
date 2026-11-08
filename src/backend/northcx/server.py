@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import asyncio
 import logging
 import re
 import secrets
@@ -69,6 +68,7 @@ from .api.routers import voice as _voice_router
 from .api.routers import public as _public_router
 from .api.routers import chat as _chat_router
 from .api.routers import releases as _releases_router
+from .api.background import start_background
 from .api.helpers import actor, make_guards, rel_error, too_many, version_json
 
 
@@ -212,7 +212,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                insights: InsightsService | None = None, feedback: FeedbackRepo | None = None,
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
                attachments: AttachmentRepo | None = None, attachment_scanner: Scanner | None = None, cors_origins: list[str] | None = None,
-               voice: VoiceConfig | None = None, calls: CallRepo | None = None, crawler: Crawler | None = None) -> FastAPI:
+               voice: VoiceConfig | None = None, calls: CallRepo | None = None, crawler: Crawler | None = None,
+               role: str = "all", leases: Any = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -257,87 +258,10 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        task = flusher = None
-        if runtime.outbox.notifier is not None:  # retry deliveries that failed (email, webhooks) with back-off
-            async def flush_loop() -> None:
-                while True:
-                    await asyncio.sleep(15)
-                    try:
-                        await runtime.outbox.flush()
-                    except Exception:
-                        log.exception("outbox flush failed")
-
-            flusher = asyncio.create_task(flush_loop())
-        if approval_ttl_seconds:  # periodically expire stale approvals and hand those conversations to a person
-            async def sweep() -> None:
-                while True:
-                    await asyncio.sleep(max(1.0, min(60.0, approval_ttl_seconds / 2)))
-                    try:
-                        await flow.expire_stale(agents, approval_ttl_seconds)
-                    except Exception:  # keep sweeping; a failed pass is retried on the next tick
-                        log.exception("approval expiry pass failed")
-
-            task = asyncio.create_task(sweep())
-        export_task = None
-        if runtime.exports is not None:
-            async def export_loop() -> None:
-                while True:
-                    await asyncio.sleep(10)
-                    try:
-                        await runtime.exports.flush(traces)
-                    except Exception:
-                        log.exception("trace export pass failed")
-
-            export_task = asyncio.create_task(export_loop())
-        alert_task = None
-        if alerts is not None:
-            async def alert_loop() -> None:
-                while True:
-                    await asyncio.sleep(60)
-                    try:
-                        await alerts.evaluate()
-                    except Exception:
-                        log.exception("alert evaluation failed")
-
-            alert_task = asyncio.create_task(alert_loop())
-        inbox_task = None
-        if runtime.inbox is not None:
-            async def inbox_loop() -> None:
-                while True:
-                    await asyncio.sleep(10)
-                    try:
-                        await runtime.inbox.flush(runtime.handoffs)
-                    except Exception:
-                        log.exception("inbox delivery pass failed")
-
-            inbox_task = asyncio.create_task(inbox_loop())
-        retention = None
-        if retention_days:  # age out old conversations once an hour
-            async def retain() -> None:
-                while True:
-                    await asyncio.sleep(3600)
-                    try:
-                        r = await privacy.purge_idle(retention_days)
-                        if r["sessions"]:
-                            await audit.append(AuditEntry(actor="system", role="system", key_id=None, action="privacy.retention", target=f"older than {retention_days:g} days",
-                                                          outcome="success", detail=r))
-                    except Exception:
-                        log.exception("retention sweep failed")
-
-            retention = asyncio.create_task(retain())
-        indexer = getattr(kb, "indexer", None)
-        if indexer is not None:
-            indexer.start()
-        if crawl_scheduler is not None:
-            crawl_scheduler.start()
+        stop = start_background(role, leases, runtime=runtime, traces=traces, flow=flow, agents=agents, approval_ttl_seconds=approval_ttl_seconds,
+                                alerts=alerts, privacy=privacy, audit=audit, retention_days=retention_days, kb=kb, crawl_scheduler=crawl_scheduler)
         yield
-        if indexer is not None:
-            await indexer.stop()
-        if crawl_scheduler is not None:
-            await crawl_scheduler.stop()
-        for t in (task, flusher, retention, inbox_task, export_task, alert_task):
-            if t:
-                t.cancel()
+        await stop()
 
     # The interactive API docs are off: they would describe the API to anyone who can reach the server.
     app = FastAPI(title="NorthCX", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)

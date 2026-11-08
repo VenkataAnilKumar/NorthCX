@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (multi-replica)
+- `NORTHCX_ROLE=all|api|worker`: run API replicas and background workers as separate processes. Background jobs take a database lease for each pass so workers never repeat each other's work; firing alerts, alert events and crawl progress now live in the database (migration 0030), so any process shows and continues them. Topology in the Deployment Guide.
+
 ### Added (shared limits)
 - `NORTHCX_LIMITS_BACKEND=postgres` shares rate limits, the abuse burst check and the daily token budget between server processes through two small tables (`rate_counters`, `usage_ledger`, migration 0029). If the database is unreachable each process falls back to its own counters and logs a warning. Default unchanged (per process).
 

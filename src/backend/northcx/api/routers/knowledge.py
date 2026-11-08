@@ -127,12 +127,12 @@ def register(app: FastAPI, d: AppDeps) -> None:
 
     @app.get("/v1/knowledge/crawls")
     async def kb_crawls() -> Any:
-        return {"enabled": crawler is not None, "crawls": crawler.jobs_list() if crawler is not None else []}
+        return {"enabled": crawler is not None, "crawls": await crawler.all_jobs() if crawler is not None else []}
 
     @app.get("/v1/knowledge/crawls/{job_id}")
     async def kb_crawl_status(job_id: str) -> Any:
-        job = crawler.jobs.get(job_id) if crawler is not None else None
-        return job.to_dict() if job is not None else _err(404, "not_found", "Unknown crawl")
+        job = await crawler.job_status(job_id) if crawler is not None else None
+        return job if job is not None else _err(404, "not_found", "Unknown crawl")
 
     @app.get("/v1/knowledge/sources/{source_id}/documents/{external_id:path}")
     async def kb_get_document(source_id: str, external_id: str) -> Any:

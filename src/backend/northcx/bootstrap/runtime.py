@@ -4,7 +4,8 @@ from northcx.assist import AssistService
 from northcx.tokens import derive_secret
 from northcx.channels.email import SmtpSender
 from northcx.summarize import Compactor
-from northcx.db import PgUsageLedger
+from northcx.api.background import ROLES
+from northcx.db import PgLeases, PgUsageLedger
 from northcx.reliability import UsageLedger
 from northcx.verification import InMemoryVerify, OtpService, VerifyConfig
 from northcx.monitor import Monitor
@@ -18,12 +19,23 @@ from typing import Any
 
 def build_runtime(c: SimpleNamespace) -> None:
     """The runtime, one-time-code verification and the assist service."""
+    role = os.environ.get("NORTHCX_ROLE", "all").strip() or "all"
+    if role not in ROLES:
+        sys.exit("NORTHCX_ROLE must be all, api or worker")
+    if role != "all" and not c.db_url:
+        sys.exit(f"NORTHCX_ROLE={role} needs NORTHCX_DATABASE_URL: separate processes can only share work through the database")
     limits_backend = os.environ.get("NORTHCX_LIMITS_BACKEND", "memory").strip() or "memory"
     if limits_backend not in ("memory", "postgres"):
         sys.exit("NORTHCX_LIMITS_BACKEND must be memory or postgres")
     if limits_backend == "postgres" and not c.db_url:
         sys.exit("NORTHCX_LIMITS_BACKEND=postgres needs NORTHCX_DATABASE_URL: the counters live in the database")
     c.limits_backend = limits_backend
+    if role != "all" and limits_backend != "postgres":
+        print("NOTE: with separate API and worker processes also set NORTHCX_LIMITS_BACKEND=postgres, or each process keeps its own rate limits and token budget.")
+    c.role = role
+    c.leases = PgLeases(c.engine) if c.db_url else None
+    if role != "all":
+        print(f"Process role: {role} ({'serves requests only; background jobs run in the worker processes' if role == 'api' else 'runs the background jobs; do not send it customer traffic'}).")
     api_key = c.api_key
     approvals = c.approvals
     context_source = c.context_source

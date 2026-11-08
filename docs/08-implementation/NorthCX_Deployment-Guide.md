@@ -51,6 +51,7 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_WHATSAPP_PHONE_ID`, `NORTHCX_WHATSAPP_TOKEN`, `NORTHCX_WHATSAPP_APP_SECRET`, `NORTHCX_WHATSAPP_VERIFY_TOKEN` (each secret also as `_FILE`), `NORTHCX_WHATSAPP_AGENT`, `NORTHCX_WHATSAPP_MAX_REPLIES_PER_HOUR`, `NORTHCX_WHATSAPP_API_URL` | WhatsApp channel through the Meta Cloud API. Register `https://<host>/channels/whatsapp/meta` as the webhook with the verify token; incoming calls must carry the app secret signature. See the Channels document | off |
 | `NORTHCX_WHATSAPP_AGENTS`, `NORTHCX_WHATSAPP_TEMPLATES`, `NORTHCX_WHATSAPP_OPTIN_FILE` | More WhatsApp settings: an agent per phone number id (several ids are allowed in `NORTHCX_WHATSAPP_PHONE_ID`), the approved template names you may send with their language, and a file of people who opted in and may receive a template before they have messaged you. See the Channels document | one number, no templates |
 | `NORTHCX_TELEGRAM_TOKEN`, `NORTHCX_TELEGRAM_SECRET` (each also as `_FILE`), `NORTHCX_TELEGRAM_AGENT`, `NORTHCX_TELEGRAM_MAX_REPLIES_PER_HOUR`, `NORTHCX_TELEGRAM_API_URL` | Telegram bot channel. Register `https://<host>/channels/telegram/webhook` with `setWebhook` and `secret_token` set to the secret; every call must carry it | off |
+| `NORTHCX_ROLE` | `all`, `api` or `worker`. `all` serves requests and runs the background jobs (outbox retries, approval expiry, trace export, alert evaluation, human-inbox delivery, retention, meaning-search indexing, crawl schedules). `api` serves requests only; `worker` runs the jobs only and should not receive customer traffic (it still answers `/ready`). Each job pass takes a database lease first, so several workers never repeat one another's work and a worker that dies lets its lease expire. `api` and `worker` need `NORTHCX_DATABASE_URL`, and `NORTHCX_LIMITS_BACKEND=postgres` is advised | `all` |
 | `NORTHCX_LIMITS_BACKEND` | `memory` or `postgres`. With `postgres`, rate limits, the abuse burst check and the daily token budget are counted in the database, so several server processes share one limit (fixed one-minute windows; if the database is unreachable each process falls back to its own counters and logs a warning, never to no limit). Needs `NORTHCX_DATABASE_URL`; costs one small database write per limited request | `memory` |
 | `NORTHCX_ROUTING_FILE` | YAML file with business hours, holidays, time zone and hand-off queues (see Handoff and Approvals Spec) | one always-open queue |
 | `NORTHCX_TRANSCRIBE_URL`, `NORTHCX_TRANSCRIBE_MODEL`, `NORTHCX_TRANSCRIBE_API_KEY` (`_FILE`) | Speech-to-text for building agents from call recordings. Any service with the common `POST <url>/audio/transcriptions` API (hosted, or one you run so audio stays in your network); https only (http for localhost). Recordings (mp3, wav, ogg, flac, m4a, webm, up to 25 MB) are sent there and not stored. Reported in the residency report | off |
@@ -130,6 +131,32 @@ Health endpoint, structured logs, alerts on error rate and model latency, regula
 ## Capacity
 
 See `NorthCX_Performance.md`: about 50 conversation turns per second per server process with Postgres on a small machine, scaling with the number of processes; use `python -m northcx.loadtest` against your own deployment before launch.
+
+## Running several processes
+
+One process (`NORTHCX_ROLE=all`, the default) is enough for a small deployment. To scale out or to keep background work off the request path:
+
+```
+customers / Studio ──► load balancer / proxy ──► API replicas  (NORTHCX_ROLE=api,    N copies)
+                                                    │
+                                                    ▼
+                                              Postgres (+ a connection pooler for many replicas)
+                                                    ▲
+                                                    │
+                                                 workers      (NORTHCX_ROLE=worker, 1 to 3 copies; no customer traffic)
+```
+
+Every process needs the same `NORTHCX_DATABASE_URL`, `NORTHCX_API_KEY` (or `NORTHCX_TOKEN_SECRET`, so chat tokens work on every replica), agent and scenario files, and `NORTHCX_LIMITS_BACKEND=postgres`. What the roles do:
+
+| Work | Where it runs | How duplicates are avoided |
+|---|---|---|
+| Serving requests (chat, Studio, webhooks, channels) | `api` and `all` | The processes keep no conversation state; everything is in the database |
+| Outbox retries, approval expiry, trace export, alert evaluation, human-inbox delivery, retention | `worker` and `all` | Each pass takes a database lease for that job (`job_leases`), runs, and gives it back; a worker that dies lets the lease expire (two minutes) and another takes over |
+| Meaning-search indexing, crawl schedules | `worker` and `all` | Writes are idempotent, and schedules are claimed atomically |
+| Alert state, alert events, crawl progress | The database | Any process shows and continues them |
+| Rate limits, abuse burst check, daily token budget | The database | `NORTHCX_LIMITS_BACKEND=postgres` |
+
+Things to know. Chat turns that ask a person to approve something wait in the database, so any replica can finish them. A crawl runs in the process that was asked to start it (an API replica when you start one from Studio) and reports progress to the database; if that process stops, its crawl stops and the job shows as running until its heartbeat goes stale after five minutes. Give workers the `/ready` check but no route from the load balancer. `tests/test_multi_replica.py` starts two API replicas and two workers against one database as part of the normal backend test run.
 
 ## Behind a reverse proxy
 
