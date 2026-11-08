@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (webhook tester)
+- `POST /v1/events/test` sends a signed sample event to the configured events webhook and reports whether the receiver accepted it (marked as a test, not stored or retried, audited, six a minute per key).
+
 ### Added (API reference)
 - Generated API reference: `docs/api/openapi.json` and `docs/api/index.html`, built from the application's own schema with the permission each route needs; tests keep it in step with the code.
 

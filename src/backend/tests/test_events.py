@@ -149,3 +149,60 @@ def test_the_api_lists_types_and_polls_events_including_ratings_and_key_changes(
 def test_without_events_configured_the_feed_says_so():
     c, _ = api(events=False)
     assert c.get("/v1/events", headers=H).status_code == 501 and c.get("/v1/events/types", headers=H).json()["enabled"] is False
+
+
+# ---------- WP0.8: webhook tester ----------
+def api_with_webhook(handler, role_key=None):
+    c, feed = api()
+    feed.webhook = EventWebhook("https://hooks.example.com/e", SECRET, client=httpx.AsyncClient(transport=httpx.MockTransport(handler)), backoff=0)
+    return c, feed
+
+
+def test_a_test_event_is_signed_marked_as_a_test_and_audited_but_not_stored():
+    seen = []
+
+    def handler(req):
+        seen.append((req.headers["x-northcx-timestamp"], req.content, req.headers["x-northcx-signature"], req.headers["x-northcx-event"], req.headers["x-northcx-test"]))
+        return httpx.Response(200, text="secret receiver body")
+    c, feed = api_with_webhook(handler)
+    r = c.post("/v1/events/test", json={"type": "handoff.created"}, headers=H)
+    assert r.status_code == 200 and r.json()["status"] == "sent" and r.json()["httpStatus"] == 200 and r.json()["type"] == "handoff.created"
+    assert "secret receiver body" not in r.text  # the receiver's answer is never echoed back
+    ts, body, sig, ev, flag = seen[0]
+    assert verify(SECRET, ts, body, sig) and ev == "handoff.created" and flag == "1"
+    sent = json.loads(body)
+    assert sent["test"] is True and sent["type"] == "handoff.created" and sent["data"]["test"] is True and sent["sessionId"] is None
+    assert c.get("/v1/events", headers=H).json()["events"] == []  # not in the feed, so pollers never see a sample
+    audit = c.get("/v1/audit", headers=H).json()
+    assert any(e["action"] == "events.test" and e["target"] == "handoff.created" for e in audit["entries"])
+
+
+def test_a_receiver_that_refuses_or_is_unreachable_is_reported_plainly():
+    c, _ = api_with_webhook(lambda req: httpx.Response(500))
+    r = c.post("/v1/events/test", json={"type": "alert.fired"}, headers=H).json()
+    assert r["status"] == "failed" and r["httpStatus"] == 500 and "500" in r["error"]
+
+    def boom(req):
+        raise httpx.ConnectError("no route")
+    c, _ = api_with_webhook(boom)
+    r = c.post("/v1/events/test", json={"type": "alert.fired"}, headers=H).json()
+    assert r["status"] == "failed" and r["httpStatus"] is None and "Could not reach" in r["error"]
+
+
+def test_the_tester_checks_its_input_the_configuration_the_role_and_the_rate():
+    c, _ = api_with_webhook(lambda req: httpx.Response(200))
+    assert c.post("/v1/events/test", json={"type": "not.an.event"}, headers=H).status_code == 400
+    assert c.post("/v1/events/test", json={}, headers=H).status_code == 400
+    assert c.post("/v1/events/test", json={"type": "alert.fired"}).status_code == 401
+    codes = [c.post("/v1/events/test", json={"type": "alert.fired"}, headers=H).status_code for _ in range(8)]
+    assert codes[:6] == [200] * 6 and codes[-1] == 429  # at most six a minute per key
+    unconfigured, _ = api()  # events on, but no webhook address
+    assert unconfigured.post("/v1/events/test", json={"type": "alert.fired"}, headers=H).status_code == 501
+    none, _ = api(events=False)
+    assert none.post("/v1/events/test", json={"type": "alert.fired"}, headers=H).status_code == 501
+
+
+def test_only_a_key_manager_can_send_a_test_event():
+    c, _ = api_with_webhook(lambda req: httpx.Response(200))
+    viewer = c.post("/v1/keys", json={"name": "v", "role": "viewer"}, headers=H).json()["key"]
+    assert c.post("/v1/events/test", json={"type": "alert.fired"}, headers={"authorization": f"Bearer {viewer}"}).status_code == 403

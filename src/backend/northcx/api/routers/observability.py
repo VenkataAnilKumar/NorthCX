@@ -7,16 +7,19 @@ from fastapi import FastAPI, Request
 
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
+from northcx.api.models import EventTestBody
 from northcx.events import EVENTS
 
 
 def register(app: FastAPI, d: AppDeps) -> None:
+    access = d.access
     alerts = d.alerts
     events = d.events
     record = d.record
     regression = d.regression
     residency = d.residency
     runtime = d.runtime
+    too_many = d.too_many
     traces = d.traces
 
     @app.get("/v1/alerts")
@@ -34,6 +37,22 @@ def register(app: FastAPI, d: AppDeps) -> None:
     @app.get("/v1/events/types")
     async def event_types() -> Any:
         return {"enabled": events is not None, "types": [{"type": k, "description": v, "subscribed": events is not None and k in events.types} for k, v in EVENTS.items()]}
+
+    @app.post("/v1/events/test")
+    async def event_test(body: EventTestBody, request: Request) -> Any:
+        """Sends one signed sample event of the given type to the configured events webhook and reports whether the receiver accepted it.
+        Nothing is stored or retried, and the sample is marked `test`."""
+        webhook = getattr(events, "webhook", None) if events is not None else None
+        if webhook is None:
+            return _err(501, "not_configured", "Status events are not configured: set NORTHCX_EVENTS_WEBHOOK_URL (and NORTHCX_EVENTS_WEBHOOK_SECRET)")
+        if body.type not in EVENTS:
+            return _err(400, "bad_request", "Unknown event type; see GET /v1/events/types")
+        who = request.state.identity
+        if not (await access.limiter.hit(f"events-test:{who.key_id or 'open'}", 6))[0]:
+            return too_many(60, "event tests")
+        result = await webhook.send_test(body.type)
+        await record(request, "events.test", body.type, outcome="success" if result["status"] == "sent" else "failure", delivery=result["status"])
+        return {"type": body.type, **result}
 
     @app.get("/v1/events")
     async def event_feed(after: int = 0, limit: int = 100) -> Any:

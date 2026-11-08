@@ -56,6 +56,7 @@ def build_notifiers(c: SimpleNamespace) -> None:
 
         notifier = CompositeNotifier(*[n for n in (notifier, sms_notifier) if n])
     event_types = None
+    ev_hook = None
     if os.environ.get("NORTHCX_EVENTS_WEBHOOK_URL"):
         ev_secret = env_or_file("NORTHCX_EVENTS_WEBHOOK_SECRET")
         if not ev_secret or len(ev_secret) < 16:
@@ -113,6 +114,7 @@ def build_notifiers(c: SimpleNamespace) -> None:
         notifier = CompositeNotifier(*[n for n in (notifier, TelegramNotifier(sms_repo, tg_provider, tg_config)) if n])
     c.email_config = email_config
     c.event_types = event_types
+    c.events_webhook = ev_hook
     c.notifier = notifier
     c.sms_config = sms_config
     c.sms_notifier = sms_notifier

@@ -105,6 +105,7 @@
   "POST /v1/channels/email/inbound": "/v1/channels/email/inbound -> email_inbound",
   "POST /v1/channels/whatsapp/templates/send": "/v1/channels/whatsapp/templates/send -> whatsapp_template",
   "POST /v1/chat-tokens": "/v1/chat-tokens -> mint_chat_token",
+  "POST /v1/events/test": "/v1/events/test -> event_test",
   "POST /v1/handoffs/x/assist": "/v1/handoffs/{handoff_id}/assist -> handoff_assist",
   "POST /v1/handoffs/x/reply": "/v1/handoffs/{handoff_id}/reply -> handoff_reply",
   "POST /v1/handoffs/x/resolve": "/v1/handoffs/{handoff_id}/resolve -> resolve_handoff",
@@ -658,6 +659,11 @@
    "POST",
    "/v1/chat-tokens",
    "mint_chat_token"
+  ],
+  [
+   "POST",
+   "/v1/events/test",
+   "event_test"
   ],
   [
    "POST",

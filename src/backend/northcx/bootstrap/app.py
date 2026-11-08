@@ -54,6 +54,8 @@ def build_app(c: SimpleNamespace) -> Any:
     wa_provider = c.wa_provider
     wa_templates = c.wa_templates
     event_feed = EventFeed(runtime.outbox, event_types) if event_types is not None else None
+    if event_feed is not None:
+        event_feed.webhook = c.events_webhook
     if event_feed is not None and alert_manager is not None:
         alert_manager.feed = event_feed
     print(f"NorthCX {__version__}")

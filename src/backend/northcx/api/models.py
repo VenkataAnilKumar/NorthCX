@@ -70,6 +70,10 @@ class TemplateSendBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class EventTestBody(BaseModel):
+    type: str = Field(max_length=60)
+
+
 class EnabledBody(BaseModel):
     enabled: bool
 

@@ -9,16 +9,13 @@ Status: Snapshot (2026-11-05). A one-page summary of where the project stands an
 - **Verification:** more than 1,300 backend tests plus Studio and SDK tests; a clean-checkout run of the install, tests and builds.
 
 ## Wave 0: finish 1.0 (started)
-**Done so far:** web split into apps and shared packages; WP0.1 router split (132 routes in 21 modules, `server.py` 2,516 to about 500 lines) and store split, guarded by a golden route-dispatch snapshot and a layout test.
+**Done so far in Wave 0 (2026-11-08):** WP0.1 router, bootstrap and store split (guarded by a golden route-dispatch snapshot and a layout test); WP0.2 design tokens in the shared UI package; WP0.3 hash-pinned backend dependencies with an audit job; WP0.4 shared rate limits, burst check and token budget (`NORTHCX_LIMITS_BACKEND=postgres`); WP0.5 several processes (`NORTHCX_ROLE`, job leases, shared alert and crawl state); WP0.6 PDFs as masked text; WP0.7 generated API reference; WP0.8 webhook tester. The backend suite has 1,387 tests.
 
 **Still to do in Wave 0:**
-Groundwork that can be built and verified here:
-- WP0.1 to WP0.7 are done; next is WP0.8 (webhook tester); WP0.9 to WP0.12 need CI, an API key or the owner.
-- Lock dependencies.
-- Make rate limits shared across processes, and make the API ready for several replicas.
-- Add a masked-text option for PDFs.
-- Publish the API reference.
-- Add a webhook tester.
+- WP0.9 first CI run on GitHub and a container build (the CI changes made so far have never run).
+- WP0.10 the "resolved" metric and PRD scope wording (needs your decisions).
+- WP0.11 live-model pass (needs an Anthropic API key).
+- WP0.12 penetration test, the `v1.0.0-rc.1` tag and the 1.0.0 release (you).
 
 Items only the owner or an outside party can do:
 - The live-model pass (needs an API key) and judge calibration.

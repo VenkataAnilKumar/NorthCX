@@ -2441,6 +2441,49 @@
         ]
       }
     },
+    "/v1/events/test": {
+      "post": {
+        "summary": "Event Test",
+        "description": "Sends one signed sample event of the given type to the configured events webhook and reports whether the receiver accepted it.\nNothing is stored or retried, and the sample is marked `test`.",
+        "operationId": "event_test_v1_events_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventTestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Event Test V1 Events Test Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "events"
+        ]
+      }
+    },
     "/v1/events/types": {
       "get": {
         "summary": "Event Types",
@@ -6565,6 +6608,20 @@
           "enabled"
         ],
         "title": "EnabledBody"
+      },
+      "EventTestBody": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "EventTestBody"
       },
       "ExpireBody": {
         "properties": {

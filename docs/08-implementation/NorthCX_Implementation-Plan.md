@@ -109,6 +109,7 @@ New attachment mode: extract PDF text, mask personal data, send the text instead
 
 ### WP0.8 Webhook tester (size S, V)
 `POST /v1/events/test` sends a signed sample of any event type to the configured events webhook and reports the receiver's answer; audited; rate limited.
+**Status (2026-11-08):** done: `POST /v1/events/test` with `{"type": "<event type>"}` (permission `keys:manage`, six a minute per key, audited as `events.test`) sends one signed sample to the configured address and secret, marked `test` in the body (`"test": true`) and in the `x-northcx-test: 1` header, once, not stored, not retried, not in the feed; it returns `status`, the receiver's HTTP status and the time taken, and an error sentence if it failed, never the receiver's answer. 501 without an events webhook, 400 for an unknown type. 4 tests; the route snapshot, route reference and API reference were regenerated (133 routes).
 
 ### WP0.9 First CI run and container build (size S, X)
 Push, then read the first GitHub run: the pgvector database service, the SDK job, the workspace web job, the compose stack job (images build and the demo starts). Fix what fails; record the result in the release checklist. **Needs:** the repository's Actions enabled.
@@ -327,7 +328,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [x] WP0.5 multi-replica readiness
 - [x] WP0.6 masked-text PDF path
 - [x] WP0.7 generated API reference
-- [ ] WP0.8 webhook tester
+- [x] WP0.8 webhook tester
 - [ ] WP0.9 first CI run and container build
 - [ ] WP0.10 resolved metric and PRD scope
 - [ ] WP0.11 live-model pass and judge calibration (needs key)

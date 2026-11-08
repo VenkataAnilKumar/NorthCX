@@ -64,6 +64,7 @@ class EventFeed:
     def __init__(self, outbox: Outbox, types: set[str] | None = None):
         self.outbox = outbox
         self.types = set(types) if types else set(EVENTS)
+        self.webhook: Any = None  # the EventWebhook, so a test call can use exactly the configured address and secret
 
     async def emit(self, type_: str, data: dict[str, Any] | None = None, session_id: str | None = None) -> None:
         """Never raises: a problem with the feed must not break the thing that happened."""
@@ -103,6 +104,26 @@ class EventWebhook(WebhookNotifier):
     def __init__(self, *a: Any, types: set[str] | None = None, **kw: Any):
         super().__init__(*a, **kw)
         self.types = set(types) if types else set(EVENTS)
+
+    async def send_test(self, type_: str, now: float | None = None) -> dict[str, Any]:
+        """One signed sample event, sent right now to the configured address, marked as a test. It is not stored, not retried and does not
+        appear in the feed. Returns what happened (the receiver's status code and how long it took), never the receiver's answer."""
+        import json
+        import time
+        import httpx
+        from .notify import sign
+        began = time.monotonic()
+        ts = str(int(now if now is not None else time.time()))
+        body = json.dumps({"id": 0, "type": type_, "createdAt": float(ts), "sessionId": None, "test": True,
+                           "data": {"test": True, "note": "A sample event from NorthCX. Nothing happened.", "description": EVENTS.get(type_, "")}}, sort_keys=True).encode()
+        try:
+            r = await self._client.post(self.url, content=body, headers={"content-type": "application/json", "x-northcx-timestamp": ts, "x-northcx-signature": sign(self.secret, ts, body),
+                                                                         "x-northcx-event": type_, "x-northcx-test": "1"})
+            ok = r.status_code < 300
+            return {"status": "sent" if ok else "failed", "httpStatus": r.status_code, "milliseconds": round((time.monotonic() - began) * 1000),
+                    **({} if ok else {"error": f"The receiver answered {r.status_code}"})}
+        except httpx.HTTPError as e:
+            return {"status": "failed", "httpStatus": None, "milliseconds": round((time.monotonic() - began) * 1000), "error": f"Could not reach the receiver ({type(e).__name__})"}
 
     async def deliver(self, message: OutboxMessage) -> None:
         if not message.kind.startswith(KIND) or message.kind[len(KIND):] not in self.types:
