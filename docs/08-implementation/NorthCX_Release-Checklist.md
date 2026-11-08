@@ -3,7 +3,7 @@
 Status: working checklist. Items marked **you** need a person or a live model; the rest were verified from a clean clone of the repository.
 
 ## Verified from a clean checkout (no local state)
-- [x] `pip install -e ".[dev]"` in `src/backend` succeeds; the full backend suite passes against local Postgres with pgvector (`NORTHCX_REQUIRE_DB=1`).
+- [x] `pip install --require-hashes -r requirements-dev.lock && pip install --no-deps -e .` in `src/backend` succeeds; the full backend suite passes against local Postgres with pgvector (`NORTHCX_REQUIRE_DB=1`).
 - [x] `src/sdk`: `npm ci`, tests and `npm run build` pass; the widget bundle is produced.
 - [x] `src` (the web workspace: Studio and the shared packages): `npm ci`, type-check, tests and `next build` pass.
 - [x] `docker compose config` is valid with the values from `.env.example` filled in; the stack uses `pgvector/pgvector:pg16`.

@@ -112,7 +112,7 @@ Disposition: **M** mitigated, **A** accepted with the residual noted, **T** tran
 ### Supply chain and build
 | # | Threat | Handling | Disp. |
 |---|---|---|---|
-| B1 | Vulnerable dependencies | `pip-audit` and `npm audit` clean at review; lock files for the web console and SDK; the backend has version floors, not a lock file | A |
+| B1 | Vulnerable dependencies | `pip-audit` and `npm audit` clean at review; hash-pinned lock files for the backend (`requirements.lock`, `requirements-dev.lock`, made by `scripts/lock.sh`), the web workspace and the SDK; CI installs from them with hashes required, a test fails when a lock is older than `pyproject.toml`, and a CI job runs `pip-audit` on both locks | M |
 | B2 | Compromised build | Images run as an unprivileged user with health checks; no secrets in images; licence and restricted-path checks in CI | M |
 
 ## Accepted residual risks (owner: the operator unless stated)
@@ -121,7 +121,7 @@ Disposition: **M** mitigated, **A** accepted with the residual noted, **T** tran
 2. **Pictures and PDFs reach the model unmasked and may carry hidden instructions** (C2, D6): enable per agent only where acceptable.
 3. **Rate limits and daily budgets are per process** (A2, A3): with several replicas the effective limit is multiplied; put a shared limit at the proxy.
 4. **No multi-factor authentication for API keys**: use SSO (the identity provider supplies MFA) for people; keep API keys for machines.
-5. **Backend dependencies are not locked**: pin them in your build.
+5. ~~Backend dependencies are not locked~~ — closed in WP0.3: the container image and CI install from hash-pinned lock files. Remaining for the operator: re-lock and re-audit regularly (`scripts/lock.sh --upgrade`), since a lock only fixes versions, it does not keep them current.
 6. **Behind a reverse proxy**, set uvicorn's `FORWARDED_ALLOW_IPS` to the proxy address, otherwise every client appears to have the proxy's address and per-address limits apply to everyone at once.
 7. **Not independently tested**: no external penetration test has been done; the review was done by the authors with automated scans and tests. Commission one before exposing the service to the public internet.
 8. **Telephony fraud and denial of service** are limited by the bridge, not NorthCX.

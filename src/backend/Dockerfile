@@ -1,9 +1,11 @@
 # NorthCX backend. Build context: src/backend
 FROM python:3.12-slim AS build
 WORKDIR /src
-COPY pyproject.toml ./
+COPY pyproject.toml requirements.lock ./
+# Every dependency comes from the hash-pinned lock (scripts/lock.sh); the project itself is installed without resolving anything.
+RUN pip install --no-cache-dir --prefix=/install --require-hashes -r requirements.lock
 COPY northcx ./northcx
-RUN pip install --no-cache-dir --prefix=/install .
+RUN pip install --no-cache-dir --prefix=/install --no-deps .
 
 FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app PORT=3000

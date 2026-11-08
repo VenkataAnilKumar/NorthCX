@@ -4,7 +4,7 @@ Thank you for helping. This page is the short version; the long one is [`docs/09
 
 ## Set up
 ```bash
-cd src/backend && python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
+cd src/backend && python -m venv .venv && . .venv/bin/activate && pip install --require-hashes -r requirements-dev.lock && pip install --no-deps -e .
 NORTHCX_REQUIRE_DB=1 python -m pytest        # needs Postgres 16 (docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres)
 cd ../web && npm ci && npm test && npx tsc --noEmit
 cd ../sdk && npm ci && npm test              # then `npm run build` if you changed src/sdk/src: the built bundle is committed and a test checks it

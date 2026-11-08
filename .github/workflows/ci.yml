@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install -e "src/backend[dev]"
+      - run: pip install --require-hashes -r src/backend/requirements-dev.lock && pip install --no-deps -e src/backend
       - run: python -m pytest -q
         working-directory: src/backend
       - name: Scenario simulations (required scenarios gate the build)
@@ -31,6 +31,16 @@ jobs:
         working-directory: src/backend
         env:
           NORTHCX_DATABASE_URL: postgresql://northcx:northcx@localhost:5432/northcx_test
+  audit:
+    # Known-vulnerability check on exactly what is pinned (the container image's runtime lock and the CI lock).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pip-audit
+      - run: pip-audit --require-hashes --disable-pip -r src/backend/requirements.lock
+      - run: pip-audit --require-hashes --disable-pip -r src/backend/requirements-dev.lock
   web:
     runs-on: ubuntu-latest
     steps:

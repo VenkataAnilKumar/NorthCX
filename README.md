@@ -185,7 +185,7 @@ Versions are immutable, tested by scenarios, and released through a gate. See [`
 
 ```bash
 # backend
-cd src/backend && python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
+cd src/backend && python -m venv .venv && . .venv/bin/activate && pip install --require-hashes -r requirements-dev.lock && pip install --no-deps -e .
 python -m pytest        # Postgres-backed tests are skipped without a database (NORTHCX_REQUIRE_DB=1 makes them fail instead)
 NORTHCX_DEMO=1 NORTHCX_API_KEY=$(python -c "import secrets;print(secrets.token_urlsafe(32))") python -m northcx     # http://localhost:3000
 # Postgres storage: add NORTHCX_DATABASE_URL=postgresql://northcx:northcx@localhost:5432/northcx (migrations run at start;
