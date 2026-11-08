@@ -1,6 +1,6 @@
 # NorthCX Project Status and Plan
 
-Status: Snapshot (2026-11-05). A one-page summary of where the project stands and what is planned. The detail lives in `NorthCX_Release-Checklist.md` (finishing 1.0) and `NorthCX_Gap-Closure-Plan.md` (after 1.0). Update this page when a wave ships or a decision is made.
+Status: Snapshot (2026-11-08). A one-page summary of where the project stands and what is planned. The detail lives in `NorthCX_Release-Checklist.md` (finishing 1.0) and `NorthCX_Gap-Closure-Plan.md` (after 1.0). Update this page when a wave ships or a decision is made.
 
 ## Done
 - **Phases 1 to 6 are complete:** the agent engine, safety, approvals, simulations and releases, Studio, six channels (web, email, SMS, WhatsApp, Telegram, voice), knowledge, analytics, identity checks, abuse detection, status events and data residency.
@@ -22,6 +22,9 @@ Items only the owner or an outside party can do:
 - The independent penetration test.
 - Pushing the `v1.0.0-rc.1` tag.
 - Cutting 1.0.0.
+
+## Wave 1 (started 2026-11-08)
+E1 model providers: WP1.1 (provider layer, `provider:model` names, capability checks) and WP1.2 (Claude as an adapter, SDK and direct HTTPS clients) are done; next WP1.3 (OpenAI-compatible adapter). The backend suite has 1,413 tests.
 
 ## After 1.0 (from the gap analysis)
 | Release | Contents |
