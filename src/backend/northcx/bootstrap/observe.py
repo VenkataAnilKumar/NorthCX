@@ -8,6 +8,17 @@ from northcx.secrets import env_or_file
 from types import SimpleNamespace
 
 
+def _window_days() -> float:
+    raw = os.environ.get("NORTHCX_RESOLUTION_WINDOW_DAYS", "").strip()
+    try:
+        days = float(raw) if raw else 3.0
+    except ValueError:
+        sys.exit("NORTHCX_RESOLUTION_WINDOW_DAYS must be a number of days between 0.5 and 30")
+    if not 0.5 <= days <= 30:
+        sys.exit("NORTHCX_RESOLUTION_WINDOW_DAYS must be a number of days between 0.5 and 30")
+    return days
+
+
 def build_observability(c: SimpleNamespace) -> None:
     """Regression reruns, insights and alerts."""
     demo = c.demo
@@ -25,7 +36,8 @@ def build_observability(c: SimpleNamespace) -> None:
             sys.exit("NORTHCX_RERUN_ON_KNOWLEDGE=live needs a real model (not the demo)")
         regression = RegressionRunner(simulations, monitor_repo, rerun, debounce=float(os.environ.get("NORTHCX_RERUN_DEBOUNCE_SECONDS", 60)))
     insights_service = InsightsService(insights_source or InMemoryInsightsSource(runtime, feedback_repo),
-                                       float(os.environ["NORTHCX_PRICE_PER_MILLION_TOKENS"]) if os.environ.get("NORTHCX_PRICE_PER_MILLION_TOKENS") else None)
+                                       float(os.environ["NORTHCX_PRICE_PER_MILLION_TOKENS"]) if os.environ.get("NORTHCX_PRICE_PER_MILLION_TOKENS") else None,
+                                       resolution_window_days=_window_days())
     alert_manager = None
     if os.environ.get("NORTHCX_ALERTS", "on") != "off":
         try:

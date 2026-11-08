@@ -9,12 +9,11 @@ Status: Snapshot (2026-11-05). A one-page summary of where the project stands an
 - **Verification:** more than 1,300 backend tests plus Studio and SDK tests; a clean-checkout run of the install, tests and builds.
 
 ## Wave 0: finish 1.0 (started)
-**Done so far in Wave 0 (2026-11-08):** WP0.1 router, bootstrap and store split (guarded by a golden route-dispatch snapshot and a layout test); WP0.2 design tokens in the shared UI package; WP0.3 hash-pinned backend dependencies with an audit job; WP0.4 shared rate limits, burst check and token budget (`NORTHCX_LIMITS_BACKEND=postgres`); WP0.5 several processes (`NORTHCX_ROLE`, job leases, shared alert and crawl state); WP0.6 PDFs as masked text; WP0.7 generated API reference; WP0.8 webhook tester. The backend suite has 1,387 tests.
+**Done so far in Wave 0 (2026-11-08):** WP0.1 router, bootstrap and store split (guarded by a golden route-dispatch snapshot and a layout test); WP0.2 design tokens in the shared UI package; WP0.3 hash-pinned backend dependencies with an audit job; WP0.4 shared rate limits, burst check and token budget (`NORTHCX_LIMITS_BACKEND=postgres`); WP0.5 several processes (`NORTHCX_ROLE`, job leases, shared alert and crawl state); WP0.6 PDFs as masked text; WP0.7 generated API reference; WP0.8 webhook tester; WP0.9 confirmed from GitHub CI; WP0.10 provisional resolution rate and post-1.0 scope wording.
 
 **CI (checked 2026-11-08):** GitHub Actions has run on every push; the latest run (WP0.8) passed all seven jobs, including the container build and compose smoke test and the dependency audit, so WP0.9 is done.
 
 **Still to do in Wave 0:**
-- WP0.10 the "resolved" metric and PRD scope wording (needs your decisions).
 - WP0.11 live-model pass (needs an Anthropic API key).
 - WP0.12 penetration test, the `v1.0.0-rc.1` tag and the 1.0.0 release (you).
 

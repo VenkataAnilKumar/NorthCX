@@ -19,6 +19,7 @@ from .types import LLM, LLMRequest
 # metric -> (label, kind, path in the overview result). Kinds: rate (0-1), count, number, seconds, money, rating.
 METRICS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "containment_rate": ("Containment rate", "rate", ("containmentRate", "value")),
+    "resolution_rate": ("Resolution rate (provisional)", "rate", ("resolutionRate", "value")),
     "escalation_rate": ("Escalation rate", "rate", ("escalationRate", "value")),
     "approval_rate": ("Share of turns needing approval", "rate", ("approvalRate", "value")),
     "guardrail_block_rate": ("Guardrail block rate", "rate", ("guardrailBlockRate", "value")),

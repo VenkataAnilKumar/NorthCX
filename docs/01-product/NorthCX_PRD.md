@@ -11,8 +11,12 @@ Status: Draft. Requirement IDs are FR1-FR34; feature IDs (A, R, T, S, H, C, K, Q
 ## 2. Non-goals (v1)
 Hosted multi-tenant service, outcome-based billing, general-purpose autonomous agents, helpdesk replacement.
 
+**After 1.0 (decided 2026-11-08):** multi-tenancy and the staff workspace move into scope after 1.0 (see `08-implementation/NorthCX_Implementation-Plan.md`); they remain out of scope for 1.0 itself. Outcome-based billing stays a non-goal until the open-versus-commercial decision (D1) is made. These stay non-goals: general-purpose autonomous agents and replacing the helpdesk. NorthCX agents are supervised and permission-bound.
+
 ## 3. Definition of "resolved"
 A conversation is resolved when it ends with status `completed`, the customer confirms the outcome or does not contact again about the same issue within a window (default 3 days, to validate), and no handoff or reopen occurred.
+
+**Provisional implementation (2026-11-08):** the platform reports a *resolution rate* beside containment, labelled provisional. A conversation counts as resolved when its last turn ended `completed`, it never reached a person, and nothing more was said in it for the window (default 3 days, `NORTHCX_RESOLUTION_WINDOW_DAYS`). Conversations still inside the window are pending and left out of the rate. A customer returning in a *new* conversation is not yet detected (turns carry no customer link), so the figure can overstate resolution; customer confirmation is not used. The definition stays provisional until validated on pilot data.
 
 ## 4. Functional requirements
 Priority P0/P1/P2. "Done when" is the acceptance test.
@@ -85,4 +89,4 @@ Model provider; customer-system APIs; telephony/messaging providers; database; c
 | Metrics are guesses | Medium | Pilot measurement before committing targets |
 
 ## 10. Open questions
-Resolution window length; which channels first for pilots; Studio build vs adopt; project licence.
+Resolution window length (3 days is the provisional default); which channels first for pilots; Studio build vs adopt; project licence.

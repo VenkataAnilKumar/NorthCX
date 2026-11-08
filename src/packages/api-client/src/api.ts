@@ -179,7 +179,7 @@ export async function chatStream(agentId: string, sessionId: string, message: st
 export interface Ratio { value: number | null; numerator: number; denominator: number }
 export interface Overview {
   period: { from: number; to: number }; conversations: number; turns: number; environment: string; truncated: boolean; note: string;
-  containmentRate: Ratio; escalationRate: Ratio; approvalRate: Ratio; guardrailBlockRate: Ratio; toolErrorRate: Ratio; errorRate: Ratio; fallbackModelRate: Ratio;
+  containmentRate: Ratio; resolutionRate: Ratio & { pending: number; windowDays: number; provisional: boolean }; escalationRate: Ratio; approvalRate: Ratio; guardrailBlockRate: Ratio; toolErrorRate: Ratio; errorRate: Ratio; fallbackModelRate: Ratio;
   latencySeconds: { p50: number | null; p95: number | null; samples: number };
   tokens: { total: number; perConversation: number | null; modelCalls: number };
   handoffs: { total: number; byTrigger: Record<string, number>; byQueue: Record<string, number>; byTopic: Record<string, number> };

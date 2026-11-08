@@ -43,7 +43,7 @@ def test_metrics_report_numerators_denominators_and_period():
     assert m["handoffs"]["byTrigger"] == {"agent_handoff": 1, "step_limit": 1} and m["handoffs"]["byQueue"] == {"billing": 1, "general": 1} and m["handoffs"]["byTopic"] == {"legal": 1}
     assert m["satisfaction"]["average"] == 4.0 and m["satisfaction"]["responses"] == 2  # feedback for conversations outside the period is not counted
     assert m["satisfaction"]["responseRate"]["denominator"] == 3 and m["satisfaction"]["distribution"] == {"1": 0, "2": 0, "3": 1, "4": 0, "5": 1}
-    assert m["latencySeconds"]["p50"] == 1.0 and m["tools"] == {"used": {"lookup_order": 2}, "errors": {"lookup_order": 1}} and "not a resolution rate" in m["note"]
+    assert m["latencySeconds"]["p50"] == 1.0 and m["tools"] == {"used": {"lookup_order": 2}, "errors": {"lookup_order": 1}} and "provisional" in m["note"]
 
 
 def test_empty_periods_are_honest_not_zero():
@@ -276,3 +276,33 @@ def test_api_search_and_tagging_with_permissions_audit_and_erasure():
     assert "conversation.tag" in actions and "conversation.untag" in actions
     c.delete("/v1/privacy/customers/cust", headers=H)
     assert c.get("/v1/sessions/s-gap/tags", headers=H).json()["tags"] == []
+
+
+DAY = 86400
+
+
+def test_the_provisional_resolution_rate_counts_only_conversations_quiet_for_the_window():
+    from northcx.insights import resolution
+    until = NOW + 10 * DAY
+    old = NOW  # ten days before `until`: well past a three-day window
+    turns = [turn(1, "completed", session="done"), turn(2, "completed", session="handed"), turn(3, "escalated", session="stuck"),
+             turn(4, "needs_approval", session="waiting"),
+             TurnFacts("t5", "reopened", "support", "production", old, 1.0, "escalated"), TurnFacts("t6", "reopened", "support", "production", old + 5 * DAY, 1.0, "completed"),
+             TurnFacts("t7", "fresh", "support", "production", until - DAY, 1.0, "completed")]  # finished yesterday: still inside the window
+    for t in turns[:4]:
+        t.started_at = old
+    r = resolution(turns, {"handed"}, until)
+    # mature: done, handed, stuck, waiting, reopened (its last turn, five days after the first, is five days old). Resolved: done and reopened's completed last turn.
+    assert r == {"value": 0.4, "numerator": 2, "denominator": 5, "pending": 1, "windowDays": 3.0, "provisional": True}
+    assert resolution(turns, {"handed"}, until, window_days=0.5)["pending"] == 0  # a shorter window leaves nothing pending
+    assert resolution([], set(), until)["value"] is None
+
+
+def test_the_overview_carries_the_resolution_rate_and_the_window_can_be_set():
+    t = [turn(1, "completed", session="a"), turn(2, "escalated", session="b")]
+    for x in t:
+        x.started_at = NOW
+    m = compute(t, [], [], NOW - 100, NOW + 5 * DAY)
+    assert m["resolutionRate"]["denominator"] == 2 and m["resolutionRate"]["numerator"] == 1 and m["resolutionRate"]["provisional"] is True
+    assert compute(t, [], [], NOW - 100, NOW + 2 * DAY)["resolutionRate"]["pending"] == 2  # still inside the three-day window
+    assert compute(t, [], [], NOW - 100, NOW + 2 * DAY, resolution_window_days=1)["resolutionRate"]["pending"] == 0

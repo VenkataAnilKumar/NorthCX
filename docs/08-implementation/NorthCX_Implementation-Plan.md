@@ -117,6 +117,7 @@ Push, then read the first GitHub run: the pgvector database service, the SDK job
 
 ### WP0.10 "Resolved" metric and PRD scope (size M, V, needs two owner decisions)
 Adopt the PRD definition as a provisional **resolution rate** (completed, with no hand-off or reopen in the window, default 3 days) shown next to containment, labelled provisional; update the PRD, Product Definition and Success-Metrics with a post-1.0 scope section (staff workspace, multi-tenancy, billing in scope after 1.0; non-goals restated: supervised and permission-bound agents, not general-purpose autonomous agents). **Decisions needed:** the definition and the scope wording.
+**Status (2026-11-08):** done with the owner's answers. Definition: no preference given, so the recommended PRD wording with a 3-day window was adopted as provisional (decision #145). Scope: multi-tenancy and the staff workspace in scope after 1.0; billing stays a non-goal until D1; autonomous agents and helpdesk replacement stay non-goals. Built: `resolutionRate` in the insights overview (`value`, `numerator`, `denominator` of mature conversations, `pending`, `windowDays`, `provisional`), `NORTHCX_RESOLUTION_WINDOW_DAYS`, the `resolution_rate` figure for plain-language analytics, a 'Resolved (provisional)' tile in Studio, PRD, Product Definition and Success-Metrics updated. Known limit: a customer returning in a new conversation is not detected (turns carry no customer link); adding a hashed customer reference to turns is the follow-up that would also give the reopen rate. 2 new tests.
 
 ### WP0.11 Real-model pass and judge calibration (size M, X, owner provides key)
 A scripted procedure and checklist: run the example agents and shipped scenarios in live mode; try agent and journey drafts, plain-language analytics, the judge on a labelled sample (30 or more conversations), meaning-based search and transcription if services are available; record differences from the scripted tests; fix or document. **Output:** a "Live verification" section in the release notes and the judge's measured agreement.
@@ -331,7 +332,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [x] WP0.7 generated API reference
 - [x] WP0.8 webhook tester
 - [x] WP0.9 first CI run and container build
-- [ ] WP0.10 resolved metric and PRD scope
+- [x] WP0.10 resolved metric and PRD scope
 - [ ] WP0.11 live-model pass and judge calibration (needs key)
 - [ ] WP0.12 penetration test, tag, 1.0.0 (owner)
 

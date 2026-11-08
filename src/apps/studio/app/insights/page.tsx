@@ -124,6 +124,7 @@ export default function Insights() {
             <p className="text-sm text-muted">{o.conversations} conversations · {o.turns} turns · {o.tokens.total.toLocaleString()} tokens{o.estimatedCost ? ` · about ${o.estimatedCost.amount} in model cost` : ""}{o.truncated ? " · showing the most recent turns only" : ""}</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Stat title="Contained" ratio={o.containmentRate} hint="conversations that never reached a person" />
+              <Stat title="Resolved (provisional)" ratio={o.resolutionRate} hint={`completed, no hand-off, quiet for ${o.resolutionRate.windowDays} days; ${o.resolutionRate.pending} still inside the window`} />
               <Stat title="Escalated turns" ratio={o.escalationRate} hint="of all turns" />
               <Stat title="Guardrail blocks" ratio={o.guardrailBlockRate} hint="of all turns" />
               <Stat title="Tool errors" ratio={o.toolErrorRate} hint="of turns that used tools" />

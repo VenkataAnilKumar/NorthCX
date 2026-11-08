@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (resolution rate)
+- Provisional resolution rate beside containment in insights, Studio and plain-language analytics: completed, no hand-off, quiet for the window (`NORTHCX_RESOLUTION_WINDOW_DAYS`, default 3 days); conversations inside the window are pending. PRD scope wording updated for after 1.0.
+
 ### Added (webhook tester)
 - `POST /v1/events/test` sends a signed sample event to the configured events webhook and reports whether the receiver accepted it (marked as a test, not stored or retried, audited, six a minute per key).
 

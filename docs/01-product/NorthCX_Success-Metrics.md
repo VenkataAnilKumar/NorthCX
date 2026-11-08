@@ -5,13 +5,13 @@ Status: Draft. Targets are initial proposals; baselines come from pilots.
 ## Product metrics
 | Metric | Definition | Target |
 |---|---|---|
-| Resolution rate | Resolved conversations / conversations on in-scope intents (see PRD definition) | >= 60% on pilot intents |
+| Resolution rate (provisional, built) | Resolved conversations / conversations past the window, on in-scope intents (see PRD definition: completed, no hand-off, quiet for 3 days; same-conversation reopens only for now) | >= 60% on pilot intents |
 | Containment rate | Conversations that end without human handoff / all conversations | Track; no target until baseline |
 | Escalation correctness | Handoffs judged appropriate / handoffs (sampled review) | >= 95% |
 | Unneeded escalation | Handoffs a reviewer says the agent could have handled / handoffs | Falling trend |
 | Policy-violation escape | Violating replies or actions reaching customers / conversations | 0 on safety suite; monitored in production |
 | Customer satisfaction | Post-conversation survey score | At or above human baseline |
-| Reopen rate | Conversations reopened on the same issue within the window | Lower than baseline |
+| Reopen rate | Conversations reopened on the same issue within the window (needs a customer link across conversations; not built) | Lower than baseline |
 | Cost per resolution | (Model + infrastructure + review cost) / resolved conversations | Falling trend |
 | First-reply latency | p95 time to first token or reply | Set after streaming |
 | Handoff context completeness | Handoffs with transcript, actions and summary / handoffs | 100% |

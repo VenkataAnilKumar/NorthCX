@@ -37,6 +37,8 @@ Described in `NorthCX_Personas.md`: CX lead, platform engineer, compliance owner
 Agent authoring in code and Studio, tools and approvals, supervision, handoff, chat and email and messaging, knowledge retrieval, persistent memory, simulations, release management, traces and insights, self-hosting, voice (late v1).
 ### Out of scope (v1)
 General-purpose autonomous agents (browsing, code execution), hosted multi-tenant SaaS, replacing the helpdesk, outcome-based billing, full workforce management.
+### After 1.0 (decided 2026-11-08)
+Multi-tenancy and the staff workspace move into scope after 1.0 (not in 1.0). Outcome-based billing stays out of scope until the open-versus-commercial decision (D1). Agents remain supervised and permission-bound; general-purpose autonomous agents and replacing the helpdesk stay non-goals.
 
 ## 8. Principles
 1. Safe by default: fail closed when unsure.
