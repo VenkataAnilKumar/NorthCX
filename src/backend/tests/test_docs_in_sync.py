@@ -46,3 +46,26 @@ def test_decision_log_numbers_are_unique_and_complete():
     nums = [int(n) for n in re.findall(r"^\| (\d+) \|", (ROOT / "docs" / "09-project" / "NorthCX_Decision-Log.md").read_text(), re.M)]
     assert len(nums) == len(set(nums)), "a decision number is used twice"
     assert sorted(nums) == list(range(1, len(nums) + 1)), "a decision number is missing"
+
+
+def test_the_generated_api_reference_is_up_to_date():
+    gen = load("gen_api_reference")
+    for name, text in gen.outputs().items():
+        assert (ROOT / "docs" / "api" / name).read_text() == text, f"docs/api/{name} is out of date: run python scripts/gen_api_reference.py"
+
+
+def test_every_route_in_the_permission_table_is_in_the_api_reference_with_the_same_permission():
+    import json
+    import re
+
+    from northcx.server import ROUTE_PERMISSIONS
+
+    schema = json.loads((ROOT / "docs" / "api" / "openapi.json").read_text())
+    concrete = [(m.upper(), re.sub(r"\{[^}]+\}", "x1", p), op) for p, ops in schema["paths"].items() for m, op in ops.items()]
+    missing = []
+    for method, regex, perm in ROUTE_PERMISSIONS:
+        hits = [op for m, p, op in concrete if m == method and re.fullmatch(regex, p)]
+        if not hits or any(op["x-required-permission"] != perm for op in hits if op["x-required-permission"] is not None):
+            missing.append((method, regex))
+    assert missing == []
+    assert [(m, p) for m, p, op in concrete if not op.get("x-public") and not op["x-required-permission"]] == []  # nothing is served without being classified

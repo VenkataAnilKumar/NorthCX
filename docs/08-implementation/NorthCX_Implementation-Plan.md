@@ -105,6 +105,7 @@ New attachment mode: extract PDF text, mask personal data, send the text instead
 
 ### WP0.7 Generated API reference (size S, V)
 `scripts/gen_api_reference.py` writes `docs/api/openapi.json` and a static HTML page from the app's schema (the live endpoint stays off). **Test:** every route in the permission table appears in the reference.
+**Status (2026-11-08):** done: `scripts/gen_api_reference.py` writes `docs/api/openapi.json` (131 operations, each with `x-required-permission`; 11 marked public) and a self-contained `docs/api/index.html` (light and dark, grouped by area, request fields from the schema models); `--check` mode; two tests: the files match the code, and every entry of the permission table appears with the same permission and nothing is served unclassified. Limits: only 52 of 131 operations have a written description (the handler's docstring; the rest show the generated title), and response bodies are not described because handlers return plain dictionaries. Writing the missing descriptions and typed responses is a documentation follow-up (E0.5 in the gap plan).
 
 ### WP0.8 Webhook tester (size S, V)
 `POST /v1/events/test` sends a signed sample of any event type to the configured events webhook and reports the receiver's answer; audited; rate limited.
@@ -325,7 +326,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [x] WP0.4 shared rate limits and budgets
 - [x] WP0.5 multi-replica readiness
 - [x] WP0.6 masked-text PDF path
-- [ ] WP0.7 generated API reference
+- [x] WP0.7 generated API reference
 - [ ] WP0.8 webhook tester
 - [ ] WP0.9 first CI run and container build
 - [ ] WP0.10 resolved metric and PRD scope

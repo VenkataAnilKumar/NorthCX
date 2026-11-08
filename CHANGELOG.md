@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (API reference)
+- Generated API reference: `docs/api/openapi.json` and `docs/api/index.html`, built from the application's own schema with the permission each route needs; tests keep it in step with the code.
+
 ### Added (masked PDF text)
 - Agent spec `attachments: [pdf_text]`: a PDF is read as text, personal data is masked, the text passes the input checks, and the file never reaches the model; scanned PDFs are refused with a reason. Accepting `pdf` (the file as it is) now needs `acknowledge_unmasked_files: true`; choosing both is refused. Specs that use neither keep their digests.
 

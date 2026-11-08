@@ -17,6 +17,7 @@ NorthCX is an open-source customer-experience agent platform built on the Claude
 | `07-design/` | Studio-UI-Spec, Design-System |
 | `08-implementation/` | Implementation-Phases, Sprint-Plan, Roadmap, Phase-Plan, Implementation-Checklist, Deployment-Guide, Testing-Strategy, Performance, Next-Features-Plan, Release-Checklist, Gap-Closure-Plan, Project-Status, Implementation-Plan |
 | `09-project/` | Glossary, Decision-Log, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |
+| `api/` | Generated API reference: `openapi.json` and `index.html` (do not edit; run `python scripts/gen_api_reference.py`) |
 
 All documents are drafts. Each is named `NorthCX_<Name>.md`.
 
