@@ -12,10 +12,10 @@ from pathlib import Path
 from typing import Any, Callable
 
 import yaml
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 from .agent import Agent, Tool
-from .attachments import KINDS as ATTACHMENT_KINDS
+from .attachments import ACCEPTED_KINDS as ATTACHMENT_KINDS
 from .transfers import RouteSpec, check_routes
 from .journeys import JourneySpec, to_skill as journey_skill
 from .skills import FLEXIBILITY, Skill, SkillError, SkillOrder, parse_skill, skill_to_dict, ToolScope, ToolScopeRule, render_skill, render_voice
@@ -95,7 +95,8 @@ class AgentSpec(BaseModel):
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
     channel_styles: dict[str, str] = Field(default_factory=dict)
     journeys: list[JourneySpec] = Field(default_factory=list, max_length=20)
-    attachments: list[str] = Field(default_factory=list)  # attachment kinds accepted: image, pdf, text. Empty: none
+    attachments: list[str] = Field(default_factory=list)  # attachment kinds accepted: image, pdf, pdf_text, text. Empty: none
+    acknowledge_unmasked_files: bool = False  # required to accept `pdf` (the whole file goes to the model, personal data included); `pdf_text` needs no acknowledgement
     routes: list[RouteSpec] = Field(default_factory=list, max_length=8)  # specialists this agent may pass a conversation to
     languages: list[str] = Field(default_factory=list)  # supported languages (first is the default); empty means no language handling
     skills: list[SkillRef] = Field(default_factory=list)
@@ -132,7 +133,16 @@ class AgentSpec(BaseModel):
         bad = [k for k in v if k not in ATTACHMENT_KINDS]
         if bad or len(set(v)) != len(v):
             raise ValueError(f"attachments can list each of {', '.join(ATTACHMENT_KINDS)} once")
+        if "pdf" in v and "pdf_text" in v:
+            raise ValueError("attachments: choose pdf (the file goes to the model as it is) or pdf_text (the text is read and personal data masked), not both")
         return v
+
+    @model_validator(mode="after")
+    def _files_acknowledged(self) -> "AgentSpec":
+        if "pdf" in self.attachments and not self.acknowledge_unmasked_files:
+            raise ValueError("attachments: pdf sends the whole PDF to the model with personal data unmasked; use pdf_text, or set acknowledge_unmasked_files: true to accept that"
+        )
+        return self
 
     @field_validator("languages")
     @classmethod
@@ -155,6 +165,8 @@ class AgentSpec(BaseModel):
                 del data[key]  # keeps digests of specs written before these fields existed
         if not data["attachments"]:
             del data["attachments"]  # keeps digests of specs written before this field existed
+        if not data["acknowledge_unmasked_files"]:
+            del data["acknowledge_unmasked_files"]  # same
         if not data["routes"]:
             del data["routes"]  # keeps digests of specs written before this field existed
         if not data["journeys"]:

@@ -101,6 +101,7 @@ Hash-pinned lock file for the backend (`requirements.lock` and a dev lock) gener
 
 ### WP0.6 Masked-text path for PDFs (size M, V)
 New attachment mode: extract PDF text, mask personal data, send the text instead of the file; chosen per agent in the spec (`attachments: [pdf_text]`), the file mode stays opt-in with an explicit acknowledgement field. **Tests:** masking applied, scanned PDFs refused cleanly, digest unchanged for agents that do not use it. **Acceptance:** Threat Model residual risk 2 updated.
+**Status (2026-11-08):** done: `attachments: [pdf_text]` (text read with the existing PDF reader, masked with the same detector the trace export uses, passed through the agent's input checks, file never sent); `pdf` needs `acknowledge_unmasked_files: true` and cannot be combined with `pdf_text`; digests unchanged for specs using neither; 5 new tests including a full chat turn. Not covered: pictures (would need OCR) and a PDF whose text is mostly an image.
 
 ### WP0.7 Generated API reference (size S, V)
 `scripts/gen_api_reference.py` writes `docs/api/openapi.json` and a static HTML page from the app's schema (the live endpoint stays off). **Test:** every route in the permission table appears in the reference.
@@ -323,7 +324,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [x] WP0.3 locked backend dependencies
 - [x] WP0.4 shared rate limits and budgets
 - [x] WP0.5 multi-replica readiness
-- [ ] WP0.6 masked-text PDF path
+- [x] WP0.6 masked-text PDF path
 - [ ] WP0.7 generated API reference
 - [ ] WP0.8 webhook tester
 - [ ] WP0.9 first CI run and container build

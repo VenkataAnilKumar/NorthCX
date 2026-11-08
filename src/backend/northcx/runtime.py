@@ -219,7 +219,7 @@ class Runtime:
 
         user_index: int | None = None
         if attachments and not trusted:
-            blocks, kept_text, withheld = await build_content(message, attachments, agent.input_guardrails)
+            blocks, kept_text, withheld = await build_content(message, attachments, agent.input_guardrails, pdf_as_text="pdf_text" in agent.attachments)
             for w in withheld:
                 trace.add("guardrail", guardrail="attachment", reason=w, stage="input")
             user_index = len(messages)

@@ -56,7 +56,7 @@ def test_a_good_draft_becomes_a_valid_spec_with_notes_and_safe_defaults():
 
 def test_unknown_names_and_forbidden_fields_never_reach_the_agent():
     out = parse_draft(raw(tools=["lookup_order", "delete_everything"], guardrails=["made_up"], model="some-model", max_run_tokens=5_000_000,
-                          tool_scopes={"x": {}}, routes=[{"agent": "evil"}], voice={"x": 1}, attachments=["pdf"], id="hijack"), "acme", registry())
+                          tool_scopes={"x": {}}, routes=[{"agent": "evil"}], voice={"x": 1}, attachments=["pdf"], acknowledge_unmasked_files=True, id="hijack"), "acme", registry())
     spec = out["spec"]
     assert spec.id == "acme" and spec.tools == ["lookup_order"] and not spec.guardrails
     assert spec.model is None and spec.max_run_tokens is None and not spec.tool_scopes and not spec.routes and spec.voice is None and not spec.attachments

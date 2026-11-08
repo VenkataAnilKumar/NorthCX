@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (masked PDF text)
+- Agent spec `attachments: [pdf_text]`: a PDF is read as text, personal data is masked, the text passes the input checks, and the file never reaches the model; scanned PDFs are refused with a reason. Accepting `pdf` (the file as it is) now needs `acknowledge_unmasked_files: true`; choosing both is refused. Specs that use neither keep their digests.
+
 ### Added (multi-replica)
 - `NORTHCX_ROLE=all|api|worker`: run API replicas and background workers as separate processes. Background jobs take a database lease for each pass so workers never repeat each other's work; firing alerts, alert events and crawl progress now live in the database (migration 0030), so any process shows and continues them. Topology in the Deployment Guide.
 

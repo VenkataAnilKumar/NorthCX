@@ -13,7 +13,7 @@ Status: Snapshot (2026-11-05). A one-page summary of where the project stands an
 
 **Still to do in Wave 0:**
 Groundwork that can be built and verified here:
-- WP0.1 to WP0.5 are done; next is WP0.6 (masked-text PDF option), WP0.7 (generated API reference) and WP0.8 (webhook tester); WP0.9 to WP0.12 need CI, an API key or the owner.
+- WP0.1 to WP0.6 are done; next are WP0.7 (generated API reference) and WP0.8 (webhook tester); WP0.9 to WP0.12 need CI, an API key or the owner.
 - Lock dependencies.
 - Make rate limits shared across processes, and make the API ready for several replicas.
 - Add a masked-text option for PDFs.
