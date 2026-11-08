@@ -9,7 +9,8 @@ Status: working checklist. Items marked **you** need a person or a live model; t
 - [x] `docker compose config` is valid with the values from `.env.example` filled in; the stack uses `pgvector/pgvector:pg16`.
 - [x] Every relative link in the Markdown documents resolves; every document is listed in `docs/README.md`.
 - [x] Version numbers agree (`northcx.__version__`, web and SDK `package.json`) and `CHANGELOG.md` has an entry for the release (`tests/test_release.py` enforces this).
-- Not verifiable in the build environment: pulling the Postgres image from Docker Hub (rate-limited) and building the application images (the sandbox's TLS interception is not trusted inside builds). Both worked earlier in the project's history; repeat on a normal machine: `docker compose up -d --build --wait`.
+- Not verifiable in the build sandbox itself (confirmed on GitHub instead, above): pulling the Postgres image from Docker Hub (rate-limited) and building the application images (the sandbox's TLS interception is not trusted inside builds). Both worked earlier in the project's history; repeat on a normal machine: `docker compose up -d --build --wait`.
+- [x] On GitHub Actions (run for `89830dd`, 2026-11-08): all seven CI jobs passed, including the full suite against the pgvector service, `pip-audit` on both locks, the web and SDK builds, and `docker compose up --build --wait` with the smoke test, so the application images build and the stack starts on a normal runner.
 
 ## Before tagging 1.0.0 (you)
 - [ ] **Real-model pass.** With a Claude API key in `ANTHROPIC_API_KEY`: run the example agent through the web console; run the shipped scenarios in live mode (`python -m northcx.simulation`); try an agent draft, a journey draft, a plain-language analytics question and the judge model; if an embeddings service is available, check meaning-based search. Fix or document anything that differs from the scripted tests, and calibrate the judge (`Q3`).
