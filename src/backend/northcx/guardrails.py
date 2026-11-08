@@ -62,6 +62,7 @@ class InputGuardrail:
 
     name = "input-guardrail"
     needs_context = False  # true for checks that look at the conversation so far (session id, what the customer wrote earlier)
+    limiter: Any = None  # a limiter shared by every server process (NORTHCX_LIMITS_BACKEND=postgres); None keeps counts per process
 
     async def check_input(self, text: str) -> InputResult:
         return InputResult(True)

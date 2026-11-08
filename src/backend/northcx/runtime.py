@@ -77,6 +77,7 @@ class Runtime:
         self.secrets = secrets or NO_SECRETS
         self.monitor = monitor or Monitor()
         self.ledger = ledger or UsageLedger()
+        self.shared_limiter: Any = None  # set when limits are shared between server processes
         self.compactor = compactor
         self.context = context
         self.memories = memories
@@ -197,6 +198,8 @@ class Runtime:
             getattr(g, "needs_context", False) for g in agent.input_guardrails) else []
         turn_notes: list[str] = []
         for g in ([] if trusted else agent.input_guardrails):
+            if self.shared_limiter is not None:
+                g.limiter = self.shared_limiter
             res = await g.check_input_ctx(message, session_id, earlier) if getattr(g, "needs_context", False) else await g.check_input(message)
             if res.kinds:
                 trace.add("abuse", kinds=res.kinds, strikes=res.strikes, blocked=not res.allow)
@@ -248,8 +251,8 @@ class Runtime:
         used = 0
         done_writes: dict[str, Any] = {}
         for step in range(agent.max_steps):
-            if self.ledger.exhausted():
-                trace.add("budget", scope="daily", used=self.ledger.used_today(), limit=self.ledger.daily_limit)
+            if await self.ledger.over_budget():
+                trace.add("budget", scope="daily", used=await self.ledger.spent(), limit=self.ledger.daily_limit)
                 return await finish(FALLBACK, "escalated", "budget_exceeded", "The daily model budget is used up")
             if agent.max_run_tokens and used >= agent.max_run_tokens:
                 trace.add("budget", scope="run", used=used, limit=agent.max_run_tokens)
@@ -265,7 +268,7 @@ class Runtime:
                 return await finish(FALLBACK, "escalated", "model_error", "The model call failed")
             tokens = sum(int(v) for v in res.usage.values()) if res.usage else 0
             used += tokens
-            self.ledger.add(agent.id, tokens)
+            await self.ledger.charge(agent.id, tokens)
             trace.add("llm", step=step, stop_reason=res.stop_reason,
                       **({"tokens": tokens} if tokens else {}), **({"model": res.model} if res.model else {}),
                       **({"fallback": True} if res.fallback else {}))

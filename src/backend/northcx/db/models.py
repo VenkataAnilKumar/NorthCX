@@ -469,6 +469,22 @@ class IdempotencyRow(Base):
     __table_args__ = (Index("ix_idempotency_created", "created_at"), Index("ix_idempotency_session", "session_id"))
 
 
+class RateCounterRow(Base):
+    """Requests counted per key per fixed time window, shared by every server process. Old windows are deleted."""
+    __tablename__ = "rate_counters"
+    key: Mapped[str] = mapped_column(String(300), primary_key=True)
+    window_start: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # epoch seconds of the window's start (database clock)
+    count: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class UsageLedgerRow(Base):
+    """Model tokens used per agent per UTC day, shared by every server process."""
+    __tablename__ = "usage_ledger"
+    agent_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)
+    tokens: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
 class MonitorFindingRow(Base):
     __tablename__ = "monitor_findings"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)

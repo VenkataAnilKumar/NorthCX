@@ -93,7 +93,7 @@ class ReliableLLM:
 
 @dataclass
 class UsageLedger:
-    """Tokens used per day (UTC), per agent. Per process: with several servers each keeps its own count."""
+    """Tokens used per day (UTC), per agent. Per process: with several servers use `PgUsageLedger` (NORTHCX_LIMITS_BACKEND=postgres) to share one count."""
     daily_limit: int | None = None
     _days: dict[tuple[str, str], int] = field(default_factory=dict)
 
@@ -111,6 +111,15 @@ class UsageLedger:
     def used_today(self, agent_id: str | None = None, at: float | None = None) -> int:
         day = self._day(at)
         return sum(n for (a, d), n in self._days.items() if d == day and (agent_id is None or a == agent_id))
+
+    async def charge(self, agent_id: str, tokens: int) -> None:
+        self.add(agent_id, tokens)
+
+    async def spent(self, agent_id: str | None = None) -> int:
+        return self.used_today(agent_id)
+
+    async def over_budget(self) -> bool:
+        return self.exhausted()
 
     def exhausted(self, at: float | None = None) -> bool:
         return self.daily_limit is not None and self.used_today(None, at) >= self.daily_limit

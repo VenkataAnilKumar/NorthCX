@@ -124,7 +124,7 @@ The full map, with epics and dependencies, is section 10 of the gap-closure plan
 | **Data residency** | A policy file of allowed regions and a host-to-region map, checked at start-up (strict mode refuses to start); a report of every destination and what it receives ✅; per-tenant regions 🗺️ E2 |
 | **Hardening** | Request size limits, security headers, CORS allow-list, SSRF controls on every outbound address (https, no redirects, private ranges refused), secrets scrubbed from everything stored, rate limits per key, session, address and conversation ✅; standing security tests (no pasted SQL, no dangerous constructs, redirect and CORS rules, parser fuzzing) ✅ |
 | **Assessment** | Threat model and security review by the authors, with automated scans ✅; **independent penetration test ⛔ not done** |
-| **Known limits (stated, not hidden)** | Rate limits and budgets are per process; pictures and PDFs reach the model unmasked unless the masked-text option (🗺️ E0.4) is used; backend dependencies are not locked (🗺️ E0.2); roles are server-wide; no multi-factor for API keys (use SSO) |
+| **Known limits (stated, not hidden)** | Rate limits and budgets are per process unless the Postgres limits backend is turned on; pictures and PDFs reach the model unmasked unless the masked-text option (🗺️ E0.4) is used; roles are server-wide; no multi-factor for API keys (use SSO) |
 | **Compliance** | Controls exist and are documented; **SOC 2, ISO 27001/42001 and HIPAA need audits and an operating period ⛔**; documentation packs and customer-managed keys 🗺️ E12 |
 
 ## 8. Deployment options

@@ -35,7 +35,7 @@ What that means for sizing:
 - A turn costs the platform about 20 ms of one core's time with Postgres. Almost all of the wait in a real conversation is the model (typically seconds), so a process holds many more simultaneous conversations than it can finish turns per second: 300 customers talking with 1 s pauses and an 800 ms model used a tenth of the in-memory capacity.
 - Plan capacity in **turns per second per process: about 50 with Postgres** on this hardware. Peak turns per second is roughly peak simultaneous customers divided by the average time between their messages (reading time, typing time, and the model's reply time).
 - Add processes to scale out; the application is stateless and they share the database (measured: two processes gave twice the throughput). Postgres was not the limit in these runs.
-- The shared limits are per process: with N processes the real limit is N times the setting.
+- Limits are per process by default (with N processes the real limit is N times the setting); `NORTHCX_LIMITS_BACKEND=postgres` shares them. Measured on the same machine over loopback: about 3 ms per check one at a time and about 600 checks per second with 20 keys in flight, so it adds one small database write to each limited request (negligible next to a model call, visible on very cheap endpoints). Many requests on one key take turns on that key's row.
 
 ## Where the time goes and what was done about it
 

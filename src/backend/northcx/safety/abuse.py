@@ -66,7 +66,9 @@ class AbuseDetection(InputGuardrail):
             out.append("abusive")
         return out
 
-    def _bursting(self, session_id: str) -> bool:
+    async def _bursting(self, session_id: str) -> bool:
+        if self.limiter is not None:  # several server processes: count in the shared store so a burst split across them is still seen
+            return await self.limiter.count(f"abuse-burst:{session_id}", self.burst_seconds) > self.burst_limit
         now = self.clock()
         q = self._recent[session_id]
         q.append(now)
@@ -82,7 +84,7 @@ class AbuseDetection(InputGuardrail):
 
     async def check_input_ctx(self, text: str, session_id: str, earlier: list[str]) -> InputResult:
         """`earlier` is what the customer wrote before in this conversation, oldest first."""
-        if self._bursting(session_id):
+        if await self._bursting(session_id):
             return InputResult(False, reason="Messages are arriving faster than a person could write them", reply=SLOW_DOWN, status="completed", kinds=["burst"])
         kinds = self.kinds_in(text)
         if "threat" in kinds:

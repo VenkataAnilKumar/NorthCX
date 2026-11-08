@@ -54,7 +54,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """A question about performance in plain words. The model only plans the query (one known figure, a period, maybe an agent); the numbers
         and the sentence come from the same code as the Insights pages, and the plan is returned so the reading can be checked."""
         who: Identity = request.state.identity
-        if not access.limiter.allow(f"insights-ask:{who.key_id or 'open'}", 15)[0]:
+        if not (await access.limiter.hit(f"insights-ask:{who.key_id or 'open'}", 15))[0]:
             return too_many(60, "questions")
         try:
             out = await ask_insights(runtime.llm, insight, body.question, [a.id for a in await provider.all()], body.environment, tags=tag_repo, can_list=who.can("traces:read"))

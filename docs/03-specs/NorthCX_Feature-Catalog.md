@@ -143,7 +143,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | P1 | Bearer API key auth | P0 | 1 | Built |
 | P2 | Roles and scoped keys | P0 | 2 | Built: seven roles, hashed keys with expiry and revocation (not yet limited to particular agents) |
 | P3 | Audit log | P0 | 2 | Built (append-only, hash-chained) |
-| P4 | Rate limiting | P1 | 2 | Built (per process) |
+| P4 | Rate limiting | P1 | 2 | Built (per process by default; shared across processes with `NORTHCX_LIMITS_BACKEND=postgres`) |
 | P5 | Single sign-on for Studio | P2 | 4 | Built (OpenID Connect with PKCE, group-to-role mapping, short-lived session keys; multi-factor, directory sync and per-agent scoping remain with the identity provider or later work) |
 | P6 | Data residency options | P2 | 6 | Built (residency policy file checked at start-up, strict mode, data-flow report for audits; one region per deployment) |
 | P7 | Self-hosting with containers | P0 | 2 | Built (backend and web images, compose stack) |

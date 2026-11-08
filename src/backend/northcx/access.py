@@ -8,7 +8,8 @@ import re
 import secrets
 import time
 from dataclasses import dataclass, field
-from typing import Protocol
+from collections import deque
+from typing import Any, Protocol
 
 from .tokens import PREFIX as TOKEN_PREFIX, TokenError, TokenSigner
 
@@ -131,11 +132,12 @@ class InMemoryKeys:
 # ---------------- rate limiting ----------------
 class RateLimiter:
     """Token buckets: `limit` requests per minute per key, bursts up to the limit. Per process.
-    (Several server processes each keep their own buckets; a shared limiter is a later step.)"""
+    With several server processes use `PgLimiter` (NORTHCX_LIMITS_BACKEND=postgres) so they share one count."""
 
     def __init__(self, clock=time.monotonic, max_buckets: int = 20_000):
         self.clock, self.max_buckets = clock, max_buckets
         self._buckets: dict[str, tuple[float, float]] = {}  # key -> (tokens, last)
+        self._events: dict[str, deque[float]] = {}
 
     def allow(self, key: str, limit_per_minute: float) -> tuple[bool, float]:
         """Returns (allowed, seconds until a retry could succeed)."""
@@ -147,6 +149,22 @@ class RateLimiter:
             return True, 0.0
         self._store(key, tokens, now)
         return False, (1 - tokens) * 60.0 / limit_per_minute
+
+    async def hit(self, key: str, limit_per_minute: float) -> tuple[bool, float]:
+        """The interface the server uses (shared limiters are asynchronous): same answer as `allow`."""
+        return self.allow(key, limit_per_minute)
+
+    async def count(self, key: str, window_seconds: float) -> int:
+        """Count one event for `key` and return how many fell in the last `window_seconds` (a sliding window, per process)."""
+        now = self.clock()
+        q = self._events.setdefault(key, deque())
+        q.append(now)
+        while q and now - q[0] > window_seconds:
+            q.popleft()
+        if len(self._events) > self.max_buckets:
+            for k in [k for k, v in self._events.items() if not v or now - v[-1] > window_seconds][: self.max_buckets // 10]:
+                self._events.pop(k, None)
+        return len(q)
 
     def _store(self, key: str, tokens: float, now: float) -> None:
         self._buckets[key] = (tokens, now)
@@ -166,7 +184,7 @@ class LimitConfig:
 # ---------------- access control ----------------
 class AccessControl:
     def __init__(self, keys: KeyRepo | None = None, bootstrap_key: str | None = None, limits: LimitConfig | None = None,
-                 limiter: RateLimiter | None = None, touch_interval: float = 60.0, signer: TokenSigner | None = None):
+                 limiter: Any = None, touch_interval: float = 60.0, signer: TokenSigner | None = None):
         self.signer = signer
         self.keys = keys or InMemoryKeys()
         self._bootstrap = hash_secret(bootstrap_key) if bootstrap_key else None

@@ -4,7 +4,7 @@ import sys
 from northcx.access import AccessControl, LimitConfig
 from northcx.sso import Sso, config_from_env as sso_config_from_env
 from northcx.tokens import TokenSigner, derive_secret
-from northcx.db import PgKeys, create_engine
+from northcx.db import PgKeys, PgLimiter, create_engine
 from northcx.secrets import ConfigError, env_or_file
 from types import SimpleNamespace
 
@@ -30,6 +30,8 @@ def build_security(c: SimpleNamespace) -> None:
     api_key = c.api_key
     db_url = c.db_url
     keys_repo = c.keys_repo
+    runtime = c.runtime
+    engine = c.engine
     limits = None
     if os.environ.get("NORTHCX_RATE_LIMITS", "on") != "off":
         env = os.environ
@@ -44,7 +46,11 @@ def build_security(c: SimpleNamespace) -> None:
         token_secret = _secrets.token_bytes(32)
         print("NOTE: chat tokens use a random signing secret (set NORTHCX_TOKEN_SECRET or NORTHCX_API_KEY): tokens stop "
               "working when the server restarts and are not valid across several servers.")
-    access = AccessControl(keys_repo, api_key, limits, signer=TokenSigner(token_secret))
+    shared_limiter = PgLimiter(engine) if c.limits_backend == "postgres" else None
+    if shared_limiter is not None:
+        runtime.shared_limiter = shared_limiter
+        print("Rate limits and the daily token budget are shared through the database (every server process counts against one limit).")
+    access = AccessControl(keys_repo, api_key, limits, limiter=shared_limiter, signer=TokenSigner(token_secret))
     import asyncio
 
     if asyncio.run(access.enabled()) if db_url is None else _has_keys(db_url, access):

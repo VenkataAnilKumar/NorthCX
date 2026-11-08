@@ -88,8 +88,8 @@ Disposition: **M** mitigated, **A** accepted with the residual noted, **T** tran
 | # | Threat | Handling | Disp. |
 |---|---|---|---|
 | A1 | Oversized or malformed requests | Per-endpoint body caps enforced before parsing; strict schemas; parsers fuzzed | M |
-| A2 | Flooding | Per-key, per-session, per-address and per-conversation rate limits; voice flood cut-off | M, limits are per process |
-| A3 | Runaway model spend | Per-turn and daily token budgets; step and transfer limits; assist and draft endpoints rate limited | M, budgets per process |
+| A2 | Flooding | Per-key, per-session, per-address and per-conversation rate limits; voice flood cut-off; with `NORTHCX_LIMITS_BACKEND=postgres` the counts are shared by all server processes | M |
+| A3 | Runaway model spend | Per-turn and daily token budgets; step and transfer limits; assist and draft endpoints rate limited; shared through the database under the same setting | M |
 | A4 | A slow or failing dependency | Timeouts, retries with back-off, circuit-style fallbacks, fail-closed supervision, outbox with retry | M |
 | A5 | Regular-expression slowdowns | Operator patterns are checked at load; built-in patterns were timed on 8,000-character hostile input | M |
 
@@ -119,7 +119,7 @@ Disposition: **M** mitigated, **A** accepted with the residual noted, **T** tran
 
 1. **Roles are server-wide** (I5, D4): a key cannot be limited to some agents or environments, and every role that can open traces can read conversation text. Mitigate by issuing few keys and using SSO groups.
 2. **Pictures and PDFs reach the model unmasked and may carry hidden instructions** (C2, D6): enable per agent only where acceptable.
-3. **Rate limits and daily budgets are per process** (A2, A3): with several replicas the effective limit is multiplied; put a shared limit at the proxy.
+3. ~~Rate limits and daily budgets are per process~~ — closed in WP0.4 for deployments that set `NORTHCX_LIMITS_BACKEND=postgres`: rate limits, the abuse burst check and the daily token budget are then counted in the database. The default stays per process (one server), so a multi-replica deployment must set it. Residual: the shared limiter uses fixed one-minute windows (a burst across a window edge can pass up to twice the limit), and if the database is unreachable each process falls back to its own counters with a warning.
 4. **No multi-factor authentication for API keys**: use SSO (the identity provider supplies MFA) for people; keep API keys for machines.
 5. ~~Backend dependencies are not locked~~ — closed in WP0.3: the container image and CI install from hash-pinned lock files. Remaining for the operator: re-lock and re-audit regularly (`scripts/lock.sh --upgrade`), since a lock only fixes versions, it does not keep them current.
 6. **Behind a reverse proxy**, set uvicorn's `FORWARDED_ALLOW_IPS` to the proxy address, otherwise every client appears to have the proxy's address and per-address limits apply to everyone at once.

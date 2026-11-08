@@ -103,7 +103,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if h is None:
             return _err(404, "not_found", "Unknown handoff")
         who: Identity = request.state.identity
-        if not access.limiter.allow(f"assist:{who.key_id or 'open'}", 20)[0]:
+        if not (await access.limiter.hit(f"assist:{who.key_id or 'open'}", 20))[0]:
             return too_many(60, "assist requests")
         try:
             out = runtime.secrets.redact(await runtime.assist.suggest(runtime.secrets.redact(h.package)))

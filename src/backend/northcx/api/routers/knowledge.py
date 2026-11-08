@@ -81,7 +81,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if crawler is None:
             return _err(501, "not_configured", "Crawling is switched off: the operator must list the sites that may be crawled in NORTHCX_CRAWL_HOSTS")
         who: Identity = request.state.identity
-        if not access.limiter.allow(f"crawl:{who.key_id or 'open'}", 5)[0]:
+        if not (await access.limiter.hit(f"crawl:{who.key_id or 'open'}", 5))[0]:
             return too_many(60, "crawl requests")
         cfg = CrawlConfig(body.url, body.max_pages, body.max_depth, body.delay_seconds, body.include_paths, body.exclude_paths, body.use_sitemap, body.prune)
         try:

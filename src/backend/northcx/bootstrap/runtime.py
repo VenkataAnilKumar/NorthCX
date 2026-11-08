@@ -4,6 +4,7 @@ from northcx.assist import AssistService
 from northcx.tokens import derive_secret
 from northcx.channels.email import SmtpSender
 from northcx.summarize import Compactor
+from northcx.db import PgUsageLedger
 from northcx.reliability import UsageLedger
 from northcx.verification import InMemoryVerify, OtpService, VerifyConfig
 from northcx.monitor import Monitor
@@ -17,6 +18,12 @@ from typing import Any
 
 def build_runtime(c: SimpleNamespace) -> None:
     """The runtime, one-time-code verification and the assist service."""
+    limits_backend = os.environ.get("NORTHCX_LIMITS_BACKEND", "memory").strip() or "memory"
+    if limits_backend not in ("memory", "postgres"):
+        sys.exit("NORTHCX_LIMITS_BACKEND must be memory or postgres")
+    if limits_backend == "postgres" and not c.db_url:
+        sys.exit("NORTHCX_LIMITS_BACKEND=postgres needs NORTHCX_DATABASE_URL: the counters live in the database")
+    c.limits_backend = limits_backend
     api_key = c.api_key
     approvals = c.approvals
     context_source = c.context_source
@@ -43,7 +50,8 @@ def build_runtime(c: SimpleNamespace) -> None:
                       memories=memory_repo if os.environ.get("NORTHCX_MEMORY", "1") != "0" else None,
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
                                  if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),
-                      ledger=UsageLedger(int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None))
+                      ledger=(PgUsageLedger if limits_backend == "postgres" else UsageLedger)(*(([engine] if limits_backend == "postgres" else [])
+                              + [int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None])))
     if db_url:
         runtime.routes = PgSessionRoutes(engine)
     verify_service = None

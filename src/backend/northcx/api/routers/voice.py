@@ -35,7 +35,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             await ws.close(code=4404)
             return
         ip = ws.client.host if ws.client else "unknown"
-        if not access.limiter.allow(f"voice:{ip}", 60)[0]:
+        if not (await access.limiter.hit(f"voice:{ip}", 60))[0]:
             await ws.close(code=4429)
             return
         if await access.enabled():
@@ -85,7 +85,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                     continue
                 if not isinstance(msg, dict):
                     continue
-                if msg.get("type") == "transcript" and msg.get("final", True) and not access.limiter.allow(f"voice-turns:{ident.key_id or ip}", 120)[0]:
+                if msg.get("type") == "transcript" and msg.get("final", True) and not (await access.limiter.hit(f"voice-turns:{ident.key_id or ip}", 120))[0]:
                     continue  # at most 120 spoken turns a minute per key; the rest are ignored
                 if msg.get("type") == "start" and call.rec is None:
                     await call.handle(msg)

@@ -39,9 +39,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
         except ValueError:
             return _err(400, "bad_request", "Unreadable request")
         if not sms.authentic(params, request.headers.get("x-twilio-signature", "")):
-            if limits and not access.limiter.allow(f"smsfail:{ip}", limits.auth_failures_per_minute)[0]:
+            if limits and not (await access.limiter.hit(f"smsfail:{ip}", limits.auth_failures_per_minute))[0]:
                 return too_many(60, "unsigned requests")  # only failures count, so real traffic is never throttled by this
-            if access.limiter.allow(f"smslog:{ip}", 6)[0]:
+            if (await access.limiter.hit(f"smslog:{ip}", 6))[0]:
                 await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/sms/twilio", outcome="denied", detail={"client": ip}))
             return _err(403, "forbidden", "Invalid signature")
         try:

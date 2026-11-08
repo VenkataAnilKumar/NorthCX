@@ -41,7 +41,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if isinstance(svc, JSONResponse):
             return svc
         who: Identity = request.state.identity
-        if not access.limiter.allow(f"builder:{who.key_id or 'open'}", 5)[0]:
+        if not (await access.limiter.hit(f"builder:{who.key_id or 'open'}", 5))[0]:
             return too_many(60, "agent drafts")
         try:
             out = await draft_agent(runtime.llm, svc.registry, body.agent_id, body.goal, [s.model_dump() for s in body.sources])
@@ -60,7 +60,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if isinstance(svc, JSONResponse):
             return svc
         who: Identity = request.state.identity
-        if not access.limiter.allow(f"builder:{who.key_id or 'open'}", 5)[0]:
+        if not (await access.limiter.hit(f"builder:{who.key_id or 'open'}", 5))[0]:
             return too_many(60, "agent drafts")
         try:
             spec = parse_spec(body.spec)
@@ -83,7 +83,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if isinstance(svc, JSONResponse):
             return svc
         who: Identity = request.state.identity
-        if not access.limiter.allow(f"builder:{who.key_id or 'open'}", 5)[0]:
+        if not (await access.limiter.hit(f"builder:{who.key_id or 'open'}", 5))[0]:
             return too_many(60, "agent drafts")
         try:
             out = await refine_agent(runtime.llm, svc.registry, body.current, body.instruction)
@@ -101,7 +101,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if transcriber is None:
             return _err(501, "not_configured", "Transcription is not configured: set NORTHCX_TRANSCRIBE_URL and NORTHCX_TRANSCRIBE_MODEL")
         who: Identity = request.state.identity
-        if not access.limiter.allow(f"transcribe:{who.key_id or 'open'}", 5)[0]:
+        if not (await access.limiter.hit(f"transcribe:{who.key_id or 'open'}", 5))[0]:
             return too_many(60, "transcriptions")
         if language is not None and not re.fullmatch(r"[a-z]{2,3}", language):
             return _err(400, "bad_request", "language must be a short code such as en")
@@ -125,7 +125,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     async def journey_draft(agent_id: str, body: JourneyDraftBody, request: Request) -> Any:
         """A journey drafted from a plain-language description by the model. Checked against the agent's real tools; never saved by itself."""
         who: Identity = request.state.identity
-        if not access.limiter.allow(f"journey-draft:{who.key_id or 'open'}", 10)[0]:
+        if not (await access.limiter.hit(f"journey-draft:{who.key_id or 'open'}", 10))[0]:
             return too_many(60, "journey drafts")
         try:
             agent = await provider.get(agent_id)

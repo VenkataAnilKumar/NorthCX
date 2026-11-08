@@ -61,7 +61,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if who.session_id is not None and who.session_id != session_id:
             await record(request, "auth.denied", f"PUT /v1/sessions/{session_id}/attachments", "denied", reason="outside the token's scope")
             return _err(403, "forbidden", "This chat token cannot be used for that conversation")
-        if not access.limiter.allow(f"upload:{session_id}", 20)[0]:
+        if not (await access.limiter.hit(f"upload:{session_id}", 20))[0]:
             return too_many(60, "uploads")
         cap = max(MAX_BYTES.values())
         declared = request.headers.get("content-length")
@@ -112,7 +112,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                 return _err(403, "forbidden", "This chat token cannot be used for that conversation or agent")
             customer_id = who.customer_id
         if limits:
-            ok, retry = access.limiter.allow(f"session:{body.session_id}", limits.chat_per_session_per_minute)
+            ok, retry = await access.limiter.hit(f"session:{body.session_id}", limits.chat_per_session_per_minute)
             if not ok:
                 return too_many(retry, "messages in this conversation")
         try:
@@ -188,7 +188,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                 return _err(403, "forbidden", "This chat token cannot be used for that conversation or agent")
             customer_id = who.customer_id  # set by the company's server; the customer cannot choose it
         if limits:
-            ok, retry = access.limiter.allow(f"session:{body.session_id}", limits.chat_per_session_per_minute)
+            ok, retry = await access.limiter.hit(f"session:{body.session_id}", limits.chat_per_session_per_minute)
             if not ok:
                 return too_many(retry, "messages in this conversation")
         env_error = await chat_environment(request, body)

@@ -37,7 +37,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if sso is None:
             return _err(404, "not_found", "Single sign-on is not configured")
         ip = request.client.host if request.client else "unknown"
-        if not access.limiter.allow(f"sso:{ip}", 20)[0]:
+        if not (await access.limiter.hit(f"sso:{ip}", 20))[0]:
             return too_many(60, "sign-in attempts")
         try:
             url, cookie = await sso.begin()
@@ -52,7 +52,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if sso is None:
             return _err(404, "not_found", "Single sign-on is not configured")
         ip = request.client.host if request.client else "unknown"
-        if not access.limiter.allow(f"sso:{ip}", 20)[0]:
+        if not (await access.limiter.hit(f"sso:{ip}", 20))[0]:
             return too_many(60, "sign-in attempts")
         if error:
             return await sso_failed(request, SsoError("The identity provider did not complete the sign-in", f"provider error: {error[:60]}"))

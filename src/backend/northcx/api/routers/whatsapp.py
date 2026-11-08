@@ -51,9 +51,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
             if len(raw) > 262144:
                 return _err(413, "too_large", "Request is too large")
         if not whatsapp.authentic(raw, request.headers.get("x-hub-signature-256", "")):
-            if limits and not access.limiter.allow(f"smsfail:{ip}", limits.auth_failures_per_minute)[0]:
+            if limits and not (await access.limiter.hit(f"smsfail:{ip}", limits.auth_failures_per_minute))[0]:
                 return too_many(60, "unsigned requests")
-            if access.limiter.allow(f"smslog:{ip}", 6)[0]:
+            if (await access.limiter.hit(f"smslog:{ip}", 6))[0]:
                 await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/whatsapp/meta", outcome="denied", detail={"client": ip}))
             return _err(403, "forbidden", "Invalid signature")
         try:
@@ -72,7 +72,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if whatsapp is None:
             return _err(501, "not_configured", "The WhatsApp channel is not configured")
         who: Identity = request.state.identity
-        if not access.limiter.allow(f"watemplate:{who.key_id or 'open'}", 60)[0]:
+        if not (await access.limiter.hit(f"watemplate:{who.key_id or 'open'}", 60))[0]:
             return too_many(60, "template messages")
         try:
             mid = await whatsapp.send_template(body.phone_id, body.to, body.template, body.params)

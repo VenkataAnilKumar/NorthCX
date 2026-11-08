@@ -32,9 +32,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
             if len(raw) > 262144:
                 return _err(413, "too_large", "Request is too large")
         if not telegram.authentic(request.headers.get("x-telegram-bot-api-secret-token", "")):
-            if limits and not access.limiter.allow(f"smsfail:{ip}", limits.auth_failures_per_minute)[0]:
+            if limits and not (await access.limiter.hit(f"smsfail:{ip}", limits.auth_failures_per_minute))[0]:
                 return too_many(60, "unsigned requests")
-            if access.limiter.allow(f"smslog:{ip}", 6)[0]:
+            if (await access.limiter.hit(f"smslog:{ip}", 6))[0]:
                 await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/telegram/webhook", outcome="denied", detail={"client": ip}))
             return _err(403, "forbidden", "Invalid secret")
         try:

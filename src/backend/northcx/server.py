@@ -358,9 +358,9 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             header = request.headers.get("authorization", "")
             ident, why = await access.authenticate_detail(header[7:] if header.startswith("Bearer ") else None)
             if ident is None:
-                if limits and not access.limiter.allow(f"authfail:{ip}", limits.auth_failures_per_minute)[0]:
+                if limits and not (await access.limiter.hit(f"authfail:{ip}", limits.auth_failures_per_minute))[0]:
                     return too_many(60, "failed sign-in attempts")
-                if access.limiter.allow(f"authlog:{ip}", 6)[0]:  # sampled, so guessing cannot flood the log
+                if (await access.limiter.hit(f"authlog:{ip}", 6))[0]:  # sampled, so guessing cannot flood the log
                     await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target=path,
                                                   outcome="denied", detail={"client": ip}))
                 if why == "expired":
@@ -370,7 +370,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             ident = OPEN_IDENTITY
         request.state.identity = ident
         if limits:
-            ok, retry = access.limiter.allow(f"key:{ident.key_id or ip}", limits.channel_per_minute if ident.role == "channel" else limits.per_key_per_minute)
+            ok, retry = await access.limiter.hit(f"key:{ident.key_id or ip}", limits.channel_per_minute if ident.role == "channel" else limits.per_key_per_minute)
             if not ok:
                 return too_many(retry, "requests")
         if perm != "authenticated" and not ident.can(perm):

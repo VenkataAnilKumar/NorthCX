@@ -91,6 +91,7 @@ Hash-pinned lock file for the backend (`requirements.lock` and a dev lock) gener
 **Design:** a `Limiter` protocol with the current in-memory implementation and a `PgLimiter` using one table, `rate_counters(key, window_start, count)`, updated with `INSERT ... ON CONFLICT DO UPDATE` and an hourly cleanup; the daily token ledger moves to a `usage_ledger` table the same way. Setting `NORTHCX_LIMITS_BACKEND=memory|postgres` (default memory for single process).
 **Tests:** two server processes share one limit; the abuse burst counter and channel throttles use the shared limiter; failure of the database degrades to the in-memory limiter with a warning, never to "no limit"; load test shows under 5 percent throughput cost at the documented rate.
 **Acceptance:** the Threat Model residual risk 3 is closed; Deployment Guide documents the setting.
+**Status (2026-11-08):** done: `PgLimiter` and `PgUsageLedger` (`db/stores/limits.py`), migration 0029, `NORTHCX_LIMITS_BACKEND` (validated at start-up), all 25 limiter call sites now call the shared interface, and the abuse burst check counts through the shared limiter when it is on. Tests (`tests/test_shared_limits.py`): two limiters on one database share one limit; the burst check and the token budget are shared; a database failure degrades to per-process counters with one warning; old windows are deleted; and two real server processes (alternating requests) allow exactly 10 of 16 at a limit of 10. Not as the plan said: the channel per-number reply caps already counted in the database, and no new load test was run. Measured cost is about 3 ms per check (about 600 checks per second with 20 keys in flight), so the plan's 'under 5 percent throughput' target is not claimed; see the Performance document.
 
 ### WP0.5 Multi-replica readiness (size L, V)
 **Design:** `NORTHCX_ROLE=all|api|worker` (default `all`, today's behaviour). Background loops (outbox flush, approval expiry, trace export, alert evaluation, inbox delivery, retention, embedding indexer, crawl scheduler) run only in `worker` and `all`. Queue claims so two workers never double-send: `claim_undelivered` on the outbox, trace-export and inbox queues using `FOR UPDATE SKIP LOCKED` plus a lease timestamp; alert state moves to an `alert_state` table; crawl jobs persist progress in a `crawl_jobs` table so any replica can show them.
@@ -319,7 +320,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [x] WP0.1 router, bootstrap and store split, typed `AppDeps`, shared helpers (design tokens move to WP0.2)
 - [x] WP0.2 design tokens into `packages/ui`
 - [x] WP0.3 locked backend dependencies
-- [ ] WP0.4 shared rate limits and budgets
+- [x] WP0.4 shared rate limits and budgets
 - [ ] WP0.5 multi-replica readiness
 - [ ] WP0.6 masked-text PDF path
 - [ ] WP0.7 generated API reference
