@@ -359,3 +359,16 @@ describe("answer charts", () => {
     expect(list).toContain("/conversations/s%201"); expect(list).toContain("reached a person"); expect(list).toContain("rated 2");
   });
 });
+
+describe("design tokens", () => {
+  it("live in the shared package, in light and dark, and the app only imports them", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const shared = readFileSync(join(__dirname, "../../../packages/ui/src/styles.css"), "utf8");
+    const app = readFileSync(join(__dirname, "../app/globals.css"), "utf8");
+    expect(shared).toContain("--primary:");
+    expect(shared).toContain("prefers-color-scheme: dark");
+    expect(app).toContain("@northcx/ui/styles.css");
+    expect(app).not.toMatch(/--primary:|--bg:/);
+  });
+});
