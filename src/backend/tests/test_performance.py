@@ -62,3 +62,57 @@ def test_api_individuals_need_the_audit_permission_and_are_audited():
     actions = [e["action"] for e in c.get("/v1/audit?limit=10", headers={"authorization": "Bearer " + "boot" * 10}).json()["entries"]]
     assert "workspace.performance_individuals" in actions
     assert c.get("/v1/workspace/performance").status_code == 401
+
+
+def test_figures_by_team_fold_small_teams_and_need_no_individual_names():
+    hs = [handoff("ann", NOW - 100 * i, 60) for i in range(1, 6)] + [handoff("ben", NOW - 50, 30), handoff("cy", NOW - 60, 30)]
+    ap = [approval("ann", NOW - 40, 10)]
+    teams = {("handoff", h.id): "billing" for h in hs[:5]} | {("handoff", hs[5].id): "returns", ("handoff", hs[6].id): "returns", ("approval", ap[0].id): "billing"}
+    f = figures(hs, ap, "ann", NOW - 86400, NOW, False, now=NOW, teams=teams)
+    rows = {r["team"]: r for r in f["team"]["byTeam"]}
+    assert rows["billing"]["handoffsResolved"] == 5 and rows["billing"]["approvalsDecided"] == 1 and rows["billing"]["handoffTime"]["medianSeconds"] == 60.0
+    assert "returns" not in rows and rows["Other teams (fewer than 5 items each)"]["handoffsResolved"] == 2                    # two items: too few to show a team on its own
+    assert "people" not in f["team"] and f["individualsShown"] is False
+    assert "byTeam" not in figures(hs, ap, "ann", NOW - 86400, NOW, False, now=NOW)["team"]                                   # without team records there is no team table
+
+
+def test_a_resolved_handoff_and_a_decided_approval_remember_the_team_of_whoever_answered():
+    import asyncio
+    from northcx.decision_teams import InMemoryTeams, NO_TEAM, team_of
+    from northcx.access import Identity
+    assert team_of(Identity("a", "reviewer", "k", groups=("returns", "billing"))) == "billing" and team_of(Identity("a", "reviewer", "k")) == NO_TEAM
+    loop = asyncio.new_event_loop()
+    rt = Runtime(ScriptedLLM([]), InMemoryStore(), TraceStore())
+    ac = AccessControl(bootstrap_key="boot" * 10)
+    c = TestClient(create_app(rt, rt.traces, {"support": support_agent()}, access=ac))
+    sso = {"authorization": "Bearer " + loop.run_until_complete(ac.issue_session("Rae", "reviewer", 8, groups=["returns"]))[1]}
+    plain = {"authorization": "Bearer " + loop.run_until_complete(ac.issue("pat", "reviewer", "t"))[1]}
+    h = loop.run_until_complete(rt.handoffs.add(Handoff("s1", "t1", "support", "customer_asked", "why", {})))
+    h2 = loop.run_until_complete(rt.handoffs.add(Handoff("s2", "t2", "support", "customer_asked", "why", {})))
+    assert c.post(f"/v1/handoffs/{h.id}/resolve", headers=sso, json={"note": "done"}).status_code == 200
+    assert c.post(f"/v1/handoffs/{h2.id}/resolve", headers=plain, json={"note": "done"}).status_code == 200
+    teams = loop.run_until_complete(rt.decision_teams.for_ids("handoff", [h.id, h2.id]))
+    assert teams == {h.id: "returns", h2.id: "(no team)"}
+
+
+async def test_the_team_record_survives_the_database_and_stays_in_its_tenant(app_engine):
+    from northcx.db import PgTeams
+    from northcx.tenancy import TENANT
+    repo = PgTeams(app_engine)
+    for tenant, team in (("acme", "billing"), ("globex", "returns")):
+        token = TENANT.set(tenant)
+        try:
+            await repo.record("handoff", "h1", team)
+            await repo.record("handoff", "h1", team)                     # recording again changes nothing
+        finally:
+            TENANT.reset(token)
+    token = TENANT.set("acme")
+    try:
+        assert await repo.for_ids("handoff", ["h1", "h2"]) == {"h1": "billing"} and await repo.for_ids("approval", ["h1"]) == {}
+    finally:
+        TENANT.reset(token)
+    token = TENANT.set("nobody")
+    try:
+        assert await repo.for_ids("handoff", ["h1"]) == {}
+    finally:
+        TENANT.reset(token)

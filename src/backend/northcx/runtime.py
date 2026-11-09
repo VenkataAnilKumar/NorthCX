@@ -84,6 +84,7 @@ class Runtime:
         self.secrets = secrets or NO_SECRETS
         self.monitor = monitor or Monitor()
         self.ledger = ledger or UsageLedger()
+        self.decision_teams: Any = None  # northcx.decision_teams: which team answered a hand-off or approval
         self.tenant_limits: Any = None  # northcx.tenant_limits.TenantLimits: ceilings the platform operator sets per tenant
         self.org_templates: Any = None  # northcx.org_templates.OrgTemplateService: this organization's own Hub entries
         self.org_policies: Any = None  # northcx.org_policies.OrgPolicyService: locked organization policies applied to every customer agent

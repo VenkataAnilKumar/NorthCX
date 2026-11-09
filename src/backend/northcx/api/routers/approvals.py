@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
+from northcx.decision_teams import note_team
 from northcx.api.models import DecisionBody, ExpireBody
 
 
@@ -31,6 +32,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(404, "not_found", "Unknown approval")
         except ValueError as e:
             return _err(409, "conflict", str(e))
+        await note_team(runtime, request, "approval", approval_id)
         await record(request, "approval.decide", approval_id, tool=res.approval.tool, approved=body.approved,
                      state=res.approval.state, note=bool(body.note), follow_up=res.run.status if res.run else "none")
         out = dict(res.approval.__dict__)

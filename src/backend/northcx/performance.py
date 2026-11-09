@@ -30,7 +30,8 @@ def _series(stamps: list[float], since: float, days: int) -> list[dict[str, Any]
     return out
 
 
-def figures(handoffs: list[Any], approvals: list[Any], me: str, since: float, until: float, individuals: bool, now: float | None = None) -> dict[str, Any]:
+def figures(handoffs: list[Any], approvals: list[Any], me: str, since: float, until: float, individuals: bool, now: float | None = None,
+            teams: dict[tuple[str, str], str] | None = None) -> dict[str, Any]:
     now = now or time.time()
     days = max(1, int(round((until - since) / DAY)))
     done_h = [h for h in handoffs if h.resolved_by and h.resolved_at and since <= h.resolved_at <= until]
@@ -55,6 +56,24 @@ def figures(handoffs: list[Any], approvals: list[Any], me: str, since: float, un
         "openNow": len(open_h), "oldestOpenSeconds": round(now - min((h.created_at for h in open_h), default=now), 1) if open_h else None,
         "afterHours": sum(h.after_hours for h in done_h), "series": _series([h.resolved_at for h in done_h] + [a.decided_at for a in done_a], since, days),
     }
+    if teams is not None:                                                  # figures by team; a team with fewer than MIN_GROUP items is folded into "Other teams"
+        by: dict[str, dict[str, Any]] = {}
+        for h in done_h:
+            by.setdefault(teams.get(("handoff", h.id), "(no team)"), {"h": [], "a": []})["h"].append(h)
+        for a in done_a:
+            by.setdefault(teams.get(("approval", a.id), "(no team)"), {"h": [], "a": []})["a"].append(a)
+        rows, small = [], {"h": [], "a": []}
+        for name, v in sorted(by.items()):
+            if len(v["h"]) + len(v["a"]) >= MIN_GROUP:
+                rows.append({"team": name, "handoffsResolved": len(v["h"]), "approvalsDecided": len(v["a"]), "handoffTime": _times([(h.created_at, h.resolved_at) for h in v["h"]]),
+                             "approvalTime": _times([(a.created_at, a.decided_at) for a in v["a"]])})
+            else:
+                small["h"] += v["h"]
+                small["a"] += v["a"]
+        if small["h"] or small["a"]:
+            rows.append({"team": "Other teams (fewer than %d items each)" % MIN_GROUP, "handoffsResolved": len(small["h"]), "approvalsDecided": len(small["a"]),
+                         "handoffTime": _times([(h.created_at, h.resolved_at) for h in small["h"]]), "approvalTime": _times([(a.created_at, a.decided_at) for a in small["a"]])})
+        team["byTeam"] = rows
     if individuals:
         shown = sorted(((w, n) for w, n in handlers.items() if n >= MIN_GROUP), key=lambda x: -x[1])
         small = sum(n for w, n in handlers.items() if n < MIN_GROUP)

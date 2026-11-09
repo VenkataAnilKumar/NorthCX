@@ -11,6 +11,7 @@ from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import ReplyBody, ResolveBody
 from northcx.assist import AssistError
+from northcx.decision_teams import note_team
 from northcx.handoffs import PERSON_PREFIX, return_note
 
 log = logging.getLogger("northcx.server")
@@ -69,6 +70,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                     await runtime.inbox.enqueue(done, "resolved")
                 except Exception:
                     log.exception("could not queue the resolution for the inbox")
+            await note_team(runtime, request, "handoff", handoff_id)
             await record(request, "handoff.resolve", handoff_id, trigger=done.trigger, note=bool(body.note), returned=body.returnToAgent)
             return handoff_json(done)
         except KeyError:

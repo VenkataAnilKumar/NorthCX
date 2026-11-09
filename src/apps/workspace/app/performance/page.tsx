@@ -56,6 +56,10 @@ export default function Page() {
             <p className="mt-3 text-sm">Hand-offs: {times(data.team.handoffTime)}</p>
             <p className="text-sm">Approvals: {times(data.team.approvalTime)}</p>
             <Bars series={data.team.series} label="Team items per day" />
+            {data.team.byTeam && data.team.byTeam.length > 0 && (
+              <table className="tbl mt-3 text-sm"><caption className="mb-1 text-left text-xs text-muted">By team (the team each person was signed in under; a team with fewer than five items is grouped)</caption>
+                <thead><tr><th>Team</th><th>Hand-offs</th><th>Approvals</th><th>Hand-off time</th></tr></thead>
+                <tbody>{data.team.byTeam.map((r) => <tr key={r.team}><td>{r.team}</td><td>{r.handoffsResolved}</td><td>{r.approvalsDecided}</td><td>{times(r.handoffTime)}</td></tr>)}</tbody></table>)}
             {data.team.people && <ul className="mt-3 space-y-1 text-sm" aria-label="People">{data.team.people.map((p) => <li key={p.name}>{p.name}: {p.items}</li>)}</ul>}
           </GlassCard>
         </div>

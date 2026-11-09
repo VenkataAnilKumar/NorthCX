@@ -781,6 +781,16 @@ class LibraryItemRow(TenantScoped, Base):
     __table_args__ = (Index("ix_library_items_owner", "owner"),)
 
 
+class DecisionTeamRow(TenantScoped, Base):
+    """The team a person answered for when they resolved a hand-off or decided an approval (Performance by team)."""
+    __tablename__ = "decision_teams"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    kind: Mapped[str] = mapped_column(String(10), primary_key=True)
+    item_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    team: Mapped[str] = mapped_column(String(80), nullable=False)
+    at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

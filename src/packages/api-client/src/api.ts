@@ -507,7 +507,7 @@ export interface PerfSeries { day: string; count: number }
 export interface PerformanceReport {
   days: number; individualsShown: boolean; counts: Record<string, string>;
   mine: { handoffsResolved: number; approvalsDecided: number; approved: number; rejected: number; handoffTime: TimeStats; approvalTime: TimeStats; series: PerfSeries[] };
-  team: { handoffsResolved: number; approvalsDecided: number; handlers: number; handoffTime: TimeStats; approvalTime: TimeStats; openNow: number; oldestOpenSeconds: number | null; afterHours: number; series: PerfSeries[]; people?: { name: string; items: number }[] };
+  team: { handoffsResolved: number; approvalsDecided: number; handlers: number; handoffTime: TimeStats; approvalTime: TimeStats; openNow: number; oldestOpenSeconds: number | null; afterHours: number; series: PerfSeries[]; people?: { name: string; items: number }[]; byTeam?: { team: string; handoffsResolved: number; approvalsDecided: number; handoffTime: TimeStats; approvalTime: TimeStats }[] };
 }
 export const performance = (days: number, individuals = false) => api<PerformanceReport>(`/v1/workspace/performance?days=${days}${individuals ? "&individuals=true" : ""}`);
 

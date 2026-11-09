@@ -137,7 +137,13 @@ def register(app: FastAPI, d: AppDeps) -> None:
     async def performance_data(days: int, me: str, individuals: bool) -> dict[str, Any]:
         from northcx.performance import figures
         until = time.time()
-        return figures(await runtime.handoffs.list(None, None, 5000), await runtime.approvals.list(None), me, until - days * 86400.0, until, individuals)
+        hs, ap = await runtime.handoffs.list(None, None, 5000), await runtime.approvals.list(None)
+        repo = getattr(runtime, "decision_teams", None)
+        teams: dict[tuple[str, str], str] | None = None
+        if repo is not None:
+            teams = {("handoff", k): v for k, v in (await repo.for_ids("handoff", [h.id for h in hs if h.resolved_by])).items()}
+            teams.update({("approval", k): v for k, v in (await repo.for_ids("approval", [a.id for a in ap if a.decided_by])).items()})
+        return figures(hs, ap, me, until - days * 86400.0, until, individuals, teams=teams)
 
     async def team_report(days: int) -> dict[str, Any]:
         out = await performance_data(days, "", False)
