@@ -2,6 +2,8 @@
 
 Status: **Plan**. Updated: 2026-11-09. Master for: what the documents cover and what is open. Tracks whether the product documents cover the full designed platform before implementation starts. "Done" means the document describes the Workspace, Pilot, Agent Hub, Builder, Automations, personal intelligence, hybrid models and the Admin regrouping, with states marked designed or built honestly.
 
+**End-to-end review (2026-11-09):** every active document was read in full and corrected against the code and decisions 1 to 172: out-of-date facts, features called planned that are built, tables and routes that do not exist, superseded duplicates, unverified claims (for example fact provenance, linting in CI), guessed pronouns and named external products. Commits "Docs review: ..." on `main`.
+
 | Area | Document | State |
 |---|---|---|
 | Vision, scope, pillars | `01-product/NorthCX_Product-Definition.md` | Done (section 3a) |
@@ -11,7 +13,7 @@ Status: **Plan**. Updated: 2026-11-09. Master for: what the documents cover and 
 | Success metrics | `01-product/NorthCX_Success-Metrics.md` (staff platform proposals) | Done; baselines need a pilot |
 | Pricing | `01-product/NorthCX_Pricing-Model.md` | **Blocked on D1** (open versus commercial); not changed |
 | Market | `02-market/NorthCX_Competitive-Analysis.md`, `00-reference/` | Existing; refresh after D1 |
-| Catalog | `03-specs/NorthCX_Feature-Catalog.md` section 12 (77 features) | Done |
+| Catalog | `03-specs/NorthCX_Feature-Catalog.md` (106 for 1.0, 103 built; section 12: 77 designed) | Done |
 | Specifications | Workspace, Pilot, Personal-Intelligence, Automations specs; Agent Hub design | Done (drafts) |
 | Stories and journeys | `03-specs/NorthCX_User-Stories.md` (US45 to US61), `NorthCX_User-Journey.md` (J11 to J15) | Done |
 | Non-functional | `03-specs/NorthCX_Non-Functional-Requirements.md` | Done (proposals) |

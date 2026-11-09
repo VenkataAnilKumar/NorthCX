@@ -4,9 +4,9 @@ Status: **Reference**. Updated: 2026-11-09. Master for: terms.
 
 | Term | Meaning |
 |---|---|
-| Agent | A configured assistant: instructions, tools, guardrails, model |
+| Agent | The customer-facing AI: instructions, tools, guardrails, model (staff-facing helpers are assistants) |
 | Run | One user message processed to a reply |
-| Session | A conversation's history, identified by `sessionId` |
+| Session | A conversation's history, identified by a session id (`sessionId` in the API) |
 | Tool | A typed function the agent can call |
 | Guardrail / supervisor | A check on a draft reply or tool call |
 | Approval | A human decision required before a tool runs |
@@ -17,7 +17,7 @@ Status: **Reference**. Updated: 2026-11-09. Master for: terms.
 | Judge | A model scoring a reply against a rubric |
 | Customer facts | Durable facts stored per customer |
 | Adapter | Code connecting a channel or service to the API |
-| Studio | The planned low-code builder |
+| Studio | The operator console (built); being extended into the Admin app |
 | Skill | A reusable procedure an agent can use inside a workflow |
 | Journey | A scenario blueprint with goals, required steps and guardrails |
 | Version | An immutable snapshot of an agent definition |
@@ -40,3 +40,4 @@ Status: **Reference**. Updated: 2026-11-09. Master for: terms.
 | Builder | Assistant that drafts agents and automations for review; never goes live by itself |
 | Personal intelligence | A person's instructions, persona, memory, skills and personal context, layered under organization rules |
 | Hybrid model selection | Choosing local, private or public models by data limits, qualification, rules and cost |
+| Admin app | The Studio extended for administrators: six left items (Overview, Operate, Build, Govern, Platform, Personal) with 25 organization and 10 personal pages |

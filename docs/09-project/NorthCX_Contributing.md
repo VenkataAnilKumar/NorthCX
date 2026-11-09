@@ -3,7 +3,7 @@
 Status: **Reference**. Updated: 2026-11-09. Master for: how to contribute.
 
 1. Fork and branch from the default branch.
-2. Backend: lint, type-check and `pytest` must pass. Web: lint, type-check and tests must pass.
+2. What CI checks: backend `pytest` (with Postgres), the scripted scenario suite, `pip-audit` on both lock files and the restricted-path check; web `npm run typecheck`, `npm test` and `npm run build` (Studio, Workspace and the shared packages) and the SDK tests and build; and a Docker Compose smoke test. There is no linter or backend type checker in CI yet.
 3. Add tests for behaviour changes; production failures need a regression scenario.
 4. Behaviour changes need a scenario (`src/backend/examples/scenarios`) as well as unit tests; run `python -m northcx.simulation` as shown in the Simulation doc.
 5. Keep external product research in `docs/00-reference/` only.

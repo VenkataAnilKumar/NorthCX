@@ -2,6 +2,8 @@
 
 Status: **Reference**. Updated: 2026-11-09. Master for: every numbered decision.
 
+Entries are never edited after the fact; a later decision refines or replaces an earlier one. In particular, the proposals in 147 to 152 and 156 were settled by 153 to 172 (tab names 153, navigation 157 and 168, the Pilot 155 and 163, models 164, Agent Hub, Builder and Automations 165, Profile 166, Admin pages 167, platform decisions 170).
+
 | # | Decision | Status | Notes |
 |---|---|---|---|
 | 1 | Project name NorthCX | Decided | Package, repo and docs renamed |
