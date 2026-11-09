@@ -5,11 +5,11 @@ Status: **Built**. Updated: 2026-11-09. Master for: how the product is tested.
 | Level | Scope | Model | Runs |
 |---|---|---|---|
 | Unit | Runtime loop, tools, guardrails, stores | Scripted | Every commit |
-| Contract | Store adapters, channel adapters against the interface | Scripted | Every commit |
+| Contract | Store adapters, channel adapters, provider clients (SDK and HTTPS) against the interface | Scripted | Every commit |
 | Simulation (deterministic) | Scenarios with assertions | Scripted | Every commit |
-| Simulation (live) | Same scenarios with the real agent | Live, repeated trials | Pull requests and nightly |
-| Safety | Policy-violation and prompt-injection scenarios | Live | Nightly and before release |
-| Load | Throughput, latency, cost per run | Live or stub | Before release |
+| Simulation (live) | Same scenarios with the real agent | Live, repeated trials | Intended for pull requests and nightly; not set up yet (needs an API key; not run against a real model so far) |
+| Safety | Policy-violation and prompt-injection scenarios | Scripted attack suite on every commit (built); live runs nightly and before release (not set up yet) | Every commit; live later |
+| Load | Throughput, latency, cost per run | Offline stand-in so far (see Performance); live not measured | Before release |
 | Security | Dependency, licence and secret scans; pen-test | n/a | CI and per release |
 
 ## Additional test types

@@ -1,6 +1,6 @@
 # NorthCX Gap-Closure Plan
 
-Status: Draft for decision (2026-11-05). Turns `00-reference/NorthCX_North-Gap-Analysis.md` into an implementation plan: what to build, in what order, how each piece is designed, how it is proven, and what needs a person or an outside party. The work packages, steps and checklist that implement it are in `NorthCX_Implementation-Plan.md`. Sizes are estimates; the first milestone is detailed enough to start, later ones are outlines to be re-planned when they begin.
+Status: **Plan**. Updated: 2026-11-09. Master for: the epic designs and plan decisions D1 to D11 (the work packages are in `NorthCX_Implementation-Plan.md`). Written 2026-11-05. Turns `00-reference/NorthCX_North-Gap-Analysis.md` into an implementation plan: what to build, in what order, how each piece is designed, how it is proven, and what needs a person or an outside party. The work packages, steps and checklist that implement it are in `NorthCX_Implementation-Plan.md`. Sizes are estimates; the first milestone is detailed enough to start, later ones are outlines to be re-planned when they begin.
 
 ## 1. What this plan covers
 
@@ -32,6 +32,8 @@ SOC 2 / ISO audits, the independent penetration test, a hosted managed cloud, na
 | D9 | **Which model providers first.** | OpenAI-compatible (covers many hosts and self-hosted servers) then others | OpenAI-compatible adapter first, then one more |
 | D10 | **Web layout.** | One app with route groups; several apps with shared packages in one repository; separate repositories per app | Several apps with shared packages in one repository (decided; the split is done for Studio and the shared packages); back office and ops console as their own apps, the back office on an internal network with its own `/platform/v1` API prefix on a separate listener |
 | D11 | **Where the marketing site, Trust Center and back office live.** | Same repository; separate repositories | Marketing, trust, legal and developer portal under `src/site` in this repository for now; the back office in this repository until D1 is decided, then in a private repository if the project goes open core |
+
+**Status (2026-11-09):** D2 decided (working name NorthCX Workspace; an own name, not the other vendor's). D3, D5, D6, D7, D8 and D9 accepted as the implementation plan recommends and locked in when their work packages start (decision 170); for D6 that is a ticketing pack, then Slack, then Salesforce, with MCP (E4) in Wave 1. D4 superseded: the first staff surface is a separate Workspace app, not a Studio page (decisions 153 to 168). D10 and D11 decided (decision 140). D8's note on "resolved": a provisional resolution rate is now reported beside containment. **D1 is open.**
 
 ## 4. How the work is organised
 
@@ -157,6 +159,7 @@ This is the largest engineering item. It touches **38 tables, 30 store classes a
 The product shift: the same engine, a different audience. A **staff principal** (a signed-in person with a role) talks to agents with **staff tools**, under the permissions of that person.
 
 ### E5. Workspace chat, staff memory and permission-aware search
+*(Since 2026-11-09 the user-facing design of the Workspace, the Pilot and personal intelligence is in `../07-design/NorthCX_Platform-Features-and-Tabs.md` and the specifications in `../03-specs/`; this section keeps the backend design.)*
 - **Audience field.** `AgentSpec` gets an optional `audience: staff` (removed from the canonical form when absent, so existing digests are unchanged). Staff agents may use staff tools; customer agents cannot be given them (validated at version creation).
 - **Tool context carries the actor.** `ToolContext` gains the caller's permissions, so every staff tool checks them itself ("search conversations" requires `traces:read`; "export" requires the export permission). A staff agent therefore can never do more than the person using it.
 - **Staff tools (first set):** search knowledge, search conversations (masked), get a conversation (masked, audited), ask insights (E-O8, exists), list hand-offs and approvals, draft a reply, summarise a conversation, create a report (E6). Each tool is read-only except the ones that create an output.
@@ -234,6 +237,8 @@ The target set is ten portals and surfaces. This section maps each to the epics 
 | 8 | **Deployment and ops console** (health, upgrades, GPU usage, logs) | E11 and **E19** | 4 | Health, versions, migrations, queues: yes. GPU usage only against fixtures |
 | 9 | **Internal back office** (tenants, licenses, feature flags, support access) | E2, E10, E11 and **E18** | 1 to 4 | Tenants, flags, support access: yes. Licenses depend on D1 |
 | 10 | **Embedded surfaces** (Slack and Teams bots, Outlook and Word add-ins, browser extension) | E13 surfaces, **E20** | 5 | Browser extension: partly. Bots and add-ins need vendor accounts and store review |
+
+**Since 2026-11-09:** rows 2 and 3 are the **Workspace** app (Pilot, Assistants, Automations and the other tabs) and the Builder; row 4 is not a separate portal but the **Admin** app, which is the Studio extended (25 organization pages under six left items). The final design is `../07-design/NorthCX_Platform-Features-and-Tabs.md`.
 
 ### 10.2 The additions
 

@@ -11,7 +11,7 @@ The key difference from Cohere North is the user. **NorthCX is customer-facing**
 | North module | NorthCX status | What to build |
 |---|---|---|
 | **Agents** | ✅ Strong: YAML agents, typed tools, specialists, journeys, templates, drafting an agent from procedures or recordings | Agents for **staff**, not only customers: a "CX Copilot" for support reps, team leads, QA and ops |
-| **Automations** | ⚠️ Partial: only knowledge re-crawls run on a schedule | A natural-language automation builder with triggers (schedule, webhook, ticket created), multi-step background jobs and run history. Examples: daily ticket triage, nightly QA sampling, auto-tagging, SLA breach sweeps, weekly voice-of-customer reports |
+| **Automations** | ⚠️ Partial: the only user-defined schedule is knowledge re-crawls (alerts, retention, approval expiry and exports already run in the background) | A natural-language automation builder with triggers (schedule, webhook, ticket created), multi-step background jobs and run history. Examples: daily ticket triage, nightly QA sampling, auto-tagging, SLA breach sweeps, weekly voice-of-customer reports |
 | **Skills** | ✅ Built: skill files with enforced step order | A skill catalog shared across agents, with versions, owners and usage counts |
 | **Libraries** | ⚠️ Knowledge base only (customer-facing answers) | Shared team libraries for prompts, macros, playbooks, response templates and files, with sharing permissions |
 | **Applications** (decks, dashboards, docs from chat) | ❌ Missing | Generate outputs from chat: CX reports, QBR decks, dashboards, CSV exports, ticket-trend briefs |
@@ -58,7 +58,7 @@ The key difference from Cohere North is the user. **NorthCX is customer-facing**
 - Fix the known limits: per-process rate limits, unmasked images and PDFs sent to the model, unlocked dependencies
 
 ### 7. Marketing site and positioning
-- Landing page: "North for Customer Experience: private, supervised AI agents for customers and the teams who serve them"
+- Landing page: "North for Customer Experience: private, supervised AI agents for customers and the teams who serve them" (a working phrase from this analysis only; it borrows another product's name and must not be used outside this folder; NorthCX's own positioning is in the Product Definition)
 - Solution pages by CX function (support, contact center, QA, CX ops) and industry (retail, fintech, telecom, travel)
 - Deployment options page, security page, demo booking
 

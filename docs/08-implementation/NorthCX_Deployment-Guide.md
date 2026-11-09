@@ -82,14 +82,14 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 - **Upgrades:** pull or build the new images and run `docker compose up -d --build --wait`. Migrations apply on start and only move forward; take a database backup first. Rolling the images back across a migration needs the matching database backup.
 - **Backups:** back up the Postgres volume or use `pg_dump`. Everything lives there: conversations (personal data), approvals, handoffs, versions and releases, keys (hashes), the audit log and simulation runs. Treat backups as sensitive.
 - **Health:** probe `/ready` (load balancers, orchestrators); `/health` is liveness only. Logs go to standard output.
-- **Scaling:** the backend is stateless apart from per-process rate-limit buckets, so run several behind a load balancer; all state is in Postgres. Two simultaneous messages in one conversation can still overwrite each other (see Knowledge and Memory).
+- **Scaling:** run several processes behind a load balancer with `NORTHCX_ROLE` and `NORTHCX_LIMITS_BACKEND=postgres` (see "Several processes" below); all state, including shared limits and job leases, is in Postgres. Two simultaneous messages in one conversation can still overwrite each other (see Knowledge and Memory).
 - **TLS and exposure:** the compose file listens on loopback only. Put a reverse proxy that terminates TLS in front (and set `NORTHCX_BIND` only if you must publish directly).
 
 ## Environments
 | Env | Setup |
 |---|---|
 | Local | One compose file starts Postgres, the backend and the Studio; model API key from the environment. The TypeScript prototype (in `src/prototype`, a reference implementation, not the product) still runs with `npm install && ANTHROPIC_API_KEY=... npm run dev` (in-memory, state lost on restart) |
-| Staging/production | Container image for the server, Postgres, optional queue |
+| Staging/production | The backend and Studio images and Postgres (no queue service is needed; background work uses database leases). The Workspace app has no image yet |
 
 ## Storage
 Set `NORTHCX_DATABASE_URL` (for example `postgresql://northcx:northcx@localhost:5432/northcx`) to use Postgres; pending migrations are applied at startup. Without it the backend uses in-memory storage and logs a warning. `docker-compose.yml` starts a development Postgres. Migrations live in `src/backend/northcx/db/migrations` and are checked against the models in tests.

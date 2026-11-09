@@ -49,7 +49,7 @@ The first web split (Studio in `src/apps/studio`, shared packages in `src/packag
 |---|---|---|
 | **1.0.0** | Wave 0 | Release checklist, plus the owner's actions |
 | **1.1** | Wave 1: E1, E3 (3.1 to 3.3, 3.5), E4 | Provider conformance, identity sweeps, MCP against a fake server |
-| **1.2** | Wave 2: E2, then E5, E6, E16, E18; first admin app | Tenant isolation sweeps and fuzz, load gate, staff permission matrix |
+| **1.2** | Wave 2: E2, then E5, E6, E16, E18, E22 (proposed); the Workspace app (first release: Inbox, Approvals, Pilot, Assistants, Search, Library) and the regrouped Admin app | Tenant isolation sweeps and fuzz, load gate, staff permission matrix |
 | **1.3** | Wave 3: E8, E14, E15, E9, E7 | Automation safety suite, connector fixtures, workflow round trip |
 | **1.4** | Wave 4: E10, E11, E12, E17, E19; ops and back-office apps | Metering idempotency, chart validation, document review |
 | **Later** | Wave 5: E13, E21, E20, surfaces, mobile, marketplace | Vendor accounts, content, store review |
@@ -58,7 +58,7 @@ The first web split (Studio in `src/apps/studio`, shared packages in `src/packag
 
 **Parallel tracks** (can run side by side once their inputs exist)
 - **Track A, platform core:** WP0.1 to WP0.5, E1, E3, E4, E2.
-- **Track B, web:** design tokens (WP0.2), then the workspace, admin, ops and back-office apps as their backends arrive.
+- **Track B, web:** design tokens (WP0.2), then the Workspace and the regrouped Admin app (the Studio extended; decided 2026-11-09), then the ops and back-office apps as their backends arrive. Early, unfinished code for the Workspace and the Admin shell is on `main`.
 - **Track C, trust and docs:** API reference, compliance pack, legal templates, marketing site content.
 - **Track D, owner and outside actions:** section 13; the long-lead items (penetration test, vendor accounts, audits) should start early.
 
@@ -191,7 +191,7 @@ Commission the penetration test (scope: Threat Model and Security Review, with t
 | **5.5** | Staff and team memory namespaces with recall, edit and erase | V |
 | **5.6** | `SearchProvider` framework: `search(query, identity)` returning results with source and access, per-provider timeout, reciprocal rank fusion, a provider that cannot prove access returns nothing; providers for knowledge, conversations, hand-offs | V |
 | **5.7** | Staff guardrails: per-role approved models and tools, export data-loss rules (mask by default, volume thresholds needing approval), everything in the audit chain | V |
-| **5.8** | `apps/workspace`: chat home, saved prompts, outputs panel, history, built on `packages/ui` | V (demo model), X (answer quality) |
+| **5.8** | `apps/workspace` to the final design (`07-design/NorthCX_Platform-Features-and-Tabs.md`, `03-specs/NorthCX_Workspace-Spec.md`, `NorthCX_Pilot-Spec.md`): six left items with sub-tabs; first release Inbox, Approvals, Pilot (Quick answer and Research), Assistants, Search and Library; built on `packages/ui`; the early code on `main` is reworked to the final names first | V (demo model), X (answer quality) |
 **Tests:** matrix of roles by tools; customer text never treated as a staff instruction; memory isolation; tenant isolation. **Depends on:** E2, E3.
 
 ### E22 Agent Hub and predefined agents (proposed, not yet accepted; size L)
@@ -308,6 +308,8 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 | D9 first providers | WP1.3 | OpenAI-compatible, then one more |
 | D11 site and back-office location | WP0.2 onward, back-office app | This repository now; back office private if open core |
 
+**Status (2026-11-09):** the "resolved" definition is decided (WP0.10); D2 is decided (working name NorthCX Workspace); D3 and D5 to D9 are accepted as recommended and are locked in when their work packages start (decision 170); D10 and D11 are decided (decision 140); **D1 is open**. The staff-platform design decisions are 153 to 172 in the decision log.
+
 ## 13. External actions register
 
 | Action | Who | Needed by | Lead time |
@@ -342,7 +344,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [ ] WP0.12 penetration test, tag, 1.0.0 (owner)
 
 **Wave 1 (1.1)**
-- [ ] E1 model providers (WP1.1 to WP1.8)
+- [ ] E1 model providers (WP1.1 to WP1.8; WP1.1 and WP1.2 done; hybrid selection WP1.9 to WP1.13 designed)
 - [ ] E3 identity and governance (WP3.1 to WP3.6)
 - [ ] E4 MCP client and server (WP4.1 to WP4.3)
 
@@ -352,7 +354,11 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [ ] E6 libraries and generated outputs
 - [ ] E16 guardrail policy management
 - [ ] E18 support access
-- [ ] First admin app
+- [ ] E22 Agent Hub (proposed)
+- [ ] Workspace app first release and the regrouped Admin app (early code on `main` to be reworked)
+
+**Documentation**
+- [x] Product documents complete for the designed platform and reviewed end to end (2026-11-09, decision 172)
 
 **Wave 3 (1.3)**
 - [ ] E8 automations (WP8.1 to WP8.6)

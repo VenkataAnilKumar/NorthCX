@@ -45,12 +45,10 @@ The ten target portals and surfaces (marketing site, workspace, builder, admin p
 - **Web layout (D10, decision 140), decided and started:** several apps plus shared packages in one repository; back office on an internal network under `/platform/v1`; marketing, trust, legal and developer portal under `src/site`. Studio now lives in `src/apps/studio` with shared packages in `src/packages`. See `05-technical/NorthCX_Repo-Structure.md`.
 
 ## Decisions waiting on the owner
-Open model (open versus commercial), naming of the staff product, tenancy model, first staff surface, SAML approach, first connectors, MCP approach, billing unit, first model providers. The first two should be settled first because they shape billing and the staff product. Recommendations are in section 3 of the gap-closure plan.
+Only D1 (open versus commercial) remains; it blocks pricing, billing work and any marketplace. Decided on 2026-11-09 (decisions 153 to 172): the staff product's working name (NorthCX Workspace, D2), the first staff surface and its tabs, D3 to D9 (accepted as the plan recommends, each locked in when its work package starts), and the design decisions for the Workspace, Pilot, models, Agent Hub, Builder, Automations, Profile and the Admin app.
 
-## Small corrections still to apply
-- The gap analysis says "only knowledge re-crawls run on a schedule"; it should say "the only user-defined schedule" (alerts, retention, approvals and exports already run in the background).
-- The index row for the gap analysis in `docs/README.md` names an external product; reword it.
-- Add a naming note to the gap analysis about the proposed positioning phrases.
+## Small corrections
+Applied on 2026-11-09 during the document review: the docs index no longer names an external product; the gap-analysis notes are corrected in `00-reference`.
 
 ## Outside what can be built or verified in this repository
 SOC 2 and ISO audits, a hosted managed cloud, vendor connector verification (needs sandbox accounts), native iOS and Android apps, and the penetration test. The plans say so and label every deliverable as verified here, partly verified, or needing outside verification.
@@ -59,4 +57,4 @@ SOC 2 and ISO audits, a hosted managed cloud, vendor connector verification (nee
 `NorthCX_Implementation-Plan.md` breaks every wave into work packages with steps, tests, gates, sizes, verification labels and a living checklist (section 14), plus the register of actions only the owner or an outside party can take.
 
 ## Where to start
-Take the first slice of Wave 0 (split `server.py`, lock dependencies, shared rate limits), then the model-provider layer; or settle the open-model and naming decisions first and record them in the decision log.
+The documentation is complete for the designed platform (decision 172 and the end-to-end review of 2026-11-09). Implementation resumes when the owner says so: the next backend step is WP1.3 (an OpenAI-compatible provider); the owner actions for 1.0 (live-model pass, penetration test, tags) can run in parallel. The early Workspace and Admin web code on `main` should be reviewed against the final tab names before it is extended.
