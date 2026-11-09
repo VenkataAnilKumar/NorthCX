@@ -238,6 +238,13 @@ class MemberBody(BaseModel):
     subject: str = Field(min_length=1, max_length=200)  # an email address or identity provider id
 
 
+class WorkspaceChatBody(BaseModel):
+    message: str = Field(min_length=1, max_length=8000)
+    chat_id: str | None = Field(default=None, alias="chatId", pattern=r"^[A-Za-z0-9_-]{1,64}$")  # leave out to start a new chat
+    style: str = Field(default="quick", pattern="^(quick|research)$")
+    model_config = {"populate_by_name": True}
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

@@ -99,16 +99,18 @@ class Runtime:
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
                   trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None,
-                  channel: str | None = None, environment: str = "production", attachments: list[Any] | None = None) -> RunResult:
+                  channel: str | None = None, environment: str = "production", attachments: list[Any] | None = None, actor: Any = None) -> RunResult:
+        if agent.audience == "staff" and actor is None:
+            raise ValueError("a staff agent works for a signed-in person: pass the actor")
         token = MODEL_CONTEXT.set(None)  # the turn sets what the model chooser may know; it never outlives the turn
         try:
-            return await self._run(agent, session_id, message, customer_id, trusted, progress, channel, environment, attachments)
+            return await self._run(agent, session_id, message, customer_id, trusted, progress, channel, environment, attachments, actor)
         finally:
             MODEL_CONTEXT.reset(token)
 
     async def _run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
                    trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None,
-                  channel: str | None = None, environment: str = "production", attachments: list[Any] | None = None) -> RunResult:
+                  channel: str | None = None, environment: str = "production", attachments: list[Any] | None = None, actor: Any = None) -> RunResult:
         """`trusted=True` is for messages the platform itself writes (for example an approval outcome); they skip
         the customer input checks and are traced as `system` events."""
         trace = Trace(agent.id, session_id, agent_version=agent.version, environment=environment)
@@ -144,7 +146,7 @@ class Runtime:
                 selector.is_sensitive_text(_flat(m["content"])) for m in messages + [{"role": "user", "content": message}] if m["role"] == "user") or bool(PIIDetection().mask(message)[1])
             MODEL_CONTEXT.set({"agent": agent.id, "agent_digest": agent.digest, "evaluation": self.dry_run, "channel": channel, "sensitive": sensitive, "needs_tools": bool(agent.tools),
                                "effect": "write" if any(t.effect == "write" for t in agent.tools) else "read"})
-        ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets, facts=dict(facts))
+        ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets, facts=dict(facts), actor=actor)
         pending: list[dict[str, Any]] = []
 
         facts_block = (
@@ -171,8 +173,9 @@ class Runtime:
             choice = choose_language(conversation_language(message, history), agent.languages)
             language_block = language_instruction(choice)
             trace.add("language", detected=choice.detected, replyIn=choice.reply_in, supported=choice.supported)
-        system = agent.instructions + style_block + language_block + facts_block + memory_block + f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}."
-        tools = [t.spec() for t in agent.tools] + [HANDOFF_SPEC] + ([transfer_spec(agent.routes)] if agent.routes else [])
+        staff = agent.audience == "staff"  # a staff conversation has no customer to hand over: no hand-off tool, no transfers
+        system = agent.instructions + style_block + language_block + facts_block + memory_block + ("" if staff else f"\n\nIf you cannot resolve the issue or the customer asks for a person, call {HANDOFF}.")
+        tools = [t.spec() for t in agent.tools] + ([] if staff else [HANDOFF_SPEC] + ([transfer_spec(agent.routes)] if agent.routes else []))
         transfers = 0
 
         async def finish(reply: str, status: str, trigger: str | None = None, reason: str = "",
@@ -562,6 +565,10 @@ class Runtime:
 
     async def execute_tool(self, tool: Any, data: Any, ctx: ToolContext) -> tuple[Any, bool]:
         """Run a tool, or in dry-run mode simulate it if it is a write. Returns (result, was_simulated)."""
+        if getattr(tool, "audience", "customer") == "staff":  # a staff tool needs a signed-in actor who holds its permission; the tool then acts with that person's rights
+            actor = ctx.actor
+            if actor is None or not actor.can(tool.permission):
+                raise PermissionError(f"not allowed: '{tool.name}' needs the {tool.permission} permission")
         if self.dry_run and tool.effect != "read":
             return tool.simulate(data, ctx), True
         if tool.effect == "read":  # reads have no side effects, so one retry is safe

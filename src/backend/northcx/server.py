@@ -66,6 +66,7 @@ from .api.routers import handoffs as _handoffs_router
 from .api.routers import rollouts as _rollouts_router
 from .api.routers import groups as _groups_router
 from .api.routers import scim as _scim_router
+from .api.routers import workspace as _workspace_router
 from .tenancy import TENANT
 from .api.routers import voice as _voice_router
 from .api.routers import public as _public_router
@@ -200,6 +201,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("DELETE", r"/v1/groups/[^/]+", "keys:manage"),
     ("POST", r"/v1/groups/[^/]+/members", "keys:manage"),
     ("DELETE", r"/v1/groups/[^/]+/members/[^/]+", "keys:manage"),
+    ("POST", r"/v1/workspace/chat", "workspace:use"),
+    ("POST", r"/v1/workspace/chat/stream", "workspace:use"),
     ("POST", r"/v1/simulations/runs", "simulations:run"),
     ("GET", r"/v1/agents/[^/]+/qualifications", "versions:read"),
     ("POST", r"/v1/agents/[^/]+/qualifications", "scenarios:require"),  # what may serve customers is a release decision
@@ -384,6 +387,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _rollouts_router.register(app, deps)
     _groups_router.register(app, deps)
     _scim_router.register(app, deps)
+    _workspace_router.register(app, deps)
     _voice_router.register(app, deps)
     _public_router.register(app, deps)
     _chat_router.register(app, deps)

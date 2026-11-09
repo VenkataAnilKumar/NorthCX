@@ -9,7 +9,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
@@ -93,6 +93,7 @@ class AgentSpec(BaseModel):
     model: str | None = None
     max_steps: int = Field(default=8, ge=1, le=50)
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
+    audience: Literal["customer", "staff"] = "customer"  # staff agents work for signed-in people with staff tools; customer agents never get staff tools
     sensitive: bool = False  # treat every conversation of this agent as sensitive (model choice: no tier the data policy forbids)
     channel_styles: dict[str, str] = Field(default_factory=dict)
     journeys: list[JourneySpec] = Field(default_factory=list, max_length=20)
@@ -161,6 +162,8 @@ class AgentSpec(BaseModel):
         data = self.model_dump(mode="json")
         if data.get("max_run_tokens") is None:
             del data["max_run_tokens"]  # keeps digests of specs written before this field existed
+        if data.get("audience") == "customer":
+            del data["audience"]  # keeps digests of specs written before this field existed
         if not data.get("sensitive"):
             data.pop("sensitive", None)  # keeps digests of specs written before this field existed
         for key in ("skills", "voice", "tool_scopes", "skill_snapshots"):
@@ -294,6 +297,12 @@ class Registry:
                 problems.append(f"Unknown tool '{t}' (known: {', '.join(self.tool_names()) or 'none'})")
         if len(set(spec.tools)) != len(spec.tools):
             problems.append("Duplicate tool references")
+        for t in dict.fromkeys(self._all_tools(spec)):  # a customer agent never gets a staff tool; a staff agent gets only staff tools
+            tool = self._tools.get(t)
+            if tool is not None and tool.audience == "staff" and spec.audience != "staff":
+                problems.append(f"Tool '{t}' is a staff tool; only an agent with audience: staff may use it")
+            elif tool is not None and tool.audience != "staff" and spec.audience == "staff":
+                problems.append(f"Tool '{t}' is a customer tool; an agent with audience: staff may use only staff tools")
         names = [t.name for t in spec.forced_handoff]
         if len(set(names)) != len(names):
             problems.append("Duplicate forced_handoff topic names")
@@ -383,6 +392,7 @@ class Registry:
                 max_steps=spec.max_steps,
                 max_run_tokens=spec.max_run_tokens,
                 sensitive=spec.sensitive,
+                audience=spec.audience,
                 channel_styles=dict(spec.channel_styles),
                 languages=list(spec.languages),
                 journeys=list(spec.journeys),
