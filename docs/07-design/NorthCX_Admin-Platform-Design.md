@@ -2,6 +2,9 @@
 
 Status: **proposed** (2026-11-09). Nothing here is built yet except what the "Today" column says. The screens are static mockups with sample data (a company called "Acme Support" is invented for the pictures); they show intent, not working software. Sources: the current Studio, the implementation plan (E1, E3, E5, E7, E10), and the market research in `00-reference/NorthCX_Feature-Research-2026-11.md`.
 
+> **Names in this document.** Several sections were written before the Workspace tab names were finalized and still use the old ones (Threads, Chat, Knowledge, Artifacts, Projects, Workflows, Scheduled, Reviews, Insights). The current names, the tab list and the status of each feature are in `NorthCX_Platform-Features-and-Tabs.md`, which takes precedence. The mockup images were regenerated with the new names.
+
+
 Source files: `07-design/mockups/*.html` (regenerate with `python scripts/gen_design_mockups.py`, then `node scripts/shoot_mockups.js`). Images: `assets/design/`.
 
 ## 0. Layout decided on 2026-11-09 (supersedes the earlier arrangement where they differ)
