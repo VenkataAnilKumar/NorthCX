@@ -20,7 +20,7 @@ Status: **Reference**. Updated: 2026-11-09. Master for: research notes on other 
 
 | Theme | NorthCX today | In the plan | Possible addition |
 |---|---|---|---|
-| Admin console and visibility | Studio: keys and roles, audit log, SSO settings, residency, approvals, review | Admin portal app after tenancy; usage and cost per team (E10, WP3.6) | A "who used which agent, for what" view built on audit and traces |
+| Admin console and visibility | Studio: keys and roles, audit log, SSO settings, residency, approvals, review | The Admin app, which is the Studio extended (decided later the same day); usage and cost per team (E10, WP3.6) | A "who used which agent, for what" view built on audit and traces |
 | Roles | Seven roles, hashed keys with expiry and revocation | Keys scoped to agents and environments (WP3.1), groups (WP3.2) | An analytics-only role that sees metrics without agent configuration |
 | SSO, SCIM | OIDC with group-to-role mapping | SCIM server (WP3.3), SAML (WP3.4) | Session-length and MFA policy settings in the admin portal |
 | Agent catalog | Agents are files and versions | Catalog and teams (WP3.6) | Catalog fields: owner, business purpose, environment, model, last release |
@@ -30,7 +30,7 @@ Status: **Reference**. Updated: 2026-11-09. Master for: research notes on other 
 | Telemetry | OTLP and Langfuse export of traces | | Map trace events to the OpenTelemetry GenAI operations (`invoke_agent`, `execute_tool`), marked as following an unstable specification |
 | Supervision | Output guardrails, input checks, supervised approvals | | Already matches the "second check before the customer sees it" pattern; document it that way |
 | Evaluation | Simulations, judge with calibration procedure (live run pending), conversation review feeding regression scenarios | QA scoring and digests (E7) | Scheduled sampling of routine conversations; threshold sweeps for outliers; reviewer calibration sessions; label a few hundred conversations for the judge |
-| Staff workspace and agent assist | Not built | Staff workspace backend (E5) | Suggested knowledge articles beside a conversation as the first assist feature |
+| Staff workspace and agent assist | Agent assist for hand-offs built (suggested reply, next steps, H6); staff workspace not built | Staff workspace backend (E5); the Workspace was designed later the same day | Suggested knowledge articles beside a conversation as the first assist feature |
 
 ## Candidate additions, in the order I would take them
 1. **Admin visibility view** from audit and traces (no new storage). Small, directly answers the first buying criterion.

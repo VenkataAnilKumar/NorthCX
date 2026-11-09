@@ -2,7 +2,7 @@
 
 Status: **Reference**. Updated: 2026-11-09. Master for: the 2026-11-04 gap analysis against an external product. Lives in `00-reference/` because it compares NorthCX with an external product (Cohere North) and names third-party systems.
 
-Based on the NorthCX repository, which its README describes as 1.0.0-rc.1, with more than 1,300 backend tests, Studio, the SDK and widget, six channels, approvals, simulations and releases.
+A snapshot of 2026-11-04. The response to it is `../08-implementation/NorthCX_Gap-Closure-Plan.md` and, for the staff side, the design of 2026-11-09 (`../07-design/NorthCX_Platform-Features-and-Tabs.md`: the Workspace, Pilot, Agent Hub, Automations and the Admin app). Based on the NorthCX repository, which its README describes as 1.0.0-rc.1, with more than 1,300 backend tests, Studio, the SDK and widget, six channels, approvals, simulations and releases.
 
 The key difference from Cohere North is the user. **NorthCX is customer-facing**: AI agents talk to your customers. **North is employee-facing**: a private AI workspace for staff, with chat, search, agents, automations, apps, and deployment anywhere. So "NorthCX like North" means keeping the strong customer-agent engine and adding the staff-side workspace plus North's enterprise platform layers.
 
@@ -17,7 +17,7 @@ The key difference from Cohere North is the user. **NorthCX is customer-facing**
 | **Applications** (decks, dashboards, docs from chat) | ❌ Missing | Generate outputs from chat: CX reports, QBR decks, dashboards, CSV exports, ticket-trend briefs |
 | **Memory** | ✅ Customer memory, recall and erase | Staff and team memory: a rep's preferences, ongoing case context, team norms |
 | **Guardrails** | ✅ Very strong, better than most | Extend the same controls to the staff workspace: what staff may ask, data loss prevention on exports, approved models per role |
-| **Admin** | ⚠️ Roles, scoped keys, OpenID Connect SSO, hash-chained audit log, residency | SAML SSO, automatic user provisioning (SCIM), groups, keys scoped to specific agents, per-team budgets, an agent catalog with approval to publish |
+| **Admin** | ⚠️ Roles, keys with a role and expiry (not yet limited to agents), OpenID Connect SSO, hash-chained audit log, residency | SAML SSO, automatic user provisioning (SCIM), groups, keys scoped to specific agents, per-team budgets, an agent catalog with approval to publish |
 | **Discover** (enterprise search) | ⚠️ Search over imported or crawled knowledge only | Permission-aware search across CX systems (tickets, CRM, call transcripts, Confluence/Notion, Slack/Teams) for staff questions like "why are refunds up this week?" |
 | **Insights** | ✅ Plain-language analytics with real denominators | Cross-source insights joining conversations with CRM, revenue and churn, plus scheduled insight digests |
 
@@ -55,7 +55,7 @@ The key difference from Cohere North is the user. **NorthCX is customer-facing**
 - The independent penetration test and a run against a live model (both open items in the README)
 - SOC 2 Type II, ISO 27001, ISO 42001, GDPR documentation; HIPAA for healthcare CX
 - Customer-managed encryption keys, a public trust center site
-- Fix the known limits: per-process rate limits, unmasked images and PDFs sent to the model, unlocked dependencies
+- Fix the known limits: per-process rate limits, unmasked images and PDFs sent to the model, unlocked dependencies (since fixed in Wave 0: shared limits, PDFs as masked text, hash-pinned dependencies; pictures still reach the model unmasked)
 
 ### 7. Marketing site and positioning
 - Landing page: "North for Customer Experience: private, supervised AI agents for customers and the teams who serve them" (a working phrase from this analysis only; it borrows another product's name and must not be used outside this folder; NorthCX's own positioning is in the Product Definition)

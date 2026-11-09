@@ -6,6 +6,8 @@ Status: **Reference**. Updated: 2026-11-09. Master for: named third-party compon
 
 Date: 2026-11-02
 
+> **Outcome since this research (2026-11-09).** The backend became Python, not the TypeScript runtime proposed in section 8 (Decision Log #3). No component in sections 2, 8 or 11 was adopted or copied: memory, knowledge retrieval, observability export, the Studio and the channels were all written in-house, and NorthCX depends on no reference project (`../05-technical/NorthCX_Build-vs-Adopt.md`, `NOTICE`, `THIRD_PARTY.md`). The "NorthCX (target)" column in section 7 is now built for simulation testing, voice (through a bridge) and the low-code builder. Read this document as the research record, not as current design.
+
 ---
 
 ## 1. Sierra AI: what we are replicating
@@ -82,7 +84,7 @@ Sierra (founded 2023 by Bret Taylor and Clay Bavor) sells enterprise customer-ex
 | Ghostwriter | Claude-driven agent that emits `defineAgent` configs | Not started |
 | Outcome-based billing | In-house | Not started |
 
-## 4. Decisions still open
+## 4. Decisions still open (as of 2026-11-02; since settled, see the outcome note at the top)
 1. **Runtime language:** Agno (Python) vs. current TypeScript core. Sim and the scaffold are TypeScript; Agno, Pipecat, NeMo and Mem0 are Python.
 2. **Studio:** adopt Sim vs. build a thin UI.
 3. **Re-verification:** allow the blocked domains in the environment's network settings, then check official docs and LICENSE files.
