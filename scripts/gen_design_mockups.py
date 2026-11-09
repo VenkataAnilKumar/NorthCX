@@ -43,9 +43,9 @@ td{padding:9px 10px;border-bottom:1px solid var(--border)}tr:last-child td{borde
 """
 
 NAV = [("Operate", [("Overview", 0), ("Conversations", 0), ("Handoffs", 3), ("Approvals", 2), ("Review and QA", 0)]),
-       ("Build", [("Agents", 0), ("Knowledge", 0), ("Simulations", 0), ("Models and budgets", 0)]),
+       ("Build", [("Agents", 0), ("Library", 0), ("Simulations", 0), ("Models and budgets", 0)]),
        ("Govern", [("People and groups", 0), ("Access keys", 0), ("Policies", 0), ("Audit and activity", 0)]),
-       ("Platform", [("Channels", 0), ("Connectors and MCP", 0), ("Usage and cost", 0), ("Data residency", 0), ("Trust and reliability", 0)]),
+       ("Platform", [("Channels", 0), ("Systems", 0), ("Usage and cost", 0), ("Data residency", 0), ("Trust and reliability", 0)]),
        ("Personal", [("Profile and memory", 0), ("Settings", 0)])]
 
 
@@ -151,7 +151,7 @@ SCREENS["07-audit-activity"] = shell("Audit and activity", "Audit and activity",
  ["13:12","<b>Priya N.</b> <span class=tag>person</span>","key.create","nightly-regression","scoped: 2 agents, staging",badge("success","ok")],
  ["12:30","<b>unknown</b>","auth.denied","POST /v1/keys","needs keys:manage",badge("denied","bad")]])}</div>""")
 
-SCREENS["08-connectors-mcp"] = shell("Connectors and MCP", "Connectors and MCP", "Systems your agents can use. Remote tools are read-only unless you mark them otherwise.", f"""
+SCREENS["08-connectors-mcp"] = shell("Systems", "Systems", "Systems your agents can use. Remote tools are read-only unless you mark them otherwise.", f"""
 <div class="tabs"><a class="on">Connectors</a><a>MCP servers</a><a>Webhooks</a></div>
 <div class="card" style="padding:4px 6px">{table(["Name","Type","Allowed hosts","Tools","Used by","Last call","Health"],[
  ["<b>orders-api</b>","HTTP connector","orders.example.com","3 (1 write)","support-agent, returns","1 min ago",badge("OK","ok")],
@@ -315,7 +315,7 @@ SCREENS["20-workspace-threads"] = wsapp("Threads", head("Inbox", "Customer conve
 
 def settings_shell(active: str, title: str, sub: str, body: str) -> str:
     personal = ["Profile", "Preferences", "Memory", "Connectors", "MCP servers", "Notifications", "Privacy and data", "Usage and limits", "API keys", "Security and sessions"]
-    org = ["Overview", "Agents", "Agent Hub", "Knowledge", "Channels", "Insights", "Review and QA", "Simulations", "Models and budgets", "People and groups", "Policies", "Access keys", "Audit and activity", "Trust and reliability", "Connectors (organization)", "Data residency", "Billing and plan"]
+    org = ["Overview", "Agents", "Agent Hub", "Library", "Channels", "Analytics", "Review and QA", "Simulations", "Models and budgets", "People and groups", "Policies", "Access keys", "Audit and activity", "Trust and reliability", "Systems", "Data residency", "Billing and plan", "Organization settings"]
     nav = '<div class="grp">Personal</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in personal) + '<div class="grp">Organization (administrators)</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in org)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{WS_CSS}</style></head><body>
 <div class="top"><div class="brand" style="padding:0">NorthCX <span class="note">Settings and admin</span></div><div class="sp"></div><span class="pill">Tenant <b>Acme Support (sample)</b></span><span class="btn">Open Workspace</span><div class="av">PN</div></div>
@@ -411,7 +411,7 @@ SCREENS["25-workspace-home"] = wsapp("Chat", f"""<div style="max-width:880px;mar
 <div class="card"><h3>Ready for you</h3><p><b>Weekly QA digest</b><br><span class="note">Scheduled &middot; Mon 08:00 &middot; 240 reviewed</span></p><span class="btn">Open artifact</span></div>
 <div class="card"><h3>Recent</h3><p class="note">Refund escalation summary &middot; just now</p><p class="note">Apology for delayed parcels &middot; 1 h ago</p><p class="note">Why did billing-help hand off? &middot; yesterday</p></div></div></div>""", "Home")
 
-SCREENS["26-admin-insights-explorer"] = settings_shell("Insights", "Insights: Explorer", "Ask a question about your conversations in plain language. Answers use masked samples and cite them.", f"""
+SCREENS["26-admin-insights-explorer"] = settings_shell("Analytics", "Analytics: Explorer", "Ask a question about your conversations in plain language. Answers use masked samples and cite them.", f"""
 <div class="card" style="padding:14px"><div class="in" style="font-size:15px;color:var(--text)">Why did refund hand-offs go up last week?</div><div class="row" style="margin-top:10px"><span class="pill">Last 7 days &#9662;</span><span class="pill">Agent <b>billing-help</b></span><span class="pill">Production</span><div style="flex:1"></div><span class="btn p">Ask</span></div></div>
 <div class="g2" style="margin-top:12px"><div class="card"><h3>Finding</h3><p>Refund hand-offs rose from <b>31</b> to <b>52</b> (+68%). <b>Delayed deliveries</b> explain most of the rise.</p>
 {table(["Cause","Hand-offs","Change"],[["Delayed delivery","26",'<span class="b bad">+19</span>'],["Duplicate charge","12",'<span class="b warn">+3</span>'],["Plan change","8","0"],["Other","6","-1"]])}
@@ -421,7 +421,7 @@ SCREENS["26-admin-insights-explorer"] = settings_shell("Insights", "Insights: Ex
 <div class="card" style="margin-top:12px"><h3>Follow-ups</h3><div class="row"><span class="pill">Which carriers?</span><span class="pill">Which days?</span><span class="pill">Same for returns?</span></div></div>
 <div class="card" style="margin-top:12px"><h3>Why this is safe</h3><p class="note">Samples are masked. You only see conversations your role allows. The question and the conversations opened are recorded in the audit log.</p></div></div></div>""")
 
-SCREENS["27-admin-expert-answers"] = settings_shell("Knowledge", "Knowledge: Suggested articles", "Drafts written from how your people resolved similar cases. Nothing is published until someone approves it.", f"""
+SCREENS["27-admin-expert-answers"] = settings_shell("Library", "Library: Suggested articles", "Drafts written from how your people resolved similar cases. Nothing is published until someone approves it.", f"""
 <div class="tabs"><a>Sources</a><a>Documents</a><a>Gaps</a><a class="on">Suggested articles <span class="n" style="background:var(--warn-bg);color:var(--warn);border-radius:9px;padding:0 6px;font-size:11px">4</span></a></div>
 <div class="g2"><div class="card" style="padding:4px 10px">{table(["Draft","Based on","Asked","Status"],[
  ["<b>Refunds for parcels delayed over 7 days</b>","11 resolved cases","26 times",badge("Needs review","warn")],["<b>Duplicate charge after a retry</b>","5 resolved cases","12 times",badge("Needs review","warn")],["<b>Changing plan mid-cycle</b>","8 resolved cases","8 times",badge("Approved","ok")],["<b>Invoice copy by email</b>","3 resolved cases","6 times",badge("Rejected","gr")]])}</div>

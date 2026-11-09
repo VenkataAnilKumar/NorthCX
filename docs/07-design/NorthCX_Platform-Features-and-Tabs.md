@@ -43,7 +43,7 @@ Home is the landing page; Settings is in the corner. Twelve tabs in four groups 
 | Tab | Purpose | Features | State |
 |---|---|---|---|
 | **Quality** | Review and coach | Review queue, scorecards, calibration, sampling rules, coaching notes | Proposed; review queue exists in Admin, the rest is E7 |
-| **Performance** | Numbers | Mine and my team's: handled, resolved, approvals, response times | Proposed; organization insights exist in Admin, personal and team views are E15 |
+| **Performance** | Numbers | Mine and my team's: handled, resolved, approvals, response times | Proposed; organization analytics exist in Admin (Insights in the Studio on `main`), personal and team views are E15 |
 
 **Panels and controls that are not tabs:** customer panel and suggested knowledge (inside a conversation), notifications (a bell in the top bar), live call assist (a panel while a call is open), availability and workload (a status control in the header), the app switcher and theme switch.
 
@@ -87,7 +87,7 @@ Twenty-five pages in four groups (7 + 7 + 6 + 5). The groups are navigation head
 | **Approvals** | Actions waiting for a decision | Built (Studio) |
 | **Review and QA** | Queue, scorecards, calibration, sampling rules | Queue built; the rest is E7 |
 | **Monitoring** | Alerts and what is firing | Built (Studio) |
-| **Insights** | Figures and charts; **Explorer**: plain-language questions with masked samples and recommendations | Figures built; Explorer proposed (a privacy decision) |
+| **Analytics** | Figures and charts; **Explorer**: plain-language questions with masked samples and recommendations | Figures built (called Insights in the Studio on `main`); Explorer proposed (a privacy decision) |
 
 **Build**
 | Page | What it holds | State |
@@ -95,7 +95,7 @@ Twenty-five pages in four groups (7 + 7 + 6 + 5). The groups are navigation head
 | **Agents** | Catalog (owner, purpose, model, release, tools, cost, health), editor, versions, releases and a governance tab per agent (tools and their effect, guardrails, limits, access, release gate, model policy) | Agents, editor, versions and releases built; catalog fields and governance tab proposed |
 | **Agent Hub** | Predefined agents: install flow (details, requirements check, tests, draft), updates, organization-only publishing | In progress on the feature branch (lists the four templates and installs one as a draft with its tests); updates and publishing proposed |
 | **Builder** | Assistant that drafts and refines agents; the improvement loop (investigate, propose a diff, run scenarios and a replay, send to a reviewer); proactive suggestions | Proposed; drafting and refining exist as API |
-| **Knowledge** | Sources, documents, gaps, suggested articles from resolved hand-offs | Built; suggested articles proposed |
+| **Library** | Sources, documents, gaps, suggested articles from resolved hand-offs (the same name as the Workspace tab, where people read and search it) | Built (called Knowledge in the Studio on `main`); suggested articles proposed |
 | **Simulations** | Scenarios and runs that gate releases | Built (Studio) |
 | **Models and budgets** | Providers, tiers, capabilities, prices, routing rules, per-agent qualification, budgets, fallback | Provider layer started (WP1.1 to 1.2, backend only); the rest proposed (WP1.3 to 1.13) |
 | **Test console** | Try an agent as a customer would | Built (Studio) |
@@ -114,10 +114,10 @@ Twenty-five pages in four groups (7 + 7 + 6 + 5). The groups are navigation head
 | Page | What it holds | State |
 |---|---|---|
 | **Channels** | Six channels with address, agent, volume, hand-off rate, health; same rules everywhere | Data exists; screen proposed |
-| **Connectors (organization)** | Systems agents can reach: allowed hosts, tools, health, tests | Defined in files today; screen proposed; MCP is E4 |
+| **Systems** | The outside systems agents can reach: allowed hosts, tools, health, tests (Personal has its own Connectors page for what your assistants use on your behalf) | Defined in files today; screen proposed; MCP is E4 |
 | **Usage and cost** | Spend by agent, team and model, with export | Proposed; E1.6 and E10 |
 | **Billing and plan** | Usage, plan, invoices | Proposed; E10 |
-| **Settings** | Sign-in (including single sign-on), retention, alerts | Built (Studio); the name clashes with Personal settings (section 10) |
+| **Organization settings** | Sign-in (including single sign-on), retention, alerts | Built (called Settings in the Studio on `main`) |
 
 ## 6. Features that cut across the apps
 1. **Hybrid model selection** (local, private cloud, public cloud). Hard data-policy constraints first, then per-agent qualification by required scenarios, then operator-written rules, then cost; fallback never crosses a forbidden tier; every choice recorded in the trace. People choose within limits: administrators set what exists and what is allowed, agent owners pick allowed models, staff pick a mode (Auto, Faster, Best quality, Private only), customers choose nothing. Local models start on read-only single-step work and earn more by passing the agent's own scenarios. *Proposed; WP1.9 to 1.13.*
@@ -141,7 +141,7 @@ Twenty-five pages in four groups (7 + 7 + 6 + 5). The groups are navigation head
 The glass Admin work, the Workspace app and their test scripts are on the feature branch `claude/awesome-brown-o0nk5s` as work in progress; `main` does not contain them. The Workspace app still uses the old tab names in code. Known: a Workspace Chat crash was fixed in code but not yet re-tested in a browser; the Workspace browser test script has not passed in full. On 2026-11-09 the owner asked to stop building and finalize the documentation first; no further code is being written.
 
 ## 10. Open decisions (collected)
-**Tabs and names:** confirm the Organization page list (25 pages, section 5); confirm that Approvals, Customers, Library, Quality and Performance are tabs; resolve the naming clashes: Knowledge (Admin) versus Library (Workspace), Insights (Admin) versus Performance (Workspace), Hand-offs (Admin) versus Inbox (Workspace), Connectors appearing under both Personal and Organization, Settings appearing in both apps and in both menus, and the Pilot inner tab Output versus the Outputs tab; whether Customers is allowed (privacy); first-release tab set (recommended: Inbox, Approvals, Pilot, Assistants, Search, Library). **Pilot:** all four task styles or Quick answer and Research first; plan on every task or on request; pause and redirect in the first version; per-space file limits. **Profile:** which personal-context sources first (recommended: hand-offs, approvals, own drafts and outputs, team documents; calendar and email later); read-only personal assistants shareable without a reviewer; default retention for personal chats. **Models:** what marks a conversation sensitive; qualification threshold; where unqualified models may run; whether sensitive data may ever go to the public cloud. **Agent Hub:** organization-only or later a marketplace (depends on open versus commercial, D1); who may install; first customer agents; names. **Builder:** name, first-release scope, proactive suggestions default, chat-tool presence later. **Automations:** who may publish a workflow; whether workflows may call customer-facing agents. **Platform:** open versus commercial (D1); naming of the staff product (D2); the remaining plan decisions D3 to D9.
+**Tabs and names:** confirm the Organization page list (25 pages, section 5); confirm that Approvals, Customers, Library, Quality and Performance are tabs; **naming clashes resolved on 2026-11-09:** Admin uses Library (not Knowledge), Analytics (not Insights; the Workspace keeps Performance for personal and team numbers), Systems (not Connectors for the organization page; Personal keeps Connectors) and Organization settings (not Settings); Admin keeps Hand-offs while the Workspace calls the same queue Inbox, because an administrator watches the queue and a staff member works it; still open: the Pilot inner tab **Output** is close to the **Outputs** tab (options: Result or Draft); whether Customers is allowed (privacy); first-release tab set (recommended: Inbox, Approvals, Pilot, Assistants, Search, Library). **Pilot:** all four task styles or Quick answer and Research first; plan on every task or on request; pause and redirect in the first version; per-space file limits. **Profile:** which personal-context sources first (recommended: hand-offs, approvals, own drafts and outputs, team documents; calendar and email later); read-only personal assistants shareable without a reviewer; default retention for personal chats. **Models:** what marks a conversation sensitive; qualification threshold; where unqualified models may run; whether sensitive data may ever go to the public cloud. **Agent Hub:** organization-only or later a marketplace (depends on open versus commercial, D1); who may install; first customer agents; names. **Builder:** name, first-release scope, proactive suggestions default, chat-tool presence later. **Automations:** who may publish a workflow; whether workflows may call customer-facing agents. **Platform:** open versus commercial (D1); naming of the staff product (D2); the remaining plan decisions D3 to D9.
 
 ## 11. Where the work sits in the plan
 Wave 1: E1 model providers and cost governance, E3 identity and governance, E4 MCP. Wave 2: E2 multi-tenancy, E5 staff workspace backend, E6 libraries and outputs, E7 QA scoring. Wave 3: E8 automations, E9 connectors, E14 visual editor, E15 workspace analytics. Proposed additions: E22 Agent Hub; WP1.9 to 1.13 hybrid selection. See `08-implementation/NorthCX_Implementation-Plan.md`.
