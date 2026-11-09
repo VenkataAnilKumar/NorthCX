@@ -765,6 +765,22 @@ class QaJudgementRow(TenantScoped, Base):
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+class LibraryItemRow(TenantScoped, Base):
+    """A reusable prompt, macro, playbook or canned answer a person keeps in the Workspace Library."""
+    __tablename__ = "library_items"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    owner: Mapped[str] = mapped_column(String(200), nullable=False)
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    kind: Mapped[str] = mapped_column(String(10), nullable=False)
+    visibility: Mapped[str] = mapped_column(String(10), nullable=False)
+    uses: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    __table_args__ = (Index("ix_library_items_owner", "owner"),)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

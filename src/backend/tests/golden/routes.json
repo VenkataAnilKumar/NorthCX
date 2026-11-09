@@ -16,6 +16,7 @@
   "DELETE /v1/quality/rubric": "/v1/quality/rubric -> reset_rubric",
   "DELETE /v1/sessions/x/tags/x": "/v1/sessions/{session_id}/tags/{tag} -> remove_tag",
   "DELETE /v1/simulations/scenarios/x": "/v1/simulations/scenarios/{name} -> delete_scenario",
+  "DELETE /v1/workspace/library-items/x": "/v1/workspace/library-items/{item_id} -> delete_item",
   "DELETE /v1/workspace/memory": "/v1/workspace/memory -> erase_memory",
   "DELETE /v1/workspace/memory/x": "/v1/workspace/memory/{note_id} -> forget_memory",
   "DELETE /v1/workspace/outputs/x": "/v1/workspace/outputs/{output_id} -> delete_output",
@@ -123,6 +124,8 @@
   "GET /v1/usage": "/v1/usage -> usage",
   "GET /v1/voice/calls": "/v1/voice/calls -> voice_calls",
   "GET /v1/workspace/assistants": "/v1/workspace/assistants -> assistants",
+  "GET /v1/workspace/library-items": "/v1/workspace/library-items -> list_items",
+  "GET /v1/workspace/library-items/x": "/v1/workspace/library-items/{item_id} -> get_item",
   "GET /v1/workspace/memory": "/v1/workspace/memory -> list_memory",
   "GET /v1/workspace/outputs": "/v1/workspace/outputs -> list_outputs",
   "GET /v1/workspace/outputs/x": "/v1/workspace/outputs/{output_id} -> get_output",
@@ -229,6 +232,9 @@
   "POST /v1/workspace/assistants/x/chat": "/v1/workspace/assistants/{agent_id}/chat -> assistant_chat",
   "POST /v1/workspace/chat": "/v1/workspace/chat -> workspace_chat",
   "POST /v1/workspace/chat/stream": "/v1/workspace/chat/stream -> workspace_chat_stream",
+  "POST /v1/workspace/library-items": "/v1/workspace/library-items -> create_item",
+  "POST /v1/workspace/library-items/suggest": "/v1/workspace/library-items/suggest -> suggest",
+  "POST /v1/workspace/library-items/x/use": "/v1/workspace/library-items/{item_id}/use -> use_item",
   "POST /v1/workspace/memory": "/v1/workspace/memory -> add_memory",
   "POST /v1/workspace/outputs": "/v1/workspace/outputs -> create_output",
   "POST /v1/workspace/spaces": "/v1/workspace/spaces -> create_space",
@@ -252,6 +258,7 @@
   "PUT /v1/sessions/x/review": "/v1/sessions/{session_id}/review -> put_review",
   "PUT /v1/sessions/x/tags/x": "/v1/sessions/{session_id}/tags/{tag} -> add_tag",
   "PUT /v1/simulations/scenarios/x": "/v1/simulations/scenarios/{name} -> update_scenario",
+  "PUT /v1/workspace/library-items/x": "/v1/workspace/library-items/{item_id} -> edit_item",
   "PUT /v1/workspace/memory/x": "/v1/workspace/memory/{note_id} -> edit_memory",
   "PUT /v1/workspace/outputs/x": "/v1/workspace/outputs/{output_id} -> edit_output",
   "PUT /v1/workspace/spaces/x": "/v1/workspace/spaces/{space_id} -> edit_space",
@@ -338,6 +345,11 @@
    "DELETE",
    "/v1/simulations/scenarios/{name}",
    "delete_scenario"
+  ],
+  [
+   "DELETE",
+   "/v1/workspace/library-items/{item_id}",
+   "delete_item"
   ],
   [
    "DELETE",
@@ -876,6 +888,16 @@
   ],
   [
    "GET",
+   "/v1/workspace/library-items",
+   "list_items"
+  ],
+  [
+   "GET",
+   "/v1/workspace/library-items/{item_id}",
+   "get_item"
+  ],
+  [
+   "GET",
    "/v1/workspace/memory",
    "list_memory"
   ],
@@ -1406,6 +1428,21 @@
   ],
   [
    "POST",
+   "/v1/workspace/library-items",
+   "create_item"
+  ],
+  [
+   "POST",
+   "/v1/workspace/library-items/suggest",
+   "suggest"
+  ],
+  [
+   "POST",
+   "/v1/workspace/library-items/{item_id}/use",
+   "use_item"
+  ],
+  [
+   "POST",
    "/v1/workspace/memory",
    "add_memory"
   ],
@@ -1518,6 +1555,11 @@
    "PUT",
    "/v1/simulations/scenarios/{name}",
    "update_scenario"
+  ],
+  [
+   "PUT",
+   "/v1/workspace/library-items/{item_id}",
+   "edit_item"
   ],
   [
    "PUT",

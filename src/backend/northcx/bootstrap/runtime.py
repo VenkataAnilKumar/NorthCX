@@ -114,6 +114,9 @@ def build_runtime(c: SimpleNamespace) -> None:
     from northcx.automations import AutomationService
     from northcx.db import PgContent
     from northcx.outputs import ContentService
+    from northcx.db import PgLibrary
+    from northcx.library_items import LibraryService
+    runtime.library = LibraryService(PgLibrary(c.engine) if c.db_url else None)
     runtime.content = ContentService(PgContent(c.engine) if c.db_url else None)
     from northcx.db import PgAutomations
     runtime.automations = AutomationService(PgAutomations(c.engine) if c.db_url else None, PgSettings(c.engine) if c.db_url else None)

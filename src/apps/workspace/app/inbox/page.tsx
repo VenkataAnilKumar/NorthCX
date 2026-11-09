@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getHandoff, listHandoffs, resolveHandoff, suggestHelp, useLoad, useMe, type Assist } from "@northcx/api-client";
+import { getHandoff, listHandoffs, resolveHandoff, suggestHelp, suggestLibraryItems, takeLibraryItem, type LibraryItem, useLoad, useMe, type Assist } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader, StatusBadge } from "@northcx/ui";
 
 const when = (t: number) => new Date(t * 1000).toLocaleString();
@@ -44,6 +44,7 @@ function Detail({ id, onChanged }: { id: string; onChanged: () => void }) {
           <div className="flex flex-wrap gap-2">
             <button className="btn" disabled={busy} onClick={() => act(async () => setAssist(h.package.assist ?? (await suggestHelp(h.id))))}>Suggest a reply</button>
           </div>
+          <Macros transcript={h.package.transcript} />
           {assist && (
             <div className="mt-3 rounded-xl border border-border p-3 text-sm" aria-live="polite">
               <p className="text-xs text-muted">{assist.note}</p>
@@ -90,4 +91,18 @@ function Threads() {
     </>
   );
 }
+function Macros({ transcript }: { transcript: { from: string; text: string }[] }) {
+  const customerText = transcript.filter((m) => m.from === "customer").map((m) => m.text).join("\n").slice(-1500);
+  const { data } = useLoad(() => (customerText.length > 1 ? suggestLibraryItems(customerText).catch(() => [] as LibraryItem[]) : Promise.resolve([] as LibraryItem[])), [customerText]);
+  const [shown, setShown] = useState<LibraryItem | null>(null);
+  if (!data?.length) return null;
+  return (
+    <div className="mt-3 rounded-xl border border-border p-3 text-sm">
+      <p className="font-medium">Saved replies that fit</p>
+      <ul className="mt-1 space-y-1">{data.map((m) => <li key={m.id}><button className="underline" onClick={() => void takeLibraryItem(m.id).then(setShown)}>{m.title}</button> <span className="text-xs text-muted">used {m.uses} times · {m.preview.slice(0, 80)}</span></li>)}</ul>
+      {shown && <div className="mt-2"><p className="text-xs text-muted">Copy it, check it fits, and send it yourself from your usual tool. Nothing is sent from here.</p><textarea readOnly className="field mt-1 w-full" rows={4} value={shown.body ?? ""} onFocus={(e) => e.currentTarget.select()} /></div>}
+    </div>
+  );
+}
+
 export default function Page() { return <Suspense fallback={<Loading />}><Threads /></Suspense>; }

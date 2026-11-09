@@ -400,6 +400,26 @@ class JudgeBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class LibraryItemBody(BaseModel):
+    title: str = Field(min_length=2, max_length=120)
+    body: str = Field(min_length=1, max_length=20000)
+    kind: str = "macro"
+    visibility: str = "private"
+    tags: list[str] = Field(default_factory=list, max_length=8)
+
+
+class LibraryEditBody(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+    body: str | None = Field(default=None, max_length=20000)
+    visibility: str | None = None
+    tags: list[str] | None = Field(default=None, max_length=8)
+
+
+class LibrarySuggestBody(BaseModel):
+    text: str = Field(min_length=2, max_length=4000)
+    limit: int = Field(default=5, ge=1, le=10)
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

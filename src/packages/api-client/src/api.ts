@@ -597,3 +597,14 @@ export const convertAutomation = (x: string | object) => api<{ definition: Recor
 export interface AutomationDraft { definition: Record<string, unknown> | null; yaml?: string; problems: string[]; saved: false; note: string;
   dryRun: { startsWhen: string; steps: { id: string; kind: string; does: string; problem: string | null }[]; canRun: boolean; needsApproval: boolean; sendsOut: boolean; note: string } | null }
 export const draftAutomation = (description: string) => api<AutomationDraft>("/v1/automations/draft", { method: "POST", body: JSON.stringify({ description }) });
+
+// ---------- Library items (Workspace) ----------
+export interface LibraryItem { id: string; title: string; kind: "prompt" | "macro" | "playbook" | "canned"; visibility: "private" | "shared"; owner: string; tags: string[]; uses: number; version: number; updatedAt: number; preview: string; body?: string }
+export const listLibraryItems = (opts: { kind?: string; q?: string; mine?: boolean } = {}) =>
+  api<{ items: LibraryItem[] }>(`/v1/workspace/library-items?${new URLSearchParams({ ...(opts.kind ? { kind: opts.kind } : {}), ...(opts.q ? { q: opts.q } : {}), ...(opts.mine ? { mine: "true" } : {}) })}`).then((r) => r.items);
+export const saveLibraryItem = (b: { title: string; body: string; kind: string; visibility?: string; tags?: string[] }) => api<LibraryItem>("/v1/workspace/library-items", { method: "POST", body: JSON.stringify(b) });
+export const editLibraryItem = (id: string, b: Partial<{ title: string; body: string; visibility: string; tags: string[] }>) => api<LibraryItem>(`/v1/workspace/library-items/${id}`, { method: "PUT", body: JSON.stringify(b) });
+export const getLibraryItem = (id: string) => api<LibraryItem>(`/v1/workspace/library-items/${id}`);
+export const deleteLibraryItem = (id: string) => api<{ deleted: boolean }>(`/v1/workspace/library-items/${id}`, { method: "DELETE" });
+export const takeLibraryItem = (id: string) => api<LibraryItem>(`/v1/workspace/library-items/${id}/use`, { method: "POST" });
+export const suggestLibraryItems = (text: string) => api<{ suggestions: LibraryItem[] }>("/v1/workspace/library-items/suggest", { method: "POST", body: JSON.stringify({ text }) }).then((r) => r.suggestions);
