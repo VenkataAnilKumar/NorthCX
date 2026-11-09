@@ -433,6 +433,29 @@ SCREENS["32-admin-models-routing"] = settings_shell("Models and budgets", "Model
 <div class="g4" style="margin-top:12px">{stat("Share local (7 d)","38%","of turns")}{stat("Cost (7 d)","$1,942","est. $3,100 all public")}{stat("Fallbacks","14","0 crossed a forbidden tier")}{stat("Re-qualification due","1","billing-help &middot; local")}</div>""")
 
 
+SCREENS["33-workspace-model-picker"] = wsapp("Chat", f"""<div class="split"><div class="card" style="display:flex;flex-direction:column;position:relative;padding:16px">
+<div class="row2"><b>Draft a note about the duplicate charges</b><span class="pill">Assistant <b>care-copilot</b></span></div>
+<div class="chat" style="margin-top:14px"><div class="msg u">Draft a short note to the billing lead about the three duplicate charges, with the customers' details so she can call them.</div>
+<div class="msg a">This chat contains customer details, so I'm using a <b>private</b> model that runs on your own servers. Here is the note&hellip;<div class="src">Answered by: local llama-70b &middot; rule 1 (customer data) &middot; <a style="color:var(--primary)">Why this model?</a></div></div></div>
+<div style="position:absolute;left:14px;bottom:92px;width:430px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 30px #0f172a33;padding:8px;z-index:5">
+<div class="note" style="padding:4px 8px">Choose how this chat is answered</div>
+<div style="padding:8px;border-radius:8px;background:var(--info-bg)"><div class="row2"><b>Auto</b><span class="b ok">recommended</span></div><span class="note">NorthCX picks the model for each message using your organization's rules.</span></div>
+<div style="padding:8px"><div class="row2"><b>Faster and cheaper</b><span class="note">~0.6 s &middot; ~$0.002 / message</span></div><span class="note">Smaller model. Good for quick lookups and short drafts.</span></div>
+<div style="padding:8px"><div class="row2"><b>Private only</b>{badge("on your servers","ok")}</div><span class="note">Nothing leaves your network. Slower, simpler tasks.</span></div>
+<div style="padding:8px;opacity:.55"><div class="row2"><b>Best quality</b><span class="b bad">unavailable now</span></div><span class="note">Strongest cloud model, text is sent to the provider (us). Not allowed here: this chat contains customer data and your organization allows private models only.</span></div>
+<div style="border-top:1px solid var(--border);margin-top:4px;padding:6px 8px" class="note">Your default: Auto &middot; change in Preferences</div></div>
+<div class="prompt" style="position:absolute;left:14px;right:14px;bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px"><span class="mut">Ask, search, or draft&hellip;</span><div class="row" style="margin-top:10px;gap:8px"><span class="pill">+</span><span class="pill">Project <b>Billing escalations</b></span><span class="pill" style="border-color:var(--primary)">Model <b>Auto &#9662;</b></span><span class="b ok">private</span><div style="flex:1"></div><span class="btn p">Send</span></div></div></div>
+<div class="art"><b>Where this chat is answered</b><p class="note">Updates as you type</p>{table(["Check","Result"],[["Contains customer data",badge("yes","warn")],["Allowed tiers",badge("local only","ok")],["Chosen","local llama-70b"],["Leaves your network",badge("no","ok")]])}
+<p class="note" style="margin-top:10px">Your administrator sets which models exist and what is allowed for which data. You choose within that. Locked choices say why.</p></div></div>""", "Chat", 0)
+
+SCREENS["34-admin-agent-model-policy"] = settings_shell("Agents", "billing-help: model policy", "Choose which models this agent may use and whether staff can pick. Limits come from your organization's policy.", f"""
+<div class="g2"><div class="card"><h3>Allowed models for this agent</h3>{table(["Model","Tier","Qualified","Allowed"],[
+ ["claude-sonnet-5-5",badge("public","warn"),badge("100%","ok"),'<span class="sw2"></span>'],["claude-haiku-5-5",badge("public","warn"),badge("97%","ok"),'<span class="sw2"></span>'],["llama-70b (local)",badge("local","ok"),badge("71% not qualified","bad"),'<span class="sw2 off"></span>'],["fast-eu (private cloud)",badge("private","info"),badge("94% not qualified","bad"),'<span class="sw2 off"></span>']])}
+<p class="note" style="margin-top:8px">A model can be switched on only after it passes this agent's required scenarios.</p></div>
+<div><div class="card"><h3>Default for this agent</h3><div class="field"><label>Selection</label><span class="in">Auto (follow routing rules) &#9662;</span></div><div class="field"><label>Fallback order</label><span class="in">claude-sonnet-5-5 &rarr; claude-haiku-5-5 &rarr; hand off to a person</span></div></div>
+<div class="card" style="margin-top:12px"><h3>Who can choose</h3>{table(["Person","May pick a model?"],[["Customers","never (the agent decides)"],["Staff using this agent in Workspace",badge("only Auto and Faster","info")],["Developers testing in Admin",badge("any allowed model","ok")]])}<p class="note" style="margin-top:8px">&#128274; Staff cannot choose a public model for conversations with customer data (organization policy).</p></div></div></div>""")
+
+
 def _col(title, who, items, cls="info"):
     return f'<div class="card" style="padding:14px"><span class="b {cls}">{title}</span><p class="note" style="margin:6px 0 8px">{who}</p>' + "".join(f"<div style='padding:4px 0;border-top:1px solid var(--border)'>{i}</div>" for i in items) + "</div>"
 

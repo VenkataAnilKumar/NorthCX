@@ -53,6 +53,26 @@ Controlled evidence is thin. One preprint comparing small open-weight models wit
 | 1.12 | Studio and Admin screens: tiers, rules, qualification table, decision log, share local, cost saved | M |
 | 1.13 (experiment) | Cascade and learned router behind a flag, compared in scenarios | M |
 
+## 10. How people choose
+Choice is layered. Each layer can only narrow what the layer above allows, and a locked option says who locked it and why.
+
+| Who | What they choose | Where |
+|---|---|---|
+| **Administrator** | Which providers and models exist, their tier and region, the routing rules, the data policy (which data may go where), the qualification threshold, which roles may pick a model at all | Admin: Models and routing, Policies |
+| **Agent owner** | Which of the allowed models this agent may use (only models that passed its scenarios), its default selection (Auto or a named model), its fallback order, whether staff may pick | Admin: the agent's model policy |
+| **Staff member** | In a Workspace chat: **Auto** (recommended, rules decide), **Faster and cheaper**, **Best quality**, or **Private only**; a personal default in Preferences. Only options the policy allows are selectable; the rest show why they are unavailable | Workspace: the model picker beside the prompt |
+| **Developer** | Any model allowed for the agent, when testing in Admin or running a scenario against a candidate model | Admin: test console and simulations |
+| **Customer** | Nothing; the agent and the rules decide | |
+
+The picker offers **modes**, not model names, because names change and most people cannot judge them; the model actually used is always shown on the answer ("Answered by ..., rule 1, why this model?"). Each mode shows speed, an estimated cost per message, and where the text goes (your servers, your region, the provider's). A side panel states what the chat contains (customer data or not), which tiers are allowed, what was chosen and whether anything leaves the network, and updates as the person types. When customer data appears in a chat that started on a cloud model, the next message switches to a private model and says so; it never silently sends the data on.
+
+Mockups (sample data): the picker in a Workspace chat, and the agent's model policy.
+
+![Model picker](../assets/design/33-workspace-model-picker.png)
+![Agent model policy](../assets/design/34-admin-agent-model-policy.png)
+
+Backend this needs, beyond WP1.9 to WP1.13: a request field for the chosen mode, a per-chat mode stored with the conversation, the sensitivity check running before each message, and the decision (mode, rule, models skipped) returned with the reply so the interface can show it.
+
 ## 9. Decisions needed
 1. **What marks a conversation sensitive?** Options: any personal-data pattern seen, only an identity-verified conversation, or operator-defined categories. Recommended: operator-defined, defaulting to identity-verified plus card and ID patterns.
 2. **Qualification threshold** per agent: 95 percent is a placeholder.
