@@ -13,11 +13,13 @@ Status: **Plan**. Updated: 2026-11-09. Master for: the one-page order of release
 
 Detail of the finished 1.0 phases: `../99-archive/NorthCX_Phase-Plan.md`.
 
+The seven implementation phases that order this work are in section 3a of `NorthCX_Implementation-Plan.md` (decision 176).
+
 ## Principles
 Safety and testability before reach; reach before polish; tenancy before anything that stores per-customer credentials or workspace data.
 
 ## Open decisions
-D1, open versus commercial (needed before metering and billing). Settled: the Studio was built; the first connectors are a ticketing pack, then Slack, then Salesforce (D6, decision 170); the initial vertical focus is as in the Product Definition, still to be confirmed by pilots.
+D1, open versus commercial: deferred on purpose; needed before metering and billing (Phase 6) or earlier if a sale or hosted service is planned (decision 176). Settled: the Studio was built; the first connectors are a ticketing pack, then Slack, then Salesforce (D6, decision 170); the initial vertical focus is as in the Product Definition, still to be confirmed by pilots.
 
 ## After 1.0
 The step-by-step work packages, gates and owner actions are in `NorthCX_Implementation-Plan.md`.

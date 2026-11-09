@@ -37,5 +37,8 @@ Status: **Plan**. Updated: 2026-11-09. Master for: what the documents cover and 
 8. ~~Organization page list (25 pages)~~ Decided (decision 167).
 9. ~~Platform~~ Decided in part (decision 170): D2 working name and D3 to D9 accepted; **D1 (open versus commercial) stays open** and still blocks pricing.
 
+## Settled on 2026-11-09 (decision 176)
+Explorer shows figures only at first; the Agent Hub epic and the hybrid-selection work packages are accepted; the seven-phase order is accepted; the threat-model L rows are M. **D1 is deferred on purpose.** Placeholder numbers stay placeholders until a pilot; colour values are checked by the first build's contrast test.
+
 ## Not documented because it is not yet known
 Real customer evidence, pricing, a pilot baseline for any metric, an independent security test, a live-model quality pass.

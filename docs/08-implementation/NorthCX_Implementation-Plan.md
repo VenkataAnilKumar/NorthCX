@@ -49,7 +49,7 @@ The first web split (Studio in `src/apps/studio`, shared packages in `src/packag
 |---|---|---|
 | **1.0.0** | Wave 0 | Release checklist, plus the owner's actions |
 | **1.1** | Wave 1: E1, E3 (3.1 to 3.3, 3.5), E4 | Provider conformance, identity sweeps, MCP against a fake server |
-| **1.2** | Wave 2: E2, then E5, E6, E16, E18, E22 (proposed); the Workspace app (first release: Inbox, Approvals, Pilot, Assistants, Search, Library) and the regrouped Admin app | Tenant isolation sweeps and fuzz, load gate, staff permission matrix |
+| **1.2** | Wave 2: E2, then E5, E6, E16, E18, E22 (accepted); the Workspace app (first release: Inbox, Approvals, Pilot, Assistants, Search, Library) and the regrouped Admin app | Tenant isolation sweeps and fuzz, load gate, staff permission matrix |
 | **1.3** | Wave 3: E8, E14, E15, E9, E7 | Automation safety suite, connector fixtures, workflow round trip |
 | **1.4** | Wave 4: E10, E11, E12, E17, E19; ops and back-office apps | Metering idempotency, chart validation, document review |
 | **Later** | Wave 5: E13, E21, E20, surfaces, mobile, marketplace | Vendor accounts, content, store review |
@@ -61,6 +61,19 @@ The first web split (Studio in `src/apps/studio`, shared packages in `src/packag
 - **Track B, web:** design tokens (WP0.2), then the Workspace and the regrouped Admin app (the Studio extended; decided 2026-11-09), then the ops and back-office apps as their backends arrive. Early, unfinished code for the Workspace and the Admin shell is on `main`.
 - **Track C, trust and docs:** API reference, compliance pack, legal templates, marketing site content.
 - **Track D, owner and outside actions:** section 13; the long-lead items (penetration test, vendor accounts, audits) should start early.
+
+## 3a. Implementation phases (accepted 2026-11-09, decision 176)
+The waves above stay the unit of release. Work is ordered in seven phases so each ships something usable:
+| Phase | Delivers | Waves and epics |
+|---|---|---|
+| 0 | Finish 1.0 (owner actions in parallel: live-model pass, penetration test, tag) | Wave 0 |
+| 1 | Screens on what exists: both apps reworked to the final names and the approved design, Workspace (Home, Inbox, Approvals, Library) and Admin pages that exist today, Workspace image in Compose | none (existing APIs) |
+| 2 | Model foundations: OpenAI-compatible provider, providers file, capability check, currency budgets, hybrid selection | E1 (WP1.3 to 1.13) |
+| 3 | Identity then multi-tenancy | E3, E2 |
+| 4 | Staff backend and the Pilot (Quick answer and Research), Assistants, Search, minimum Outputs | E5, first slice of E6 |
+| 5 | Agent Hub, Builder, policy management, People and groups, Models and budgets, Usage pages | E22, E16, E3 screens |
+| 6 | Automations, Spaces, Quality, Performance, Customers (second release), QA scoring | E8, E14, E15, E7, rest of E6 |
+Each phase ends with its gate (tests, builds, browser smoke, the epic gates in section 3); sizes only, no dates. Phase 1 needs no new backend and is the first to start; Phase 3 is the riskiest.
 
 ## 4. Wave 0: finish 1.0 and prepare the ground
 
@@ -141,7 +154,7 @@ Commission the penetration test (scope: Threat Model and Security Review, with t
 | **1.7** | Experimental routing: a deterministic classifier chooses a cheaper model for simple turns; recorded in the trace; scenario type compares both | M | V, X (quality) |
 | **1.8** | One conformance suite over every adapter (plain reply, tool call, round trip, parallel tools, errors, usage, cancellation) with recorded fixtures; a local fake OpenAI-compatible server run through runtime, simulations and judge | L | V |
 **Status (2026-11-08):** WP1.1 and WP1.2 done: `northcx/providers/` (types, `ProviderRegistry` with `provider:model` names, `require_tools`), Claude moved to `providers/anthropic.py` with the SDK client and a direct HTTPS client (`NORTHCX_ANTHROPIC_CLIENT=http`), `llm.py` re-exports, the server builds a registry with Claude as the default; one conformance file runs over both clients (26 tests); the full suite is unchanged. Neither client has been run against the live API (no key). Remaining: WP1.3 to WP1.8.
-**Proposed additions (work packages not yet formally accepted; the rules they implement were decided in decision 164):** WP1.9 to WP1.13, hybrid local, private-cloud and public-cloud selection with data-policy constraints, per-agent qualification and a routing-rules file; see `04-ai-architecture/NorthCX_Hybrid-Model-Selection.md`. WP1.7 (cost routing) would become the experimental part of this.
+**Accepted additions (decision 176; the rules they implement were decided in decision 164):** WP1.9 to WP1.13, hybrid local, private-cloud and public-cloud selection with data-policy constraints, per-agent qualification and a routing-rules file; see `04-ai-architecture/NorthCX_Hybrid-Model-Selection.md`. WP1.7 (cost routing) would become the experimental part of this.
 **Acceptance:** the existing suite passes unchanged on the Anthropic adapter; the same example scenarios pass on the fake server; budgets stop conversations in currency; a self-hosted-style server configuration works end to end in a browser run. **Depends on:** WP0.1, WP0.4.
 
 ### E3 Identity and governance (size XL, split into WP3.1 to WP3.6)
@@ -194,7 +207,7 @@ Commission the penetration test (scope: Threat Model and Security Review, with t
 | **5.8** | `apps/workspace` to the final design (`07-design/NorthCX_Platform-Features-and-Tabs.md`, `03-specs/NorthCX_Workspace-Spec.md`, `NorthCX_Pilot-Spec.md`): six left items with sub-tabs; first release Inbox, Approvals, Pilot (Quick answer and Research), Assistants, Search and Library; built on `packages/ui` to the approved UI design (`07-design/NorthCX_UI-UX-Design-Proposal.md`: glass look, one accent, collapsed and full-window navigation, tab icons); the early code on `main` is reworked to the final names first | V (demo model), X (answer quality) |
 **Tests:** matrix of roles by tools; customer text never treated as a staff instruction; memory isolation; tenant isolation. **Depends on:** E2, E3.
 
-### E22 Agent Hub and predefined agents (proposed, not yet accepted; size L)
+### E22 Agent Hub and predefined agents (accepted 2026-11-09, decision 176; size L)
 A gallery of predefined agents with an install flow (details, requirements check, tests, draft), updates, an organization-only hub and signed built-in entries; builds on the four existing templates. Work packages WP22.1 to WP22.9 and decisions are in `07-design/NorthCX_Agent-Hub-Design.md`. Depends on: WP0.1 (done); staff assistants depend on E5 to E7.
 
 ### E6 Libraries and generated outputs (size L, WP6.1 to WP6.3)
@@ -354,7 +367,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [ ] E6 libraries and generated outputs
 - [ ] E16 guardrail policy management
 - [ ] E18 support access
-- [ ] E22 Agent Hub (proposed)
+- [ ] E22 Agent Hub (accepted)
 - [ ] Workspace app first release and the regrouped Admin app (early code on `main` to be reworked)
 
 **Documentation**
