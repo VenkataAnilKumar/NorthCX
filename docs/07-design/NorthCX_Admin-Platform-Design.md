@@ -4,6 +4,30 @@ Status: **proposed** (2026-11-09). Nothing here is built yet except what the "To
 
 Source files: `07-design/mockups/*.html` (regenerate with `python scripts/gen_design_mockups.py`, then `node scripts/shoot_mockups.js`). Images: `assets/design/`.
 
+## 0. Layout decided on 2026-11-09 (supersedes the earlier arrangement where they differ)
+The owner described the layout; the two windows are:
+
+**Window 1, Workspace (the agent platform for staff).** Left side: a navigation list (**Chat, Search, Artifacts, Projects, Scheduled, Threads**), a "New chat" button, recent chats and the signed-in person. Right side: the **working space**, which shows the selected area. In Chat it is the conversation next to an artifact panel (the thing being produced, with copy, edit, share and schedule). Threads is where customer conversations that need a person are handled (the queue, the approval card, the draft reply).
+
+| Left item | What it is | Mockup |
+|---|---|---|
+| Chat | Talk to a staff assistant (search, summarise, draft, report); answers cite sources; outputs open as artifacts | ![Chat](../assets/design/16-workspace-chat.png) |
+| Search | One search across knowledge, conversations, hand-offs and artifacts, with the access reason on each result | ![Search](../assets/design/17-workspace-search.png) |
+| Artifacts | Library of everything produced (summaries, drafts, reports, digests): versions, share to team, schedule, export. **Not drawn yet**; the artifact panel in Chat shows one | (see Chat) |
+| Projects | Instructions, sources, chats and artifacts kept together for one piece of work (team or private) | ![Projects](../assets/design/18-workspace-projects.png) |
+| Scheduled | Tasks that run on their own and leave an artifact or message; run history, pause, failures shown | ![Scheduled](../assets/design/19-workspace-scheduled.png) |
+| Threads | Customer conversations: needs me, agent is handling, resolved; approvals and replies | ![Threads](../assets/design/20-workspace-threads.png) |
+
+**Window 2, Settings and admin (the admin platform).** A wide settings app opened from the profile menu. Left: **Personal** options (Profile, Preferences, Memory, Connectors, MCP servers, Notifications, Privacy and data, Usage and limits, API keys, Security and sessions) and an **Organization (administrators)** group (People and groups, Agents, Models and budgets, Policies, Access, Audit and activity, Connectors (organization), Data residency, Billing and plan). Everyone sees the Personal group; the Organization group appears only for roles that can use it. The organization pages are the admin screens drawn earlier (sections 3 and below).
+
+| Option | What it holds | Mockup |
+|---|---|---|
+| Profile | Name, team, language, time zone, default assistant, reply style, signature; roles shown read-only | ![Profile](../assets/design/21-settings-profile.png) |
+| Memory | What assistants remember: read, edit, erase, export; personal and team; on/off | ![Memory](../assets/design/22-settings-memory.png) |
+| Connectors and MCP servers | Connect systems, see scopes, enable or disable individual tools; remote tools write-by-default and approval-gated; organization policy can lock third-party servers | ![Connectors and MCP](../assets/design/23-settings-connectors-mcp.png) |
+
+What exists today for these: memory (with recall, edit and erase APIs for customers; staff and team memory are E5.5), connectors from files (no screens), MCP is not built (E4), scheduled tasks exist only for knowledge re-crawls (E8 is the automation work), artifacts and projects do not exist (E6, E5). The earlier three-column and session-style Workspace mockups (09, 15) remain as variants for the Threads page.
+
 ## 1. Who uses what
 
 ![Surfaces and navigation](../assets/design/11-information-architecture.png)

@@ -226,6 +226,124 @@ SCREENS["15-workspace-session-style"] = f"""<!doctype html><html lang="en"><head
 <div class="mock">Design mockup &middot; sample data &middot; layout idea only</div></body></html>"""
 
 
+# ---------- Workspace app (left navigation, right working space) and Settings (personal and admin options) ----------
+WS_CSS = CSS + """
+.ws2{display:grid;grid-template-columns:270px 1fr;height:900px}.ws2 .side{background:var(--surface);border-right:1px solid var(--border);padding:14px 12px;display:flex;flex-direction:column}
+.ws2 .work{background:var(--bg);padding:18px 22px;overflow:hidden;position:relative}.newc{display:block;text-align:center;background:var(--primary);color:#fff;border-radius:10px;padding:9px;font-weight:600;margin:6px 0 12px}
+.side .nav a{padding:8px 10px}.recent{font-size:13px;color:var(--muted);padding:5px 10px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.recent.on{background:var(--info-bg);color:var(--info)}
+.me{margin-top:auto;border-top:1px solid var(--border);padding-top:10px;display:flex;gap:10px;align-items:center}.split{display:grid;grid-template-columns:1fr 380px;gap:14px;height:790px}
+.art{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;overflow:hidden}.row2{display:flex;justify-content:space-between;align-items:center}
+.sw2{width:36px;height:20px;border-radius:12px;background:var(--primary);position:relative;display:inline-block}.sw2:after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff}.sw2.off{background:var(--border)}.sw2.off:after{right:auto;left:2px}
+.setnav a{display:block;padding:8px 12px;border-radius:8px;color:var(--muted)}.setnav a.on{background:var(--info-bg);color:var(--info);font-weight:700}.setnav .grp{padding-top:14px}
+"""
+
+WS_NAV = [("Chat", "&#128172;"), ("Search", "&#128269;"), ("Artifacts", "&#128196;"), ("Projects", "&#128193;"), ("Scheduled", "&#9201;"), ("Threads", "&#129525;")]
+RECENT = ["Summarise yesterday's refund escalations", "Draft: apology for delayed parcels", "Why did billing-help hand off?", "Weekly QA digest (draft)"]
+
+
+def wsapp(active: str, work: str, title: str, recent_on: int | None = None) -> str:
+    nav = "".join(f'<a class="{"on" if n == active else ""}"><span>{ic} &nbsp;{n}</span></a>' for n, ic in WS_NAV)
+    rec = "".join(f'<div class="recent {"on" if i == recent_on else ""}">{E(r)}</div>' for i, r in enumerate(RECENT))
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{WS_CSS}</style></head><body><div class="ws2">
+<div class="side"><div class="brand">NorthCX <span class="note">Workspace</span></div><a class="newc">+ New chat</a><div class="nav">{nav}</div><div class="grp">Recent</div>{rec}
+<div class="me"><div class="av">DK</div><div><b>Dana K.</b><div class="note">Billing team &middot; Reviewer</div></div></div></div>
+<div class="work">{work}</div></div><div class="mock">Design mockup &middot; sample data</div></body></html>"""
+
+
+def head(title, sub, right=""):
+    return f'<div class="row2" style="margin-bottom:12px"><div><h1 style="margin:0">{title}</h1><p class="sub" style="margin:2px 0 0">{sub}</p></div><div>{right}</div></div>'
+
+
+SCREENS["16-workspace-chat"] = wsapp("Chat", f"""<div class="split"><div class="card" style="display:flex;flex-direction:column;position:relative;padding:16px">
+<div class="row2"><b>Summarise yesterday's refund escalations</b><span class="pill">Agent <b>care-copilot</b></span></div>
+<div class="chat" style="margin-top:14px"><div class="msg u">Summarise yesterday's refund escalations and draft a note for the billing lead.</div>
+<div class="msg a">I found 14 refund hand-offs yesterday. 9 were delayed deliveries, 3 duplicate charges and 2 plan changes. 6 were over the $50 limit and needed approval; all were decided within 10 minutes. I've put a summary and a draft note in the panel.<div class="src"><b>Sources</b> &middot; 14 conversations (masked) &middot; Refund policy &middot; Billing escalations playbook</div></div>
+<div class="msg u">Add the three duplicate-charge cases with their order numbers.</div><div class="msg a">Done. I added them to the summary, with order numbers only (no customer details).<br><span class="note">Used: search conversations, search knowledge &middot; 2 tool calls</span></div></div>
+<div class="prompt" style="position:absolute;left:14px;right:14px;bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px"><span class="mut">Ask, search, or draft&hellip;</span><div class="row" style="margin-top:10px;gap:8px"><span class="pill">+</span><span class="pill">Project <b>Billing escalations</b></span><span class="pill">Sources <b>Knowledge, Conversations</b></span><div style="flex:1"></div><span class="btn p">Send</span></div></div></div>
+<div class="art"><div class="row2"><b>Artifact: Refund escalation summary</b><span class="b ok">saved</span></div><p class="note">Draft &middot; version 2 &middot; just now</p>
+<table><tr><th>Cause</th><th>Cases</th></tr><tr><td>Delayed delivery</td><td>9</td></tr><tr><td>Duplicate charge</td><td>3</td></tr><tr><td>Plan change</td><td>2</td></tr></table>
+<p style="margin-top:10px"><b>Note for the billing lead</b></p><p class="note">Nine of fourteen refund escalations yesterday came from delayed deliveries. All six over-limit approvals were decided within ten minutes. The three duplicate charges (orders 1019, 1042, 1077) point to a billing retry issue worth checking.</p>
+<div class="row" style="margin-top:12px"><span class="btn p">Copy</span><span class="btn">Edit</span><span class="btn">Share to team</span><span class="btn">Schedule weekly</span></div></div></div>""", "Chat", 0)
+
+SCREENS["17-workspace-search"] = wsapp("Search", head("Search", "Across knowledge, conversations, hand-offs and artifacts you are allowed to see.") + f"""
+<div class="card" style="padding:14px"><div class="search" style="max-width:none;border:1px solid var(--border);border-radius:8px;padding:9px 12px;background:var(--bg);color:var(--text)">refund policy delayed delivery</div>
+<div class="row" style="margin-top:10px"><span class="pill"><b>All</b> 18</span><span class="pill">Knowledge 6</span><span class="pill">Conversations 9</span><span class="pill">Hand-offs 2</span><span class="pill">Artifacts 1</span><div style="flex:1"></div><span class="pill">Last 30 days &#9662;</span></div></div>
+<div class="card" style="margin-top:12px;padding:4px 14px">{table(["Result","Source","Matched","Access"],[
+ ["<b>Refund policy</b><br><span class=note>Orders over 7 days late are eligible for a full refund&hellip;</span>",badge("Knowledge","info"),"policy &middot; delayed","everyone"],
+ ["<b>Carrier delays playbook</b><br><span class=note>Check tracking before approving a refund&hellip;</span>",badge("Knowledge","info"),"delayed delivery","everyone"],
+ ["<b>c-4f21</b> Refund for a delayed order<br><span class=note>customer reports a 9-day delay&hellip; (masked)</span>",badge("Conversation","gr"),"refund &middot; delayed","Billing team"],
+ ["<b>Refund escalation summary</b><br><span class=note>Nine of fourteen refund escalations&hellip;</span>",badge("Artifact","ok"),"refund","you"],
+ ["<b>Hand-off h-221</b> Delayed parcel, refund over limit",badge("Hand-off","warn"),"refund","Billing team"]])}</div>
+<p class="note" style="margin-top:8px">Each result shows why you can see it. A source that cannot prove your access returns nothing.</p>""", "Search")
+
+SCREENS["18-workspace-projects"] = wsapp("Projects", head("Projects", "A project keeps instructions, sources, chats and artifacts for one piece of work together.", '<span class="btn p">+ New project</span>') + f"""
+<div class="g3"><div class="card"><div class="row2"><b>Billing escalations</b>{badge("team","info")}</div><p class="note">Instructions: be brief, cite the policy, never quote card numbers.</p><p class="note">Sources: Refund policy, Billing playbook &middot; 14 chats &middot; 6 artifacts</p><div class="bar"><i style="width:62%"></i></div><p class="note">Context in use: 62%</p></div>
+<div class="card"><div class="row2"><b>Weekly QA review</b>{badge("team","info")}</div><p class="note">Instructions: score against the Support scorecard v3.</p><p class="note">Sources: Scorecards, sampled conversations &middot; 5 chats &middot; 9 artifacts</p><p class="note">Scheduled: every Monday 08:00</p></div>
+<div class="card"><div class="row2"><b>My drafts</b>{badge("private","gr")}</div><p class="note">Instructions: my tone and signature.</p><p class="note">22 chats &middot; 31 artifacts</p></div></div>
+<div class="card" style="margin-top:14px"><div class="row2"><h3>Billing escalations</h3><span class="tag">Instructions</span></div>{table(["Recent chats and artifacts","Type","Updated"],[["Summarise yesterday's refund escalations","Chat","just now"],["Refund escalation summary","Artifact","just now"],["Why did billing-help hand off?","Chat","1 h ago"],["Duplicate charges: order list","Artifact","yesterday"]])}</div>""", "Projects")
+
+SCREENS["19-workspace-scheduled"] = wsapp("Scheduled", head("Scheduled", "Tasks that run on their own and leave an artifact or a message. Every run is listed.", '<span class="btn p">+ New scheduled task</span>') + f"""
+<div class="card" style="padding:4px 14px">{table(["Task","Runs","Delivers to","Last run","Next run","Status",""],[
+ ["<b>Daily hand-off triage</b><br><span class=note>Tag and rank open hand-offs by urgency</span>","every weekday 07:30","Billing queue","today 07:30","tomorrow 07:30",badge("OK","ok"),'<span class="sw2"></span>'],
+ ["<b>Weekly QA digest</b><br><span class=note>Score sampled conversations, summarise trends</span>","Mondays 08:00","Artifact + email to leads","Mon 08:00","next Mon",badge("OK","ok"),'<span class="sw2"></span>'],
+ ["<b>SLA breach sweep</b><br><span class=note>Find hand-offs waiting over 30 min</span>","every 15 min","Team channel","12 min ago","in 3 min",badge("1 failed run","warn"),'<span class="sw2"></span>'],
+ ["<b>Knowledge freshness check</b><br><span class=note>List sources not updated in 90 days</span>","monthly","Artifact","Nov 1","Dec 1",badge("Paused","gr"),'<span class="sw2 off"></span>']])}</div>
+<div class="g2" style="margin-top:12px"><div class="card"><h3>Run history: SLA breach sweep</h3>{table(["Started","Duration","Result"],[["13:45","4 s",badge("2 found","ok")],["13:30","5 s",badge("0 found","ok")],["13:15","31 s",badge("failed: search timed out","bad")],["13:00","4 s",badge("1 found","ok")]])}</div>
+<div class="card"><h3>What a task may do</h3><p class="note">Scheduled tasks use only the read tools and sources of the person who made them. Anything that writes needs an approval, as in a chat.</p></div></div>""", "Scheduled")
+
+SCREENS["20-workspace-threads"] = wsapp("Threads", head("Threads", "Customer conversations that need a person, and the ones you are handling.", '<span class="pill">Queue <b>Billing</b> &#9662;</span>') + f"""
+<div class="split" style="grid-template-columns:340px 1fr"><div class="card" style="padding:10px">
+<div class="row" style="margin-bottom:8px"><span class="pill"><b>Needs me</b> 2</span><span class="pill">Agent 4</span><span class="pill">Resolved 12</span></div>
+<div style="background:var(--info-bg);border-radius:8px;padding:8px 10px;margin-bottom:6px"><b>c-4f21</b> {badge("approval","warn")}<br><span class="note">Refund for a delayed order &middot; 6 min</span></div>
+<div style="padding:8px 10px;margin-bottom:6px"><b>c-4f1c</b> {badge("replying","info")}<br><span class="note">Wrong plan charged &middot; 11 min</span></div>
+<div style="padding:8px 10px;margin-bottom:6px"><b>c-4f30</b> {badge("agent","gr")}<br><span class="note">Where is my parcel &middot; billing-help</span></div>
+<div style="padding:8px 10px"><b>c-4e90</b> {badge("resolved","ok")}<br><span class="note">Invoice copy &middot; today</span></div></div>
+<div class="card" style="padding:16px"><div class="row2"><b style="font-size:16px">Refund for a delayed order</b>{badge("handed off by billing-help","info")}</div><div class="chat" style="margin-top:12px"><div class="msg u">My parcel is 9 days late and I want my money back.</div><div class="msg a">A refund of $180 is above what I can approve, so I'm asking a colleague to review it.</div>
+<div class="card" style="background:var(--warn-bg);border-color:#e9c46a"><b>Approval needed:</b> issue_refund $180 for order 1019<div class="row" style="margin-top:8px"><span class="btn p">Approve</span><span class="btn d">Reject</span><span class="btn">Ask for more</span></div></div>
+<div class="msg a" style="align-self:flex-start"><span class="note">Draft reply (review before send)</span><br>Thanks for waiting. We've refunded $180 to your original payment method; it can take 3 to 5 days to appear.<div class="row" style="margin-top:8px"><span class="btn p">Send</span><span class="btn">Edit</span><span class="btn">Regenerate</span></div></div></div></div></div>""", "Threads")
+
+
+def settings_shell(active: str, title: str, sub: str, body: str) -> str:
+    personal = ["Profile", "Preferences", "Memory", "Connectors", "MCP servers", "Notifications", "Privacy and data", "Usage and limits", "API keys", "Security and sessions"]
+    org = ["People and groups", "Agents", "Models and budgets", "Policies", "Access", "Audit and activity", "Connectors (organization)", "Data residency", "Billing and plan"]
+    nav = '<div class="grp">Personal</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in personal) + '<div class="grp">Organization (administrators)</div>' + "".join(f"<a>{n}</a>" for n in org)
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{WS_CSS}</style></head><body>
+<div class="top"><div class="brand" style="padding:0">NorthCX <span class="note">Settings and admin</span></div><div class="sp"></div><span class="pill">Tenant <b>Acme Support (sample)</b></span><span class="btn">Open Workspace</span><div class="av">PN</div></div>
+<div style="display:grid;grid-template-columns:260px 1fr;min-height:844px"><div style="background:var(--surface);border-right:1px solid var(--border);padding:12px" class="setnav">{nav}</div>
+<main><h1>{E(title)}</h1><p class="sub">{sub}</p>{body}</main></div><div class="mock">Design mockup &middot; sample data</div></body></html>"""
+
+
+SCREENS["21-settings-profile"] = settings_shell("Profile", "Profile", "How you appear to colleagues and how your assistants work with you.", f"""
+<div class="g2"><div class="card"><h3>About you</h3><div class="row" style="align-items:center"><div class="av" style="width:56px;height:56px;font-size:18px">PN</div><span class="btn">Change photo</span></div>
+<div class="field"><label>Name</label><span class="in">Priya N.</span></div><div class="field"><label>Email (from your identity provider)</label><span class="in">priya@example.com</span></div><div class="field"><label>Team</label><span class="in">Platform admins</span></div>
+<div class="field"><label>Language</label><span class="in">English &#9662;</span></div><div class="field"><label>Time zone</label><span class="in">(UTC+01:00) Europe/Amsterdam &#9662;</span></div></div>
+<div><div class="card"><h3>Your assistants</h3><div class="field"><label>Default assistant</label><span class="in">care-copilot &#9662;</span></div><div class="field"><label>Reply style</label><span class="in">Brief and friendly, no exclamation marks</span></div><div class="field"><label>Signature</label><span class="in">Priya, Acme Support</span></div></div>
+<div class="card" style="margin-top:12px"><h3>Your access</h3><p class="note">Role from groups</p><p><span class="b info">Administrator</span> <span class="b info">Release manager</span></p><p class="note">Roles come from your identity provider and cannot be edited here.</p></div></div></div>
+<div class="row" style="margin-top:14px"><span class="btn p">Save changes</span><span class="btn">Cancel</span></div>""")
+
+SCREENS["22-settings-memory"] = settings_shell("Memory", "Memory", "What your assistants remember about how you work. You can read, edit and erase everything here.", f"""
+<div class="card"><div class="row2"><div><b>Use memory</b><p class="note" style="margin:0">Assistants recall these notes in your chats. Turn off to stop recalling and saving.</p></div><span class="sw2"></span></div></div>
+<div class="tabs" style="margin-top:14px"><a class="on">Personal</a><a>Team: Billing</a></div>
+<div class="card" style="padding:4px 14px">{table(["Memory","Saved from","Updated",""],[
+ ["Prefers short replies with the policy name cited","chat &middot; Nov 3","Nov 3",'<span class="btn">Edit</span> <span class="btn d">Erase</span>'],
+ ["Works Monday to Thursday; weekly QA digest goes to Friday","chat &middot; Oct 28","Oct 28",'<span class="btn">Edit</span> <span class="btn d">Erase</span>'],
+ ["Never include customer names in summaries, use order numbers","you added","Oct 20",'<span class="btn">Edit</span> <span class="btn d">Erase</span>'],
+ ["Billing lead is Marco L.","chat &middot; Oct 12","Oct 12",'<span class="btn">Edit</span> <span class="btn d">Erase</span>']])}</div>
+<div class="row" style="margin-top:12px"><span class="btn p">+ Add a memory</span><span class="btn">Export</span><span class="btn d">Erase all personal memory</span></div>
+<p class="note" style="margin-top:10px">Memory never stores customer messages or personal details. Team memory is shared with your team and edited by team leads.</p>""")
+
+SCREENS["23-settings-connectors-mcp"] = settings_shell("Connectors", "Connectors and MCP servers", "Systems your assistants can use on your behalf. You see only what your role allows.", f"""
+<div class="tabs"><a class="on">Connectors</a><a>MCP servers</a></div>
+<div class="g3"><div class="card"><div class="row2"><b>Helpdesk</b>{badge("Connected","ok")}</div><p class="note">Read hand-offs, add notes</p><p class="note">Scopes: read &middot; write notes</p><div class="row"><span class="btn">Permissions</span><span class="btn d">Disconnect</span></div></div>
+<div class="card"><div class="row2"><b>Orders system</b>{badge("Connected","ok")}</div><p class="note">Look up orders and tracking</p><p class="note">Scopes: read only</p><div class="row"><span class="btn">Permissions</span><span class="btn d">Disconnect</span></div></div>
+<div class="card"><div class="row2"><b>Calendar</b>{badge("Not connected","gr")}</div><p class="note">Find times, schedule follow-ups</p><p class="note">Needs your approval to connect</p><div class="row"><span class="btn p">Connect</span></div></div></div>
+<div class="card" style="margin-top:14px"><div class="row2"><h3>MCP servers</h3><span class="btn p">+ Add server</span></div>{table(["Server","Address","Tools","Mode","Status",""],[
+ ["<b>docs-search</b><br><span class=note>added by organization</span>","mcp.docs.example.com","2 of 2 enabled",badge("read-only","ok"),badge("OK","ok"),'<span class="sw2"></span>'],
+ ["<b>team-wiki</b><br><span class=note>added by you</span>","wiki.example.com/mcp","3 of 5 enabled",badge("read-only","ok"),badge("OK","ok"),'<span class="sw2"></span>'],
+ ["<b>ticket-actions</b><br><span class=note>organization policy: needs approval</span>","tickets.example.com/mcp","&mdash;",badge("write tools","warn"),badge("Waiting for admin","warn"),'<span class="sw2 off"></span>']])}
+<p class="note" style="margin:8px 0 2px">Remote tools default to write and need an approval unless an administrator marks them read-only. Tools from servers you add are limited to your own permissions. &#128274; Third-party servers are controlled by organization policy.</p></div>""")
+
+
 def _col(title, who, items, cls="info"):
     return f'<div class="card" style="padding:14px"><span class="b {cls}">{title}</span><p class="note" style="margin:6px 0 8px">{who}</p>' + "".join(f"<div style='padding:4px 0;border-top:1px solid var(--border)'>{i}</div>" for i in items) + "</div>"
 

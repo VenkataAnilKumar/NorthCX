@@ -1,0 +1,53 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chat (mockup)</title><style>
+:root{--bg:#f6f8fb;--surface:#fff;--text:#0f172a;--muted:#5b6678;--border:#d9e0ea;--primary:#0b3d91;--primary-text:#fff;--ok:#0f7b3f;--ok-bg:#dcf5e6;--warn:#8a5300;--warn-bg:#fdecc8;--info:#0b4fb3;--info-bg:#dce9ff;--bad:#a11d1d;--bad-bg:#fde0e0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.app{display:grid;grid-template-columns:232px 1fr;min-height:900px}
+aside{background:var(--surface);border-right:1px solid var(--border);padding:16px 12px}
+.brand{font-weight:700;color:var(--primary);font-size:18px;padding:4px 10px 12px}
+.grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:12px 10px 4px}
+.nav a{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;color:var(--muted);text-decoration:none}
+.nav a.on{background:var(--primary);color:var(--primary-text);font-weight:600}.nav .n{font-size:11px;background:var(--bad-bg);color:var(--bad);border-radius:9px;padding:0 6px}
+.nav a.on .n{background:#ffffff33;color:#fff}
+.who{margin-top:18px;border-top:1px solid var(--border);padding:12px 10px;font-size:12px;color:var(--muted)}
+.top{display:flex;gap:12px;align-items:center;padding:10px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+.search{flex:1;max-width:460px;border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--muted);background:var(--bg)}
+.pill{border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:12px;background:var(--surface)}.pill b{color:var(--primary)}
+.sp{flex:1}.av{width:30px;height:30px;border-radius:50%;background:var(--info-bg);color:var(--info);display:grid;place-items:center;font-weight:700;font-size:12px}
+main{padding:20px 24px 40px}h1{font-size:22px;margin:0 0 2px}.sub{color:var(--muted);margin:0 0 16px}
+.row{display:flex;gap:12px;flex-wrap:wrap}.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.g2{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}.card h3{margin:0 0 8px;font-size:14px}
+.stat .l{color:var(--muted);font-size:12px}.stat .v{font-size:26px;font-weight:700}.stat .d{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border)}
+td{padding:9px 10px;border-bottom:1px solid var(--border)}tr:last-child td{border-bottom:0}.mut{color:var(--muted)}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.b{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600}.ok{background:var(--ok-bg);color:var(--ok)}.warn{background:var(--warn-bg);color:var(--warn)}.info{background:var(--info-bg);color:var(--info)}.bad{background:var(--bad-bg);color:var(--bad)}.gr{background:#e8ecf2;color:var(--muted)}
+.btn{display:inline-block;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 12px;font-weight:600;font-size:13px}.btn.p{background:var(--primary);color:#fff;border-color:var(--primary)}.btn.d{color:var(--bad)}
+.bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--primary)}.bar i.w{background:#c27803}.bar i.r{background:var(--bad)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:0 0 14px}.tabs a{padding:8px 12px;color:var(--muted);border-bottom:2px solid transparent}.tabs a.on{color:var(--primary);border-color:var(--primary);font-weight:600}
+.tools{display:flex;gap:8px;align-items:center;margin-bottom:12px}.in{border:1px solid var(--border);border-radius:8px;padding:6px 10px;background:var(--surface);color:var(--muted)}
+.drawer{position:absolute;right:0;top:0;bottom:0;width:380px;background:var(--surface);border-left:1px solid var(--border);box-shadow:-8px 0 24px #0f172a22;padding:18px}
+.field{margin:10px 0}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}.field .in{display:block}
+.note{font-size:12px;color:var(--muted)}.tag{font-size:11px;border:1px solid var(--border);border-radius:6px;padding:0 6px;margin-right:4px;color:var(--muted)}
+.chat{display:flex;flex-direction:column;gap:10px}.msg{max-width:78%;padding:9px 12px;border-radius:12px}.u{background:var(--info-bg);align-self:flex-end}.a{background:var(--surface);border:1px solid var(--border)}
+.src{font-size:12px;border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin-top:6px;background:var(--bg)}
+.mock{position:fixed;right:12px;bottom:8px;font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 8px}
+
+.ws2{display:grid;grid-template-columns:270px 1fr;height:900px}.ws2 .side{background:var(--surface);border-right:1px solid var(--border);padding:14px 12px;display:flex;flex-direction:column}
+.ws2 .work{background:var(--bg);padding:18px 22px;overflow:hidden;position:relative}.newc{display:block;text-align:center;background:var(--primary);color:#fff;border-radius:10px;padding:9px;font-weight:600;margin:6px 0 12px}
+.side .nav a{padding:8px 10px}.recent{font-size:13px;color:var(--muted);padding:5px 10px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.recent.on{background:var(--info-bg);color:var(--info)}
+.me{margin-top:auto;border-top:1px solid var(--border);padding-top:10px;display:flex;gap:10px;align-items:center}.split{display:grid;grid-template-columns:1fr 380px;gap:14px;height:790px}
+.art{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;overflow:hidden}.row2{display:flex;justify-content:space-between;align-items:center}
+.sw2{width:36px;height:20px;border-radius:12px;background:var(--primary);position:relative;display:inline-block}.sw2:after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff}.sw2.off{background:var(--border)}.sw2.off:after{right:auto;left:2px}
+.setnav a{display:block;padding:8px 12px;border-radius:8px;color:var(--muted)}.setnav a.on{background:var(--info-bg);color:var(--info);font-weight:700}.setnav .grp{padding-top:14px}
+</style></head><body><div class="ws2">
+<div class="side"><div class="brand">NorthCX <span class="note">Workspace</span></div><a class="newc">+ New chat</a><div class="nav"><a class="on"><span>&#128172; &nbsp;Chat</span></a><a class=""><span>&#128269; &nbsp;Search</span></a><a class=""><span>&#128196; &nbsp;Artifacts</span></a><a class=""><span>&#128193; &nbsp;Projects</span></a><a class=""><span>&#9201; &nbsp;Scheduled</span></a><a class=""><span>&#129525; &nbsp;Threads</span></a></div><div class="grp">Recent</div><div class="recent on">Summarise yesterday&#x27;s refund escalations</div><div class="recent ">Draft: apology for delayed parcels</div><div class="recent ">Why did billing-help hand off?</div><div class="recent ">Weekly QA digest (draft)</div>
+<div class="me"><div class="av">DK</div><div><b>Dana K.</b><div class="note">Billing team &middot; Reviewer</div></div></div></div>
+<div class="work"><div class="split"><div class="card" style="display:flex;flex-direction:column;position:relative;padding:16px">
+<div class="row2"><b>Summarise yesterday's refund escalations</b><span class="pill">Agent <b>care-copilot</b></span></div>
+<div class="chat" style="margin-top:14px"><div class="msg u">Summarise yesterday's refund escalations and draft a note for the billing lead.</div>
+<div class="msg a">I found 14 refund hand-offs yesterday. 9 were delayed deliveries, 3 duplicate charges and 2 plan changes. 6 were over the $50 limit and needed approval; all were decided within 10 minutes. I've put a summary and a draft note in the panel.<div class="src"><b>Sources</b> &middot; 14 conversations (masked) &middot; Refund policy &middot; Billing escalations playbook</div></div>
+<div class="msg u">Add the three duplicate-charge cases with their order numbers.</div><div class="msg a">Done. I added them to the summary, with order numbers only (no customer details).<br><span class="note">Used: search conversations, search knowledge &middot; 2 tool calls</span></div></div>
+<div class="prompt" style="position:absolute;left:14px;right:14px;bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px"><span class="mut">Ask, search, or draft&hellip;</span><div class="row" style="margin-top:10px;gap:8px"><span class="pill">+</span><span class="pill">Project <b>Billing escalations</b></span><span class="pill">Sources <b>Knowledge, Conversations</b></span><div style="flex:1"></div><span class="btn p">Send</span></div></div></div>
+<div class="art"><div class="row2"><b>Artifact: Refund escalation summary</b><span class="b ok">saved</span></div><p class="note">Draft &middot; version 2 &middot; just now</p>
+<table><tr><th>Cause</th><th>Cases</th></tr><tr><td>Delayed delivery</td><td>9</td></tr><tr><td>Duplicate charge</td><td>3</td></tr><tr><td>Plan change</td><td>2</td></tr></table>
+<p style="margin-top:10px"><b>Note for the billing lead</b></p><p class="note">Nine of fourteen refund escalations yesterday came from delayed deliveries. All six over-limit approvals were decided within ten minutes. The three duplicate charges (orders 1019, 1042, 1077) point to a billing retry issue worth checking.</p>
+<div class="row" style="margin-top:12px"><span class="btn p">Copy</span><span class="btn">Edit</span><span class="btn">Share to team</span><span class="btn">Schedule weekly</span></div></div></div></div></div><div class="mock">Design mockup &middot; sample data</div></body></html>
