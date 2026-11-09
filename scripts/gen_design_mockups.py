@@ -49,12 +49,40 @@ NAV = [("Operate", [("Overview", 0), ("Conversations", 0), ("Handoffs", 3), ("Ap
        ("Personal", [("Profile and memory", 0), ("Settings", 0)])]
 
 
+ADMIN_GROUPS = [("Overview", []),
+                ("Operate", ["Conversations", "Hand-offs", "Approvals", "Review and QA", "Monitoring", "Analytics"]),
+                ("Build", ["Agents", "Agent Hub", "Builder", "Library", "Automations", "Simulations", "Models and budgets", "Test console"]),
+                ("Govern", ["People and groups", "Access keys", "Policies", "Audit and activity", "Trust and reliability", "Data residency"]),
+                ("Platform", ["Channels", "Systems", "Usage and billing", "Organization settings"]),
+                ("Personal", ["Profile", "Preferences", "Memory", "Connectors", "MCP servers", "Notifications", "Privacy and data", "Usage and limits", "API keys", "Security and sessions"])]
+ADMIN_ALIAS = {"Handoffs": "Hand-offs", "Profile and memory": "Profile", "Settings": "Preferences"}
+ADMIN_BADGE = {"Operate": 5}
+
+
+def admin_group(active):
+    active = ADMIN_ALIAS.get(active, active)
+    return next((gn for gn, subs in ADMIN_GROUPS if gn == active or active in subs), "Overview"), active
+
+
+def admin_nav(active):
+    grp, _a = admin_group(active)
+    return "".join(f'<a class="{"on" if gn == grp else ""}" style="display:flex;justify-content:space-between;align-items:center"><span>{gn}</span>{f'<span style="background:#fde68a;color:#7c2d12;border-radius:9px;padding:0 7px;font-size:11px;font-weight:700">{ADMIN_BADGE[gn]}</span>' if gn in ADMIN_BADGE else ""}</a>' for gn, _s in ADMIN_GROUPS)
+
+
+def admin_subtabs(active):
+    grp, act = admin_group(active)
+    subs = next(sb for gn, sb in ADMIN_GROUPS if gn == grp)
+    if not subs:
+        return ""
+    return '<style>.pb{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:600;white-space:nowrap}.pb.on{background:var(--primary);color:#fff;border-color:var(--primary)}.pb .n{background:#fde68a;color:#7c2d12;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px}</style><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px">' + "".join(f'<span class="pb {"on" if t == act else ""}">{t}{" <span class=n>2</span>" if t == "Approvals" else ""}</span>' for t in subs) + '</div>'
+
+
 def shell(active: str, title: str, sub: str, body: str, env: str = "Production", tenant: str = "Acme Support (sample)") -> str:
-    nav = "".join(f'<div class="grp">{g}</div>' + "".join(f'<a class="{"on" if n == active else ""}"><span>{n}</span>{f"<span class=n>{c}</span>" if c else ""}</a>' for n, c in items) for g, items in NAV)
+    nav = admin_nav(active)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{CSS}</style></head><body>
 <div class="app"><aside><div class="brand">NorthCX</div><div class="nav">{nav}</div><div class="who">Signed in as <b>Priya N.</b><br>Administrator &middot; SSO</div></aside>
 <div style="position:relative"><div class="top"><div class="search">Search conversations, agents, people, settings&hellip; &nbsp;<span class="tag">Ctrl K</span></div><div class="sp"></div><span class="pill">Tenant <b>{E(tenant)}</b></span><span class="pill">Environment <b>{E(env)}</b></span><span class="pill">Alerts <b>1</b></span><div class="av">PN</div></div>
-<main><h1>{E(title)}</h1><p class="sub">{sub}</p>{body}</main></div></div><div class="mock">Design mockup &middot; sample data</div></body></html>"""
+<main>{admin_subtabs(active)}<h1>{E(title)}</h1><p class="sub">{sub}</p>{body}</main></div></div><div class="mock">Design mockup &middot; sample data</div></body></html>"""
 
 
 def stat(label, value, delta=""):
@@ -330,17 +358,11 @@ SCREENS["20-workspace-threads"] = wsapp("Threads", head("Inbox", "Customer conve
 
 
 def settings_shell(active: str, title: str, sub: str, body: str) -> str:
-    personal = ["Profile", "Preferences", "Memory", "Connectors", "MCP servers", "Notifications", "Privacy and data", "Usage and limits", "API keys", "Security and sessions"]
-    org_groups = [("Operate", ["Overview", "Conversations", "Hand-offs", "Approvals", "Review and QA", "Monitoring", "Analytics"]),
-                  ("Build", ["Agents", "Agent Hub", "Builder", "Library", "Automations", "Simulations", "Models and budgets", "Test console"]),
-                  ("Govern", ["People and groups", "Access keys", "Policies", "Audit and activity", "Trust and reliability", "Data residency"]),
-                  ("Platform", ["Channels", "Systems", "Usage and billing", "Organization settings"])]
-    org = [n for _g, ns in org_groups for n in ns]
-    nav = '<div class="grp">Personal</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in personal) + '<div class="grp">Organization (administrators)</div>' + "".join(f'<div class="grp" style="padding:6px 0 0;font-size:10px">{gn}</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in ns) for gn, ns in org_groups)
+    nav = admin_nav(active)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{WS_CSS}</style></head><body>
 <div class="top"><div class="brand" style="padding:0">NorthCX <span class="note">Settings and admin</span></div><div class="sp"></div><span class="pill">Tenant <b>Acme Support (sample)</b></span><span class="btn">Open Workspace</span><div class="av">PN</div></div>
 <div style="display:grid;grid-template-columns:260px 1fr;min-height:844px"><div style="background:var(--surface);border-right:1px solid var(--border);padding:12px" class="setnav">{nav}</div>
-<main><h1>{E(title)}</h1><p class="sub">{sub}</p>{body}</main></div><div class="mock">Design mockup &middot; sample data</div></body></html>"""
+<main>{admin_subtabs(active)}<h1>{E(title)}</h1><p class="sub">{sub}</p>{body}</main></div><div class="mock">Design mockup &middot; sample data</div></body></html>"""
 
 
 PROFILE_TABS = lambda on: '<div class="tabs">' + "".join(f'<a class="{"on" if t == on else ""}">{t}</a>' for t in ["About you", "Instructions and persona", "Personal context", "Skills", "My assistants", "Activity and controls"]) + "</div>"

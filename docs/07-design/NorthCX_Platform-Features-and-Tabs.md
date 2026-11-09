@@ -82,6 +82,18 @@ State: streaming chat, citations, approvals, traces and knowledge search are bui
 ## 5. Settings and admin
 A wide settings app opened from the profile menu. Everyone sees the **Personal** group; the **Organization** group appears only for roles that can use it.
 
+### How the Admin app shows its pages (proposed 2026-11-09, decision 168): sub-tabs instead of 35 links
+The same idea as the Workspace. The left side shows six items and each opens its pages as sub-tabs across the top:
+| Left item | Sub-tabs |
+|---|---|
+| **Overview** | none (the landing page; was the first Operate page) |
+| **Operate** (badge: items waiting) | Conversations, Hand-offs, Approvals, Review and QA, Monitoring, Analytics |
+| **Build** | Agents, Agent Hub, Builder, Library, Automations, Simulations, Models and budgets, Test console |
+| **Govern** | People and groups, Access keys, Policies, Audit and activity, Trust and reliability, Data residency |
+| **Platform** | Channels, Systems, Usage and billing, Organization settings |
+| **Personal** (everyone) | Profile, Preferences, Memory, Connectors, MCP servers, Notifications, Privacy and data, Usage and limits, API keys, Security and sessions |
+The 25 organization pages and 10 personal pages are unchanged; Personal and the Organization items appear only for roles that can use them, and a person with no organization role sees only Personal. Rules as in the Workspace: a badge on a sub-tab also shows on its group; the app remembers the last sub-tab per group; Ctrl K reaches any page by name; a sub-tab row that does not fit scrolls sideways. Mockups: `docs/assets/design/01-admin-overview.png`, `35-admin-agent-hub.png`, `21-settings-profile.png`.
+
 ### Personal (everyone)
 | Page | What it holds | State |
 |---|---|---|
