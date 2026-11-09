@@ -15,7 +15,7 @@ export default function Assistants() {
               <div className="flex items-start justify-between gap-2"><h2 className="font-semibold">{a.id}</h2><span className="pill">{a.version ? `v${a.version}` : "from file"}</span></div>
               <p className="mt-1 line-clamp-4 flex-1 text-sm text-muted">{a.instructions}</p>
               <p className="mt-2 text-xs text-muted">{a.tools.length} tool{a.tools.length === 1 ? "" : "s"}{a.tools.some((t) => t.approval) ? " · some need approval" : ""}{a.model ? ` · ${a.model}` : ""}</p>
-              <Link className="btn mt-3 self-start" href={`/chat?agent=${a.id}`}>Start a test chat</Link>
+              <Link className="btn mt-3 self-start" href={`/pilot?agent=${a.id}`}>Start a test chat</Link>
             </li>
           ))}
         </ul>

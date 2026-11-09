@@ -173,7 +173,7 @@ export default function Knowledge() {
   const srcs = sources.data!;
   return (
     <>
-      <PageHeader title="Knowledge" subtitle="The documents your agents answer from. Out-of-date sources are flagged so the agent says so, and so you can fix them." />
+      <PageHeader title="Library" subtitle="The documents your agents answer from. Out-of-date sources are flagged so the agent says so, and so you can fix them." />
       {err && <div className="mb-3"><ErrorBox message={err} /></div>}
       <div className="grid gap-6 lg:grid-cols-[1fr_24rem]">
         <div className="space-y-4">

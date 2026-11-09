@@ -127,7 +127,7 @@ function Queue() {
   const { data, error, loading, reload } = useLoad(() => listHandoffs(state, queue || undefined), [state, queue]);
   return (
     <>
-      <PageHeader title="Handoffs" subtitle="Conversations passed to a person, with everything they need to carry on.">
+      <PageHeader title="Hand-offs" subtitle="Conversations passed to a person, with everything they need to carry on.">
         <div role="group" aria-label="Filter by state" className="flex gap-1">
           {(["open", "resolved"] as const).map((s) => (
             <button key={s} aria-pressed={state === s} onClick={() => setState(s)}

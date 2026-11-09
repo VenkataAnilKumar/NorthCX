@@ -3,13 +3,17 @@ import { useCallback, useEffect, useState } from "react";
 
 export interface Prefs {
   theme: "system" | "light" | "dark";
-  accent: "blue" | "teal" | "violet" | "green";
+  accent: "blue" | "teal" | "violet" | "graphite";
   density: "compact" | "comfortable" | "spacious";
   text: "small" | "medium" | "large";
   contrast: "normal" | "high";
   motion: "system" | "reduce";
+  /** "solid" turns every glass surface opaque (reduce transparency). */
+  glass: "glass" | "solid";
+  /** Left navigation: the full rail or icons only. Full window is a temporary mode and is not saved. */
+  nav: "expanded" | "collapsed";
 }
-export const DEFAULT_PREFS: Prefs = { theme: "system", accent: "blue", density: "comfortable", text: "medium", contrast: "normal", motion: "system" };
+export const DEFAULT_PREFS: Prefs = { theme: "system", accent: "blue", density: "comfortable", text: "medium", contrast: "normal", motion: "system", glass: "glass", nav: "expanded" };
 export const PREFS_KEY = "northcx.prefs";
 
 /** Set the attributes the stylesheet reads. "system" and the defaults leave the attribute off. */
@@ -21,6 +25,7 @@ export function applyPrefs(p: Prefs, root: HTMLElement = document.documentElemen
   set("data-text", p.text === "medium" ? null : p.text);
   set("data-contrast", p.contrast === "normal" ? null : p.contrast);
   set("data-motion", p.motion === "system" ? null : p.motion);
+  set("data-glass", p.glass === "glass" ? null : p.glass);
 }
 
 export function loadPrefs(): Prefs {
@@ -55,7 +60,8 @@ if(p.accent&&p.accent!=="blue")r.setAttribute("data-accent",p.accent);
 if(p.density&&p.density!=="comfortable")r.setAttribute("data-density",p.density);
 if(p.text&&p.text!=="medium")r.setAttribute("data-text",p.text);
 if(p.contrast&&p.contrast!=="normal")r.setAttribute("data-contrast",p.contrast);
-if(p.motion&&p.motion!=="system")r.setAttribute("data-motion",p.motion);}catch(e){}`;
+if(p.motion&&p.motion!=="system")r.setAttribute("data-motion",p.motion);
+if(p.glass&&p.glass!=="glass")r.setAttribute("data-glass",p.glass);}catch(e){}`;
   return <script dangerouslySetInnerHTML={{ __html: code }} />;
 }
 

@@ -1,7 +1,7 @@
 # The whole NorthCX stack: database, backend, web console.
 #   cp .env.example .env     # then set the values marked REQUIRED
 #   docker compose up -d --build --wait
-# Console: http://localhost:3001   API: http://localhost:3000
+# Admin console: http://localhost:3001   Workspace: http://localhost:3002   API: http://localhost:3000
 # Everything is bound to 127.0.0.1 by default; put a TLS-terminating reverse proxy in front before exposing it.
 name: northcx
 
@@ -170,6 +170,18 @@ services:
     depends_on:
       backend: { condition: service_healthy }
     ports: ["${NORTHCX_BIND:-127.0.0.1}:${NORTHCX_WEB_PORT:-3001}:3001"]
+
+  workspace:
+    build:
+      context: ./src
+      dockerfile: apps/workspace/Dockerfile
+      args:
+        NORTHCX_API_URL: http://backend:3000
+    image: northcx/workspace:local
+    restart: unless-stopped
+    depends_on:
+      backend: { condition: service_healthy }
+    ports: ["${NORTHCX_BIND:-127.0.0.1}:${NORTHCX_WORKSPACE_PORT:-3002}:3002"]
 
 volumes:
   northcx-pg:

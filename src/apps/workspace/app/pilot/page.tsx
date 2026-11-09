@@ -37,7 +37,7 @@ function Chat() {
   };
   return (
     <>
-      <PageHeader title="Chat" subtitle="Try an agent the way a customer would. This is a test conversation, kept apart from real customers." />
+      <PageHeader title="Pilot" subtitle="A first, simple version: try an agent the way a customer would. Plans, steps and results arrive with the staff backend (E5). This is a test conversation, kept apart from real customers." />
       {agents.loading && !agents.data ? <Loading /> : agents.error ? <ErrorBox message={agents.error} onRetry={agents.reload} /> : (
         <div className="glass flex h-[calc(100vh-13rem)] min-h-[24rem] flex-col p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">

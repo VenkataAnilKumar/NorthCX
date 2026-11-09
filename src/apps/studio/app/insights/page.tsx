@@ -88,7 +88,7 @@ export default function Insights() {
   const o = overview.data;
   return (
     <>
-      <PageHeader title="Insights" subtitle="How the agents are doing, from the conversations recorded in this period. Every figure shows what it is a share of.">
+      <PageHeader title="Analytics" subtitle="How the agents are doing, from the conversations recorded in this period. Every figure shows what it is a share of.">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <div role="group" aria-label="Period" className="flex gap-1">
             {PERIODS.map((p) => (

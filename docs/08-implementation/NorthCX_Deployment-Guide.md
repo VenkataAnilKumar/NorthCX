@@ -7,7 +7,7 @@ Status: **Built**. Updated: 2026-11-09. Master for: deployment and every setting
 cp .env.example .env        # set NORTHCX_DB_PASSWORD, NORTHCX_API_KEY, and ANTHROPIC_API_KEY (or NORTHCX_DEMO=1)
 docker compose up -d --build --wait
 ```
-This builds the backend and web images, starts Postgres, applies the database migrations, and waits until all three services are healthy. The console is at http://localhost:3001 and the API at http://localhost:3000, both bound to 127.0.0.1. Sign in on the console's Settings page with `NORTHCX_API_KEY`, then create named keys on the Access page. Data lives in the `northcx-pg` volume and survives `docker compose down` (use `down -v` to delete it).
+This builds the backend, Admin console and Workspace images, starts Postgres, applies the database migrations, and waits until all four services are healthy. The Admin console is at http://localhost:3001, the staff Workspace at http://localhost:3002 and the API at http://localhost:3000, all bound to 127.0.0.1. Sign in on the console's Settings page with `NORTHCX_API_KEY`, then create named keys on the Access page. Data lives in the `northcx-pg` volume and survives `docker compose down` (use `down -v` to delete it).
 
 What the stack contains: **postgres** (16, with a health check), **backend** (Python, non-root, `/health` for liveness and `/ready` for readiness, which checks the database), and **web** (Next.js standalone server, non-root). The web console reaches the backend through a same-origin proxy whose address is fixed at image build time (`NORTHCX_API_URL`, default `http://backend:3000`); rebuild the web image if the backend moves.
 
@@ -76,7 +76,7 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_DB_POOL_SIZE` | Database connections each server process keeps (plus 10 extra under load). Keep processes x (size + 10) below Postgres `max_connections` | 20 |
 | `NORTHCX_TRACE_DIR` | Also write traces to JSON lines (in-memory mode) | none |
 | `PORT` | Backend port inside the container | 3000 |
-| `NORTHCX_BIND`, `NORTHCX_BACKEND_PORT`, `NORTHCX_WEB_PORT` | Compose: listen address and host ports | 127.0.0.1, 3000, 3001 |
+| `NORTHCX_BIND`, `NORTHCX_BACKEND_PORT`, `NORTHCX_WEB_PORT`, `NORTHCX_WORKSPACE_PORT` | Compose: listen address and host ports | 127.0.0.1, 3000, 3001, 3002 |
 
 ## Operating it
 - **Upgrades:** pull or build the new images and run `docker compose up -d --build --wait`. Migrations apply on start and only move forward; take a database backup first. Rolling the images back across a migration needs the matching database backup.
@@ -166,7 +166,7 @@ Terminate TLS at a proxy and keep the API on a private network. Tell uvicorn whi
 
 ## Browser smoke test
 
-`src/apps/studio/e2e/smoke.mjs` drives a running stack in a real browser (Playwright): connecting with a key, the review queue, insights, the publish checklist, a staged rollout, the agent editor (journeys, languages) and the single sign-on landing page, then loads every main page and fails on any client error. Start the backend and the web console, then:
+`src/apps/workspace/e2e/smoke.mjs` does the same for the Workspace (inbox, approvals, Pilot, navigation modes). `src/apps/studio/e2e/smoke.mjs` drives a running stack in a real browser (Playwright): connecting with a key, the review queue, insights, the publish checklist, a staged rollout, the agent editor (journeys, languages) and the single sign-on landing page, then loads every main page and fails on any client error. Start the backend and the web console, then:
 
 ```bash
 cd src/apps/studio && API_KEY=<admin key> WEB_URL=http://localhost:3001 API_URL=http://localhost:3000 node e2e/smoke.mjs

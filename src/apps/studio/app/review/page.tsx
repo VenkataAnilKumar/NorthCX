@@ -67,7 +67,7 @@ export default function ReviewPage() {
   const ctx = useLoad(() => (open ? getReviewContext(open) : Promise.resolve(null)), [open]);
   return (
     <div>
-      <PageHeader title="Review" subtitle="Conversations most worth a human look, plus a small random sample.">
+      <PageHeader title="Review and QA" subtitle="Conversations most worth a human look, plus a small random sample.">
         <label className="text-sm"><input type="checkbox" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} /> Show reviewed</label>
       </PageHeader>
       {queue.error && <ErrorBox message={queue.error} onRetry={queue.reload} />}

@@ -8,8 +8,8 @@ const Link = ({ href, children, className, ...rest }: { href: string; children?:
 describe("shared glass shell", () => {
   it("marks the current page, shows badges and flags tabs that are not built yet", () => {
     const html = renderToStaticMarkup(createElement(AppShell, {
-      appName: "Workspace", path: "/threads", Link,
-      nav: [{ label: "Work", items: [{ href: "/threads", label: "Threads", badge: 3 }, { href: "/customers", label: "Customers", soon: true }] }],
+      appName: "Workspace", path: "/inbox", Link,
+      nav: [{ href: "/inbox", label: "Work", icon: "Work", children: [{ href: "/inbox", label: "Inbox", badge: 3 }, { href: "/customers", label: "Customers", soon: true }] }],
       switcher: [{ label: "Workspace", href: "/", current: true }, { label: "Admin", href: "http://localhost:3001" }],
       children: createElement("p", null, "body"),
     }));

@@ -29,14 +29,14 @@ export default function Home() {
         <input id="home-q" className="field text-base" placeholder="Search the knowledge base…" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="mt-3 flex flex-wrap gap-2">
           <button className="btn btn-primary" type="submit">Search</button>
-          <Link href="/chat" className="btn">Start a chat</Link>
+          <Link href="/pilot" className="btn">Start a task</Link>
         </div>
       </form>
       <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <GlassCard title={`Hand-offs (${handoffs.length})`} action={<Link href="/threads" className="text-xs text-primary underline">Open Threads</Link>}>
+        <GlassCard title={`Hand-offs (${handoffs.length})`} action={<Link href="/inbox" className="text-xs text-primary underline">Open Inbox</Link>}>
           {handoffs.length === 0 ? <Empty>No conversations are waiting for a person.</Empty> : (
             <ul className="divide-y divide-border text-sm">{handoffs.slice(0, 4).map((h) => (
-              <li key={h.id} className="py-2"><Link href={`/threads?id=${h.id}`} className="font-medium hover:underline">{h.summary || h.reason || h.trigger}</Link><span className="ml-2 text-xs text-muted">{h.agentId}</span></li>
+              <li key={h.id} className="py-2"><Link href={`/inbox?id=${h.id}`} className="font-medium hover:underline">{h.summary || h.reason || h.trigger}</Link><span className="ml-2 text-xs text-muted">{h.agentId}</span></li>
             ))}</ul>
           )}
         </GlassCard>
@@ -49,7 +49,7 @@ export default function Home() {
         </GlassCard>
       </div>
       <GlassCard title="Assistants" className="mt-4" action={<Link href="/assistants" className="text-xs text-primary underline">All</Link>}>
-        <ul className="flex flex-wrap gap-2">{agents.map((a) => <li key={a.id}><Link className="pill" href={`/chat?agent=${a.id}`}>{a.id}</Link></li>)}</ul>
+        <ul className="flex flex-wrap gap-2">{agents.map((a) => <li key={a.id}><Link className="pill" href={`/pilot?agent=${a.id}`}>{a.id}</Link></li>)}</ul>
       </GlassCard>
     </div>
   );

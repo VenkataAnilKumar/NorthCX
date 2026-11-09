@@ -7,7 +7,12 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Documentation (staff platform design, 2026-11-09)
 - Designed and documented, not built: the staff Workspace (six left items with sub-tabs), the Pilot, Assistants and the Agent Hub, Builder, Automations, personal intelligence, hybrid model selection, and the regrouped Admin app (25 organization pages, six left items with sub-tabs). New specifications for the Workspace, Pilot, personal intelligence and automations; a staff platform architecture; feature catalog section 12 (77 planned features); requirements FR35 to FR41; personas, stories, journeys, threat model, non-functional requirements, testing and design system updates; 59 mockups; decisions 153 to 171.
 - UI and UX design approved: glass surfaces, one accent colour, a floating six-item rail that can be collapsed to icons or hidden in full window mode, original tab icons, AA contrast rules (`docs/07-design/NorthCX_UI-UX-Design-Proposal.md`, six mockups).
-- Early web-app code for the Workspace and the new Admin shell is on `main` as work in progress and still uses the earlier tab names.
+
+### Added (Phase 1: screens on existing APIs)
+- Both web apps now use the approved design and final names: glass tokens with one accent (blue, teal, violet or graphite), six left items with sub-tabs, a collapsed icon rail (Ctrl B), full window mode (Ctrl .), a command bar (Ctrl K), original line icons on the left items only, and preferences for theme, accent, density, text size, contrast, motion and solid surfaces.
+- Workspace routes renamed to the final tabs (Inbox, Approvals, Customers, Pilot, Assistants, Search, Library, Outputs, Spaces, Automations, Quality, Performance); tabs without a backend say so. Admin has the six items Overview, Operate, Build, Govern, Platform and Personal; pages not built yet show an honest not-available page.
+- A contrast test checks every text pair on the design tokens against WCAG AA in light, dark, each accent and high contrast; it found and fixed four dark-theme values.
+- A Workspace container image and compose service (port 3002, `NORTHCX_WORKSPACE_PORT`); CI smoke-tests it.
 
 ### Added (model providers, first part)
 - `northcx/providers/`: provider types, a registry that routes `provider:model` names (bare names keep going to the default provider), capability checks, and Claude as an adapter with two clients: the official SDK and an optional direct HTTPS client (`NORTHCX_ANTHROPIC_CLIENT=http`). The SDK's `citations: null` fields are no longer carried into conversation history.

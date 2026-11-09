@@ -28,7 +28,7 @@ export default function Settings() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="Connection to the NorthCX backend." />
+      <PageHeader title="Connection" subtitle="Connection to the NorthCX backend." />
       {sso.data?.enabled && (
         <div className="mb-4 max-w-md space-y-2 rounded-xl border border-border bg-surface p-4">
           <h2 className="text-sm font-medium">Single sign-on</h2>

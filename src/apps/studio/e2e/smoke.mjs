@@ -46,6 +46,21 @@ await page.getByRole("button", { name: "Save review" }).click();
 await page.getByText("Saved.").waitFor();
 check(true, "review: saved");
 
+// navigation: six left items, sub-tabs, text-only sub-tabs, honest pages for what is not built
+await page.goto(`${WEB}/`);
+const mainNav = page.getByRole("navigation", { name: "Main" });
+for (const name of ["Overview", "Operate", "Build", "Govern", "Platform", "Personal"]) await mainNav.getByRole("link", { name }).waitFor();
+check((await mainNav.getByRole("link").count()) === 6, "admin: six left items");
+await page.goto(`${WEB}/handoffs`);
+await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Hand-offs" }).waitFor();
+check(true, "admin: Operate sub-tabs shown with the Hand-offs page current");
+await page.goto(`${WEB}/soon/models`);
+await page.getByText("Not available yet").waitFor();
+check(true, "admin: Models and budgets is an honest not-available page");
+await page.keyboard.press("Control+.");
+check((await mainNav.count()) === 0, "admin: full window hides the rail");
+await page.keyboard.press("Escape");
+
 // insights shows the human-review cards
 await page.goto(`${WEB}/insights`);
 await page.getByRole("region", { name: "Human review" }).waitFor();

@@ -9,7 +9,7 @@ export default function Knowledge() {
   const docs = useLoad(() => listKnowledgeDocs(source), [source]);
   return (
     <>
-      <PageHeader title="Knowledge" subtitle="The sources your agents and assistants answer from. Editing happens in Admin." />
+      <PageHeader title="Library" subtitle="The sources your agents and assistants answer from. Managing them happens in Admin (Build, Library)." />
       {sources.loading && !sources.data ? <Loading /> : sources.error ? <ErrorBox message={sources.error} onRetry={sources.reload} /> : (
         <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Source">
           <button className={`pill ${!source ? "font-semibold text-primary" : ""}`} aria-pressed={!source} onClick={() => setSource(undefined)}>All sources</button>

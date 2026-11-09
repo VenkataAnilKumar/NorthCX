@@ -14,7 +14,7 @@ export default function Preferences() {
           {row("Theme", "Match device follows your system setting.", <Segmented<Prefs["theme"]> label="Theme" value={p.theme} onChange={(v) => set({ theme: v })}
             options={[{ value: "system", label: "Match device" }, { value: "light", label: "Light" }, { value: "dark", label: "Dark" }]} />)}
           {row("Accent colour", "Status colours (ok, warning, error) never change.", <Segmented<Prefs["accent"]> label="Accent colour" value={p.accent} onChange={(v) => set({ accent: v })}
-            options={[{ value: "blue", label: "Blue" }, { value: "teal", label: "Teal" }, { value: "violet", label: "Violet" }, { value: "green", label: "Green" }]} />)}
+            options={[{ value: "blue", label: "Blue" }, { value: "teal", label: "Teal" }, { value: "violet", label: "Violet" }, { value: "graphite", label: "Graphite" }]} />)}
         </GlassCard>
         <GlassCard title="Layout">
           {row("Density", undefined, <Segmented<Prefs["density"]> label="Density" value={p.density} onChange={(v) => set({ density: v })}
@@ -24,6 +24,7 @@ export default function Preferences() {
         </GlassCard>
         <GlassCard title="Accessibility">
           {row("High contrast", "Solid surfaces and stronger borders, no transparency.", <Toggle label="High contrast" checked={p.contrast === "high"} onChange={(v) => set({ contrast: v ? "high" : "normal" })} />)}
+          {row("Solid surfaces", "Replaces the glass effect with plain surfaces.", <Toggle label="Solid surfaces" checked={p.glass === "solid"} onChange={(v) => set({ glass: v ? "solid" : "glass" })} />)}
           {row("Reduce motion", "Turns off transitions and animation.", <Toggle label="Reduce motion" checked={p.motion === "reduce"} onChange={(v) => set({ motion: v ? "reduce" : "system" })} />)}
           <p className="mt-2 text-xs text-muted">Transparency also turns off by itself when your system asks for reduced transparency.</p>
         </GlassCard>

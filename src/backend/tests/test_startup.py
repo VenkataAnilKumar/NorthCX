@@ -30,7 +30,7 @@ def test_every_documented_setting_is_passed_through_compose():
     """Anything the guides tell an operator to set must reach the container; otherwise the setting silently does nothing."""
     passed = set(compose_settings())
     documented = set(re.findall(r"`(NORTHCX_[A-Z0-9_]+)`", (ROOT / "docs/08-implementation/NorthCX_Deployment-Guide.md").read_text()))
-    documented = {d for d in documented if not d.endswith("_FILE") and not d.startswith("NORTHCX_SECRET_") and d not in {"NORTHCX_DB_PASSWORD", "NORTHCX_API_URL", "NORTHCX_BACKEND_PORT", "NORTHCX_WEB_PORT", "NORTHCX_BIND", "NORTHCX_TRACE_DIR"}}  # compose-level or in-memory-only settings
+    documented = {d for d in documented if not d.endswith("_FILE") and not d.startswith("NORTHCX_SECRET_") and d not in {"NORTHCX_DB_PASSWORD", "NORTHCX_API_URL", "NORTHCX_BACKEND_PORT", "NORTHCX_WEB_PORT", "NORTHCX_WORKSPACE_PORT", "NORTHCX_BIND", "NORTHCX_TRACE_DIR"}}  # compose-level or in-memory-only settings
     assert not (documented - passed), sorted(documented - passed)
 
 

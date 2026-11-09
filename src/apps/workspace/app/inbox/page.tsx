@@ -71,7 +71,7 @@ function Threads() {
   const { data, error, loading, reload } = useLoad(() => listHandoffs(state), [state]);
   return (
     <>
-      <PageHeader title="Threads" subtitle="Customer conversations that need a person." />
+      <PageHeader title="Inbox" subtitle="Customer conversations that need a person." />
       <div className="mb-3 inline-flex gap-1 rounded-xl border border-border p-1" role="tablist" aria-label="State">
         {(["open", "resolved"] as const).map((s) => <button key={s} role="tab" aria-selected={state === s} onClick={() => setState(s)} className={`rounded-lg px-3 py-1 text-sm ${state === s ? "bg-primary font-semibold text-primary-text" : "text-muted"}`}>{s === "open" ? "Needs a person" : "Resolved"}</button>)}
       </div>
@@ -79,7 +79,7 @@ function Threads() {
         <div>
           {loading && !data ? <Loading /> : error ? <ErrorBox message={error} onRetry={reload} /> : data && data.length === 0 ? <Empty>{state === "open" ? "Nothing is waiting for a person." : "No resolved hand-offs yet."}</Empty> : (
             <ul className="space-y-2">{data?.map((h) => (
-              <li key={h.id}><button onClick={() => router.push(`/threads?id=${h.id}`)} aria-current={selected === h.id ? "true" : undefined}
+              <li key={h.id}><button onClick={() => router.push(`/inbox?id=${h.id}`)} aria-current={selected === h.id ? "true" : undefined}
                 className={`glass block w-full p-3 text-left text-sm ${selected === h.id ? "ring-2 ring-primary" : ""}`}>
                 <span className="font-medium">{h.summary || h.reason || h.trigger}</span><span className="mt-1 block text-xs text-muted">{h.agentId} · {when(h.createdAt)}</span></button></li>
             ))}</ul>

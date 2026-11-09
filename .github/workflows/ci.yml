@@ -100,6 +100,8 @@ jobs:
         run: |
           curl --fail --silent http://127.0.0.1:3000/ready
           curl --fail --silent --output /dev/null http://127.0.0.1:3001/
+          curl --fail --silent --output /dev/null http://127.0.0.1:3002/
+          curl --fail --silent -H "authorization: Bearer $KEY" http://127.0.0.1:3002/api/northcx/v1/me | grep -q '"role":"admin"'
           for path in templates skills routing trace-export regression monitor/summary agents/support/environments; do
             curl --fail --silent --output /dev/null -H "authorization: Bearer $KEY" "http://127.0.0.1:3000/v1/$path" || { echo "FAILED: /v1/$path"; exit 1; }
           done

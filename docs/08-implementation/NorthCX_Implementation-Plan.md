@@ -73,7 +73,7 @@ The waves above stay the unit of release. Work is ordered in seven phases so eac
 | 4 | Staff backend and the Pilot (Quick answer and Research), Assistants, Search, minimum Outputs | E5, first slice of E6 |
 | 5 | Agent Hub, Builder, policy management, People and groups, Models and budgets, Usage pages | E22, E16, E3 screens |
 | 6 | Automations, Spaces, Quality, Performance, Customers (second release), QA scoring | E8, E14, E15, E7, rest of E6 |
-Each phase ends with its gate (tests, builds, browser smoke, the epic gates in section 3); sizes only, no dates. Phase 1 needs no new backend and is the first to start; Phase 3 is the riskiest. Phase 1 slices: (1) shared tokens, rail, sub-tabs, icons and modes in `packages/ui`; (2) Workspace pages; (3) Admin pages; (4) contrast check, browser smoke tests and the Docker image.
+Each phase ends with its gate (tests, builds, browser smoke, the epic gates in section 3); sizes only, no dates. Phase 1 needs no new backend and is the first to start; Phase 3 is the riskiest. Phase 1 slices: (1) shared tokens, rail, sub-tabs, icons and modes in `packages/ui`; (2) Workspace pages; (3) Admin pages; (4) contrast check, browser smoke tests and the Docker image. **Phase 1 is done (2026-11-09, decision 177).**
 
 ## 4. Wave 0: finish 1.0 and prepare the ground
 

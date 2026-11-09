@@ -2,50 +2,64 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { listApprovals, listHandoffs, useLoad, useMe } from "@northcx/api-client";
-import { AppShell, type NavGroup } from "@northcx/ui";
+import { AppShell, type NavItem, type SubItem } from "@northcx/ui";
 
 const WORKSPACE_URL = process.env.NEXT_PUBLIC_WORKSPACE_URL ?? "http://localhost:3002";
+const soon = (slug: string, label: string): SubItem => ({ href: `/soon/${slug}`, label, soon: true });
 
+/** Six left items with sub-tabs (decision 157); text-only sub-tabs, icons on the left items only. */
 export function StudioShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const { me, can } = useMe();
-  // Counts for the badges; a failure just means no badge.
   const waiting = useLoad(async () => {
     try { return { approvals: (await listApprovals("pending")).length, handoffs: (await listHandoffs("open")).length }; } catch { return { approvals: 0, handoffs: 0 }; }
   }, []);
   const any = (...p: string[]) => p.some(can);
-  const groups: NavGroup[] = [
-    { label: "Operate", items: [
-      { href: "/", label: "Overview", icon: "◧" },
-      { href: "/conversations", label: "Conversations", icon: "💬" },
-      { href: "/handoffs", label: "Handoffs", icon: "🧵", badge: waiting.data?.handoffs },
-      { href: "/approvals", label: "Approvals", icon: "✅", badge: waiting.data?.approvals },
-      ...(any("reviews:write", "traces:read") ? [{ href: "/review", label: "Review", icon: "📝" }] : []),
-      ...(can("monitor:read") ? [{ href: "/monitoring", label: "Monitoring", icon: "📡" }] : []),
-      ...(can("insights:read") ? [{ href: "/insights", label: "Insights", icon: "📈" }] : []),
-    ] },
-    { label: "Build", items: [
-      { href: "/agents", label: "Agents", icon: "🤖" },
-      { href: "/hub", label: "Agent Hub", icon: "🧩" },
-      ...(can("knowledge:read") ? [{ href: "/knowledge", label: "Knowledge", icon: "📚" }] : []),
-      { href: "/simulations", label: "Simulations", icon: "🧪" },
-      { href: "/chat", label: "Test console", icon: "⌨" },
-    ] },
-    { label: "Govern", items: [
-      ...(any("keys:manage", "audit:read") ? [{ href: "/access", label: "Access and audit", icon: "🔑" }] : []),
-      ...(can("audit:read") ? [{ href: "/residency", label: "Data residency", icon: "🌍" }] : []),
-    ] },
-    { label: "Personal", items: [
-      { href: "/profile", label: "Profile", icon: "👤" },
-      { href: "/preferences", label: "Preferences", icon: "🎨" },
-      { href: "/settings", label: "Settings", icon: "⚙" },
-    ] },
+  const operate: SubItem[] = [
+    { href: "/conversations", label: "Conversations" },
+    { href: "/handoffs", label: "Hand-offs", badge: waiting.data?.handoffs },
+    { href: "/approvals", label: "Approvals", badge: waiting.data?.approvals },
+    ...(any("reviews:write", "traces:read") ? [{ href: "/review", label: "Review and QA" }] : []),
+    ...(can("monitor:read") ? [{ href: "/monitoring", label: "Monitoring" }] : []),
+    ...(can("insights:read") ? [{ href: "/insights", label: "Analytics" }] : []),
+  ];
+  const build: SubItem[] = [
+    { href: "/agents", label: "Agents" },
+    { href: "/hub", label: "Agent Hub" },
+    soon("builder", "Builder"),
+    ...(can("knowledge:read") ? [{ href: "/knowledge", label: "Library" }] : []),
+    soon("automations", "Automations"),
+    { href: "/simulations", label: "Simulations" },
+    soon("models", "Models and budgets"),
+    { href: "/chat", label: "Test console" },
+  ];
+  const govern: SubItem[] = [
+    soon("people", "People and groups"),
+    ...(any("keys:manage", "audit:read") ? [{ href: "/access", label: "Access keys" }, { href: "/access#audit", label: "Audit and activity" }] : []),
+    soon("policies", "Policies"),
+    soon("trust", "Trust and reliability"),
+    ...(can("audit:read") ? [{ href: "/residency", label: "Data residency" }] : []),
+  ];
+  const platform: SubItem[] = [soon("channels", "Channels"), soon("systems", "Systems"), soon("usage", "Usage and billing"), soon("org", "Organization settings")];
+  const personal: SubItem[] = [
+    { href: "/profile", label: "Profile" },
+    { href: "/preferences", label: "Preferences" },
+    soon("memory", "Memory"), soon("connectors", "Connectors"), soon("mcp", "MCP servers"), soon("notifications", "Notifications"),
+    soon("privacy", "Privacy and data"), soon("limits", "Usage and limits"), soon("keys", "API keys"), soon("security", "Security and sessions"),
+    { href: "/settings", label: "Connection" },
+  ];
+  const nav: NavItem[] = [
+    { href: "/", label: "Overview", icon: "Overview" },
+    { href: operate[0].href, label: "Operate", icon: "Operate", children: operate },
+    { href: build[0].href, label: "Build", icon: "Build", children: build },
+    { href: govern[0].href, label: "Govern", icon: "Govern", children: govern },
+    { href: platform[0].href, label: "Platform", icon: "Platform", children: platform },
+    { href: personal[0].href, label: "Personal", icon: "Personal", children: personal },
   ];
   return (
-    <AppShell appName="Admin" nav={groups} path={path} Link={Link}
+    <AppShell appName="Admin" nav={nav} path={path} Link={Link}
       switcher={[{ label: "Admin", href: "/", current: true }, { label: "Workspace", href: WORKSPACE_URL }]}
-      user={me ? (me.openMode ? <span className="text-[var(--warn)]">Open mode: no authentication is configured on the server.</span> : <>Signed in as <strong>{me.name}</strong> ({me.role.replace("_", " ")})</>) : null}
-      top={<span className="text-sm text-muted">Settings and admin</span>}>
+      user={me ? (me.openMode ? <span className="text-[var(--warn)]">Open mode: no authentication is configured on the server.</span> : <>Signed in as <strong>{me.name}</strong> ({me.role.replace("_", " ")})</>) : null}>
       {children}
     </AppShell>
   );

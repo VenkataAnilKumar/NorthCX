@@ -30,18 +30,18 @@ check(true, "settings: key accepted");
 await page.goto(`${WEB}/`);
 await page.getByText(/need[s]? you/).waitFor();
 check(true, "home: shows what needs you");
-check((await page.getByRole("navigation", { name: "Main" }).getByRole("link").count()) >= 15, "navigation lists the tabs");
+check((await page.getByRole("navigation", { name: "Main" }).getByRole("link").count()) >= 5, "navigation lists the six items");
 
-// threads: open the new hand-off and resolve it
-await page.goto(`${WEB}/threads`);
+// inbox: open the new hand-off and resolve it
+await page.goto(`${WEB}/inbox`);
 await page.getByRole("button", { name: /person please|Customer asked for a person|handed the conversation/ }).first().click();
 await page.getByText("Conversation", { exact: true }).waitFor();
-check(true, "threads: transcript shown");
+check(true, "inbox: transcript shown");
 await page.getByRole("button", { name: "Suggest a reply" }).click();
 await page.getByText(/Suggested reply/).waitFor({ timeout: 15000 }).catch(() => {});
 await page.getByRole("button", { name: "Resolve" }).click();
 await page.getByText(/Resolved by/).waitFor();
-check(true, "threads: resolved");
+check(true, "inbox: resolved");
 
 // approvals: approve the refund
 await page.goto(`${WEB}/approvals`);
@@ -54,16 +54,16 @@ check(!after.approvals.some((a) => a.id === big.pendingApprovals[0].id), "approv
 await page.goto(`${WEB}/search?q=refund`);
 await page.getByRole("search").waitFor();
 check(true, "search: page works");
-await page.goto(`${WEB}/knowledge`);
-await page.getByRole("heading", { name: "Knowledge" }).waitFor();
-check(true, "knowledge: page works");
+await page.goto(`${WEB}/library`);
+await page.getByRole("heading", { name: "Library" }).waitFor();
+check(true, "library: page works");
 
 // chat with the agent
-await page.goto(`${WEB}/chat`);
+await page.goto(`${WEB}/pilot`);
 await page.getByLabel("Message").fill("where is order 1042?");
 await page.getByRole("button", { name: "Send" }).click();
 await page.getByText(/Order 1042/).waitFor({ timeout: 20000 });
-check(true, "chat: the agent answers");
+check(true, "pilot: the agent answers");
 
 // theme: the toggle changes the page, and the choice is kept
 await page.getByRole("button", { name: /Theme:/ }).click(); // system -> light
@@ -73,11 +73,24 @@ await page.reload();
 check((await page.locator("html").getAttribute("data-theme")) === "dark", "theme: kept after reload");
 
 // tabs whose backend is not built say so
-await page.goto(`${WEB}/workflows`);
+await page.goto(`${WEB}/automations`);
 await page.getByText("Not available yet").waitFor();
-check(true, "workflows: honest not-available page");
+check(true, "automations: honest not-available page");
 
-for (const p of ["/assistants", "/customers", "/artifacts", "/projects", "/scheduled", "/reviews", "/insights", "/settings"]) {
+// navigation modes: sub-tabs, collapsed icon rail, full window
+await page.goto(`${WEB}/inbox`);
+check((await page.getByRole("navigation", { name: "Sections" }).getByRole("link").count()) === 3, "work: shows Inbox, Approvals and Customers sub-tabs");
+await page.goto(`${WEB}/pilot`);
+check((await page.getByRole("navigation", { name: "Sections" }).count()) === 0, "pilot: a single page shows no sub-tab row");
+await page.keyboard.press("Control+b");
+check(await page.locator(".rail-collapsed").count() > 0 || (await page.getByRole("button", { name: "Expand navigation" }).count()) > 0, "rail: collapses to icons (Ctrl B)");
+await page.keyboard.press("Control+b");
+await page.keyboard.press("Control+.");
+check((await page.getByRole("navigation", { name: "Main" }).count()) === 0, "full window: rail hidden (Ctrl .)");
+await page.keyboard.press("Escape");
+check((await page.getByRole("navigation", { name: "Main" }).count()) === 1, "full window: Esc brings the rail back");
+
+for (const p of ["/assistants", "/customers", "/outputs", "/spaces", "/automations", "/quality", "/performance", "/settings"]) {
   await page.goto(`${WEB}${p}`);
   check(!(await page.locator("body").innerText()).includes("Application error"), `page loads: ${p}`);
 }
