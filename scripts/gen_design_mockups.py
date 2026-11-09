@@ -726,6 +726,16 @@ SCREENS["56-workspace-create"] = wsapp("Outputs", subtabs("Create", "Outputs") +
 SCREENS["57-workspace-team"] = wsapp("Quality", subtabs("Team", "Quality") + head("Quality", "Review and coach. Visible to leads and reviewers only.") + table(["Conversation", "Agent", "Score", "State"], [["Duplicate charge (masked)", "billing-help", "4.5", badge("reviewed", "ok")], ["Delayed delivery (masked)", "care-copilot", "3.0", badge("needs review", "warn")], ["Plan change (masked)", "billing-help", "&ndash;", badge("sampled", "info")]]) + """<p class="note" style="margin-top:10px">Team holds Quality and Performance and is hidden for everyone else, so staff who are not leads see five left items.</p>""", "Workspace Team", nav_html=subnav("Team"))
 
 
+SCREENS["58-workspace-customers"] = wsapp("Customers", subtabs("Work", "Customers") + head("Customer 1042", "One view across every channel. Personal data is masked unless your role allows it.", '<span class="b warn">Access is logged</span>') + f"""<div class="split" style="grid-template-columns:1fr 360px;height:auto;align-items:start"><div class="card"><h3>Timeline</h3>
+<div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--border)"><span>&#9993;</span><div><b>Email &middot; today 09:12</b><br><span class="note">Duplicate charge on order 1019. Handled by billing-help, handed off to a person.</span></div></div>
+<div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--border)"><span>&#128172;</span><div><b>Web chat &middot; 3 days ago</b><br><span class="note">Asked about refund timing. Resolved by the agent.</span></div></div>
+<div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--border)"><span>&#128222;</span><div><b>Voice &middot; 3 weeks ago</b><br><span class="note">Plan change. Resolved by Marco L. with a note.</span></div></div></div>
+<div><div class="card"><h3>Facts the agents may use</h3><p class="note">Plan: Standard &middot; Preferred channel: email &middot; Language: English</p><span class="btn">Edit facts</span></div>
+<div class="card" style="margin-top:12px"><h3>Notes (staff only)</h3><p class="note">Asked not to be called before 10:00. &mdash; Dana K.</p></div>
+<div class="card" style="margin-top:12px"><h3>Satisfaction</h3><p class="note">Last 3 conversations: 5, 4, 5 (sample)</p></div></div></div>
+<p class="note" style="margin-top:10px">Proposed. Needs a cross-channel customer record, and the owner still has to decide who may open this tab. Opening a customer is written to the audit log. Search is by customer reference, not by free text on names.</p>""", "Workspace Customers", nav_html=subnav("Work"))
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     for name, text in SCREENS.items():
