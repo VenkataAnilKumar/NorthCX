@@ -13,6 +13,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Daily spending limit in currency (`NORTHCX_DAILY_BUDGET`, `NORTHCX_BUDGET_CURRENCY`), shared across processes with the postgres limits backend (migration 0031). The server refuses to start with a budget when a provider's default model has no price in that currency.
 - Hybrid model selection (`NORTHCX_ROUTING_RULES_FILE`): sensitivity marking, a data policy that keeps sensitive conversations off forbidden tiers (including on fallback), ordered routing rules, and a `model_choice` trace event; agents can be marked `sensitive`.
 
+- Per-agent model qualification (`qualification: {required: true}`): a model serves an agent's customers only after a recorded live run passed all required scenarios and 90 percent of the rest, for the agent's current definition (`model` on simulation runs; `/v1/agents/{id}/qualifications`; migration 0032).
+- Review fixes: sensitivity now sticks after personal data has been masked in the history; topic words match at the start of a word only; a sensitive conversation whose default model is forbidden finds an allowed one before going to a person.
+
 ### Added (Phase 1: screens on existing APIs)
 - Both web apps now use the approved design and final names: glass tokens with one accent (blue, teal, violet or graphite), six left items with sub-tabs, a collapsed icon rail (Ctrl B), full window mode (Ctrl .), a command bar (Ctrl K), original line icons on the left items only, and preferences for theme, accent, density, text size, contrast, motion and solid surfaces.
 - Workspace routes renamed to the final tabs (Inbox, Approvals, Customers, Pilot, Assistants, Search, Library, Outputs, Spaces, Automations, Quality, Performance); tabs without a backend say so. Admin has the six items Overview, Operate, Build, Govern, Platform and Personal; pages not built yet show an honest not-available page.

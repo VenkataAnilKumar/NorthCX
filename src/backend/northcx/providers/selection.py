@@ -8,7 +8,10 @@ policy:
   sensitive: [local, private-cloud]          # tiers a sensitive conversation may use (public-cloud is never listed by default)
   normal: [local, private-cloud, public-cloud]
   publicCloudAllowedAgents: [billing]        # an administrator's explicit, named exception (every use is recorded)
-sensitiveTopics: [payment, health]           # extra or replacement words that mark a conversation sensitive (case-insensitive)
+sensitiveTopics: [payment, health]           # replaces the default words that mark a conversation sensitive (case-insensitive, start of a word)
+qualification:
+  required: true                             # a model serves an agent's customers only after passing that agent's scenarios (live run, recorded)
+  exempt: ["anthropic:claude-sonnet-5-5"]    # models trusted without a recorded run
 rules:                                       # first match wins
   - name: simple questions stay local
     when: {sensitive: false, effect: read, channel: web, agent: support}
@@ -16,6 +19,7 @@ rules:                                       # first match wins
 ```"""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -65,16 +69,20 @@ class Decision:
 
 class Selector:
     def __init__(self, registry: ProviderRegistry, tiers: dict[str, str], policy: Policy | None = None, rules: list[Rule] | None = None,
-                 topics: tuple[str, ...] = DEFAULT_TOPICS):
-        self.registry, self.tiers, self.policy, self.rules, self.topics = registry, tiers, policy or Policy(), list(rules or []), tuple(t.lower() for t in topics)
+                 topics: tuple[str, ...] = DEFAULT_TOPICS, qualification_required: bool = False, exempt: tuple[str, ...] = ()):
+        self.registry, self.tiers, self.policy, self.rules = registry, tiers, policy or Policy(), list(rules or [])
+        self.topics = tuple(t.lower() for t in topics)
+        self._topic_rx = re.compile(r"\b(?:" + "|".join(re.escape(t) for t in self.topics) + r")", re.I) if self.topics else None  # a word starting with a topic: "accounts", not "accountant"-style false hits mid-word
+        self.qualification_required = qualification_required
+        self.exempt = frozenset(registry.qualify(m) or m for m in exempt)
+        self.qualifier: Any = None  # northcx.providers.qualification.Qualifications; set by the server
 
     def tier_of(self, model: str | None) -> str:
         provider, _ = self.registry.resolve(model)
         return self.tiers.get(provider.name, "public-cloud")  # a provider with no declared tier is treated as the least private
 
     def is_sensitive_text(self, text: str) -> bool:
-        low = text.lower()
-        return any(t in low for t in self.topics)
+        return bool(self._topic_rx and self._topic_rx.search(text))
 
     def allowed_tiers(self, ctx: dict[str, Any]) -> tuple[str, ...]:
         if not ctx.get("sensitive", True):  # unknown context is treated as sensitive: fail closed
@@ -94,11 +102,14 @@ class Selector:
                         return self.registry.qualify(f"{name}:{self.registry.get(name).default_model}") if self.registry.get(name).default_model else None, r
         return None, None
 
-    def chain(self, requested: str | None, fallbacks: list[str], ctx: dict[str, Any]) -> tuple[list[str], Decision | None]:
+    async def chain(self, requested: str | None, fallbacks: list[str], ctx: dict[str, Any]) -> tuple[list[str], Decision | None]:
         """The models to try, in order: the rule's choice (else the requested one), then the fallbacks, all inside the allowed tiers."""
         allowed = self.allowed_tiers(ctx)
         preferred, rule = self._preferred(ctx)
-        candidates = [m for m in ([preferred] if preferred else []) + ([requested] if requested else [None]) + fallbacks]
+        # The eligible set is every registered model the constraints allow: the named ones come first, then each provider's own default as a last resort,
+        # so a sensitive conversation whose default model is forbidden still finds an allowed one instead of going to a person for no reason.
+        rest = [f"{n}:{self_default}" for n in self.registry.names if (self_default := self.registry.get(n).default_model)]
+        candidates = [m for m in ([preferred] if preferred else []) + ([requested] if requested else [None]) + fallbacks + rest]
         out: list[str] = []
         skipped: list[dict[str, str]] = []
         for m in candidates:
@@ -113,6 +124,10 @@ class Selector:
             if tier not in allowed:
                 skipped.append({"model": q, "reason": f"{tier} is not allowed for {'a sensitive' if ctx.get('sensitive', True) else 'this'} conversation"})
                 continue
+            if self.qualification_required and ctx.get("agent") and not ctx.get("evaluation") and q not in self.exempt:  # evaluation runs are how a model earns its qualification
+                if self.qualifier is None or not await self.qualifier.is_qualified(ctx["agent"], q, ctx.get("agent_digest")):
+                    skipped.append({"model": q, "reason": f"not qualified for agent '{ctx['agent']}' (it has not passed this agent's scenarios for its current definition)"})
+                    continue
             caps = self.registry.capabilities_for(q)
             if ctx.get("needs_tools") and not caps.tools:
                 skipped.append({"model": q, "reason": "cannot call tools"})
@@ -131,7 +146,7 @@ def parse_routing(text: str, registry: ProviderRegistry, tiers: dict[str, str]) 
         raise ConfigError(f"routing rules file is not valid YAML: {e}") from e
     if not isinstance(doc, dict):
         raise ConfigError("routing rules file must be a mapping")
-    unknown = set(doc) - {"policy", "sensitiveTopics", "rules"}
+    unknown = set(doc) - {"policy", "sensitiveTopics", "rules", "qualification"}
     if unknown:
         raise ConfigError(f"routing rules: unknown setting(s) {sorted(unknown)}")
     pol = doc.get("policy") or {}
@@ -162,4 +177,10 @@ def parse_routing(text: str, registry: ProviderRegistry, tiers: dict[str, str]) 
             except UnknownModel as e:
                 raise ConfigError(f"rules[{i}] ({r['name']}): {e}") from e
         rules.append(Rule(str(r["name"]), dict(when), use.get("tier"), use.get("model")))
-    return Selector(registry, tiers, policy, rules, tuple(topics))
+    qual = doc.get("qualification") or {}
+    if not isinstance(qual, dict) or set(qual) - {"required", "exempt"}:
+        raise ConfigError("qualification takes only required and exempt")
+    exempt = qual.get("exempt") or []
+    if not isinstance(exempt, list) or not all(isinstance(m, str) for m in exempt):
+        raise ConfigError("qualification.exempt must be a list of model names")
+    return Selector(registry, tiers, policy, rules, tuple(topics), bool(qual.get("required", False)), tuple(exempt))

@@ -81,6 +81,11 @@ def build_runtime(c: SimpleNamespace) -> None:
                       ledger=(PgUsageLedger if limits_backend == "postgres" else UsageLedger)(*(([engine] if limits_backend == "postgres" else [])
                               + [int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None,
                                  money_limit, currency])))
+    from northcx.providers.qualification import Qualifications
+    from northcx.db import PgQualifications
+    runtime.qualifications = Qualifications(PgQualifications(c.engine) if c.db_url else None)
+    if getattr(llm, "selector", None) is not None:
+        llm.selector.qualifier = runtime.qualifications
     if money_limit is not None and c.providers is not None:
         runtime.pricing = c.providers.price_for
     if db_url:

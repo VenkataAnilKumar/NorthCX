@@ -486,6 +486,16 @@ class UsageLedgerRow(Base):
     cost_micros: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0")  # money in millionths of the budget currency
 
 
+class ModelQualificationRow(Base):
+    """The result of qualifying one model for one agent definition, from a stored live simulation run."""
+    __tablename__ = "model_qualifications"
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    model: Mapped[str] = mapped_column(String(300), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    result: Mapped[Any] = mapped_column(JSONB, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

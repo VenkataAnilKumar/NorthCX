@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
+import re
 import inspect
 import json
 from dataclasses import dataclass, field, replace
@@ -57,6 +58,11 @@ class RunResult:
     @property
     def trace_id(self) -> str:
         return self.trace.id
+
+
+def _flat(content: Any) -> str:
+    """The text of a message, whether it is a plain string or a list of blocks."""
+    return content if isinstance(content, str) else " ".join(b["text"] for b in content if isinstance(b, dict) and b.get("type") == "text")
 
 
 class Runtime:
@@ -133,10 +139,10 @@ class Runtime:
         kept_texts: dict[int, str] = {}
         selector = getattr(self.llm, "selector", None)
         if selector is not None:
-            sensitive = agent.sensitive or facts.get("identity_verified") == "yes" or any(
-                selector.is_sensitive_text(m["content"] if isinstance(m["content"], str) else " ".join(b.get("text", "") for b in m["content"] if isinstance(b, dict)))
-                for m in messages + [{"role": "user", "content": message}] if m["role"] == "user") or bool(PIIDetection().mask(message)[1])
-            MODEL_CONTEXT.set({"agent": agent.id, "channel": channel, "sensitive": sensitive, "needs_tools": bool(agent.tools),
+            masked = re.compile(r"\*{4,}")  # personal data is masked before it is stored, so a masked run in any customer message is the evidence that stays
+            sensitive = agent.sensitive or facts.get("identity_verified") == "yes" or masked.search(message) is not None or any(masked.search(_flat(m["content"])) for m in messages if m["role"] == "user") or any(
+                selector.is_sensitive_text(_flat(m["content"])) for m in messages + [{"role": "user", "content": message}] if m["role"] == "user") or bool(PIIDetection().mask(message)[1])
+            MODEL_CONTEXT.set({"agent": agent.id, "agent_digest": agent.digest, "evaluation": self.dry_run, "channel": channel, "sensitive": sensitive, "needs_tools": bool(agent.tools),
                                "effect": "write" if any(t.effect == "write" for t in agent.tools) else "read"})
         ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets, facts=dict(facts))
         pending: list[dict[str, Any]] = []

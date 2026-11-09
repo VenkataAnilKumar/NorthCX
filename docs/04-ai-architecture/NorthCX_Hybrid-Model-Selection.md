@@ -1,6 +1,6 @@
 # Hybrid model selection: local, private cloud and public cloud
 
-Status: **Designed**. Updated: 2026-11-09. Master for: how a model is chosen across local, private and public tiers. Nothing here is built except the pieces named under "What exists". It extends the provider layer (`NorthCX_Model-Providers.md`, E1 in the implementation plan). Evidence and sources are in `00-reference/NorthCX_Feature-Research-2026-11.md` section 11.
+Status: **Partly built**. Updated: 2026-11-09. Master for: how a model is chosen across local, private and public tiers. Built (Phase 2): tiers, sensitivity, the data policy, routing rules, restricted fallback, the trace record and per-agent qualification (WP1.9 to WP1.11), all behind `NORTHCX_ROUTING_RULES_FILE`; see `NorthCX_Model-Providers.md` for the file formats. Not built: the Admin screens and the model picker (WP1.12, Phase 5), cost ordering, the cascade and the learned router (WP1.13). It extends the provider layer (`NorthCX_Model-Providers.md`, E1 in the implementation plan). Evidence and sources are in `00-reference/NorthCX_Feature-Research-2026-11.md` section 11.
 
 ![Models and routing](../assets/design/32-admin-models-routing.png)
 (Mockup, sample data.)

@@ -167,12 +167,19 @@ class ReplyBody(BaseModel):
     by: str | None = Field(default=None, max_length=200)
 
 
+class QualifyBody(BaseModel):
+    model: str = Field(min_length=1, max_length=300)
+    run_id: str = Field(alias="runId", min_length=1, max_length=64)
+    model_config = {"populate_by_name": True}
+
+
 class SimRunBody(BaseModel):
     mode: str = "scripted"
     only: str | None = Field(default=None, max_length=100)
     skip_judge: bool = Field(default=False, alias="skipJudge")
     agent: str | None = None
     version: int | None = Field(default=None, ge=1)  # run against this saved version of `agent`
+    model: str | None = Field(default=None, max_length=300)  # with `version` and live mode: run the agent on this candidate model (for qualification)
     model_config = {"populate_by_name": True}
 
 

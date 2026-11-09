@@ -9,6 +9,7 @@ from .insights import PgExports, PgFeedback, PgInsightsSource, PgMonitor, PgRevi
 from .privacy import PgPrivacy
 from .platform import PgIdempotency
 from .leases import PgLeases
+from .qualifications import PgQualifications
 from .shared_state import PgAlertState, PgCrawlJobs
 from .limits import PgLimiter, PgUsageLedger
 

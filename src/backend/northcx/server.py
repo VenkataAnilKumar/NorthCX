@@ -188,6 +188,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("DELETE", r"/v1/simulations/scenarios/[^/]+", "scenarios:write"),
     ("GET", r"/v1/simulations/runs/[^/]+", "simulations:read"),
     ("POST", r"/v1/simulations/runs", "simulations:run"),
+    ("GET", r"/v1/agents/[^/]+/qualifications", "versions:read"),
+    ("POST", r"/v1/agents/[^/]+/qualifications", "scenarios:require"),  # what may serve customers is a release decision
     ("GET", r"/v1/keys", "keys:manage"),
     ("POST", r"/v1/keys", "keys:manage"),
     ("POST", r"/v1/keys/[^/]+/revoke", "keys:manage"),

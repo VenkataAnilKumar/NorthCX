@@ -247,7 +247,7 @@ None of these is built (early, unfinished web code exists on `main` for parts of
 | ID | Feature | Pri | Phase | State |
 |---|---|---|---|---|
 | HM1 | Data-policy constraints first | P0 | After 1.0 | Built (needs a routing rules file) |
-| HM2 | Per-agent qualification | P1 | After 1.0 | Planned (designed) |
+| HM2 | Per-agent qualification | P1 | After 1.0 | Built (needs a routing rules file) |
 | HM3 | Operator rules | P1 | After 1.0 | Built (needs a routing rules file) |
 | HM4 | Cost ordering | P2 | After 1.0 | Planned (designed) |
 | HM5 | Fallback never crosses a forbidden tier | P0 | After 1.0 | Built (needs a routing rules file) |

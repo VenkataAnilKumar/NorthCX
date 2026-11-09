@@ -66,7 +66,7 @@ class ReliableLLM:
         if self.selector is not None:
             from .providers.selection import NoEligibleModel
             try:
-                chain, decision = self.selector.chain(req.model, self.models, req.context if req.context is not None else (MODEL_CONTEXT.get() or {}))
+                chain, decision = await self.selector.chain(req.model, self.models, req.context if req.context is not None else (MODEL_CONTEXT.get() or {}))
             except NoEligibleModel as e:
                 raise ModelUnavailable(str(e)) from e
             req = replace(req, model=chain[0])

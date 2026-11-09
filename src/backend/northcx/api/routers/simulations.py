@@ -11,7 +11,7 @@ import yaml
 from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
-from northcx.api.models import ScenarioBody, SimRunBody
+from northcx.api.models import QualifyBody, ScenarioBody, SimRunBody
 from northcx.privacy import customer_ref
 from northcx.regression import scenario_from_traces
 from northcx.simulation import Busy, SimulationService
@@ -25,6 +25,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     record = d.record
     releases = d.releases
     simulations = d.simulations
+    runtime = d.runtime
     traces = d.traces
 
     @app.get("/v1/sessions/{session_id}/scenario-draft")
@@ -173,9 +174,20 @@ def register(app: FastAPI, d: AppDeps) -> None:
             if v is None:
                 return _err(404, "not_found", f"Agent '{body.agent}' has no version {body.version}")
             spec = AgentSpec.model_validate(v.spec)
+        meta: dict[str, Any] | None = {"version": body.version} if body.version else None
+        if body.model:
+            if spec is None or body.mode != "live":
+                return _err(400, "bad_request", "'model' needs 'agent', 'version' and mode 'live': a candidate model is tried against one saved version with a real model")
+            providers = getattr(runtime.llm, "inner", None)
+            qualify = getattr(providers, "qualify", None)
+            try:
+                named = qualify(body.model) if qualify else body.model
+            except Exception as e:  # noqa: BLE001 - an unknown provider
+                return _err(400, "bad_request", str(e))
+            meta = {**(meta or {}), "model": named, "agent_digest": spec.digest()}  # the digest of the definition as released, which is what a conversation is served with
+            spec = spec.model_copy(update={"model": named})
         try:
-            run = await sim.run(body.mode, body.only, body.skip_judge, source="api",
-                                meta={"version": body.version} if body.version else None, spec=spec)
+            run = await sim.run(body.mode, body.only, body.skip_judge, source="api", meta=meta, spec=spec)
         except Busy as e:
             return _err(409, "busy", str(e))
         except ValueError as e:
@@ -183,6 +195,28 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "simulation.run", run.id, mode=run.mode, passed=run.passed, counts=run.counts,
                      agent=body.agent, version=body.version)
         return run_json(run)
+
+    @app.get("/v1/agents/{agent_id}/qualifications")
+    async def list_qualifications(agent_id: str) -> Any:
+        q = getattr(runtime, "qualifications", None)
+        if q is None:
+            return _err(501, "not_configured", "Model qualification is not configured on this server")
+        return {"qualifications": [x.to_dict() for x in await q.list(agent_id)]}
+
+    @app.post("/v1/agents/{agent_id}/qualifications", status_code=201)
+    async def qualify_model(agent_id: str, body: QualifyBody, request: Request) -> Any:
+        """Judge a finished live run made against a candidate model, and record whether that model may serve this agent."""
+        q, sim = getattr(runtime, "qualifications", None), need_sim()
+        if q is None:
+            return _err(501, "not_configured", "Model qualification is not configured on this server")
+        if isinstance(sim, JSONResponse):
+            return sim
+        run = await sim.runs.get(body.run_id)
+        if run is None:
+            return _err(404, "not_found", "Unknown run")
+        out = await q.record(run, agent_id, body.model)
+        await record(request, "model.qualify", f"{agent_id}:{body.model}", "qualified" if out.qualified else "not_qualified", run=run.id, reasons=out.reasons[:5])
+        return out.to_dict()
 
     @app.get("/v1/simulations/runs")
     async def sim_runs(limit: int = 50) -> Any:
