@@ -314,6 +314,27 @@ class CoachingBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class CustomerLookupBody(BaseModel):
+    customer_id: str = Field(alias="customerId", min_length=1, max_length=200)
+    model_config = {"populate_by_name": True}
+
+
+class CustomerRevealBody(CustomerLookupBody):
+    reason: str = Field(min_length=10, max_length=300)
+
+
+class CustomerRemoveBody(CustomerLookupBody):
+    reason: str = Field(min_length=5, max_length=300)
+
+
+class CustomerNoteBody(CustomerLookupBody):
+    note: str = Field(min_length=5, max_length=300)
+
+
+class CustomerSettingsBody(BaseModel):
+    enabled: bool
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

@@ -529,3 +529,20 @@ export const qaCalibration = (days: number) => api<Calibration>(`/v1/quality/cal
 export const coachingNotes = (sessionId?: string) => api<{ notes: CoachingNote[] }>(`/v1/quality/coaching${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ""}`).then((r) => r.notes);
 export const addCoachingNote = (sessionId: string, about: string, note: string) => api<CoachingNote>("/v1/quality/coaching", { method: "POST", body: JSON.stringify({ sessionId, about, note }) });
 export const deleteCoachingNote = (id: string) => api<{ deleted: boolean }>(`/v1/quality/coaching/${id}`, { method: "DELETE" });
+
+// ---------- Customers (Workspace) ----------
+export interface CustomerNoteItem { id: string; note: string; author: string; createdAt: number }
+export interface CustomerRecord {
+  ref: string; id: string; idMasked: boolean; sessions: number; windowDays: number; truncated: boolean; note: string;
+  timeline: { sessionId: string; agentId: string; channel: string | null; startedAt: number; endedAt: number; turns: number; lastStatus: string; firstMessage: string; handedOff: boolean; handoffReasons: string[]; rating: number | null; review: string | null }[];
+  satisfaction: { rated: number; average: number | null; handedOff: number; counts: string };
+  facts: { id: string; text: string; sourceSession: string | null; createdAt: number; addedBy: string }[];
+  notes: CustomerNoteItem[];
+}
+export const customerLookup = (customerId: string) => api<CustomerRecord>("/v1/customers/lookup", { method: "POST", body: JSON.stringify({ customerId }) });
+export const customerReveal = (customerId: string, reason: string) => api<{ ref: string; id: string }>("/v1/customers/reveal", { method: "POST", body: JSON.stringify({ customerId, reason }) });
+export const customerAddNote = (customerId: string, note: string) => api<CustomerNoteItem>("/v1/customers/notes", { method: "POST", body: JSON.stringify({ customerId, note }) });
+export const customerDeleteNote = (customerId: string, noteId: string) => api<{ deleted: boolean }>(`/v1/customers/notes/${noteId}/delete`, { method: "POST", body: JSON.stringify({ customerId }) });
+export const customerRemoveFact = (customerId: string, factId: string, reason: string) => api<{ removed: boolean }>(`/v1/customers/facts/${factId}/remove`, { method: "POST", body: JSON.stringify({ customerId, reason }) });
+export const customersEnabled = () => api<{ enabled: boolean }>("/v1/customers/settings");
+export const setCustomersEnabled = (enabled: boolean) => api<{ enabled: boolean }>("/v1/customers/settings", { method: "PUT", body: JSON.stringify({ enabled }) });

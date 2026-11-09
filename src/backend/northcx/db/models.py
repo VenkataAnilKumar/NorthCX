@@ -677,6 +677,17 @@ class CoachingNoteRow(TenantScoped, Base):
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+class CustomerNoteRow(TenantScoped, Base):
+    """A staff note about a customer (Customers tab)."""
+    __tablename__ = "customer_notes"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    customer_id: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    note: Mapped[str] = mapped_column(String(1000), nullable=False)
+    author: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

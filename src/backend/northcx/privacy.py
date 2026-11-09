@@ -191,6 +191,7 @@ class PrivacyService:
         return {"customerId": customer_id, "generatedAt": time.time() if now is None else now,
                 "facts": await self.backend.export_facts(customer_id),
                 "memories": await self.backend.export_memories(customer_id),
+                "customerNotes": [n.to_dict() for n in await self.notes.list(customer_id)] if getattr(self, "notes", None) is not None else [],
                 "sessions": [await self.backend.export_session(s) for s in sessions]}
 
     async def erase_customer(self, customer_id: str) -> dict[str, Any]:
@@ -201,6 +202,9 @@ class PrivacyService:
                 total[k] = total.get(k, 0) + v
         total["facts"] = await self.backend.erase_facts(customer_id)
         total["memories"] = await self.backend.erase_memories(customer_id)
+        notes = getattr(self, "notes", None)
+        if notes is not None:
+            total["customerNotes"] = await notes.erase_customer(customer_id)
         return {"sessions": len(sessions), "removed": total}
 
     async def erase_session(self, session_id: str) -> dict[str, int]:

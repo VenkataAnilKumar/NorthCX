@@ -71,6 +71,7 @@ from .api.routers import hub as _hub_router
 from .api.routers import org_policies as _org_policies_router
 from .api.routers import org_templates as _org_templates_router
 from .api.routers import quality as _quality_router
+from .api.routers import customers as _customers_router
 from .api.routers import admin_overview as _admin_overview_router
 from .tenancy import TENANT
 from .api.routers import voice as _voice_router
@@ -230,6 +231,13 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/groups/[^/]+/members", "keys:manage"),
     ("DELETE", r"/v1/groups/[^/]+/members/[^/]+", "keys:manage"),
     ("POST", r"/v1/workspace/chat", "workspace:use"),
+    ("GET", r"/v1/customers/settings", "customers:read"),
+    ("PUT", r"/v1/customers/settings", "keys:manage"),
+    ("POST", r"/v1/customers/lookup", "customers:read"),
+    ("POST", r"/v1/customers/reveal", "customers:read"),
+    ("POST", r"/v1/customers/notes", "customers:write"),
+    ("POST", r"/v1/customers/notes/[^/]+/delete", "customers:write"),
+    ("POST", r"/v1/customers/facts/[^/]+/remove", "customers:write"),
     ("GET", r"/v1/quality/rubric", "traces:read"),
     ("PUT", r"/v1/quality/rubric", "releases:publish"),
     ("DELETE", r"/v1/quality/rubric", "releases:publish"),
@@ -443,6 +451,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _org_policies_router.register(app, deps)
     _org_templates_router.register(app, deps)
     _quality_router.register(app, deps)
+    _customers_router.register(app, deps)
     _admin_overview_router.register(app, deps)
     _voice_router.register(app, deps)
     _public_router.register(app, deps)

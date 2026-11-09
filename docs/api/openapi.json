@@ -3002,6 +3002,303 @@
         ]
       }
     },
+    "/v1/customers/facts/{fact_id}/remove": {
+      "post": {
+        "summary": "Remove Fact",
+        "description": "Remove a fact the agents may use, usually because the customer asked. The reason is logged.",
+        "operationId": "remove_fact_v1_customers_facts__fact_id__remove_post",
+        "parameters": [
+          {
+            "name": "fact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Fact Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerRemoveBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Remove Fact V1 Customers Facts  Fact Id  Remove Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "customers:write",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/v1/customers/lookup": {
+      "post": {
+        "summary": "Lookup",
+        "description": "The id goes in the body, never in a URL, so it does not end up in logs.",
+        "operationId": "lookup_v1_customers_lookup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerLookupBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Lookup V1 Customers Lookup Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "customers:read",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/v1/customers/notes": {
+      "post": {
+        "summary": "Add Note",
+        "operationId": "add_note_v1_customers_notes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerNoteBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Add Note V1 Customers Notes Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "customers:write",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/v1/customers/notes/{note_id}/delete": {
+      "post": {
+        "summary": "Delete Note",
+        "operationId": "delete_note_v1_customers_notes__note_id__delete_post",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Note Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerLookupBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete Note V1 Customers Notes  Note Id  Delete Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "customers:write",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/v1/customers/reveal": {
+      "post": {
+        "summary": "Reveal",
+        "description": "Show the identifier unmasked. A reason is required and kept in the audit log.",
+        "operationId": "reveal_v1_customers_reveal_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerRevealBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Reveal V1 Customers Reveal Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "customers:read",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/v1/customers/settings": {
+      "get": {
+        "summary": "Get Settings",
+        "operationId": "get_settings_v1_customers_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Settings V1 Customers Settings Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "customers:read",
+        "tags": [
+          "customers"
+        ]
+      },
+      "put": {
+        "summary": "Put Settings",
+        "operationId": "put_settings_v1_customers_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerSettingsBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Put Settings V1 Customers Settings Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
     "/v1/events": {
       "get": {
         "summary": "Event Feed",
@@ -9933,6 +10230,100 @@
           "url"
         ],
         "title": "CrawlBody"
+      },
+      "CustomerLookupBody": {
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Customerid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customerId"
+        ],
+        "title": "CustomerLookupBody"
+      },
+      "CustomerNoteBody": {
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Customerid"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 5,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customerId",
+          "note"
+        ],
+        "title": "CustomerNoteBody"
+      },
+      "CustomerRemoveBody": {
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Customerid"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 5,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customerId",
+          "reason"
+        ],
+        "title": "CustomerRemoveBody"
+      },
+      "CustomerRevealBody": {
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Customerid"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 10,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customerId",
+          "reason"
+        ],
+        "title": "CustomerRevealBody"
+      },
+      "CustomerSettingsBody": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "CustomerSettingsBody"
       },
       "DecisionBody": {
         "properties": {

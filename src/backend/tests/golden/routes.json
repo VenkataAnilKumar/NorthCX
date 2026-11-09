@@ -52,6 +52,7 @@
   "GET /v1/audit/verify": "/v1/audit/verify -> audit_verify",
   "GET /v1/catalog": "/v1/catalog -> catalog",
   "GET /v1/conversations/search": "/v1/conversations/search -> conversation_search",
+  "GET /v1/customers/settings": "/v1/customers/settings -> get_settings",
   "GET /v1/events": "/v1/events -> event_feed",
   "GET /v1/events/types": "/v1/events/types -> event_types",
   "GET /v1/groups": "/v1/groups -> list_groups",
@@ -147,6 +148,11 @@
   "POST /v1/channels/email/inbound": "/v1/channels/email/inbound -> email_inbound",
   "POST /v1/channels/whatsapp/templates/send": "/v1/channels/whatsapp/templates/send -> whatsapp_template",
   "POST /v1/chat-tokens": "/v1/chat-tokens -> mint_chat_token",
+  "POST /v1/customers/facts/x/remove": "/v1/customers/facts/{fact_id}/remove -> remove_fact",
+  "POST /v1/customers/lookup": "/v1/customers/lookup -> lookup",
+  "POST /v1/customers/notes": "/v1/customers/notes -> add_note",
+  "POST /v1/customers/notes/x/delete": "/v1/customers/notes/{note_id}/delete -> delete_note",
+  "POST /v1/customers/reveal": "/v1/customers/reveal -> reveal",
   "POST /v1/events/test": "/v1/events/test -> event_test",
   "POST /v1/groups": "/v1/groups -> create_group",
   "POST /v1/groups/x/members": "/v1/groups/{group_id}/members -> add_member",
@@ -202,6 +208,7 @@
   "PUT /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> replace_user",
   "PUT /v1/agents/x/rollouts/x/percent": "/v1/agents/{agent_id}/rollouts/{rollout_id}/percent -> rollout_percent",
   "PUT /v1/budgets": "/v1/budgets -> set_budgets",
+  "PUT /v1/customers/settings": "/v1/customers/settings -> put_settings",
   "PUT /v1/groups/x": "/v1/groups/{group_id} -> update_group",
   "PUT /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_put_document",
   "PUT /v1/org-policies/x": "/v1/org-policies/{policy_id} -> edit_policy",
@@ -475,6 +482,11 @@
    "GET",
    "/v1/conversations/search",
    "conversation_search"
+  ],
+  [
+   "GET",
+   "/v1/customers/settings",
+   "get_settings"
   ],
   [
    "GET",
@@ -953,6 +965,31 @@
   ],
   [
    "POST",
+   "/v1/customers/facts/{fact_id}/remove",
+   "remove_fact"
+  ],
+  [
+   "POST",
+   "/v1/customers/lookup",
+   "lookup"
+  ],
+  [
+   "POST",
+   "/v1/customers/notes",
+   "add_note"
+  ],
+  [
+   "POST",
+   "/v1/customers/notes/{note_id}/delete",
+   "delete_note"
+  ],
+  [
+   "POST",
+   "/v1/customers/reveal",
+   "reveal"
+  ],
+  [
+   "POST",
    "/v1/events/test",
    "event_test"
   ],
@@ -1225,6 +1262,11 @@
    "PUT",
    "/v1/budgets",
    "set_budgets"
+  ],
+  [
+   "PUT",
+   "/v1/customers/settings",
+   "put_settings"
   ],
   [
    "PUT",

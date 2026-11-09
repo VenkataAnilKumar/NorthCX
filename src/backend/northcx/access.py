@@ -19,10 +19,10 @@ VIEW = {"workspace:use", "agents:read", "traces:read", "handoffs:read", "approva
 DEVELOP = VIEW | {"reviews:write", "scenarios:write", "conversations:tag", "feedback:send", "knowledge:write", "versions:create", "simulations:run", "chat:send", "outbox:read"}
 ROLES: dict[str, frozenset[str]] = {
     "admin": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "approvals:decide", "handoffs:resolve",
-                                  "keys:manage", "audit:read", "chat:mint", "channel:inbound", "privacy:manage", "memory:read", "memory:manage", "scenarios:require"}),
-    "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "memory:read", "scenarios:require"}),
+                                  "keys:manage", "audit:read", "chat:mint", "channel:inbound", "privacy:manage", "memory:read", "memory:manage", "scenarios:require", "customers:read", "customers:write"}),
+    "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "memory:read", "scenarios:require", "customers:read", "customers:write"}),
     "developer": frozenset(DEVELOP | {"memory:read"}),
-    "reviewer": frozenset(VIEW | {"approvals:decide", "handoffs:resolve", "memory:read", "conversations:tag", "reviews:write"}),
+    "reviewer": frozenset(VIEW | {"approvals:decide", "handoffs:resolve", "memory:read", "conversations:tag", "reviews:write", "customers:read", "customers:write"}),
     "auditor": frozenset(VIEW | {"audit:read"}),
     "viewer": frozenset(VIEW),
     "channel": frozenset({"chat:send", "outbox:read", "chat:mint", "channel:inbound", "feedback:send"}),  # for the company's servers and channel adapters
