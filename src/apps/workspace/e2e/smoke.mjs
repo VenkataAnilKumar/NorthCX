@@ -103,6 +103,8 @@ check(true, "customers: the lookup form shows");
 await page.goto(`${WEB}/inbox`);
 check((await page.getByRole("navigation", { name: "Sections" }).getByRole("link").count()) === 3, "work: shows Inbox, Approvals and Customers sub-tabs");
 await page.goto(`${WEB}/approvals`);
+await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Approvals" }).and(page.locator("[aria-current=page]")).waitFor();   // let the page remember where you were before leaving it
+await page.waitForTimeout(300);
 await page.goto(`${WEB}/pilot`);
 check((await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Work" }).getAttribute("href")) === "/approvals", "work: remembers the last sub-tab used");
 check((await page.getByRole("navigation", { name: "Sections" }).count()) === 0, "pilot: a single page shows no sub-tab row");
