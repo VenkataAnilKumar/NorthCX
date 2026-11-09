@@ -96,7 +96,7 @@ State: streaming chat, citations, approvals, traces and knowledge search are bui
 ## 5. Settings and admin
 A wide settings app opened from the profile menu. Everyone sees the **Personal** group; the **Organization** group appears only for roles that can use it.
 
-### How the Admin app shows its pages (proposed 2026-11-09, decision 168): sub-tabs instead of 35 links
+### How the Admin app shows its pages (decided 2026-11-09, decision 168): sub-tabs instead of 35 links
 The same idea as the Workspace. The left side shows six items and each opens its pages as sub-tabs across the top:
 | Left item | Sub-tabs |
 |---|---|
