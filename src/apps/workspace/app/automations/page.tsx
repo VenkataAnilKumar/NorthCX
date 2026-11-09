@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { automation, automationAction, automationRuns, automations, createAutomation, reviseAutomation, setAutomationsEnabled, useLoad, useMe, type Automation, type AutoRun } from "@northcx/api-client";
+import { decideRun, waitingRuns, automation, automationAction, automationRuns, automations, createAutomation, reviseAutomation, setAutomationsEnabled, useLoad, useMe, type Automation, type AutoRun } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader } from "@northcx/ui";
 
 const STARTER = `id: morning-brief
@@ -40,6 +40,20 @@ steps:
     prompt: "Write one line about this event: {{input}}"
   - {id: keep, kind: output, title: "Hand-off note {date}"}
 `;
+const REVIEWED = `id: reviewed-digest
+name: Reviewed digest
+description: Writes the weekly digest, asks a person to approve it, then sends it to a destination the administrator set up.
+trigger: {type: schedule, everyHours: 168}
+steps:
+  - {id: team, kind: report, report: performance, days: 7}
+  - id: write
+    kind: assistant
+    assistant: shift-briefing
+    prompt: "Write a short weekly digest from these figures: {{previous}}"
+  - {id: approve, kind: person, ask: "Is this digest ready to send?", maxWaitHours: 24}
+  - {id: send, kind: notify, to: ops-chat}
+  - {id: keep, kind: output, title: "Weekly digest {date}"}
+`;
 const when = (t: number | null) => (t ? new Date(t * 1000).toLocaleString() : "never");
 const LABEL: Record<string, string> = { draft: "Draft", proposed: "Waiting for a second person", published: "Published", rejected: "Rejected", superseded: "Replaced", retired: "Retired" };
 
@@ -63,6 +77,7 @@ function Runs({ id }: { id: string }) {
 export default function Page() {
   const { can } = useMe();
   const { data, error, loading, reload } = useLoad(() => automations());
+  const waiting = useLoad(() => waitingRuns().catch(() => [] as AutoRun[]));
   const [text, setText] = useState(STARTER);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -78,6 +93,15 @@ export default function Page() {
       {!data!.enabled && <p role="alert" className="mb-3 rounded-xl border border-border p-3 text-sm">All routines are stopped for your organization. {can("keys:manage") && <button className="btn ml-2" onClick={() => void go(() => setAutomationsEnabled(true))}>Turn them back on</button>}</p>}
       {can("keys:manage") && data!.enabled && <p className="mb-3 text-xs"><button className="underline" onClick={() => { if (confirm("Stop every routine in the organization? Running ones stop at their next step.")) void go(() => setAutomationsEnabled(false)); }}>Stop all routines</button></p>}
       {note && <p className="mb-2 text-sm" role="status">{note}</p>}{err && <div className="mb-3"><ErrorBox message={err} /></div>}
+      {(waiting.data ?? []).length > 0 && (
+        <GlassCard title="Waiting for a person" className="mb-4">
+          <ul className="space-y-3 text-sm">{waiting.data!.map((r) => (
+            <li key={r.id} className="rounded-xl border border-border p-3"><strong>{r.automationId}</strong> · started by {r.by} · answer by {when(r.waiting?.until ?? null)}
+              <p className="mt-1">{r.waiting?.ask}</p>{r.waiting?.preview && <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-xs">{r.waiting.preview}</pre>}
+              <div className="mt-2 flex gap-2"><button className="btn btn-primary" disabled={!can("approvals:decide")} onClick={() => void go(async () => { await decideRun(r.id, true); waiting.reload(); }, "Approved. The routine carries on.")}>Approve</button>
+                <button className="btn" disabled={!can("approvals:decide")} onClick={() => void go(async () => { await decideRun(r.id, false); waiting.reload(); }, "Refused. The routine stopped.")}>Refuse</button></div>
+              {r.by && <p className="mt-1 text-xs text-muted">You cannot answer a run you started yourself.</p>}</li>))}</ul>
+        </GlassCard>)}
       {list.length === 0 ? <Empty>No routines yet. Write one below.</Empty> : (
         <ul className="mb-6 space-y-3">
           {list.map((a: Automation) => (
@@ -106,7 +130,7 @@ export default function Page() {
         <div className="mt-2 flex gap-2">
           <button className="btn btn-primary" disabled={!can("versions:create")} onClick={() => void go(async () => { if (editing) await reviseAutomation(editing, text); else { const r = await createAutomation(text); if (r.webhookSecret) setNote(`Saved. Webhook secret (shown once): ${r.webhookSecret}`); } }, editing ? "Saved." : undefined)}>{editing ? "Save changes" : "Save as draft"}</button>
           {editing && <button className="btn" onClick={() => { setEditing(null); setText(STARTER); }}>Start a new one</button>}
-          {!editing && <><button className="btn" onClick={() => setText(DIGEST)}>Weekly digest example</button><button className="btn" onClick={() => setText(EVENT)}>On an event example</button></>}
+          {!editing && <><button className="btn" onClick={() => setText(DIGEST)}>Weekly digest example</button><button className="btn" onClick={() => setText(EVENT)}>On an event example</button><button className="btn" onClick={() => setText(REVIEWED)}>With approval example</button></>}
         </div>
       </GlassCard>
     </>

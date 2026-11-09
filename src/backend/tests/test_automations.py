@@ -412,8 +412,198 @@ def test_a_burst_of_events_is_taken_one_run_at_a_time_without_losing_or_repeatin
 def test_the_example_routines_on_the_page_are_valid():
     import re
     page = open("../apps/workspace/app/automations/page.tsx").read()
-    for name in ("STARTER", "DIGEST", "EVENT"):
+    for name in ("STARTER", "DIGEST", "EVENT", "REVIEWED"):
         src = re.search(r"const " + name + r" = `(.*?)`;", page, re.S).group(1)
         doc = yaml.safe_load(src)
-        clean = validate_definition(doc, {"performance", "quality"}, frozenset({"handoff.created"}))
+        clean = validate_definition(doc, {"performance", "quality"}, frozenset({"handoff.created"}), frozenset({"ops-chat"}))
         assert clean["steps"] and clean["id"]
+
+
+async def finish(svc):
+    for t in list(svc._tasks):
+        await t
+
+
+PERSON = {"id": "review-brief", "name": "Reviewed brief", "trigger": {"type": "manual"}, "limits": {"maxSeconds": 60},
+          "steps": [{"id": "figures", "kind": "report", "report": "performance", "days": 1},
+                    {"id": "check", "kind": "person", "ask": "Is this ready to go out?", "maxWaitHours": 2},
+                    {"id": "keep", "kind": "output", "title": "Reviewed brief {date}"}]}
+
+
+def publish(c, ann, ben, definition):
+    assert c.post("/v1/automations", headers=ann, json={"definition": definition}).status_code == 201
+    propose_and_approve(c, ann, ben, definition["id"])
+
+
+def test_a_routine_waits_for_a_person_and_carries_on_only_when_someone_else_approves():
+    app, rt, key, loop = world()
+    c = TestClient(app)
+    ann, ben, rev = key("ann", "release_manager"), key("ben", "release_manager"), key("rev", "reviewer")
+    publish(c, ann, ben, PERSON)
+    svc = app.state.automations
+    run = loop.run_until_complete(svc.run("review-brief", "manual", "rev"))
+    assert run.status == "waiting" and run.ended_at is None and [s["status"] for s in run.steps] == ["ok", "waiting"]
+    assert run.to_dict()["waiting"]["ask"] == "Is this ready to go out?" and "performance" in run.to_dict()["waiting"]["preview"]
+    assert [r["id"] for r in c.get("/v1/automation-runs?status=waiting", headers=rev).json()["runs"]] == [run.id]
+    assert c.post(f"/v1/automation-runs/{run.id}/decision", headers=key("view", "viewer"), json={"approve": True}).status_code == 403          # needs the right to decide approvals
+    me = c.post(f"/v1/automation-runs/{run.id}/decision", headers=rev, json={"approve": True})
+    assert me.status_code == 403 and "different person" in me.json()["error"]["message"]
+    rev2 = key("rev2", "reviewer")
+    done = c.post(f"/v1/automation-runs/{run.id}/decision", headers=rev2, json={"approve": True, "note": "looks right"})
+    assert done.status_code == 200
+    loop.run_until_complete(finish(svc))
+    final = c.get(f"/v1/automation-runs/{run.id}", headers=ann).json()
+    assert final["status"] == "succeeded" and [s["status"] for s in final["steps"]] == ["ok", "ok", "ok"] and final["steps"][1]["decidedBy"] == "rev2" and final["steps"][2]["outputId"]
+    assert c.post(f"/v1/automation-runs/{run.id}/decision", headers=rev2, json={"approve": True}).status_code == 409                           # answered once
+    assert "automation.decide" in [e["action"] for e in c.get("/v1/audit?limit=40", headers=ADM).json()["entries"]]
+
+
+def test_refusing_ends_the_run_and_an_unanswered_run_expires():
+    app, rt, key, loop = world()
+    c = TestClient(app)
+    ann, ben, rev = key("ann", "release_manager"), key("ben", "release_manager"), key("rev", "reviewer")
+    publish(c, ann, ben, PERSON)
+    svc = app.state.automations
+    r1 = loop.run_until_complete(svc.run("review-brief", "manual", "ann"))
+    refused = c.post(f"/v1/automation-runs/{r1.id}/decision", headers=rev, json={"approve": False, "note": "not yet"}).json()
+    assert refused["status"] == "rejected" and refused["steps"][-1]["status"] == "refused" and len(refused["steps"]) == 2          # the output step never ran
+    r2 = loop.run_until_complete(svc.run("review-brief", "manual", "ann"))
+    stored = loop.run_until_complete(svc.repo.get_run(r2.id))
+    stored.waiting["until"] = time.time() - 1
+    loop.run_until_complete(svc.repo.save_run(stored))
+    assert c.post(f"/v1/automation-runs/{r2.id}/decision", headers=rev, json={"approve": True}).status_code == 409                    # too late
+    loop.run_until_complete(svc.sweep())
+    ended = loop.run_until_complete(svc.repo.get_run(r2.id))
+    assert ended.status == "stopped" and "Nobody answered" in ended.error and ended.steps[-1]["status"] == "expired"
+
+
+def test_only_a_limited_number_of_runs_of_one_routine_may_wait_at_once():
+    from northcx.automations import MAX_WAITING
+    app, rt, key, loop = world()
+    c = TestClient(app)
+    ann, ben = key("ann", "release_manager"), key("ben", "release_manager")
+    publish(c, ann, ben, PERSON)
+    svc = app.state.automations
+    for _ in range(MAX_WAITING):
+        assert loop.run_until_complete(svc.run("review-brief", "manual", "ann")).status == "waiting"
+    with pytest.raises(AutomationError, match="already waiting"):
+        loop.run_until_complete(svc.run("review-brief", "manual", "ann"))
+
+
+def test_the_switch_and_pause_still_stop_a_run_that_was_waiting():
+    app, rt, key, loop = world()
+    c = TestClient(app)
+    ann, ben, rev = key("ann", "release_manager"), key("ben", "release_manager"), key("rev", "reviewer")
+    publish(c, ann, ben, PERSON)
+    svc = app.state.automations
+    run = loop.run_until_complete(svc.run("review-brief", "manual", "ann"))
+    loop.run_until_complete(svc.set_enabled(False, "admin"))
+    c.post(f"/v1/automation-runs/{run.id}/decision", headers=rev, json={"approve": True})
+    loop.run_until_complete(finish(svc))
+    got = loop.run_until_complete(svc.repo.get_run(run.id))
+    assert got.status == "stopped" and "switched off" in got.error and [s["kind"] for s in got.steps] == ["report", "person"]                        # stopped before the next step began
+
+
+def test_a_tag_step_marks_the_conversation_an_event_names_and_nothing_else():
+    app, feed, key, loop = world_with_events()
+    c = TestClient(app)
+    ann, ben, adm = key("ann", "release_manager"), key("ben", "release_manager"), {"authorization": f"Bearer {KEY}"}
+    token = c.post("/v1/chat-tokens", json={"sessionId": "web-t", "customerId": "c"}, headers=adm).json()["token"]
+    c.post("/v1/agents/support/chat", json={"sessionId": "web-t", "message": "hello"}, headers={"authorization": f"Bearer {token}"})
+    d = {"id": "tag-handoffs", "name": "Tag hand-offs", "trigger": {"type": "event", "event": "handoff.created"}, "steps": [{"id": "t", "kind": "tag", "tag": "needs-follow-up"}]}
+    assert c.post("/v1/automations", headers=ann, json={"definition": {**d, "steps": [{"id": "t", "kind": "tag", "tag": "Bad Tag!"}]}}).status_code == 400
+    publish(c, ann, ben, d)
+    svc = app.state.automations
+
+    async def go():
+        await svc.events_tick()
+        await feed.emit("handoff.created", {"queue": "billing"}, "web-t")
+        await feed.emit("handoff.created", {"queue": "billing"}, "no-such-session")
+        n = 0
+        for _ in range(4):
+            n += await svc.events_tick()
+            for t in list(svc._tasks):
+                await t
+        return n
+    assert loop.run_until_complete(go()) == 2
+    runs = {r.input_text and json.loads(r.input_text)["sessionId"]: r for r in loop.run_until_complete(svc.repo.runs("tag-handoffs", 10))}
+    assert runs["web-t"].status == "succeeded" and runs["web-t"].steps[0]["tagged"] == "web-t"
+    assert runs["no-such-session"].status == "stopped" and "could not be tagged" in runs["no-such-session"].error
+    assert c.get("/v1/sessions/web-t/tags", headers=ann).json()["tags"] == ["auto-needs-follow-up"]
+    manual = loop.run_until_complete(svc.run("tag-handoffs", "manual", "ann"))
+    assert manual.status == "stopped" and "no conversation to tag" in manual.error
+
+
+def test_a_step_that_sends_something_out_needs_an_approval_before_it_and_only_goes_to_a_set_up_destination():
+    import northcx.api.routers.automations as ar
+    sent = []
+    ar_dest = ar._destinations
+    ar._destinations = lambda: {"ops-chat": ("https://example.invalid/hook", "s" * 20)}
+    try:
+        app, rt, key, loop = world()
+    finally:
+        ar._destinations = ar_dest
+    c = TestClient(app)
+    ann, ben, rev = key("ann", "release_manager"), key("ben", "release_manager"), key("rev", "reviewer")
+    svc = app.state.automations
+
+    async def fake(name, payload):
+        sent.append((name, payload["text"][:20]))
+    svc.hooks.notify = fake
+    base = {"id": "send-brief", "name": "Send brief", "trigger": {"type": "manual"}, "steps": [{"id": "f", "kind": "report", "report": "performance", "days": 1}]}
+    no_gate = {**base, "steps": base["steps"] + [{"id": "send", "kind": "notify", "to": "ops-chat"}]}
+    r = c.post("/v1/automations", headers=ann, json={"definition": no_gate})
+    assert r.status_code == 400 and "person" in r.json()["error"]["message"]                                          # nothing goes out without a human approving first
+    bad_dest = {**base, "steps": base["steps"] + [{"id": "p", "kind": "person", "ask": "Send it?"}, {"id": "send", "kind": "notify", "to": "anywhere"}]}
+    assert c.post("/v1/automations", headers=ann, json={"definition": bad_dest}).status_code == 400
+    gated = {**base, "steps": base["steps"] + [{"id": "p", "kind": "person", "ask": "Send it?"}, {"id": "send", "kind": "notify", "to": "ops-chat"}]}
+    publish(c, ann, ben, gated)
+    run = loop.run_until_complete(svc.run("send-brief", "manual", "ann"))
+    assert run.status == "waiting" and sent == []                                                                    # nothing sent yet
+    c.post(f"/v1/automation-runs/{run.id}/decision", headers=rev, json={"approve": True})
+    loop.run_until_complete(finish(svc))
+    assert sent and sent[0][0] == "ops-chat" and loop.run_until_complete(svc.repo.get_run(run.id)).steps[-1]["sentTo"] == "ops-chat"
+
+
+async def test_a_waiting_run_survives_the_database_and_is_answered_in_its_own_tenant(app_engine):
+    from northcx.db import PgAutomations, PgSettings
+    from northcx.tenancy import TENANT
+    svc = AutomationService(PgAutomations(app_engine), PgSettings(app_engine))
+
+    async def assistant(a, p, s):
+        return "done", "completed", "t1"
+
+    async def exists(a):
+        return True
+
+    async def report(days):
+        return {"ok": True}
+    svc.hooks = Hooks(assistant, exists, {"performance": report}, None)
+    ids = {}
+    for tenant in ("acme", "globex"):
+        token = TENANT.set(tenant)
+        try:
+            a = await svc.create({**PERSON, "steps": PERSON["steps"][:2] + [{"id": "after", "kind": "report", "report": "performance", "days": 1}]}, "key:1")
+            await svc.propose(a.id, "key:1")
+            await svc.decide(a.id, True, "key:2", None)
+            ids[tenant] = (await svc.run("review-brief", "manual", "ann")).id
+        finally:
+            TENANT.reset(token)
+    token = TENANT.set("acme")
+    try:
+        got = await svc.repo.get_run(ids["acme"])
+        assert got.status == "waiting" and got.waiting["step"] == 1 and got.input_text == ""
+        assert await svc.repo.get_run(ids["globex"]) is None                                       # the other tenant's waiting run is not visible here
+        with pytest.raises(AutomationError):
+            await svc.decide_run(ids["globex"], True, "rev", None)
+        await svc.decide_run(ids["acme"], True, "rev", "ok")
+        await finish(svc)
+        done = await svc.repo.get_run(ids["acme"])
+        assert done.status == "succeeded" and [s["status"] for s in done.steps] == ["ok", "ok", "ok"]
+    finally:
+        TENANT.reset(token)
+    token = TENANT.set("globex")
+    try:
+        assert (await svc.repo.get_run(ids["globex"])).status == "waiting"
+    finally:
+        TENANT.reset(token)

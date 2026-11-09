@@ -2447,6 +2447,67 @@
         ]
       }
     },
+    "/v1/automation-runs": {
+      "get": {
+        "summary": "List Runs",
+        "description": "Recent runs of every routine; `status=waiting` is what is waiting for a person.",
+        "operationId": "list_runs_v1_automation_runs_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Runs V1 Automation Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "automation-runs"
+        ]
+      }
+    },
     "/v1/automation-runs/{run_id}": {
       "get": {
         "summary": "Get Run",
@@ -2485,6 +2546,60 @@
           }
         },
         "x-required-permission": "agents:read",
+        "tags": [
+          "automation-runs"
+        ]
+      }
+    },
+    "/v1/automation-runs/{run_id}/decision": {
+      "post": {
+        "summary": "Decide Run",
+        "description": "Answer a routine that is waiting for a person. Needs the permission to decide approvals; not the person who started the run.",
+        "operationId": "decide_run_v1_automation_runs__run_id__decision_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Decide Run V1 Automation Runs  Run Id  Decision Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "approvals:decide",
         "tags": [
           "automation-runs"
         ]
@@ -11423,6 +11538,31 @@
         },
         "type": "object",
         "title": "AutomationBody"
+      },
+      "AutomationDecisionBody": {
+        "properties": {
+          "approve": {
+            "type": "boolean",
+            "title": "Approve"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "approve"
+        ],
+        "title": "AutomationDecisionBody"
       },
       "AutomationRunBody": {
         "properties": {

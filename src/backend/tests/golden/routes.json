@@ -52,6 +52,7 @@
   "GET /v1/attachments/x": "/v1/attachments/{attachment_id} -> download_attachment",
   "GET /v1/audit": "/v1/audit -> audit_log",
   "GET /v1/audit/verify": "/v1/audit/verify -> audit_verify",
+  "GET /v1/automation-runs": "/v1/automation-runs -> list_runs",
   "GET /v1/automation-runs/x": "/v1/automation-runs/{run_id} -> get_run",
   "GET /v1/automation-settings": "/v1/automation-settings -> get_settings",
   "GET /v1/automations": "/v1/automations -> list_automations",
@@ -154,6 +155,7 @@
   "POST /v1/alerts/test": "/v1/alerts/test -> alert_test",
   "POST /v1/approvals/expire": "/v1/approvals/expire -> expire",
   "POST /v1/approvals/x/decision": "/v1/approvals/{approval_id}/decision -> decide",
+  "POST /v1/automation-runs/x/decision": "/v1/automation-runs/{run_id}/decision -> decide_run",
   "POST /v1/automations": "/v1/automations -> create",
   "POST /v1/automations/x/approve": "/v1/automations/{automation_id}/approve -> approve",
   "POST /v1/automations/x/hook": "/v1/automations/{automation_id}/hook -> hook",
@@ -513,6 +515,11 @@
    "GET",
    "/v1/audit/verify",
    "audit_verify"
+  ],
+  [
+   "GET",
+   "/v1/automation-runs",
+   "list_runs"
   ],
   [
    "GET",
@@ -1023,6 +1030,11 @@
    "POST",
    "/v1/approvals/{approval_id}/decision",
    "decide"
+  ],
+  [
+   "POST",
+   "/v1/automation-runs/{run_id}/decision",
+   "decide_run"
   ],
   [
    "POST",

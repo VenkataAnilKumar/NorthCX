@@ -552,7 +552,7 @@ export const customersEnabled = () => api<{ enabled: boolean }>("/v1/customers/s
 export const setCustomersEnabled = (enabled: boolean) => api<{ enabled: boolean }>("/v1/customers/settings", { method: "PUT", body: JSON.stringify({ enabled }) });
 
 // ---------- Automations (Workspace) ----------
-export interface AutoRun { id: string; automationId: string; version: number; trigger: string; by: string; status: "running" | "succeeded" | "failed" | "stopped" | "timed_out"; startedAt: number; endedAt: number | null;
+export interface AutoRun { waiting?: { step: number; ask: string; preview: string; until: number } | null; id: string; automationId: string; version: number; trigger: string; by: string; status: "running" | "waiting" | "rejected" | "succeeded" | "failed" | "stopped" | "timed_out"; startedAt: number; endedAt: number | null;
   steps: { id: string; kind: string; status: string; output?: string; error?: string; traceId?: string }[]; outcome: string; error: string | null }
 export interface Automation { id: string; version: number; name: string; status: "draft" | "proposed" | "published" | "rejected" | "superseded" | "retired"; trigger: { type: string; everyHours?: number }; steps: number;
   createdBy: string; proposedBy: string | null; decidedBy: string | null; paused: boolean; nextRun: number | null; lastRun: AutoRun | null; yaml?: string; versions?: { version: number; status: string }[] }
@@ -588,3 +588,5 @@ export const createSpace = (b: { name: string; description?: string; instruction
 export const editSpace = (id: string, b: Partial<{ name: string; description: string; instructions: string; visibility: string }>) => api<SpaceItem>(`/v1/workspace/spaces/${id}`, { method: "PUT", body: JSON.stringify(b) });
 export const deleteSpace = (id: string) => api<{ deleted: boolean }>(`/v1/workspace/spaces/${id}`, { method: "DELETE" });
 export const judgeConversation = (sessionId: string) => api<{ sessionId: string; verdict: "good" | "poor"; reason: string; by: string }>("/v1/quality/judge", { method: "POST", body: JSON.stringify({ sessionId }) });
+export const waitingRuns = () => api<{ runs: AutoRun[] }>("/v1/automation-runs?status=waiting").then((r) => r.runs);
+export const decideRun = (id: string, approve: boolean, note?: string) => api<AutoRun>(`/v1/automation-runs/${id}/decision`, { method: "POST", body: JSON.stringify({ approve, note }) });

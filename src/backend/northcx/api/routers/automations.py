@@ -10,9 +10,21 @@ from fastapi.responses import JSONResponse
 from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
-from northcx.api.models import AutomationBody, AutomationRunBody, AutomationSettingsBody, OrgPolicyDecisionBody
+from northcx.api.models import AutomationBody, AutomationDecisionBody, AutomationRunBody, AutomationSettingsBody, OrgPolicyDecisionBody
 from northcx.automations import AutomationError, AutomationService, Hooks, InMemoryAutomations
 from northcx.release_requests import principal
+
+
+def _destinations() -> dict[str, tuple[str, str]]:
+    """Where a routine may send a result: names the administrator set up as NORTHCX_AUTOMATION_DESTINATIONS="name=https://..." with one shared signing secret."""
+    import os
+    secret = os.environ.get("NORTHCX_AUTOMATION_DESTINATIONS_SECRET", "").strip()
+    out: dict[str, tuple[str, str]] = {}
+    for part in filter(None, (p.strip() for p in os.environ.get("NORTHCX_AUTOMATION_DESTINATIONS", "").split(","))):
+        name, _, url = part.partition("=")
+        if name and url.startswith(("https://", "http://")) and len(secret) >= 16:
+            out[name.strip()] = (url.strip(), secret)
+    return out
 
 
 def register(app: FastAPI, d: AppDeps) -> None:
@@ -53,8 +65,35 @@ def register(app: FastAPI, d: AppDeps) -> None:
     async def feed(after: int, limit: int) -> list[dict[str, Any]]:
         return await d.events.listing(after, limit) if d.events is not None else []
 
+    async def tag_session(session_id: str, tag: str, automation_id: str) -> bool:
+        if not await d.traces.summaries(session_id, 1):
+            return False
+        try:
+            await d.tag_repo.add(session_id, "auto-" + tag, f"automation:{automation_id}")
+        except ValueError:
+            return False
+        return True
+
+    destinations = _destinations()
+
+    async def notify(name: str, payload: dict[str, Any]) -> None:
+        import json as _json
+        import time as _time
+
+        import httpx
+
+        from northcx.notify import sign
+        url, secret = destinations[name]
+        body = _json.dumps({"type": "automation.result", **payload}, sort_keys=True).encode()
+        ts = str(int(_time.time()))
+        async with httpx.AsyncClient(timeout=8.0, follow_redirects=False) as client:
+            r = await client.post(url, content=body, headers={"content-type": "application/json", "x-northcx-timestamp": ts, "x-northcx-signature": sign(secret, ts, body)})
+        if r.status_code >= 300:
+            raise AutomationError(502, f"The destination answered {r.status_code}")
+
     from northcx.events import EVENTS
-    svc.hooks = Hooks(run_assistant, exists, reports, over_budget, save_output, feed if d.events is not None else None, frozenset(EVENTS) if d.events is not None else frozenset())
+    svc.hooks = Hooks(run_assistant, exists, reports, over_budget, save_output, feed if d.events is not None else None, frozenset(EVENTS) if d.events is not None else frozenset(),
+                      tag_session, notify, frozenset(destinations))
 
     def fail(e: AutomationError) -> JSONResponse:
         return _err(e.status, {400: "bad_request", 402: "budget", 403: "forbidden", 404: "not_found", 409: "conflict", 429: "rate_limited", 501: "not_configured"}.get(e.status, "error"), str(e))
@@ -211,6 +250,23 @@ def register(app: FastAPI, d: AppDeps) -> None:
             await record(request, "automation.hook", automation_id, "denied", reason="bad signature")
             return _err(401, "bad_signature", "The signature does not match")
         return await start(automation_id, request, "webhook", raw.decode("utf-8", "replace"))
+
+    @app.get("/v1/automation-runs")
+    async def list_runs(status: str | None = None, limit: int = 50) -> Any:
+        """Recent runs of every routine; `status=waiting` is what is waiting for a person."""
+        rows = await svc.repo.runs(None, 200)
+        return {"runs": [r.to_dict() for r in rows if status is None or r.status == status][: max(1, min(limit, 100))]}
+
+    @app.post("/v1/automation-runs/{run_id}/decision")
+    async def decide_run(run_id: str, body: AutomationDecisionBody, request: Request) -> Any:
+        """Answer a routine that is waiting for a person. Needs the permission to decide approvals; not the person who started the run."""
+        try:
+            run = await svc.decide_run(run_id, body.approve, request.state.identity.name, body.note)
+        except AutomationError as e:
+            await record(request, "automation.decide", run_id, "denied", reason=str(e))
+            return fail(e)
+        await record(request, "automation.decide", run_id, approved=body.approve, automation=run.automation_id)
+        return run.to_dict()
 
     @app.get("/v1/automations/{automation_id}/runs")
     async def runs(automation_id: str, limit: int = 30) -> Any:

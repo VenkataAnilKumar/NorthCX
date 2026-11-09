@@ -26,6 +26,10 @@ CACHE_SECONDS = 5.0
 MAX_STEPS = 10
 MAX_SECONDS = 300
 MAX_OUTPUT = 4000
+MAX_WAITING = 5                  # runs of one routine that may wait for a person at once
+DEFAULT_WAIT_HOURS, MAX_WAIT_HOURS = 24, 72
+TAG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
+HIGH_RISK = frozenset({"notify"})  # steps that send something out of the platform: only after a person has approved in the same routine
 MAX_INPUT = 2000
 MIN_HOURS, MAX_HOURS = 1.0, 24.0 * 30
 TENANT_CONCURRENCY = 3
@@ -51,9 +55,12 @@ class Hooks:
     save_output: Callable[[str, str, str], Awaitable[str]] | None = None                    # title, body, routine id -> output id
     events: Callable[[int, int], Awaitable[list[dict[str, Any]]]] | None = None             # after id, limit -> status events (ids and short values only)
     event_types: frozenset[str] = frozenset()
+    tag_session: Callable[[str, str, str], Awaitable[bool]] | None = None                   # session id, tag, routine id -> tagged
+    notify: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None                  # destination name, payload
+    destinations: frozenset[str] = frozenset()
 
 
-def validate_definition(data: Any, reports: set[str], events: set[str] | frozenset[str] = frozenset()) -> dict[str, Any]:
+def validate_definition(data: Any, reports: set[str], events: set[str] | frozenset[str] = frozenset(), destinations: set[str] | frozenset[str] = frozenset()) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise AutomationError(400, "A routine is a mapping")
     unknown = set(data) - {"id", "name", "description", "trigger", "steps", "limits"}
@@ -107,6 +114,23 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
             if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= 90:
                 raise AutomationError(400, f"Step '{sid}': days must be a whole number from 1 to 90")
             out.append({"id": sid, "kind": "report", "report": rep, "days": days})
+        elif sk == "person":
+            ask, hours = s.get("ask"), s.get("maxWaitHours", DEFAULT_WAIT_HOURS)
+            if not isinstance(ask, str) or not 5 <= len(ask) <= 300:
+                raise AutomationError(400, f"Step '{sid}': say what the person is asked, in 5 to 300 characters")
+            if isinstance(hours, bool) or not isinstance(hours, int) or not 1 <= hours <= MAX_WAIT_HOURS:
+                raise AutomationError(400, f"Step '{sid}': maxWaitHours is a whole number from 1 to {MAX_WAIT_HOURS}")
+            out.append({"id": sid, "kind": "person", "ask": ask, "maxWaitHours": hours})
+        elif sk == "tag":
+            tag = s.get("tag")
+            if not isinstance(tag, str) or not TAG_RE.match(tag):
+                raise AutomationError(400, f"Step '{sid}': a tag is 1 to 32 lowercase letters, digits, - or _ (it is saved with the prefix auto-)")
+            out.append({"id": sid, "kind": "tag", "tag": tag})
+        elif sk == "notify":
+            dest = s.get("to")
+            if dest not in destinations:
+                raise AutomationError(400, f"Step '{sid}': to must be one of the destinations the administrator set up ({', '.join(sorted(destinations)) or 'none are set up'})")
+            out.append({"id": sid, "kind": "notify", "to": dest})
         elif sk == "output":
             title, vis = s.get("title"), s.get("visibility", "shared")
             if not isinstance(title, str) or not 3 <= len(title) <= 100:
@@ -115,7 +139,13 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
                 raise AutomationError(400, f"Step '{sid}': a routine's outputs are shared with everyone who uses the Workspace")
             out.append({"id": sid, "kind": "output", "title": title, "visibility": "shared"})
         else:
-            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report or output (a routine cannot write to customers or outside systems in this release)")
+            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report, person, tag, notify or output (a routine never writes to customers)")
+    asked = False
+    for st in out:                                           # a step that sends something out needs a person's approval earlier in the same routine
+        if st["kind"] == "person":
+            asked = True
+        elif st["kind"] in HIGH_RISK and not asked:
+            raise AutomationError(400, f"Step '{st['id']}' sends something out of the platform, so a 'person' step must come before it to approve")
     lim = data.get("limits") or {}
     secs = lim.get("maxSeconds", 120) if isinstance(lim, dict) else None
     if isinstance(secs, bool) or not isinstance(secs, int) or not 10 <= secs <= MAX_SECONDS:
@@ -159,10 +189,13 @@ class Run:
     steps: list[dict[str, Any]] = field(default_factory=list)
     outcome: str = ""
     error: str | None = None
+    input_text: str = ""
+    waiting: dict[str, Any] | None = None     # while a person is asked: {step, prev, until, ask, preview}
 
     def to_dict(self) -> dict[str, Any]:
         return {"id": self.id, "automationId": self.automation_id, "version": self.version, "trigger": self.trigger, "by": self.by, "status": self.status,
-                "startedAt": self.started_at, "endedAt": self.ended_at, "steps": self.steps, "outcome": self.outcome, "error": self.error}
+                "startedAt": self.started_at, "endedAt": self.ended_at, "steps": self.steps, "outcome": self.outcome, "error": self.error,
+                "waiting": ({"step": self.waiting["step"], "ask": self.waiting["ask"], "preview": self.waiting["preview"], "until": self.waiting["until"]} if self.waiting else None)}
 
 
 class AutomationRepo(Protocol):
@@ -274,12 +307,15 @@ class AutomationService:
     def _reports(self) -> set[str]:
         return set(self.hooks.reports) if self.hooks else set()
 
+    def _destinations(self) -> frozenset[str]:
+        return self.hooks.destinations if self.hooks else frozenset()
+
     def _events(self) -> frozenset[str]:
         return self.hooks.event_types if self.hooks else frozenset()
 
     # ---- definitions and review ----
     async def create(self, data: dict[str, Any], by: str) -> Automation:
-        clean = validate_definition(data, self._reports(), self._events())
+        clean = validate_definition(data, self._reports(), self._events(), self._destinations())
         if await self.repo.versions(clean["id"]):
             raise AutomationError(409, f"A routine '{clean['id']}' already exists; change it to make a new version")
         a = Automation(clean["id"], 1, clean["name"], clean, created_by=by, nonce=secrets.token_hex(8) if clean["trigger"]["type"] == "webhook" else "")
@@ -290,7 +326,7 @@ class AutomationService:
         vs = await self.repo.versions(automation_id)
         if not vs:
             raise AutomationError(404, "Unknown routine")
-        clean = validate_definition(data, self._reports(), self._events())
+        clean = validate_definition(data, self._reports(), self._events(), self._destinations())
         if clean["id"] != automation_id:
             raise AutomationError(400, "The id cannot change; create a new routine instead")
         cur = vs[0]
@@ -398,7 +434,10 @@ class AutomationService:
                 raise AutomationError(409, "That routine is already running")
             if await self.repo.running(None, time.time() - MAX_SECONDS - 60) >= TENANT_CONCURRENCY:       # counted in the database, so it holds across servers
                 raise AutomationError(429, f"{TENANT_CONCURRENCY} routines are already running; try again shortly")
-            run = Run(a.id, a.version, trigger, by)
+            waiting = [r for r in await self.repo.runs(automation_id, 50) if r.status == "waiting"]
+            if len(waiting) >= MAX_WAITING:
+                raise AutomationError(429, f"{MAX_WAITING} runs of that routine are already waiting for a person; decide those first")
+            run = Run(a.id, a.version, trigger, by, input_text=input_text[:MAX_INPUT])
             await self.repo.save_run(run)
         if wait:
             await self._execute(a, run, input_text[:MAX_INPUT], t)
@@ -408,11 +447,11 @@ class AutomationService:
             task.add_done_callback(self._tasks.discard)
         return run
 
-    async def _execute(self, a: Automation, run: Run, input_text: str, tenant: str) -> None:
+    async def _execute(self, a: Automation, run: Run, input_text: str, tenant: str, start: int = 0, prev: str = "") -> None:
         from .tenancy import TENANT
         token = TENANT.set(tenant)
         try:
-            await asyncio.wait_for(self._steps(a, run, input_text), timeout=a.data["limits"]["maxSeconds"])
+            await asyncio.wait_for(self._steps(a, run, input_text, start, prev), timeout=a.data["limits"]["maxSeconds"])
         except asyncio.TimeoutError:
             run.status, run.error = "timed_out", f"Stopped after {a.data['limits']['maxSeconds']} seconds"
         except AutomationError as e:
@@ -420,7 +459,8 @@ class AutomationService:
         except Exception as e:  # noqa: BLE001 - a failed run is a record, not a crash
             run.status, run.error = "failed", f"{type(e).__name__}: {str(e)[:200]}"
         finally:
-            run.ended_at = time.time()
+            if run.status != "waiting":
+                run.ended_at = time.time()
             if run.status == "running":
                 run.status = "succeeded"
             try:
@@ -428,10 +468,11 @@ class AutomationService:
             finally:
                 TENANT.reset(token)
 
-    async def _steps(self, a: Automation, run: Run, input_text: str) -> None:
+    async def _steps(self, a: Automation, run: Run, input_text: str, start: int = 0, prev: str = "") -> None:
         assert self.hooks is not None
-        prev = ""
-        for s in a.data["steps"]:
+        for idx, s in enumerate(a.data["steps"]):
+            if idx < start:
+                continue
             if not await self.enabled():
                 raise AutomationError(403, "Stopped: all routines were switched off")
             if (await self.repo.state(a.id))["paused"] or not any(v.status == "published" and v.version == a.version for v in await self.repo.versions(a.id)):
@@ -455,9 +496,28 @@ class AutomationService:
                     title = s["title"].replace("{date}", time.strftime("%Y-%m-%d", time.gmtime()))
                     rec["outputId"] = await self.hooks.save_output(title, prev, a.id)
                     prev = f"Saved as output {rec['outputId']}"
+                elif s["kind"] == "person":
+                    until = time.time() + s["maxWaitHours"] * 3600
+                    rec.update({"status": "waiting", "ask": s["ask"], "until": until})
+                    run.status = "waiting"
+                    run.input_text = input_text
+                    run.waiting = {"step": idx, "prev": prev, "until": until, "ask": s["ask"], "preview": prev[:600]}
+                    return                                          # the run rests here until a person decides; nothing runs and no time is counted
+                elif s["kind"] == "tag":
+                    sid = _session_of(input_text)
+                    if sid is None or self.hooks.tag_session is None:
+                        raise AutomationError(409, f"Step '{s['id']}': there is no conversation to tag (use it in a routine started by an event that names one)")
+                    if not await self.hooks.tag_session(sid, s["tag"], a.id):
+                        raise AutomationError(409, f"Step '{s['id']}': that conversation could not be tagged")
+                    rec["tagged"] = sid
+                elif s["kind"] == "notify":
+                    if self.hooks.notify is None:
+                        raise AutomationError(501, "Sending is not configured on this server")
+                    await self.hooks.notify(s["to"], {"automation": a.id, "run": run.id, "text": prev})
+                    rec["sentTo"] = s["to"]
                 else:
                     prev = json.dumps(await self.hooks.reports[s["report"]](s["days"]), default=str)[:MAX_OUTPUT]
-                rec.update({"status": "ok", "output": prev, "endedAt": time.time()})
+                rec.update({"status": "ok", "output": prev if s["kind"] in ("assistant", "report", "output") else rec.get("sentTo") or rec.get("tagged") or "", "endedAt": time.time()})
             except BaseException as e:
                 rec.update({"status": "failed", "error": str(e)[:200], "endedAt": time.time()})
                 raise
@@ -524,13 +584,58 @@ class AutomationService:
                 await self.settings.put(f"autocursor:{a.id}", {"after": pos}, "automations")
         return started
 
+    async def decide_run(self, run_id: str, approve: bool, by: str, note: str | None) -> Run:
+        """A person answers a waiting run. The person who started it cannot answer it. Approving continues from the next step; refusing ends the run."""
+        run = await self.repo.get_run(run_id)
+        if run is None or run.waiting is None or run.status != "waiting":
+            raise AutomationError(404 if run is None else 409, "That run is not waiting for anyone" if run else "Unknown run")
+        if by == run.by:
+            raise AutomationError(403, "A run needs a different person to answer it than the one who started it")
+        if run.waiting["until"] < time.time():
+            raise AutomationError(409, "The time to answer has passed")
+        a = next((v for v in await self.repo.versions(run.automation_id) if v.version == run.version), None)
+        if a is None:
+            raise AutomationError(409, "The routine this run belongs to no longer exists")
+        rec = run.steps[-1]
+        rec.update({"decidedBy": by, "note": (note or "")[:300], "endedAt": time.time()})
+        if not approve:
+            rec["status"] = "refused"
+            run.status, run.error, run.ended_at, run.waiting = "rejected", f"{by} refused to continue", time.time(), None
+            await self.repo.save_run(run)
+            return run
+        rec["status"] = "ok"
+        start, prev, input_text = run.waiting["step"] + 1, run.waiting["prev"], run.input_text
+        run.status, run.waiting = "running", None
+        await self.repo.save_run(run)
+        task = asyncio.ensure_future(self._execute(a, run, input_text, current_tenant(), start, prev))
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+        return run
+
     async def sweep(self) -> int:
         """Mark runs lost with their process as failed, so the history never shows a run 'running' forever."""
-        return await self.repo.fail_stale(time.time() - MAX_SECONDS - 120)
+        now = time.time()
+        for r in await self.repo.runs(None, 200):                        # a run nobody answered in time ends instead of waiting for ever
+            if r.status == "waiting" and r.waiting and r.waiting["until"] < now:
+                r.status, r.error, r.ended_at, r.waiting = "stopped", "Nobody answered in time", now, None
+                if r.steps:
+                    r.steps[-1]["status"] = "expired"
+                await self.repo.save_run(r)
+        return await self.repo.fail_stale(now - MAX_SECONDS - 120)
 
     async def stop_all_runs(self) -> None:
         for t in list(self._tasks):
             t.cancel()
+
+
+def _session_of(input_text: str) -> str | None:
+    """The conversation a trigger names: the sessionId of an event, or of a webhook body that is JSON."""
+    try:
+        v = json.loads(input_text)
+    except ValueError:
+        return None
+    s = v.get("sessionId") if isinstance(v, dict) else None
+    return s if isinstance(s, str) and 0 < len(s) <= 200 else None
 
 
 def _block(kind: str, text: str) -> str:
