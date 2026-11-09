@@ -242,8 +242,15 @@ WS_NAV = [("Chat", "&#128172;"), ("Assistants", "&#129302;"), ("Search", "&#1282
 RECENT = ["Summarise yesterday's refund escalations", "Draft: apology for delayed parcels", "Why did billing-help hand off?", "Weekly QA digest (draft)"]
 
 
-def wsapp(active: str, work: str, title: str, recent_on: int | None = None) -> str:
-    nav = "".join(f'<a class="{"on" if n == active else ""}"><span>{ic} &nbsp;{n}</span></a>' for n, ic in WS_NAV)
+WS_NAV_FULL = [("Work", [("Threads", "&#129525;"), ("Approvals", "&#9989;"), ("Customers", "&#128100;")]), ("Assist", [("Chat", "&#128172;"), ("Assistants", "&#129302;"), ("Search", "&#128269;"), ("Knowledge", "&#128218;")]),
+               ("Create", [("Artifacts", "&#128196;"), ("Projects", "&#128193;"), ("Scheduled", "&#9201;")]), ("Team (leads, reviewers)", [("Reviews", "&#128221;"), ("Insights", "&#128200;")])]
+
+
+def wsapp(active: str, work: str, title: str, recent_on: int | None = None, full: bool = False) -> str:
+    if full:
+        nav = "".join(f'<div class="grp" style="padding:8px 10px 2px">{g}</div>' + "".join(f'<a class="{"on" if n == active else ""}"><span>{ic} &nbsp;{n}</span>{"<span class=n>2</span>" if n == "Approvals" else ""}</a>' for n, ic in items) for g, items in WS_NAV_FULL)
+    else:
+        nav = "".join(f'<a class="{"on" if n == active else ""}"><span>{ic} &nbsp;{n}</span></a>' for n, ic in WS_NAV)
     rec = "".join(f'<div class="recent {"on" if i == recent_on else ""}">{E(r)}</div>' for i, r in enumerate(RECENT))
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{WS_CSS}</style></head><body><div class="ws2">
 <div class="side"><div class="brand">NorthCX <span class="note">Workspace</span></div><a class="newc">+ New chat</a><div class="nav">{nav}</div><div class="grp">Recent</div>{rec}
@@ -487,6 +494,30 @@ SCREENS["37-workspace-agent-hub"] = wsapp("Assistants", head("Assistants", "Pred
 {_card("Escalation analyst","Billing team &middot; v1","Explains why conversations were handed off and what would have prevented it.",["insights","conversations (masked)"],badge("Available","ok"),"Start chat")}
 <div class="card" style="border-style:dashed"><b>Need something else?</b><p class="note">Ask your administrator to add an assistant from the Agent Hub, or suggest one.</p><span class="btn">Suggest an assistant</span></div></div>
 <p class="note" style="margin-top:10px">Each assistant shows what it can see and do before you start. You only see assistants your role allows.</p>""", "Assistants")
+
+
+SCREENS["38-workspace-customers"] = wsapp("Customers", head("Customers", "One view of a person across every channel: who they are, what they asked, what the agents and staff did.", '<span class="in">Search by name, email, order&hellip;</span>') + f"""
+<div class="split" style="grid-template-columns:330px 1fr;height:740px"><div class="card" style="padding:8px">{table(["Customer","Last contact"],[["<b>Jordan M.</b><br><span class=note>Plus plan &middot; 3 orders</span>","today &middot; chat"],["<b>Sam R.</b><br><span class=note>Free &middot; 1 order</span>","yesterday &middot; email"],["<b>Alex P.</b><br><span class=note>Plus &middot; 9 orders</span>","3 days &middot; WhatsApp"],["<b>Taylor K.</b><br><span class=note>Business &middot; 22 orders</span>","5 days &middot; voice"]])}<p class="note" style="padding:6px">Customers are shown only to roles that may see them; sample names are invented.</p></div>
+<div class="card" style="padding:16px"><div class="row2"><div><b style="font-size:18px">Jordan M.</b><br><span class="note">Plus plan &middot; since 2024 &middot; identity verified</span></div><div class="row"><span class="btn">Add note</span><span class="btn p">Open latest thread</span></div></div>
+<div class="g3" style="margin-top:12px">{stat("Conversations","7","3 this month")}{stat("Resolved by agent","5","2 handed to people")}{stat("Satisfaction","4.4","3 ratings")}</div>
+<h3 style="margin-top:14px">Timeline</h3>{table(["When","Channel","What happened","Who"],[["today 13:52","Chat","Refund for a delayed order: waiting for approval","billing-help &rarr; Dana K."],["Nov 4","Email","Invoice copy sent","support-agent"],["Oct 28","WhatsApp","Parcel status checked, delivered","order-status"],["Oct 12","Voice","Plan question, handed off, resolved","returns &rarr; Marco L."]])}
+<p class="note" style="margin-top:8px">Facts the agents may use about this customer (edit or remove): preferred language English &middot; plan Plus &middot; no open disputes. Customer data is masked wherever it appears outside this page.</p></div></div>""", "Customers", full=True)
+
+SCREENS["39-workspace-approvals"] = wsapp("Approvals", head("Approvals", "Actions agents asked a person to approve. Decide here or in the conversation.") + f"""
+<div class="tools"><span class="pill"><b>Waiting 2</b></span><span class="pill">Decided today 9</span><span class="pill">Expired 0</span><div style="flex:1"></div><span class="in">Team: Billing &#9662;</span></div>
+<div class="card" style="padding:4px 14px">{table(["Request","Agent","Customer context","Waiting","Decide"],[
+ ["<b>issue_refund $180</b><br><span class=note>order 1019 &middot; delayed 9 days</span>","billing-help","Plus plan &middot; verified &middot; no refunds in 90 days","6 min",'<span class="btn p">Approve</span> <span class="btn d">Reject</span> <span class="btn">Open</span>'],
+ ["<b>change_plan to Business</b><br><span class=note>mid-cycle</span>","billing-help","Plus plan &middot; 14 months","11 min",'<span class="btn p">Approve</span> <span class="btn d">Reject</span> <span class="btn">Open</span>']])}</div>
+<div class="g2" style="margin-top:12px"><div class="card"><h3>Why this needs you</h3><p class="note">Refunds above $50 need a person. The agent checked the delay with the order system and attached the tracking events. It cannot approve this itself.</p></div>
+<div class="card"><h3>Decided today</h3>{table(["Request","Decision","By"],[["issue_refund $32","auto (under limit)","agent"],["issue_refund $120","approved","Dana K."],["issue_refund $400","rejected, handed to lead","Marco L."]])}</div></div>""", "Approvals", full=True)
+
+SCREENS["40-workspace-navigation-proposal"] = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Workspace navigation proposal (mockup)</title><style>{WS_CSS}
+body{{padding:28px;width:1440px;height:900px}}h1{{margin:0}}</style></head><body><h1>Workspace navigation: current and proposed</h1><p class="sub">Your seven tabs stay. Five are proposed, grouped so the list stays short. Role-gated tabs appear only for people who can use them.</p>
+<div class="g3" style="grid-template-columns:1fr 1.4fr 1fr;align-items:start">
+<div class="card"><span class="b ok">Decided</span><h3 style="margin-top:8px">Today (7)</h3>{"".join(f"<div style='padding:5px 0;border-top:1px solid var(--border)'>{ic} &nbsp;{n}</div>" for n, ic in WS_NAV)}</div>
+<div class="card"><span class="b info">Proposed (12)</span><h3 style="margin-top:8px">Grouped</h3>{"".join(f"<div class='grp' style='padding:8px 0 2px'>{g}</div>" + "".join(f"<div style='padding:5px 0;border-top:1px solid var(--border)'>{ic} &nbsp;{n}{' <span class=tag>new</span>' if n in ('Approvals','Customers','Knowledge','Reviews','Insights') else ''}</div>" for n, ic in items) for g, items in WS_NAV_FULL)}</div>
+<div class="card"><h3>Not tabs, on purpose</h3><p class="note">Shown as panels or controls, because other agent desktops treat them that way:</p>
+<div style="padding:5px 0;border-top:1px solid var(--border)"><b>Customer panel</b><br><span class="note">inside a thread</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Suggested knowledge</b><br><span class="note">inside a thread</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Playbooks and canned answers</b><br><span class="note">in Knowledge and the reply box</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Notifications</b><br><span class="note">top-bar bell</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Live call assist</b><br><span class="note">panel when a call is open</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Availability and workload</b><br><span class="note">status control in the header</span></div></div></div></body></html>"""
 
 
 def _col(title, who, items, cls="info"):

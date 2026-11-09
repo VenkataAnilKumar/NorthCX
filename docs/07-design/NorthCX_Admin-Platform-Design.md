@@ -50,6 +50,21 @@ Added after the feature research (`00-reference/NorthCX_Feature-Research-2026-11
 
 Backend reality: Explorer's masked drill-down and suggested articles are not built (and the drill-down is a privacy decision); the improvement session reuses drafting, scenarios and replay that exist but lacks the loop; channels data exists; the adversarial suite, trend and trust page are new; the artifact library, home and projects need E5/E6.
 
+## 0b. More Workspace tabs: what is needed (proposal, 2026-11-09)
+The seven decided tabs (Chat, Assistants, Search, Artifacts, Projects, Scheduled, Threads) cover the working surface. Customer-service agent desktops add a few more areas; a search of their documentation shows they mostly put customer profile, suggested knowledge, macros and scripts in a **side panel inside the conversation**, not as separate areas ([Dynamics 365 productivity pane](https://learn.microsoft.com/en-us/dynamics365/customer-service/csw-productivity-pane), [8x8 customer 360 panel](https://docs.8x8.com/8x8WebHelp/contact-center/agent-workspace/Content/aw/customer-360-with-local-crm.htm), [Zendesk agent workspace](https://www.getmacha.com/blog/zendesk-agent-workspace-explained)); coaching and QA did not turn up in that search. So the proposal adds only what needs a page of its own, and keeps the list grouped.
+
+![Navigation proposal](../assets/design/40-workspace-navigation-proposal.png)
+
+| Proposed tab | Why it is a tab | Who sees it | Backend reality | Mockup |
+|---|---|---|---|---|
+| **Approvals** | Decisions are time-critical and span conversations; a badge in the navigation shows the count | everyone who can approve | Approvals and their decisions exist; this is a screen | ![Approvals](../assets/design/39-workspace-approvals.png) |
+| **Customers** | A person across every channel: timeline, facts agents may use, notes, satisfaction | roles allowed to see customers | Facts, conversations and erasure by customer id exist; a cross-channel customer record and timeline do not (the same missing link as the reopen rate). A privacy decision as well: who may see which customer data | ![Customers](../assets/design/38-workspace-customers.png) |
+| **Knowledge** | Browse and search sources, propose edits, playbooks and canned answers | everyone (edit rights by role) | Knowledge store and search exist; playbooks and canned answers are new | |
+| **Reviews** | A reviewer's own queue, scorecards, coaching notes | reviewers, leads | Review queue exists in Studio; scorecards and coaching are E7 | |
+| **Insights** | My numbers and my team's: handled, resolved, approvals, response times | leads (team), everyone (own) | Insights exist at organization level; per-person and per-team views are E15 | |
+
+Shown as panels or controls, not tabs: customer panel and suggested knowledge (inside a thread), playbooks and canned answers (in Knowledge and the reply box), notifications (top-bar bell), live call assist (a panel when a call is open), availability and workload (a status control in the header). Not proposed for now: a team chat or presence page, workforce scheduling, and a separate voice dialler; each would need its own decision.
+
 ## 1. Who uses what
 
 ![Surfaces and navigation](../assets/design/11-information-architecture.png)
