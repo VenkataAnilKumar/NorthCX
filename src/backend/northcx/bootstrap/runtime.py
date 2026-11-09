@@ -102,7 +102,7 @@ def build_runtime(c: SimpleNamespace) -> None:
     runtime.qualifications = Qualifications(PgQualifications(c.engine) if c.db_url else None)
     if getattr(llm, "selector", None) is not None:
         llm.selector.qualifier = runtime.qualifications
-    from northcx.db import PgOrgPolicies
+    from northcx.db import PgOrgPolicies, PgOrgTemplates
     from northcx.org_policies import OrgPolicyService
     runtime.org_policies = OrgPolicyService(PgOrgPolicies(c.engine) if c.db_url else None)
     from northcx.org_templates import OrgTemplateService
