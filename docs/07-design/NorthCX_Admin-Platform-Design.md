@@ -132,6 +132,19 @@ A **Builder** tab in the Admin Build group (next to Agents, Agent Hub, Knowledge
 
 **Decisions:** (1) the name (Builder or another); (2) first release scope: drafting and refining with a proper screen, or also the improvement loop; (3) proactive suggestions on by default or opt-in per team; (4) chat-tool presence later (recommended).
 
+## 0g. Workspace tab names and the Pilot window (owner-approved names, 2026-11-09)
+**Final Workspace tab names** (replacing the earlier ones): Work: **Inbox** (was Threads), **Approvals**, **Customers**; Assist: **Pilot** (was Chat), **Assistants**, **Search**, **Library** (was Knowledge); Create: **Outputs** (was Artifacts), **Spaces** (was Projects), **Automations** (was Workflows and Scheduled, merged; Recurring is a filter); Team (leads and reviewers): **Quality** (was Reviews), **Performance** (was Insights); plus Home and Settings. Earlier sections of this document use the old names; the mockups were regenerated with the new ones.
+
+**Assistants versus Pilot.** Assistants is the catalog of predefined staff assistants your organization made available (from the Agent Hub); Pilot is the conversation where you give one a task. "Agent" means the customer-facing AI; "assistant" means the staff-facing helper.
+
+**The Pilot window.** Left: the Workspace navigation with recent chats. Centre: the conversation and a composer. Right: a panel with inner tabs **Plan, Output, Files, Sources, Context, Steps, Side chat**. The composer has a **+ menu** (space, files, Library sources, a conversation or customer as masked context, connected systems, skills and playbooks, pasted link or screenshot), a **task style** (Quick answer, Think, Research, Do) and a **model mode** (Auto, Faster, Best quality, Private only). Research and Do show a plan first, with clarifying questions, an estimate of time and cost, and "Approve and run" or "Run in background"; the Steps tab shows a live run with pause, redirect and stop, and the run can be replayed later; steps that write anything stop and ask first. Files are checked before the assistant sees them (a scan without text is refused with a reason; a PDF is read as text with personal data masked), and spaces carry their own instructions, files, sources and memory.
+
+![Plan](../assets/design/50-pilot-research-plan.png)
+![Add menu and Files](../assets/design/51-pilot-add-menu-files.png)
+![Live run](../assets/design/52-pilot-live-run.png)
+
+Backend reality: streaming chat with citations, approvals, traces and knowledge search exist; staff assistants with tools, spaces with files and memory, masked conversation attach and chat history need the staff backend (E5); the Output tab needs E6; background runs, schedule and automations need E8; the model mode needs the hybrid selection work. Decisions open: whether to start with all four task styles or Quick answer and Research only; whether the plan shows for every Research and Do task or on request; pause and redirect in the first version or later; a per-space file limit set by administrators.
+
 ## 1. Who uses what
 
 ![Surfaces and navigation](../assets/design/11-information-architecture.png)

@@ -242,13 +242,15 @@ WS_NAV = [("Chat", "&#128172;"), ("Assistants", "&#129302;"), ("Search", "&#1282
 RECENT = ["Summarise yesterday's refund escalations", "Draft: apology for delayed parcels", "Why did billing-help hand off?", "Weekly QA digest (draft)"]
 
 
-WS_NAV_FULL = [("Work", [("Threads", "&#129525;"), ("Approvals", "&#9989;"), ("Customers", "&#128100;")]), ("Assist", [("Chat", "&#128172;"), ("Assistants", "&#129302;"), ("Search", "&#128269;"), ("Knowledge", "&#128218;")]),
-               ("Create", [("Artifacts", "&#128196;"), ("Projects", "&#128193;"), ("Workflows", "&#128256;"), ("Scheduled", "&#9201;")]), ("Team (leads, reviewers)", [("Reviews", "&#128221;"), ("Insights", "&#128200;")])]
+WS_NAV_FULL = [("Work", [("Inbox", "&#129525;"), ("Approvals", "&#9989;"), ("Customers", "&#128100;")]), ("Assist", [("Pilot", "&#129517;"), ("Assistants", "&#129302;"), ("Search", "&#128269;"), ("Library", "&#128218;")]),
+               ("Create", [("Outputs", "&#128196;"), ("Spaces", "&#128193;"), ("Automations", "&#128256;")]), ("Team (leads, reviewers)", [("Quality", "&#128221;"), ("Performance", "&#128200;")])]
+WS_ALIAS = {"Chat": "Pilot", "Threads": "Inbox", "Artifacts": "Outputs", "Projects": "Spaces", "Scheduled": "Automations", "Workflows": "Automations", "Knowledge": "Library", "Reviews": "Quality", "Insights": "Performance"}
 
 
-def wsapp(active: str, work: str, title: str, recent_on: int | None = None, full: bool = False) -> str:
+def wsapp(active: str, work: str, title: str, recent_on: int | None = None, full: bool = True) -> str:
+    active = WS_ALIAS.get(active, active)
     if full:
-        nav = "".join(f'<div class="grp" style="padding:8px 10px 2px">{g}</div>' + "".join(f'<a class="{"on" if n == active else ""}"><span>{ic} &nbsp;{n}</span>{"<span class=n>2</span>" if n == "Approvals" else ""}</a>' for n, ic in items) for g, items in WS_NAV_FULL)
+        nav = f'<a class="{"on" if active == "Home" else ""}"><span>&#8962; &nbsp;Home</span></a>' + "".join(f'<div class="grp" style="padding:8px 10px 2px">{g}</div>' + "".join(f'<a class="{"on" if n == active else ""}"><span>{ic} &nbsp;{n}</span>{"<span class=n>2</span>" if n == "Approvals" else ""}</a>' for n, ic in items) for g, items in WS_NAV_FULL)
     else:
         nav = "".join(f'<a class="{"on" if n == active else ""}"><span>{ic} &nbsp;{n}</span></a>' for n, ic in WS_NAV)
     rec = "".join(f'<div class="recent {"on" if i == recent_on else ""}">{E(r)}</div>' for i, r in enumerate(RECENT))
@@ -284,13 +286,13 @@ SCREENS["17-workspace-search"] = wsapp("Search", head("Search", "Across knowledg
  ["<b>Hand-off h-221</b> Delayed parcel, refund over limit",badge("Hand-off","warn"),"refund","Billing team"]])}</div>
 <p class="note" style="margin-top:8px">Each result shows why you can see it. A source that cannot prove your access returns nothing.</p>""", "Search")
 
-SCREENS["18-workspace-projects"] = wsapp("Projects", head("Projects", "A project keeps instructions, sources, chats and artifacts for one piece of work together.", '<span class="btn p">+ New project</span>') + f"""
+SCREENS["18-workspace-projects"] = wsapp("Projects", head("Spaces", "A project keeps instructions, sources, chats and artifacts for one piece of work together.", '<span class="btn p">+ New project</span>') + f"""
 <div class="g3"><div class="card"><div class="row2"><b>Billing escalations</b>{badge("team","info")}</div><p class="note">Instructions: be brief, cite the policy, never quote card numbers.</p><p class="note">Sources: Refund policy, Billing playbook &middot; 14 chats &middot; 6 artifacts</p><div class="bar"><i style="width:62%"></i></div><p class="note">Context in use: 62%</p></div>
 <div class="card"><div class="row2"><b>Weekly QA review</b>{badge("team","info")}</div><p class="note">Instructions: score against the Support scorecard v3.</p><p class="note">Sources: Scorecards, sampled conversations &middot; 5 chats &middot; 9 artifacts</p><p class="note">Scheduled: every Monday 08:00</p></div>
 <div class="card"><div class="row2"><b>My drafts</b>{badge("private","gr")}</div><p class="note">Instructions: my tone and signature.</p><p class="note">22 chats &middot; 31 artifacts</p></div></div>
 <div class="card" style="margin-top:14px"><div class="row2"><h3>Billing escalations</h3><span class="tag">Instructions</span></div>{table(["Recent chats and artifacts","Type","Updated"],[["Summarise yesterday's refund escalations","Chat","just now"],["Refund escalation summary","Artifact","just now"],["Why did billing-help hand off?","Chat","1 h ago"],["Duplicate charges: order list","Artifact","yesterday"]])}</div>""", "Projects")
 
-SCREENS["19-workspace-scheduled"] = wsapp("Scheduled", head("Scheduled", "Tasks that run on their own and leave an artifact or a message. Every run is listed.", '<span class="btn p">+ New scheduled task</span>') + f"""
+SCREENS["19-workspace-scheduled"] = wsapp("Scheduled", head("Automations: recurring", "Tasks that run on their own and leave an artifact or a message. Every run is listed.", '<span class="btn p">+ New scheduled task</span>') + f"""
 <div class="card" style="padding:4px 14px">{table(["Task","Runs","Delivers to","Last run","Next run","Status",""],[
  ["<b>Daily hand-off triage</b><br><span class=note>Tag and rank open hand-offs by urgency</span>","every weekday 07:30","Billing queue","today 07:30","tomorrow 07:30",badge("OK","ok"),'<span class="sw2"></span>'],
  ["<b>Weekly QA digest</b><br><span class=note>Score sampled conversations, summarise trends</span>","Mondays 08:00","Artifact + email to leads","Mon 08:00","next Mon",badge("OK","ok"),'<span class="sw2"></span>'],
@@ -299,7 +301,7 @@ SCREENS["19-workspace-scheduled"] = wsapp("Scheduled", head("Scheduled", "Tasks 
 <div class="g2" style="margin-top:12px"><div class="card"><h3>Run history: SLA breach sweep</h3>{table(["Started","Duration","Result"],[["13:45","4 s",badge("2 found","ok")],["13:30","5 s",badge("0 found","ok")],["13:15","31 s",badge("failed: search timed out","bad")],["13:00","4 s",badge("1 found","ok")]])}</div>
 <div class="card"><h3>What a task may do</h3><p class="note">Scheduled tasks use only the read tools and sources of the person who made them. Anything that writes needs an approval, as in a chat.</p></div></div>""", "Scheduled")
 
-SCREENS["20-workspace-threads"] = wsapp("Threads", head("Threads", "Customer conversations that need a person, and the ones you are handling.", '<span class="pill">Queue <b>Billing</b> &#9662;</span>') + f"""
+SCREENS["20-workspace-threads"] = wsapp("Threads", head("Inbox", "Customer conversations that need a person, and the ones you are handling.", '<span class="pill">Queue <b>Billing</b> &#9662;</span>') + f"""
 <div class="split" style="grid-template-columns:340px 1fr"><div class="card" style="padding:10px">
 <div class="row" style="margin-bottom:8px"><span class="pill"><b>Needs me</b> 2</span><span class="pill">Agent 4</span><span class="pill">Resolved 12</span></div>
 <div style="background:var(--info-bg);border-radius:8px;padding:8px 10px;margin-bottom:6px"><b>c-4f21</b> {badge("approval","warn")}<br><span class="note">Refund for a delayed order &middot; 6 min</span></div>
@@ -389,7 +391,7 @@ SCREENS["23-settings-connectors-mcp"] = settings_shell("Connectors", "Connectors
 
 
 # ---------- New interfaces (round 2): workspace home and artifacts; admin Explorer, Expert Answers, agent improvement, channels, trust, privacy ----------
-SCREENS["24-workspace-artifacts"] = wsapp("Artifacts", head("Artifacts", "Everything your assistants have produced for you and your team. Versioned, shareable, schedulable.", '<span class="btn">Export</span>') + f"""
+SCREENS["24-workspace-artifacts"] = wsapp("Artifacts", head("Outputs", "Everything your assistants have produced for you and your team. Versioned, shareable, schedulable.", '<span class="btn">Export</span>') + f"""
 <div class="tools"><span class="in">Search artifacts&hellip;</span><span class="pill"><b>All</b></span><span class="pill">Summaries</span><span class="pill">Drafts</span><span class="pill">Reports</span><span class="pill">Digests</span><div style="flex:1"></div><span class="in">Project: Any &#9662;</span><span class="in">Owner: Me &#9662;</span></div>
 <div class="split" style="grid-template-columns:1fr 400px;height:690px"><div class="card" style="padding:4px 14px">{table(["Artifact","Type","Project","Shared","Updated"],[
  ["<b>Refund escalation summary</b><br><span class=note>v2 &middot; from chat</span>",badge("Summary","info"),"Billing escalations","Team","just now"],
@@ -551,7 +553,7 @@ SCREENS["40-workspace-navigation-proposal"] = f"""<!doctype html><html lang="en"
 body{{padding:28px;width:1440px;height:900px}}h1{{margin:0}}</style></head><body><h1>Workspace navigation: current and proposed</h1><p class="sub">Your seven tabs stay. Six are proposed, grouped so the list stays short. Role-gated tabs appear only for people who can use them.</p>
 <div class="g3" style="grid-template-columns:1fr 1.4fr 1fr;align-items:start">
 <div class="card"><span class="b ok">Decided</span><h3 style="margin-top:8px">Today (7)</h3>{"".join(f"<div style='padding:5px 0;border-top:1px solid var(--border)'>{ic} &nbsp;{n}</div>" for n, ic in WS_NAV)}</div>
-<div class="card"><span class="b info">Proposed (13)</span><h3 style="margin-top:8px">Grouped</h3>{"".join(f"<div class='grp' style='padding:8px 0 2px'>{g}</div>" + "".join(f"<div style='padding:5px 0;border-top:1px solid var(--border)'>{ic} &nbsp;{n}{' <span class=tag>new</span>' if n in ('Approvals','Customers','Knowledge','Reviews','Insights','Workflows') else ''}</div>" for n, ic in items) for g, items in WS_NAV_FULL)}</div>
+<div class="card"><span class="b info">Proposed (12)</span><h3 style="margin-top:8px">Grouped</h3>{"".join(f"<div class='grp' style='padding:8px 0 2px'>{g}</div>" + "".join(f"<div style='padding:5px 0;border-top:1px solid var(--border)'>{ic} &nbsp;{n}{' <span class=tag>new</span>' if n in ('Approvals','Customers','Library','Quality','Performance','Automations') else ''}</div>" for n, ic in items) for g, items in WS_NAV_FULL)}</div>
 <div class="card"><h3>Not tabs, on purpose</h3><p class="note">Shown as panels or controls, because other agent desktops treat them that way:</p>
 <div style="padding:5px 0;border-top:1px solid var(--border)"><b>Customer panel</b><br><span class="note">inside a thread</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Suggested knowledge</b><br><span class="note">inside a thread</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Playbooks and canned answers</b><br><span class="note">in Knowledge and the reply box</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Notifications</b><br><span class="note">top-bar bell</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Live call assist</b><br><span class="note">panel when a call is open</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Availability and workload</b><br><span class="note">status control in the header</span></div></div></div></body></html>"""
 
@@ -561,7 +563,7 @@ def _node(x, y, kind, title, detail, tone="info", sel=False):
     return f'<div style="position:absolute;left:{x}px;top:{y}px;width:210px;background:var(--surface);{b}border-radius:12px;padding:10px 12px"><span class="b {tone}">{kind}</span><div style="font-weight:700;margin-top:4px">{title}</div><div class="note">{detail}</div></div>'
 
 
-SCREENS["41-workspace-workflows"] = wsapp("Workflows", head("Workflows", "Multi-step work that runs by itself: a trigger, steps that use assistants and connected systems, and people where they are needed.", '<span class="btn">From template</span> <span class="btn p">+ New workflow</span>') + f"""
+SCREENS["41-workspace-workflows"] = wsapp("Workflows", head("Automations", "Multi-step work that runs by itself: a trigger, steps that use assistants and connected systems, and people where they are needed.", '<span class="btn">From template</span> <span class="btn p">+ New workflow</span>') + f"""
 <div class="card" style="padding:14px"><b>Describe what you want</b><div class="in" style="display:block;margin-top:8px;color:var(--text)">Every weekday at 07:30, rank open billing hand-offs by urgency and ask the team lead to approve any reassignments.</div><div class="row" style="margin-top:8px"><span class="btn p">Draft it</span><span class="note" style="align-self:center">You review and test a draft before anything is saved or runs.</span></div></div>
 <div class="tabs" style="margin-top:14px"><a class="on">All (8)</a><a>Mine (3)</a><a>My team (5)</a><a>Needs attention (1)</a></div>
 <div class="card" style="padding:4px 14px">{table(["Workflow","Starts when","Steps","Owner","Last run","Status",""],[
@@ -622,6 +624,51 @@ SCREENS["49-settings-skills"] = settings_shell("Profile", "Profile", "How you ap
 <div class="field"><label>Steps</label><span class="in" style="color:var(--text)">1. State the decision first. 2. Name the policy and section. 3. Give the amount and the order number. 4. Say when the customer will see the money.</span></div>
 <div class="field"><label>Needs (optional)</label><span class="in">knowledge: Refund policy &times;</span></div>
 <div class="row"><span class="btn p">Save</span><span class="btn">Try it</span><span class="btn">Share with team</span></div><p class="note" style="margin-top:8px">A skill gives instructions and may point to knowledge. It cannot give an assistant new tools or access; sharing needs a reviewer.</p></div></div>""")
+
+
+PILOT_TABS = lambda on: "".join(f'<span class="pb {"on" if t == on else ""}">{t}</span>' for t in ["Plan", "Output", "Files", "Sources", "Context", "Steps", "Side chat"])
+PILOT_CSS = """<style>.pb{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;margin-right:4px}.pb.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;font-size:12px}.seg span{padding:3px 10px;background:var(--surface)}.seg .on{background:var(--primary);color:#fff;font-weight:700}
+.menu{position:absolute;left:14px;bottom:100px;width:360px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 30px #0f172a33;padding:6px;z-index:5}.menu div{padding:7px 10px;border-radius:8px}.menu small{display:block;color:var(--muted)}
+.step{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--border)}.dot{width:18px;height:18px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11px;color:#fff}.d-ok{background:var(--ok)}.d-run{background:var(--primary)}.d-wait{background:#8a96ad}</style>"""
+MENU_HTML = """<div class="menu"><div><b>Space</b><small>Use a space's instructions, files and memory</small></div><div><b>Files</b><small>Upload, or choose from this space or Outputs</small></div><div><b>Library sources</b><small>Choose which sources to search</small></div><div><b>Conversation or customer</b><small>Adds masked context, only if you may see it</small></div><div><b>Connected systems</b><small>Read-only unless you approve a change</small></div><div><b>Skills and playbooks</b><small>Load one for this chat</small></div><div><b>Paste a link or drop a screenshot</b></div></div>"""
+
+
+def composer(extra_menu=""):
+    return f"""{extra_menu}<div class="prompt" style="position:absolute;left:14px;right:14px;bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px"><span class="mut">Describe the task, or ask a question&hellip;</span>
+<div class="row" style="margin-top:10px;gap:8px;align-items:center"><span class="pill">+</span><span class="pill">Space <b>Billing escalations</b></span><span class="seg"><span>Quick answer</span><span>Think</span><span class="on">Research</span><span>Do</span></span><span class="pill">Model <b>Auto &#9662;</b></span><div style="flex:1"></div><span class="btn p">Start</span></div></div>"""
+
+
+def pilot(title, assistant, tab, left, right):
+    return wsapp("Pilot", PILOT_CSS + f"""<div class="split" style="grid-template-columns:1fr 400px;height:830px"><div class="card" style="position:relative;padding:16px;display:flex;flex-direction:column">
+<div class="row2" style="margin-bottom:10px"><b>{title}</b><div class="row"><span class="pill">Assistant <b>{assistant}</b></span>{PILOT_TABS(tab)}</div></div>{left}</div><div class="art">{right}</div></div>""", "Pilot")
+
+
+SCREENS["50-pilot-research-plan"] = pilot("Why did delivery complaints rise?", "Escalation analyst", "Plan", f"""<div class="chat"><div class="msg u">Research why delivery complaints rose last week and propose fixes.</div>
+<div class="msg a">Before I start, two quick questions so I look in the right place.<div style="margin:8px 0"><b>1. Which period?</b><div class="row" style="margin-top:4px"><span class="pill"><b>Last 7 days</b></span><span class="pill">Last 30 days</span><span class="pill">Custom</span></div></div>
+<div><b>2. Include other channels, or only web and email?</b><div class="row" style="margin-top:4px"><span class="pill">All channels</span><span class="pill"><b>Web and email</b></span></div></div></div>
+<div class="msg u">Last 7 days, web and email.</div><div class="msg a">Thanks. I've written a plan. Check it in the Plan tab, change anything you like, then approve it and I'll start. It will keep running in the background.</div></div>{composer()}""",
+f"""<div class="row2"><b>Plan</b>{badge("waiting for your approval","warn")}</div><p class="note">About 4 minutes &middot; about $0.06 &middot; private model (customer data involved) &middot; read-only</p>
+<div class="step"><span class="dot d-wait">1</span><div><b>Find the conversations</b><br><span class="note">Search web and email hand-offs tagged delivery, last 7 days (masked)</span></div></div>
+<div class="step"><span class="dot d-wait">2</span><div><b>Read the policy</b><br><span class="note">Library: Carrier delays playbook, Refund policy</span></div></div>
+<div class="step"><span class="dot d-wait">3</span><div><b>Compare with the week before</b><br><span class="note">Count by cause and carrier</span></div></div>
+<div class="step"><span class="dot d-wait">4</span><div><b>Write up findings and fixes</b><br><span class="note">Saved as an output in the space &ldquo;Billing escalations&rdquo;</span></div></div>
+<div class="row" style="margin-top:12px"><span class="btn p">Approve and run</span><span class="btn">Edit plan</span><span class="btn">Run in background</span></div><p class="note" style="margin-top:8px">Nothing is changed in any system. Steps that would write ask you first.</p>""")
+
+SCREENS["51-pilot-add-menu-files"] = pilot("New chat", "Care copilot", "Files", f"""<div class="chat"><div class="msg a">What would you like to do? You can add a space, files, sources or a conversation with the + button.</div></div>{composer(MENU_HTML)}""",
+f"""<div class="row2"><b>Files</b><span class="btn">Upload</span></div>{table(["File","Status","Used"],[["<b>refund-policy.pdf</b><br><span class=note>read as text, personal data masked</span>",badge("ready","ok"),"in 3 answers"],["<b>delays-week-45.csv</b><br><span class=note>412 rows</span>",badge("ready","ok"),"not yet"],["<b>scan-0042.pdf</b><br><span class=note>no text layer</span>",badge("not readable","bad"),"&mdash;"]])}
+<h3 style="margin-top:12px">From the space &ldquo;Billing escalations&rdquo;</h3>{table(["File","Added by"],[["Carrier delays playbook.md","Marco L."],["Escalation checklist.docx","Dana K."]])}
+<p class="note" style="margin-top:8px">Files are checked before the assistant sees them. A scan without text is refused with a reason. Administrators set the size and count limits.</p>""")
+
+SCREENS["52-pilot-live-run"] = pilot("Why did delivery complaints rise?", "Escalation analyst", "Steps", f"""<div class="chat"><div class="msg u">Research why delivery complaints rose last week and propose fixes.</div><div class="msg a">Running your approved plan. You can keep working; I'll tell you when it needs you or is done.<div class="bar" style="margin-top:8px"><i style="width:62%"></i></div><span class="note">Step 3 of 4 &middot; about 1 minute left</span></div></div>{composer()}""",
+f"""<div class="row2"><b>Steps</b>{badge("running","info")}</div>
+<div class="row" style="margin:8px 0"><span class="btn">Pause</span><span class="btn">Redirect&hellip;</span><span class="btn d">Stop</span></div>
+<div class="step"><span class="dot d-ok">&#10003;</span><div><b>Find the conversations</b> <span class="note">38 found, masked &middot; 3 s</span></div></div>
+<div class="step"><span class="dot d-ok">&#10003;</span><div><b>Read the policy</b> <span class="note">2 documents &middot; 2 s</span></div></div>
+<div class="step"><span class="dot d-run">&#9679;</span><div><b>Compare with the week before</b><br><span class="note">Counting by cause and carrier&hellip; carrier B is up 19 so far</span></div></div>
+<div class="step"><span class="dot d-wait">4</span><div><b>Write up findings and fixes</b></div></div>
+<h3 style="margin-top:12px">So far</h3>{table(["","Tokens","Cost","Model"],[["This run","3,120","$0.02","private llama-70b (customer data)"]])}
+<p class="note" style="margin-top:8px">You can replay this whole run later from the chat. Steps that write anything stop and ask you first.</p>""")
 
 
 def _col(title, who, items, cls="info"):
