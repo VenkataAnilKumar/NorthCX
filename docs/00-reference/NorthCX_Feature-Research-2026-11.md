@@ -1,6 +1,6 @@
 # Feature research: agent platform, user platform and admin platform (November 2026)
 
-Status: research notes, not a commitment. This is the one place in the repository where other companies' products are named; the product itself depends on none of them. **Evidence quality is low to medium:** nearly every source below is a vendor blog, buyer guide or comparison page written to sell something. Treat each claim as "what the market is saying", not as measured fact. The two firmer sources are the OpenTelemetry specification pages and an academic survey of agents in production. Searches were run on 2026-11-09; each ran once, so coverage is partial.
+Status: **Reference**. Updated: 2026-11-09. Master for: research notes on other products (the only folder where they are named). Research notes, not a commitment. This is the one place in the repository where other companies' products are named; the product itself depends on none of them. **Evidence quality is low to medium:** nearly every source below is a vendor blog, buyer guide or comparison page written to sell something. Treat each claim as "what the market is saying", not as measured fact. The two firmer sources are the OpenTelemetry specification pages and an academic survey of agents in production. Searches were run on 2026-11-09; each ran once, so coverage is partial.
 
 ## What the sources agree on
 

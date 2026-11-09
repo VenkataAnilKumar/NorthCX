@@ -1,6 +1,6 @@
 # NorthCX → North for CX: Gap Analysis & Build Plan
 
-Status: Draft (2026-11-04). Lives in `00-reference/` because it compares NorthCX with an external product (Cohere North) and names third-party systems.
+Status: **Reference**. Updated: 2026-11-09. Master for: the 2026-11-04 gap analysis against an external product. Lives in `00-reference/` because it compares NorthCX with an external product (Cohere North) and names third-party systems.
 
 Based on the NorthCX repository, which its README describes as 1.0.0-rc.1, with more than 1,300 backend tests, Studio, the SDK and widget, six channels, approvals, simulations and releases.
 

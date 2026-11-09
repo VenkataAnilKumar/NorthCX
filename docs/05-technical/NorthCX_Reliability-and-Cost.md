@@ -1,6 +1,6 @@
 # NorthCX Reliability and Cost
 
-Status: Draft. Targets are proposals to validate with load and pilot data.
+Status: **Built**. Updated: 2026-11-09. Master for: failure handling, retries, budgets and cost. Targets are proposals to validate with load and pilot data.
 
 ## Failure modes and handling
 | Failure | Handling |

@@ -1,6 +1,6 @@
 # NorthCX threat model
 
-Status: closed for the current build, with the accepted residual risks listed at the end. Method and results of the review that produced it are in `NorthCX_Security-Review.md`. Revisit whenever a new channel, a new way to run code, or a new outbound integration is added.
+Status: **Built**. Updated: 2026-11-09. Master for: threats and their handling. Closed for the current build, with the accepted residual risks listed at the end. Method and results of the review that produced it are in `NorthCX_Security-Review.md`. Revisit whenever a new channel, a new way to run code, or a new outbound integration is added.
 
 ## What is being protected
 

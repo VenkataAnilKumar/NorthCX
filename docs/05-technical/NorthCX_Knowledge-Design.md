@@ -1,5 +1,7 @@
 # NorthCX Knowledge — Design
 
+Status: **Built**. Updated: 2026-11-09. Master for: knowledge sources, ingestion, retrieval and citations.
+
 Covers features K4 (retrieval with citations), K5 (sources and freshness), K8 (retention and deletion). Summarisation (K6) and business-system context (K7) follow.
 
 ## Goals

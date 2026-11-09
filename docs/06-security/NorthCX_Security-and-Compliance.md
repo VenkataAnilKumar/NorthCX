@@ -1,6 +1,6 @@
 # NorthCX Security and Compliance
 
-Status: Draft. Control mapping is a plan, not a certification. The threat model is in `NorthCX_Threat-Model.md`, the Phase 6 review and its findings in `NorthCX_Security-Review.md`, and how to report a problem in `SECURITY.md` at the repository root.
+Status: **Partly built**. Updated: 2026-11-09. Master for: security controls and compliance mapping. Control mapping is a plan, not a certification. The threat model is in `NorthCX_Threat-Model.md`, the Phase 6 review and its findings in `NorthCX_Security-Review.md`, and how to report a problem in `SECURITY.md` at the repository root.
 
 ## Threats and controls
 | Threat | Control |

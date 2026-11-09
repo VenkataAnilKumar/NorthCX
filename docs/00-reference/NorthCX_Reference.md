@@ -1,5 +1,7 @@
 # NorthCX Reference: Sierra AI Analysis and Open-Source Building Blocks
 
+Status: **Reference**. Updated: 2026-11-09. Master for: named third-party components, sources and comparisons.
+
 > **Status and confidence.** sierra.ai, docs.sierra.ai, onyx.app, sim.ai, kortix.com and agno.com were not reachable from the research environment (network policy). Everything below comes from third-party reviews, search summaries, GitHub mirrors and background knowledge. **Verify licenses, versions and feature claims against each official repo/doc before committing to a dependency.** Re-run this research once the domains are allowed.
 
 Date: 2026-11-02

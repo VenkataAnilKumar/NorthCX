@@ -1,6 +1,6 @@
 # NorthCX Observability
 
-Status: Draft
+Status: **Built**. Updated: 2026-11-09. Master for: traces, metrics, logs and export.
 
 ## Signals
 - **Traces:** one per run; events for user, model, tool call/result, guardrail, approval, handoff, reply, error.

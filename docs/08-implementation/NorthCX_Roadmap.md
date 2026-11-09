@@ -1,6 +1,6 @@
 # NorthCX Roadmap
 
-Status: Draft
+Status: **Plan**. Updated: 2026-11-09. Master for: the one-page order of releases.
 
 | Horizon | Phases | Themes |
 |---|---|---|

@@ -1,6 +1,6 @@
 # NorthCX Competitive Analysis
 
-Status: Draft. Named competitors and sourced comparisons are in `00-reference/NorthCX_Reference.md` (sections 1, 2, 7, 9). Ratings below are hypotheses.
+Status: **Reference**. Updated: 2026-11-09. Master for: market position (named comparisons are in 00-reference). Named competitors and sourced comparisons are in `00-reference/NorthCX_Reference.md` (sections 1, 2, 7, 9). Ratings below are hypotheses.
 
 ## 1. Market map
 | Segment | What they offer | Strength | Weakness vs NorthCX goals |

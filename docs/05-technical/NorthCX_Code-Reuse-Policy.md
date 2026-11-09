@@ -1,6 +1,6 @@
 # NorthCX Code Reuse Policy
 
-Status: Draft. Decision: NorthCX is assembled by fetching reference repositories and copying or adapting the code that implements our features, instead of writing everything from scratch. Source repositories, paths and licences are in `00-reference/NorthCX_Reference.md` (sections 10 and 11).
+Status: **Reference**. Updated: 2026-11-09. Master for: the code reuse policy (in force). Decision: NorthCX is assembled by fetching reference repositories and copying or adapting the code that implements our features, instead of writing everything from scratch. Source repositories, paths and licences are in `00-reference/NorthCX_Reference.md` (sections 10 and 11).
 
 ## Principles
 1. Reuse before build: a capability is copied or adapted when a licensed source implements it well.

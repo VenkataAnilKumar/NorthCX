@@ -1,6 +1,6 @@
 # NorthCX Repo Structure
 
-Status: Draft. All code lives under `src/`. One repository holds every part of the product; deployment is separate (each app ships as its own container or static site). Decision log entry 140 (decided): several apps plus shared packages in one repository. Studio and the two shared packages are in place; the other apps are created when their first feature arrives.
+Status: **Built**. Updated: 2026-11-09. Master for: repository layout. All code lives under `src/`. One repository holds every part of the product; deployment is separate (each app ships as its own container or static site). Decision log entry 140 (decided): several apps plus shared packages in one repository. Studio and the two shared packages are in place; the other apps are created when their first feature arrives.
 
 ## Today
 ```

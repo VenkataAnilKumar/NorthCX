@@ -1,6 +1,6 @@
 # NorthCX System Architecture
 
-Status: Built (1.0 release candidate); the staff platform is designed, not built. Backend is Python and the web apps are TypeScript (Decision Log #3). Component selections are in the Reference (section 8).
+Status: **Built**. Updated: 2026-11-09. Master for: system components and request flow. Built (1.0 release candidate); the staff platform is designed, not built. Backend is Python and the web apps are TypeScript (Decision Log #3). Component selections are in the Reference (section 8).
 
 ## Layers
 ```

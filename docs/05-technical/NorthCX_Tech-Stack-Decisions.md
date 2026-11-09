@@ -1,6 +1,6 @@
 # NorthCX Tech Stack Decisions
 
-Status: Draft. Named third-party components and alternatives are recorded in `00-reference/NorthCX_Reference.md` (section 8).
+Status: **Reference**. Updated: 2026-11-09. Master for: technology choices. Named third-party components and alternatives are recorded in `00-reference/NorthCX_Reference.md` (section 8).
 
 ## Backend language: decided
 Decision (2026-11-02): **Python backend with a TypeScript web platform.** NorthCX copies and adapts reference code, and most reusable backend code is Python while the Studio source is TypeScript (Reference sections 11 and 12). The earlier TypeScript prototype in `src/`, `examples/` and `tests/` is kept as a **reference implementation** of the runtime semantics (history validity, fail-closed supervision, approvals) and is not the product.

@@ -1,6 +1,6 @@
 # NorthCX 1.0.0 Release Checklist
 
-Status: working checklist. Items marked **you** need a person or a live model; the rest were verified from a clean clone of the repository.
+Status: **Plan**. Updated: 2026-11-09. Master for: finishing 1.0. Items marked **you** need a person or a live model; the rest were verified from a clean clone of the repository.
 
 ## Verified from a clean checkout (no local state)
 - [x] `pip install --require-hashes -r requirements-dev.lock && pip install --no-deps -e .` in `src/backend` succeeds; the full backend suite passes against local Postgres with pgvector (`NORTHCX_REQUIRE_DB=1`).

@@ -1,6 +1,6 @@
 # NorthCX Guardrails and Supervisors
 
-Status: Built. Describes the guardrails in the Python backend (`src/backend/northcx/guardrails.py` and `northcx/safety/`). The TypeScript prototype has the same two original guardrails as a reference.
+Status: **Built**. Updated: 2026-11-09. Master for: guardrails and supervisors. Describes the guardrails in the Python backend (`src/backend/northcx/guardrails.py` and `northcx/safety/`). The TypeScript prototype has the same two original guardrails as a reference.
 
 ## Interface
 `Guardrail` (`guardrails.py`) checks a tool call and/or a draft reply and returns a `Verdict` (allowed, or denied with a reason). `InputGuardrail` checks the customer's message before the model sees it; `OutputGuardrail` checks what a tool returned before the model sees it.

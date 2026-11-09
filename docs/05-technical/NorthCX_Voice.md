@@ -1,6 +1,6 @@
 # NorthCX voice calls
 
-Status: the conversation side of voice is built (C5, C6); the telephony and speech side is a bridge you connect. NorthCX does not ship speech-to-text, text-to-speech or telephony, and was not tested with a real phone line.
+Status: **Built**. Updated: 2026-11-09. Master for: the voice bridge protocol. The conversation side of voice is built (C5, C6); the telephony and speech side is a bridge you connect. NorthCX does not ship speech-to-text, text-to-speech or telephony, and was not tested with a real phone line.
 
 ## Shape
 

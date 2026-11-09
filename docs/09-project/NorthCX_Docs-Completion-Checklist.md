@@ -1,6 +1,6 @@
 # NorthCX documentation completion checklist
 
-Status: **2026-11-09.** Tracks whether the product documents cover the full designed platform before implementation starts. "Done" means the document describes the Workspace, Pilot, Agent Hub, Builder, Automations, personal intelligence, hybrid models and the Admin regrouping, with states marked designed or built honestly.
+Status: **Plan**. Updated: 2026-11-09. Master for: what the documents cover and what is open. Tracks whether the product documents cover the full designed platform before implementation starts. "Done" means the document describes the Workspace, Pilot, Agent Hub, Builder, Automations, personal intelligence, hybrid models and the Admin regrouping, with states marked designed or built honestly.
 
 | Area | Document | State |
 |---|---|---|

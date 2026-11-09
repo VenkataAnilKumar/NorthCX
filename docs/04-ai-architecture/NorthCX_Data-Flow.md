@@ -1,6 +1,6 @@
 # NorthCX Data Flow
 
-Status: Draft
+Status: **Built**. Updated: 2026-11-09. Master for: where data goes during a conversation.
 
 ```
 Customer -> Channel adapter -> POST /v1/agents/:id/chat

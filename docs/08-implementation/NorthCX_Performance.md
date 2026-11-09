@@ -1,6 +1,6 @@
 # NorthCX performance and cost
 
-Status: measured on one small machine with an offline stand-in for the model. Treat the numbers as the platform's own overhead, to size and compare, and measure again on your hardware with your model before committing to a capacity.
+Status: **Built**. Updated: 2026-11-09. Master for: measured performance. Measured on one small machine with an offline stand-in for the model. Treat the numbers as the platform's own overhead, to size and compare, and measure again on your hardware with your model before committing to a capacity.
 
 ## The two tools
 

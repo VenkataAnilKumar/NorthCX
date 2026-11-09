@@ -1,6 +1,6 @@
 # NorthCX Simulation and Evals
 
-Status: Draft. The runner, scenario format, judge, command line, stored runs, release-gate rule, API and web page are built (`src/backend/northcx/simulation`); enforcement at promotion arrives with versions (sprint 10); simulated customers and regression-from-trace are planned.
+Status: **Built**. Updated: 2026-11-09. Master for: simulations, scenarios, judge and the release gate. The runner, scenario format, judge, command line, stored runs, release-gate rule, API and web page are built (`src/backend/northcx/simulation`); enforcement at promotion arrives with versions (sprint 10); simulated customers and regression-from-trace are planned.
 
 ## Scenario format
 ```

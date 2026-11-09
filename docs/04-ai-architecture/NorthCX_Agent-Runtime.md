@@ -1,6 +1,6 @@
 # NorthCX Agent Runtime
 
-Status: Built. Describes the runtime as implemented in the Python backend (`src/backend/northcx/runtime.py`, `agent.py`, `guardrails.py`; tests in `src/backend/tests/test_runtime.py` and related files). The TypeScript prototype in `src/prototype` was the first reference implementation of the same semantics; it is kept and tested in CI as a reference, not as the product.
+Status: **Built**. Updated: 2026-11-09. Master for: the agent run loop, skills, voice, scopes. Describes the runtime as implemented in the Python backend (`src/backend/northcx/runtime.py`, `agent.py`, `guardrails.py`; tests in `src/backend/tests/test_runtime.py` and related files). The TypeScript prototype in `src/prototype` was the first reference implementation of the same semantics; it is kept and tested in CI as a reference, not as the product.
 
 ## Concepts
 | Concept | Definition |

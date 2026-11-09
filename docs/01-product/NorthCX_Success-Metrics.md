@@ -1,6 +1,6 @@
 # NorthCX Success Metrics
 
-Status: Draft. Targets are initial proposals; baselines come from pilots.
+Status: **Plan**. Updated: 2026-11-09. Master for: metric definitions and proposed targets. Targets are initial proposals; baselines come from pilots.
 
 ## Product metrics
 | Metric | Definition | Target |

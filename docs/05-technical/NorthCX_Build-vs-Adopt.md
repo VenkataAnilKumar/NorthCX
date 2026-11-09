@@ -1,6 +1,6 @@
 # NorthCX Build vs Adopt
 
-Status: Draft. Strategy: **adopt by copying and adapting** licensed reference code wherever possible; build only the gaps. See `NorthCX_Code-Reuse-Policy.md`. Component names and the feature-to-source map are in the Reference (sections 8, 10, 11).
+Status: **Reference**. Updated: 2026-11-09. Master for: the build-versus-adopt strategy. Strategy: **adopt by copying and adapting** licensed reference code wherever possible; build only the gaps. See `NorthCX_Code-Reuse-Policy.md`. Component names and the feature-to-source map are in the Reference (sections 8, 10, 11).
 
 | Capability | Decision | Notes |
 |---|---|---|

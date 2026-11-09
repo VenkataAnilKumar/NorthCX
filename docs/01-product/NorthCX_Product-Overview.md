@@ -1,6 +1,6 @@
 # NorthCX Product Overview
 
-Status: Snapshot (2026-11-05), release candidate 1.0.0-rc.1. Describes the product as ten layers, from what users see down to how it is sold. Companion documents: `NorthCX_Product-Definition.md` (vision and pillars), `NorthCX_PRD.md`, `NorthCX_Personas.md`, `../03-specs/NorthCX_Feature-Catalog.md` (every feature with its status), `../08-implementation/NorthCX_Gap-Closure-Plan.md` (what comes after 1.0).
+Status: **Reference**. Updated: 2026-11-09. Master for: a snapshot of the 1.0 product as ten layers (2026-11-05). Release candidate 1.0.0-rc.1 at the time. Describes the product as ten layers, from what users see down to how it is sold. Companion documents: `NorthCX_Product-Definition.md` (vision and pillars), `NorthCX_PRD.md`, `NorthCX_Personas.md`, `../03-specs/NorthCX_Feature-Catalog.md` (every feature with its status), `../08-implementation/NorthCX_Gap-Closure-Plan.md` (what comes after 1.0).
 
 **Status legend used throughout:** ✅ built and tested · 🔶 partly built · 🗺️ planned (epic and wave in the gap-closure plan) · ⛔ not something this repository can deliver alone (needs an outside party).
 

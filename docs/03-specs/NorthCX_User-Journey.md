@@ -1,6 +1,6 @@
 # NorthCX User Journeys
 
-Status: Draft. Each journey lists steps, what the user feels, risks and opportunities.
+Status: **Partly built**. Updated: 2026-11-09. Master for: user journeys (J1 to J10 built; J11 to J15 designed). Each journey lists steps, what the user feels, risks and opportunities.
 
 ## J1. Customer: order refund (happy path)
 | Step | Touchpoint | System | Risk / opportunity |

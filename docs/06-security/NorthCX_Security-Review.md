@@ -1,5 +1,7 @@
 # NorthCX security review (Phase 6)
 
+Status: **Reference**. Updated: 2026-11-09. Master for: the Phase 6 security review (done by the authors, not independent).
+
 Scope: the backend, web console, browser SDK and deployment files at the commit that adds this file. Done by the authors; see the threat model for what was considered and what remains.
 
 ## What was done

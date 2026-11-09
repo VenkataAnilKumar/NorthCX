@@ -1,6 +1,6 @@
 # NorthCX Staff Platform Architecture
 
-Status: **Proposed design, 2026-11-09; none of it is built.** How the Workspace, the extended Admin app, the Pilot, automations and personal intelligence fit on the existing platform. It extends `NorthCX_System-Architecture.md`; work packages are in `../08-implementation/NorthCX_Implementation-Plan.md` (E1, E2, E3, E5, E6, E8, E22). Requirements: `../03-specs/NorthCX_Workspace-Spec.md` and its companions.
+Status: **Designed**. Updated: 2026-11-09. Master for: architecture of the staff platform. How the Workspace, the extended Admin app, the Pilot, automations and personal intelligence fit on the existing platform. It extends `NorthCX_System-Architecture.md`; work packages are in `../08-implementation/NorthCX_Implementation-Plan.md` (E1, E2, E3, E5, E6, E8, E22). Requirements: `../03-specs/NorthCX_Workspace-Spec.md` and its companions.
 
 ## 1. Principles
 1. **One engine, pointed at staff.** The staff assistant runs on the same agent runtime, supervisors, approvals, traces and audit as customer agents. Staff agents are marked `audience: staff`; customer agents cannot use staff tools.
@@ -12,7 +12,7 @@ Status: **Proposed design, 2026-11-09; none of it is built.** How the Workspace,
 ## 2. Components
 | Component | Role | New or existing |
 |---|---|---|
-| `apps/workspace` (Next.js) | Staff web app built on `packages/ui` and `packages/api-client` | New (first slice on the feature branch) |
+| `apps/workspace` (Next.js) | Staff web app built on `packages/ui` and `packages/api-client` | New (first slice on `main`, unfinished) |
 | `apps/studio` (Next.js) | Admin app, regrouped navigation, Agent Hub, Builder, personal settings | Existing, extended |
 | `packages/ui`, `packages/api-client` | Design system ("glass", themes, accessibility), typed client | New (in progress) |
 | Workspace API (`/v1/workspace/*`) | Streamed chat bound to the signed-in identity, tasks, spaces, outputs, search | New (E5.4, E6) |

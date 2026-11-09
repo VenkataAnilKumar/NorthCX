@@ -1,6 +1,6 @@
 # NorthCX Integrations
 
-Status: Partly built. Built: connectors defined as data (HTTP APIs with allowed hosts, OAuth 2, pagination, idempotent writes; `northcx/connectors.py`), the hand-off inbox (signed webhook and a Chatwoot adapter), signed status-event webhooks, channel adapters. Planned: a connector SDK, OAuth app flow and native connectors (E9; first connectors per D6: a ticketing pack, then Slack, then Salesforce) and MCP (E4).
+Status: **Partly built**. Updated: 2026-11-09. Master for: connectors and integrations. Built: connectors defined as data (HTTP APIs with allowed hosts, OAuth 2, pagination, idempotent writes; `northcx/connectors.py`), the hand-off inbox (signed webhook and a Chatwoot adapter), signed status-event webhooks, channel adapters. Planned: a connector SDK, OAuth app flow and native connectors (E9; first connectors per D6: a ticketing pack, then Slack, then Salesforce) and MCP (E4).
 
 ## Integration types
 | Type | Examples of systems | Mechanism |

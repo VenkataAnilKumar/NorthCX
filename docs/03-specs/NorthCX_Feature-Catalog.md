@@ -1,6 +1,6 @@
 # NorthCX Feature Catalog
 
-Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 should, P2 could. Phase numbers follow `08-implementation/NorthCX_Implementation-Phases.md`. State: Built, Planned.
+Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every feature with its ID and state. The complete list of NorthCX features. Priority: P0 must, P1 should, P2 could. Phase numbers follow `08-implementation/NorthCX_Implementation-Phases.md`. State: Built, Planned.
 
 ## 1. Agent definition and authoring
 | ID | Feature | Pri | Phase | State |

@@ -1,5 +1,7 @@
 # NorthCX Templates
 
+Status: **Built**. Updated: 2026-11-09. Master for: the built-in agent templates.
+
 A template is a ready-made agent for a common support need, together with the scenarios that prove it works. Pick one, fill in a few parameters, and you have a valid agent specification and tests instead of a blank page.
 
 ## Built-in templates

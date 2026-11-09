@@ -1,6 +1,6 @@
 # NorthCX Knowledge and Memory
 
-Status: Draft
+Status: **Built**. Updated: 2026-11-09. Master for: conversation history, customer facts and long-term memories (knowledge retrieval is in 05-technical/NorthCX_Knowledge-Design.md).
 
 ## Memory
 `MemoryStore` interface:

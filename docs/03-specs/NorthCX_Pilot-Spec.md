@@ -1,6 +1,6 @@
 # NorthCX Pilot Specification
 
-Status: **Draft, designed 2026-11-09; not built.** Requirements for the Pilot window (FR36), the place where a staff member gives an assistant a task. Screens: `../assets/design/50-pilot-research-plan.png`, `51-pilot-add-menu-files.png`, `52-pilot-live-run.png`. Design text: `../07-design/NorthCX_Platform-Features-and-Tabs.md` section 3. Catalog IDs PI1 to PI14. Needs epics E5, E6 and E8.
+Status: **Designed**. Updated: 2026-11-09. Master for: the Pilot window. Requirements for the Pilot window (FR36), the place where a staff member gives an assistant a task. Screens: `../assets/design/50-pilot-research-plan.png`, `51-pilot-add-menu-files.png`, `52-pilot-live-run.png`. Design text: `../07-design/NorthCX_Platform-Features-and-Tabs.md` section 3. Catalog IDs PI1 to PI14. Needs epics E5, E6 and E8.
 
 ## 1. Purpose
 Let a person hand work to an assistant, see what it plans and does, steer it, and keep the result. It is plan-first for larger tasks and never acts without the person's permission for anything that writes.

@@ -1,5 +1,7 @@
 # Contributing to NorthCX
 
+Status: **Reference**. Updated: 2026-11-09. Master for: how to contribute.
+
 1. Fork and branch from the default branch.
 2. Backend: lint, type-check and `pytest` must pass. Web: lint, type-check and tests must pass.
 3. Add tests for behaviour changes; production failures need a regression scenario.

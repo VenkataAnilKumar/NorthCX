@@ -1,6 +1,6 @@
 # NorthCX Personas
 
-Status: Draft. Personas are hypotheses to validate with interviews, not research findings.
+Status: **Reference**. Updated: 2026-11-09. Master for: personas (hypotheses to validate). Personas are hypotheses to validate with interviews, not research findings.
 
 ## Overview
 | Persona | Role | Primary relationship | Main surfaces |

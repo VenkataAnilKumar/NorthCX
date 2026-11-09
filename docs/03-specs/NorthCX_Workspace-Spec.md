@@ -1,6 +1,6 @@
 # NorthCX Workspace Specification
 
-Status: **Draft, designed 2026-11-09; not built.** Requirements for the staff Workspace app (FR35). Screens and mockups: `../07-design/NorthCX_Platform-Features-and-Tabs.md`. Catalog IDs (W1 to W14) are in `NorthCX_Feature-Catalog.md` section 12. Everything here is planned for after 1.0 (epics E5, E6, E7, E8 in the implementation plan).
+Status: **Designed**. Updated: 2026-11-09. Master for: the staff Workspace app. Requirements for the staff Workspace app (FR35). Screens and mockups: `../07-design/NorthCX_Platform-Features-and-Tabs.md`. Catalog IDs (W1 to W14) are in `NorthCX_Feature-Catalog.md` section 12. Everything here is planned for after 1.0 (epics E5, E6, E7, E8 in the implementation plan).
 
 ## 1. Purpose and users
 A separate web app for the people who supervise the agents: support staff, team leads and reviewers. It has its own address, one sign-in with the Admin app, and one design system. It does not replace the helpdesk, and it never sends a message to a customer without a person doing so.

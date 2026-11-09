@@ -1,6 +1,6 @@
 # NorthCX Handoff and Approvals Spec
 
-Status: Draft. Catalog IDs H1-H8, S7, T3, R10.
+Status: **Built**. Updated: 2026-11-09. Master for: hand-offs and approvals. Catalog IDs H1-H8, S7, T3, R10.
 
 ## Handoff triggers
 | Trigger | Source |

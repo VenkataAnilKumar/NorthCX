@@ -1,5 +1,7 @@
 # NorthCX Glossary
 
+Status: **Reference**. Updated: 2026-11-09. Master for: terms.
+
 | Term | Meaning |
 |---|---|
 | Agent | A configured assistant: instructions, tools, guardrails, model |

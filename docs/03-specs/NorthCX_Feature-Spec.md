@@ -1,6 +1,6 @@
 # NorthCX Feature Spec
 
-Status: Draft. Detailed behaviour for feature groups in `NorthCX_Feature-Catalog.md`. "State" reflects the code today.
+Status: **Built**. Updated: 2026-11-09. Master for: detailed behaviour of the 1.0 feature groups. Detailed behaviour for feature groups in `NorthCX_Feature-Catalog.md`. "State" reflects the code today.
 
 ## 1. Agent definition (A1-A10)
 - **Inputs:** `id`, `instructions` (goals, policies, tone), `tools`, `guardrails`, `model`, `maxSteps` (default 8).

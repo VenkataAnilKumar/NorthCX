@@ -1,6 +1,6 @@
 # NorthCX Non-Functional Requirements
 
-Status: Draft. Numbers are proposals to validate.
+Status: **Plan**. Updated: 2026-11-09. Master for: non-functional requirements. Numbers are proposals to validate.
 
 | Area | Requirement |
 |---|---|

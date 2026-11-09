@@ -1,6 +1,6 @@
 # Hybrid model selection: local, private cloud and public cloud
 
-Status: **proposed** (2026-11-09). Nothing here is built except the pieces named under "What exists". It extends the provider layer (`NorthCX_Model-Providers.md`, E1 in the implementation plan). Evidence and sources are in `00-reference/NorthCX_Feature-Research-2026-11.md` section 11.
+Status: **Designed**. Updated: 2026-11-09. Master for: how a model is chosen across local, private and public tiers. Nothing here is built except the pieces named under "What exists". It extends the provider layer (`NorthCX_Model-Providers.md`, E1 in the implementation plan). Evidence and sources are in `00-reference/NorthCX_Feature-Research-2026-11.md` section 11.
 
 ![Models and routing](../assets/design/32-admin-models-routing.png)
 (Mockup, sample data.)

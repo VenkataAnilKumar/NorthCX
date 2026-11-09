@@ -1,6 +1,6 @@
 # NorthCX client SDK and chat widget
 
-Status: built for the web (C7). Source in `src/sdk`; the server serves the built scripts at `/sdk/northcx-widget.js` and `/sdk/northcx-client.js`. No runtime dependencies.
+Status: **Built**. Updated: 2026-11-09. Master for: the browser SDK and widget. Built for the web (C7). Source in `src/sdk`; the server serves the built scripts at `/sdk/northcx-widget.js` and `/sdk/northcx-client.js`. No runtime dependencies.
 
 ## How a customer's browser talks to NorthCX
 

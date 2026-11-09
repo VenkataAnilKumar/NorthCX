@@ -1,6 +1,6 @@
 # NorthCX Automations Specification
 
-Status: **Draft, designed 2026-11-09; not built.** Requirements for Automations (FR38, epics E8 and E14): multi-step work that runs by itself, with people where needed. Catalog IDs AU1 to AU12.
+Status: **Designed**. Updated: 2026-11-09. Master for: Automations and the Builder. Requirements for Automations (FR38, epics E8 and E14): multi-step work that runs by itself, with people where needed. Catalog IDs AU1 to AU12.
 
 ## 1. What an automation is
 A saved, versioned workflow with a trigger, steps and limits. A run is one execution. Runs are durable: they survive a restart and resume where they stopped.

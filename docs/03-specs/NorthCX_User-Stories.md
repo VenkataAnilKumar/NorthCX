@@ -1,6 +1,6 @@
 # NorthCX User Stories
 
-Status: Draft. Each story maps to catalog IDs.
+Status: **Partly built**. Updated: 2026-11-09. Master for: user stories (US45 onward designed). Each story maps to catalog IDs.
 
 ## Authoring and release
 | ID | Persona | Story | Acceptance | Catalog |

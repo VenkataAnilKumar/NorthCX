@@ -1,6 +1,6 @@
 # NorthCX Licences
 
-Status: Draft. Dependency-specific licence findings are in `00-reference/NorthCX_Reference.md`.
+Status: **Reference**. Updated: 2026-11-09. Master for: licence rules for dependencies and copied code. Dependency-specific licence findings are in `00-reference/NorthCX_Reference.md`.
 
 ## Policy
 - NorthCX core: Apache-2.0 (`LICENSE` at the repository root).

@@ -1,6 +1,6 @@
 # NorthCX Product Requirements Document
 
-Status: Draft. Requirement IDs are FR1-FR41 (FR35-FR41 are the after-1.0 platform additions, designed 2026-11-09); feature IDs (A, R, T, S, H, C, K, Q, O, U, P) refer to `03-specs/NorthCX_Feature-Catalog.md`. Metric definitions are in `NorthCX_Success-Metrics.md`.
+Status: **Partly built**. Updated: 2026-11-09. Master for: product requirements FR1 to FR41 (FR1 to FR34 built in 1.0; FR35 to FR41 designed). Requirement IDs are FR1-FR41 (FR35-FR41 are the after-1.0 platform additions, designed 2026-11-09); feature IDs (A, R, T, S, H, C, K, Q, O, U, P) refer to `03-specs/NorthCX_Feature-Catalog.md`. Metric definitions are in `NorthCX_Success-Metrics.md`.
 
 ## 1. Goals
 1. Resolve common customer requests autonomously and measurably.

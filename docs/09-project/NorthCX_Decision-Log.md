@@ -1,5 +1,7 @@
 # NorthCX Decision Log
 
+Status: **Reference**. Updated: 2026-11-09. Master for: every numbered decision.
+
 | # | Decision | Status | Notes |
 |---|---|---|---|
 | 1 | Project name NorthCX | Decided | Package, repo and docs renamed |

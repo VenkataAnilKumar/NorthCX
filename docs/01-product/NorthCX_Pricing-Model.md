@@ -1,6 +1,6 @@
 # NorthCX Pricing Model
 
-Status: Draft proposal. No market testing; figures are deliberately absent.
+Status: **Plan**. Updated: 2026-11-09. Master for: pricing options (blocked on D1, open versus commercial). No market testing; figures are deliberately absent.
 
 ## Positioning
 NorthCX core is open source and free to self-host. Revenue, if any, comes from services and optional commercial offerings; this document keeps those options open.

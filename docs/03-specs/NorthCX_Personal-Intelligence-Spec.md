@@ -1,6 +1,6 @@
 # NorthCX Personal Intelligence Specification
 
-Status: **Draft, designed 2026-11-09; not built.** Requirements for the personal layer of the Workspace and Settings (FR39): instructions, persona, memory, skills, personal context and the controls over them. Catalog IDs PN1 to PN12. Needs epic E5 (staff memory E5.5). Screens: `../assets/design/` (settings-skills and the Profile screens).
+Status: **Designed**. Updated: 2026-11-09. Master for: instructions, persona, memory, skills and personal context for staff. Requirements for the personal layer of the Workspace and Settings (FR39): instructions, persona, memory, skills, personal context and the controls over them. Catalog IDs PN1 to PN12. Needs epic E5 (staff memory E5.5). Screens: `../assets/design/` (settings-skills and the Profile screens).
 
 ## 1. Principle
 Personal intelligence makes an assistant fit the person without ever weakening an organization rule. Every layer is opt-in, visible ("what it used"), switchable per chat and erasable.

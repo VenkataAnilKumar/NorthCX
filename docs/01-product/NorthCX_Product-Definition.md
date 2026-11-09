@@ -1,6 +1,6 @@
 # NorthCX Product Definition
 
-Status: Draft. Companion documents: PRD, Personas, Success-Metrics, Feature-Catalog.
+Status: **Partly built**. Updated: 2026-11-09. Master for: vision, problem, pillars, market and scope. Companion documents: PRD, Personas, Success-Metrics, Feature-Catalog.
 
 ## 1. Vision
 Every company can offer customers an agent that resolves issues end to end, safely, in any channel, on infrastructure the company controls.

@@ -1,6 +1,6 @@
 # NorthCX Model Providers
 
-Status: Partly built (WP1.1 and WP1.2). The interface, the provider registry and Claude with two clients are built; other providers, fallback across providers and currency budgets are planned (E1). How a model is chosen is in `NorthCX_Hybrid-Model-Selection.md`.
+Status: **Partly built**. Updated: 2026-11-09. Master for: the model interface and providers. WP1.1 and WP1.2 are done: the interface, the provider registry and Claude with two clients are built; other providers, fallback across providers and currency budgets are planned (E1). How a model is chosen is in `NorthCX_Hybrid-Model-Selection.md`.
 
 ## How models are called today (built)
 NorthCX calls Claude through Anthropic's official SDK by default, or through its own direct HTTPS client. The SDK was a deliberate first step: it gives correct handling of the API (authentication, streaming formats, error types, new model features) with the least code to own.

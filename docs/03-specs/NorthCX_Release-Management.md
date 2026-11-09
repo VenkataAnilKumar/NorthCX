@@ -1,6 +1,6 @@
 # NorthCX Release Management Spec
 
-Status: Draft. Catalog IDs Q8-Q11. Phase 2 (versions, rollback), Phase 3 (environments), Phase 4 (rollout).
+Status: **Built**. Updated: 2026-11-09. Master for: versions, environments, rollout and rollback. Catalog IDs Q8-Q11. Phase 2 (versions, rollback), Phase 3 (environments), Phase 4 (rollout).
 
 ## Why
 Agent behaviour changes whenever instructions, tools, policies or knowledge change. Each change must be reviewable, testable and reversible.

@@ -1,6 +1,6 @@
 # NorthCX Channels and Voice
 
-Status: Draft
+Status: **Built**. Updated: 2026-11-09. Master for: channels (voice bridge detail is in NorthCX_Voice.md).
 
 ## Channel adapter contract
 An adapter translates a channel message to `POST /v1/agents/:id/chat {sessionId, message, customerId}` and posts `reply` back. Session ID is stable per conversation on that channel. When `status` is `escalated`, the adapter routes the conversation to the human inbox with the trace link.

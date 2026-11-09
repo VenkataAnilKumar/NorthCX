@@ -1,6 +1,6 @@
 # NorthCX Deployment Guide
 
-Status: Draft. The container images and the compose stack are built and tested (see Testing Strategy); a Kubernetes manifest is not provided.
+Status: **Built**. Updated: 2026-11-09. Master for: deployment and every setting. The container images and the compose stack are built and tested (see Testing Strategy); a Kubernetes manifest is not provided.
 
 ## Quick start with containers
 ```bash

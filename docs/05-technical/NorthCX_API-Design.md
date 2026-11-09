@@ -1,6 +1,6 @@
 # NorthCX API Design
 
-Status: Draft
+Status: **Built**. Updated: 2026-11-09. Master for: the HTTP API (the generated reference is docs/api).
 
 Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exists; see Security). Errors: `401` missing or invalid key (`token_expired` for a lapsed chat token), `403` the role lacks the permission, `429` rate limited (with `Retry-After`). `GET /` and `GET /health` are public.
 

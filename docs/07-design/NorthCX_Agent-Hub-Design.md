@@ -1,6 +1,6 @@
 # Agent Hub and predefined agents: design proposal
 
-Status: **proposed** (2026-11-09). What exists today is named under section 2; the rest is design. Mockups are static, sample data.
+Status: **Designed**. Updated: 2026-11-09. Master for: the Agent Hub and predefined agents. What exists today is named under section 2; the rest is design. Mockups are static, sample data.
 
 ## 1. What it is
 The **Agent Hub** is a gallery of predefined agents. A person installs one, fills in its details, checks what it needs, runs its tests, and releases it the same way as any agent. It exists for two audiences:

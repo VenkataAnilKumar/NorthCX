@@ -1,5 +1,7 @@
 # NorthCX Studio
 
+Status: **Built**. Updated: 2026-11-09. Master for: the Studio on main today.
+
 Studio is the part of the console where someone who does not write code changes an agent safely. It is built in steps; the first is the agent editor.
 
 ## Agent editor (U1) — as built

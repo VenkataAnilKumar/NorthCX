@@ -1,6 +1,6 @@
 # NorthCX Testing Strategy
 
-Status: Draft
+Status: **Built**. Updated: 2026-11-09. Master for: how the product is tested.
 
 | Level | Scope | Model | Runs |
 |---|---|---|---|
