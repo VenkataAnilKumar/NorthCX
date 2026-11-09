@@ -10,19 +10,22 @@ Source files: `07-design/mockups/*.html` (regenerate with `python scripts/gen_de
 ## 0. Layout decided on 2026-11-09 (supersedes the earlier arrangement where they differ)
 The owner described the layout; the two windows are:
 
-**Window 1, Workspace (the agent platform for staff).** Left side: a navigation list (**Chat, Assistants, Search, Artifacts, Projects, Scheduled, Threads**), a "New chat" button, recent chats and the signed-in person. Right side: the **working space**, which shows the selected area. In Chat it is the conversation next to an artifact panel (the thing being produced, with copy, edit, share and schedule). Threads is where customer conversations that need a person are handled (the queue, the approval card, the draft reply).
+**Window 1, Workspace (the agent platform for staff).** Final names (decisions 153, 157, 162): six left items, Home, Pilot, Work (Inbox, Approvals, Customers), Assist (Assistants, Search, Library), Create (Outputs, Spaces, Automations) and Team (Quality, Performance), with a "New chat" button, recent chats and the signed-in person. The right side is the working space for the selected item. Some older mockups below were drawn before the names were final; their sidebars have been regenerated with the six items.
 
-| Left item | What it is | Mockup |
+| Left item or tab | What it is | Mockup |
 |---|---|---|
-| Chat | Talk to a staff assistant (search, summarise, draft, report); answers cite sources; outputs open as artifacts | ![Chat](../assets/design/16-workspace-chat.png) |
-| Assistants | The predefined assistants this person may use (Agent Hub entries made available to them): search, favorites, what each can see and do, start a chat | ![Assistants](../assets/design/37-workspace-agent-hub.png) |
-| Search | One search across knowledge, conversations, hand-offs and artifacts, with the access reason on each result | ![Search](../assets/design/17-workspace-search.png) |
-| Artifacts | Library of everything produced (summaries, drafts, reports, digests): versions, share to team, schedule, export. **Not drawn yet**; the artifact panel in Chat shows one | (see Chat) |
-| Projects | Instructions, sources, chats and artifacts kept together for one piece of work (team or private) | ![Projects](../assets/design/18-workspace-projects.png) |
-| Scheduled | Tasks that run on their own and leave an artifact or message; run history, pause, failures shown | ![Scheduled](../assets/design/19-workspace-scheduled.png) |
-| Threads | Customer conversations: needs me, agent is handling, resolved; approvals and replies | ![Threads](../assets/design/20-workspace-threads.png) |
+| Home | What needs you, what is ready, recent work, a prompt | ![Home](../assets/design/55-workspace-home.png) |
+| Pilot | Give an assistant a task: clarifying questions, a plan to approve, live steps, a cited result | ![Pilot](../assets/design/50-pilot-research-plan.png) ![Chat](../assets/design/16-workspace-chat.png) |
+| Work: Inbox | Customer conversations: needs me, agent is handling, resolved; reply and resolve with a note | ![Inbox](../assets/design/53-workspace-subtabs.png) ![Inbox, earlier drawing](../assets/design/20-workspace-threads.png) |
+| Work: Customers | One customer across channels (second release) | ![Customers](../assets/design/58-workspace-customers.png) |
+| Assist: Assistants | The assistants this person may use: search, favourites, what each can see and do, start a task | ![Assistants](../assets/design/54-workspace-subtabs-assist.png) ![Assistants catalog](../assets/design/37-workspace-agent-hub.png) |
+| Assist: Search | One search across knowledge, conversations, hand-offs and outputs, with the access reason on each result | ![Search](../assets/design/17-workspace-search.png) |
+| Create: Outputs | Everything assistants made and the person saved: versions, share, schedule, export | ![Outputs](../assets/design/56-workspace-create.png) |
+| Create: Spaces | Instructions, sources, chats and outputs for one piece of work (team or private) | ![Spaces](../assets/design/18-workspace-projects.png) |
+| Create: Automations | Work that runs by itself: triggers, steps, run history | ![Automations](../assets/design/19-workspace-scheduled.png) |
+| Team: Quality, Performance | Review and coach; personal and team figures (leads and reviewers) | ![Quality](../assets/design/57-workspace-team.png) ![Performance](../assets/design/60-workspace-performance.png) |
 
-**Window 2, Settings and admin (the admin platform).** A wide settings app opened from the profile menu. Left: **Personal** options (Profile, Preferences, Memory, Connectors, MCP servers, Notifications, Privacy and data, Usage and limits, API keys, Security and sessions) and an **Organization (administrators)** group (People and groups, Agents, Models and budgets, Policies, Access, Audit and activity, Connectors (organization), Data residency, Billing and plan). Everyone sees the Personal group; the Organization group appears only for roles that can use it. The organization pages are the admin screens drawn earlier (sections 3 and below).
+**Window 2, Settings and admin (the admin platform).** A wide settings app opened from the profile menu. Since decision 168 its left side shows six items with sub-tabs (Overview, Operate, Build, Govern, Platform, Personal). Earlier description: **Personal** options (Profile, Preferences, Memory, Connectors, MCP servers, Notifications, Privacy and data, Usage and limits, API keys, Security and sessions) and an **Organization (administrators)** group (People and groups, Agents, Models and budgets, Policies, Access, Audit and activity, Connectors (organization), Data residency, Billing and plan). Everyone sees the Personal group; the Organization group appears only for roles that can use it. The organization pages are the admin screens drawn earlier (sections 3 and below).
 
 | Option | What it holds | Mockup |
 |---|---|---|
@@ -30,7 +33,7 @@ The owner described the layout; the two windows are:
 | Memory | What assistants remember: read, edit, erase, export; personal and team; on/off | ![Memory](../assets/design/22-settings-memory.png) |
 | Connectors and MCP servers | Connect systems, see scopes, enable or disable individual tools; remote tools write-by-default and approval-gated; organization policy can lock third-party servers | ![Connectors and MCP](../assets/design/23-settings-connectors-mcp.png) |
 
-What exists today for these: memory (with recall, edit and erase APIs for customers; staff and team memory are E5.5), connectors from files (no screens), MCP is not built (E4), scheduled tasks exist only for knowledge re-crawls (E8 is the automation work), artifacts and projects do not exist (E6, E5). The earlier three-column and session-style Workspace mockups (09, 15) remain as variants for the Threads page.
+What exists today for these: memory (with recall, edit and erase APIs for customers; staff and team memory are E5.5), connectors from files (no screens), MCP is not built (E4), scheduled tasks exist only for knowledge re-crawls (E8 is the automation work), outputs and spaces do not exist (E6, E5). The earlier three-column and session-style Workspace mockups (09, 15) remain as variants for the Inbox page.
 
 Sections 0a to 0f (the design rounds of 2026-11-09 with their earlier names) are in `../99-archive/NorthCX_Admin-Design-History.md`.
 
@@ -66,11 +69,12 @@ Two browser windows at different addresses, one sign-in. The app switcher (shown
 
 ## 2. Navigation (admin platform)
 
-Four groups replace today's flat list of 14 items. Items a role cannot use are hidden, not greyed out.
+Six left items with sub-tabs replace the 1.0 flat list of 14 items (decision 168): Overview, Operate, Build, Govern, Platform and Personal. Items a role cannot use are hidden, not greyed out. The organization pages:
 
 | Group | Items | Today in Studio |
 |---|---|---|
-| **Operate** | Overview, Conversations, Handoffs, Approvals, Review and QA | All exist as separate pages; Overview is four counters |
+| **Overview** | (its own left item) | Exists; the 1.0 version shows five counters, a new version is early work |
+| **Operate** | Conversations, Hand-offs, Approvals, Review and QA, Monitoring, Analytics | All exist as 1.0 pages (Analytics was called Insights) |
 | **Build** | Agents (catalog), Agent Hub, Builder, Library, Automations, Simulations, Models and budgets, Test console | Agents, Library, Simulations and Test console exist; the others are new |
 | **Govern** | People and groups, Access keys, Policies, Audit and activity, Trust and reliability, Data residency | Keys, audit and residency exist; the rest are new |
 | **Platform** | Channels, Systems, Usage and billing, Organization settings | Residency (now under Govern) and Organization settings exist; the rest are new |
@@ -104,8 +108,8 @@ Providers with capabilities and operator-set prices, budgets per team and per co
 ![Audit and activity](../assets/design/07-audit-activity.png)
 Staff actions and agent actions in one searchable record, with the approval reference on agent actions and the integrity status of the hash chain. The audit log exists; agent-action records are a new, medium-sized addition.
 
-### Connectors and MCP
-![Connectors and MCP](../assets/design/08-connectors-mcp.png)
+### Systems (organization; was "Connectors and MCP")
+![Systems](../assets/design/08-connectors-mcp.png)
 Every external system an agent can use, with allowed hosts, tools (and which write), who uses it, health, a test button and the events-webhook test (built in WP0.8). Connectors exist as files today; the screen and MCP are new (E4).
 
 ### Review and QA
@@ -129,7 +133,7 @@ Three columns: queue, open conversations as tabs with their status, conversation
 Buttons (primary, secondary, destructive), status badges, stat tiles, budget bars, tables with row actions, tabs and filters, form fields, drawers, empty, loading and error states, confirm dialogs, trace timeline. They use the shared design tokens (light and dark). Today `packages/ui` has states, status badge, trace timeline and answer charts; tables, drawers, filters, dialogs, tabs and stat tiles would be added there so every app shares them.
 
 ## 4a. Components of the two windows (decided: two separate apps)
-Decision of 2026-11-09: the staff **Workspace** and the **Admin** platform are two separate apps with one sign-in and one design system. Today = exists in Studio or `packages/ui`; New = to build.
+Decision of 2026-11-09: the staff **Workspace** and the **Admin** platform are two separate apps with one sign-in and one design system. Today = exists in Studio or `packages/ui`; New = to build. Early, unfinished code for some of these (the glass shell, a Workspace with a few pages) was merged to `main` on 2026-11-09 and is not counted as built here. The Workspace left rail follows the six left items (Home, Pilot, Work, Assist, Create, Team); the queue list below is the Inbox.
 
 ### Window 1: Workspace (`apps/workspace`, for support staff and team leads)
 | Area | Components | Status |
@@ -146,7 +150,7 @@ Decision of 2026-11-09: the staff **Workspace** and the **Admin** platform are t
 ### Window 2: Admin (`apps/studio`, extended, for administrators, release managers, developers, reviewers, auditors)
 | Group | Pages and their components | Status |
 |---|---|---|
-| Frame | Grouped navigation, global search (Ctrl K), tenant and environment switchers, alerts bell, account menu, app switcher, role-aware hiding | Flat navigation exists; rest New |
+| Frame | Six left items with sub-tabs (decision 168), global search (Ctrl K), tenant and environment switchers, alerts bell, account menu, app switcher, role-aware hiding | A grouped shell exists as early, unfinished code; the sub-tab layout and the rest are New |
 | Operate | **Overview** (needs-attention list, stat tiles, agent health, channel mix, spend by team, recent changes); **Conversations** (search, filters, transcript, trace timeline); **Handoffs** (queue, detail, resolve); **Approvals** (list, decision, expiry); **Review and QA** (queue, scorecard form, calibration, sampling rules, create scenario from review) | Conversations, hand-offs, approvals, review exist as pages; Overview v2, scorecards, calibration, sampling New |
 | Build | **Agents** (catalog table, spec editor, builder, versions and releases, rollout panel, governance tab); **Library** (sources, documents, import, crawl and schedules, search test, indexing status); **Simulations** (scenarios, runs, scenario editor, gate status); **Models and budgets** (providers, prices, capabilities, budgets, fallback order, routing) | Agents, knowledge, simulations exist; catalog fields, governance tab, models and budgets New |
 | Govern | **People and groups** (people, groups, role bindings, provisioning status); **Access keys** (list, scoped-key drawer, expiry, last used, revoke); **Policies** (setting table with source, lock and applies-to, change history); **Audit and activity** (filters, staff and agent actions, approval reference, integrity status, export); **Trust and reliability** (guardrail blocks, supervisor interventions, adversarial-suite trend, what has not been done); **Data residency** (destination report, policy) | Keys and audit exist on one page; the rest New |

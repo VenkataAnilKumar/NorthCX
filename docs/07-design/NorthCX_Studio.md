@@ -35,10 +35,10 @@ The Knowledge page manages the documents agents answer from:
 - **Sources**: create one (for example "Help centre") with an optional "out of date after N days"; delete one with all its documents.
 - **Documents**: a table of title, source, number of passages and when each was last reviewed, with an "out of date" badge, a source filter and an "out of date only" filter. **Add document** takes a title, optional link, and text or Markdown, typed, pasted or loaded from a file (up to 500,000 characters); headings split it into passages. **Edit** opens the original text, and saving replaces the old passages. "Mark as reviewed today" resets the document's freshness clock without changing the text.
 - **Try a question**: type what a customer might ask and see the passages the agent would find, numbered the way answers cite them, with their section, date and an out-of-date flag. "Nothing relevant was found" tells you a customer asking this would get no answer from the documents.
-Changing knowledge can also re-run tagged scenarios (see the regression settings). Reading needs `knowledge:read`; changing needs `knowledge:write` (developers and admins). Not built: web page crawling, PDF and Word files, and per-document history.
+Changing knowledge can also re-run tagged scenarios (see the regression settings). Reading needs `knowledge:read`; changing needs `knowledge:write` (developers and admins). Built later: website crawling with schedules and file import (PDF, Word, PowerPoint, Excel, HTML, Markdown, text), with an Upload files button. Not built: per-document history.
 
-## Planned next
- (documents, freshness), conversation review with failure tagging, a publish checklist that shows the required checks in one place, and single sign-on. The editor does not yet offer an undo history beyond the saved versions and their diffs.
+## What came after the editor
+The items once planned next are built: knowledge screens (documents, freshness), conversation review with failure tagging, a publish checklist that shows the required checks in one place, and single sign-on. Still not built: an undo history in the editor beyond the saved versions and their diffs. The next step for the Studio is the regrouped Admin app (`NorthCX_Platform-Features-and-Tabs.md`, section 5; designed, early code unfinished).
 
 ## Design rules
 - Studio never bypasses the platform's controls: it creates versions, and publishing still needs the release gate; production releases still need the release permission.
@@ -88,5 +88,5 @@ Built in `src/apps/studio`: Access and audit page (keys, audit log, integrity ch
 Every edit is versioned and revertible; publish requires passing required simulations; traces are one click from any conversation.
 
 ### Open
-Visual flow editor vs instruction-first editing; build vs adopt (Build-vs-Adopt).
+Visual flow editor vs instruction-first editing (a visual editor for automations is planned, E14). Build vs adopt is settled: the Studio was built.
 

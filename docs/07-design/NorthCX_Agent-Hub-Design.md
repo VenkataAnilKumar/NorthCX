@@ -6,14 +6,14 @@ Status: **Designed**. Updated: 2026-11-09. Master for: the Agent Hub and predefi
 The **Agent Hub** is a gallery of predefined agents. A person installs one, fills in its details, checks what it needs, runs its tests, and releases it the same way as any agent. It exists for two audiences:
 
 - **Admin** (Agent Hub in Settings and admin): browse, install, update, publish the organization's own agents, retire.
-- **Workspace** (**Assistants**, a tab in the left navigation, second after Chat): staff browse and start a chat with the assistants their organization has made available.
+- **Workspace** (**Assistants**, a sub-tab under Assist): staff browse and start a chat with the assistants their organization has made available.
 
 ![Admin Agent Hub](../assets/design/35-admin-agent-hub.png)
 ![Install flow](../assets/design/36-admin-hub-install.png)
 ![Workspace assistants](../assets/design/37-workspace-agent-hub.png)
 
 ## 2. What exists today
-Four built-in **templates** (`northcx/template_library/`): order status, returns and refunds, knowledge FAQ, human triage. Each is a YAML file with parameters, an agent spec and the scenarios that prove it. The platform fills `{{name}}` placeholders in text only (nothing is evaluated), validates the result like a hand-written spec, checks that the tools it needs exist in this deployment, and can create a draft version. API: `GET /v1/templates`, `GET /v1/templates/{id}`, `POST .../render`, `POST .../create-version`. Studio has no gallery screen for them. The hub is that gallery plus the missing parts below.
+Four built-in **templates** (`northcx/template_library/`): Order status, Returns and refunds, Help-centre answers and Triage and hand-off. Each is a YAML file with parameters, an agent spec and the scenarios that prove it. The platform fills `{{name}}` placeholders in text only (nothing is evaluated), validates the result like a hand-written spec, checks that the tools it needs exist in this deployment, and can create a draft version. API: `GET /v1/templates`, `GET /v1/templates/{id}`, `POST .../render`, `POST .../create-version`. Studio has no gallery screen for them. The hub is that gallery plus the missing parts below.
 
 ## 3. What a hub entry holds
 Today's template fields (title, intent, description, parameters, required tools, spec, scenarios) plus, proposed: **audience** (customer-facing or staff), **category**, **channels it suits**, **connectors and knowledge it needs**, **models qualified for it** (from the selection design), **version and change notes**, **publisher** (built in, your organization), and **what it can see and do** in plain words (shown before anyone starts a chat). Entries are files, versioned and reviewable, like templates.
@@ -38,8 +38,8 @@ Four exist; the rest are proposals, each to be built with its scenarios.
 |---|---|---|---|---|
 | Order status | Customer | Answers where-is-my-order from the order system | order tool | Built |
 | Returns and refunds | Customer | Return questions and refunds, over-limit refunds wait for a person | order and refund tools, approval | Built |
-| Knowledge FAQ | Customer | Answers only from your documents, with citations | knowledge | Built |
-| Human triage | Customer | Collects details and hands over | hand-off queue | Built |
+| Help-centre answers (`knowledge-faq`) | Customer | Answers only from your documents, with citations | knowledge | Built |
+| Triage and hand-off (`human-triage`) | Customer | Collects details and hands over | hand-off queue | Built |
 | Billing and invoices | Customer | Invoice copies, payment status, duplicate-charge checks | billing tools, approval | Proposed |
 | Appointments | Customer | Book, move, cancel | calendar tool | Proposed |
 | Account help | Customer | Password and access help after an identity code check | identity verification | Proposed |
