@@ -97,6 +97,22 @@ Ordered by what the product cannot work without, then by what the backend can su
 
 Admin required for the first release: Overview, Agents, Knowledge, Channels, Access keys, Audit and activity, Policies, Data residency, plus Profile, Memory, Connectors and Privacy under Personal. Models and budgets, People and groups and Agent Hub follow with E1, E3 and E22.
 
+## 0e. Profile with personal intelligence (proposal, 2026-11-09)
+The owner asked for personal intelligent features in Profile, in the way consumer AI assistants personalise themselves. Profile becomes four tabs. Everything is for the signed-in staff member's own work; none of it changes what customers' agents do.
+
+| Tab | What it holds | Mockup |
+|---|---|---|
+| **About you** | Name, team, language, time zone, default assistant, reply style, signature, roles (read-only) | ![About you](../assets/design/21-settings-profile.png) |
+| **Personal context** | An opt-in switch, the sources an assistant may use (my hand-offs and approvals, my drafts and artifacts, my calendar, team playbooks, my email if connected), what it does with them (daily briefing, next-step suggestions, approval reminders, learning my reply style), with a briefing preview and "based on" sources | ![Personal context](../assets/design/44-settings-personal-context.png) |
+| **My assistants** | Assistants the person builds for their own work (name, what it does, knowledge it may use, tools, who can use it), shared with a team when ready, tried before saving | ![My assistants](../assets/design/45-settings-my-assistants.png) |
+| **Activity and controls** | What assistants used in the last seven days and for what, chat retention, temporary (unsaved) chat, export, delete chats, turn off and erase personal context | ![Activity](../assets/design/46-settings-activity-controls.png) |
+
+Rules: **opt-in and off until chosen**; the person picks each source; assistants use context only when it helps and **say what they used**, linking the source; it never reaches beyond the person's own access (an assistant they build can use only tools and knowledge they can use); **customer messages and personal details are never saved** to personal context or memory; chats can be temporary; the person can see, export and erase everything; administrators can switch personal context off for a team through policy (locked, with the lock shown); actions are audited without their content. Memory (the existing page) stays the place to read and edit saved notes.
+
+Backend reality: personal memory for staff, personal assistants (reusing the agent spec with an owner and a sharing scope), personal context sources and the briefing are new (E5.5 for staff and team memory, E5 for the staff assistant runtime, E8 for the scheduled briefing). Customer-facing memory with recall, edit and erase exists today.
+
+Decisions: (1) which sources are allowed at first (recommended: hand-offs, approvals, drafts and artifacts, team documents; calendar and email later); (2) whether personal assistants may be shared without a reviewer when they can only read (recommended yes); (3) default retention of personal chats (90 days is the placeholder).
+
 ## 1. Who uses what
 
 ![Surfaces and navigation](../assets/design/11-information-architecture.png)
