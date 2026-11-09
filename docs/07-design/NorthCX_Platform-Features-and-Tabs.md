@@ -70,6 +70,8 @@ Settings and the profile stay in the corner. Rules: a count badge on a sub-tab (
 
 **Answers.** Streaming with progress and numbered citations; show what it used and why this model; copy, regenerate, edit and resend, rate, save to Outputs, turn into an automation; drafted replies open in Inbox with the draft ready and are never sent automatically; unsure answers say so and say when a source disagrees with a remembered preference.
 
+**Research and web access (decided 2026-11-09, decision 159).** The Research task style works on the company's own sources only (conversations, Library, outputs, files) and keeps customer data on the private or local model. Web search is not in the first release. Later it is an administrator-enabled tool: off by default, switched on per assistant, never used in a conversation flagged sensitive or with customer data in the query, results labelled as web sources with their address and never treated as company policy, page content treated as data and never as instructions, every search audited, and blocked entirely on private deployments with no outside network. The Pilot labels the two clearly: Research (your data) and Research the web (public).
+
 **Chat management.** History search, pin, rename, archive, delete; temporary chat (nothing saved, no memory); branch from any message; share a chat read-only with customer data masked.
 
 State: streaming chat, citations, approvals, traces and knowledge search are built; staff assistants with tools, spaces, masked conversation attach and chat history need E5; the Result tab needs E6; background runs and automations need E8; the model mode needs the hybrid selection work.
