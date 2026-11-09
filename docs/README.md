@@ -42,7 +42,7 @@ NorthCX is an open-source, self-hosted platform for supervised customer-experien
 | `04-ai-architecture/` | Agent-Runtime, Guardrails-and-Supervisors, Knowledge-and-Memory, Simulation-and-Evals, Data-Flow, Model-Providers, Hybrid-Model-Selection |
 | `05-technical/` | System-Architecture, Staff-Platform-Architecture, Tech-Stack-Decisions, Build-vs-Adopt, Code-Reuse-Policy, Channels-and-Voice, Voice, Client-SDK, Integrations, API-Design, Database-Schema, Observability, Repo-Structure, Reliability-and-Cost, Knowledge-Design |
 | `06-security/` | Security-and-Compliance, Threat-Model, Security-Review, Licenses |
-| `07-design/` | Platform-Features-and-Tabs, Admin-Platform-Design, Agent-Hub-Design, Design-System, Studio; `mockups/` holds the HTML sources of the screens in `assets/design/` |
+| `07-design/` | Platform-Features-and-Tabs, Admin-Platform-Design, Agent-Hub-Design, Design-System, UI-UX-Design-Proposal (the glass look: colour, surfaces, type, layout, motion), Studio; `mockups/` holds the HTML sources of the screens in `assets/design/` |
 | `08-implementation/` | Implementation-Plan, Gap-Closure-Plan, Roadmap, Project-Status, Release-Checklist, Deployment-Guide, Testing-Strategy, Performance |
 | `09-project/` | Decision-Log, Glossary, Docs-Completion-Checklist, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |
 | `99-archive/` | Superseded documents, each with a pointer to its replacement: the finished 1.0 phase, sprint and next-features plans, the 1.0 implementation checklist, the capability matrix, the memory design, simulation testing, the Studio UI spec and the Admin design rounds |
