@@ -121,6 +121,17 @@ Backend reality: personal memory for staff, personal assistants (reusing the age
 
 Decisions: (1) which sources are allowed at first (recommended: hand-offs, approvals, drafts and artifacts, team documents; calendar and email later); (2) whether personal assistants may be shared without a reviewer when they can only read (recommended yes); (3) default retention of personal chats (90 days is the placeholder).
 
+## 0f. Builder (proposal, 2026-11-09)
+A **Builder** tab in the Admin Build group (next to Agents, Agent Hub, Knowledge and Simulations): an assistant that drafts and maintains agents. The owner agreed to list it as a proposed tab; the name and scope are still to be decided.
+
+**Exists today:** draft an agent from procedures, a policy or a recording; refine an agent; draft test scenarios; draft and test journeys; transcribe a recording (API: `/v1/builder/draft`, `/refine`, `/scenarios`, `/transcribe`, and per-agent journey drafts). Drafts are validated, personal data is masked first, the model cannot set its own model, limits, voice, attachments, routes or tool scopes, and a draft is only ever a version that goes live through a release.
+
+**Missing:** the improvement loop (investigate a failure, propose a spec change as a diff, run the required scenarios and a replay of past conversations, hand the result to a reviewer in one place; see the "Improve an agent" screen), proactive suggestions from failures and knowledge gaps, one conversation for investigating, editing and testing with changes held in a session until reviewed, and (later) presence in chat tools.
+
+**Safety:** cannot release anything; acts with the permissions of the person using it (needs the right to create versions); reads only masked conversations and those reads are audited; every proposal shows what it looked at; spend, steps and time are capped per session with a kill switch. In the Workspace it appears only as small prompts (for example "Ask the builder to improve this agent" on a hand-off), not as a tab.
+
+**Decisions:** (1) the name (Builder or another); (2) first release scope: drafting and refining with a proper screen, or also the improvement loop; (3) proactive suggestions on by default or opt-in per team; (4) chat-tool presence later (recommended).
+
 ## 1. Who uses what
 
 ![Surfaces and navigation](../assets/design/11-information-architecture.png)
