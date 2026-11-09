@@ -22,6 +22,8 @@ Evidence is thin (product pages and third-party write-ups, no screenshots of the
 
 The pattern: **people who do the work and people who govern the system get different surfaces**, tied together by one identity and shared look. Where a vendor keeps both in one app (Intercom), it is a CX helpdesk whose staff are the same people who configure the agent.
 
+Coding and general agent workbenches (Codex, the Claude Code desktop app, MiniMax's desktop app) share one working layout: threads on the left, the conversation in the middle, the work product on the right, several threads running in parallel; their administration (GitHub Copilot's policies pages, for example) is separate, default-off for risky capabilities, and inherited from a higher level. Two ideas carry into the design: parallel threads with visible status in the workspace queue, and every admin setting showing where it comes from and whether it is locked from above.
+
 **Recommendation for NorthCX:** separate windows (separate addresses and navigation) with one sign-in, one design system and deep links between them. The staff workspace is its own app because its audience works all day in one queue, needs speed and a narrow permission set, and should never show configuration. The admin platform (Studio, extended) holds operate, build, govern and platform items for the people who configure and oversee agents. Small cross-links keep them feeling like one product: "Open in workspace" from a hand-off, "Open in admin" from an agent. A person with both roles gets an app switcher in the top bar.
 
 ## 2. Navigation (admin platform)
