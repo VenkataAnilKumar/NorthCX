@@ -4,7 +4,7 @@ Status: **Built**. Updated: 2026-11-09. Master for: database tables (checked by 
 
 | Table | Columns | Notes |
 |---|---|---|
-| `sessions` (built) | `id` pk, `created_at`, `updated_at` | `agent_id`, `customer_id` and `channel` columns arrive with deletion (K8) and channels |
+| `sessions` (built) | `id` pk, `created_at`, `updated_at` | No customer, agent or channel columns: the customer link is `session_index`, the agent is on `traces` and `session_routes`, the channel is in the channel tables |
 | `messages` (built) | `id` identity pk, `session_id` fk (cascade), `seq`, `role`, `content` jsonb | Unique (`session_id`, `seq`); history is replaced atomically on save |
 | `customer_facts` (built) | `customer_id`, `key`, `value`, `updated_at` | pk (`customer_id`, `key`); `source_trace_id` later |
 | `traces` (built) | `id` pk, `session_id`, `agent_id`, `agent_version`, `status`, `started_at`, `tools` jsonb, `event_count` | Summary columns written at save so lists never load events |
@@ -31,20 +31,13 @@ Status: **Built**. Updated: 2026-11-09. Master for: database tables (checked by 
 | `conversation_reviews` (built) | `session_id` pk, `verdict`, `handoff`, `failures` (jsonb), `note`, `reviewer`, `reviewed_at` | One review per conversation, a new one replaces it; erased with the conversation |
 | `conversation_tags` (built) | (`session_id`, `tag`) pk, `by`, `created_at` | At most 20 tags per conversation; erased with it |
 | `traces.environment` (built) | `varchar(32)`, default `production` | Which environment answered the turn |
-| `agents` | `id` pk, `definition` jsonb, `version`, `published_at` | For Studio, Phase 4 |
 | `api_keys` (built) | `key_id` pk, `name`, `role`, `key_hash`, `created_by`, `created_at`, `expires_at`, `revoked_at`, `revoked_by`, `last_used_at` | Only the SHA-256 hash of the secret is stored (migration 0006) |
-
 | `agent_versions` (built) | `id` pk, `agent_id`, `number`, `spec` jsonb, `digest`, `author`, `note`, `created_at` | Unique (`agent_id`, `number`); immutable; numbers assigned under a per-agent lock (migration 0005) |
-| `environments` | `id` pk, `agent_id`, `name`, `version_id`, `rollout_percent` | Phase 3; today the latest `releases` row for `production` is what is live |
 | `releases` (built) | `seq` identity pk, `id`, `agent_id`, `environment`, `action` (publish/rollback), `version_id` fk (null = spec file), `number`, `previous_number`, `by`, `note`, `gate` jsonb, `created_at` | Append-only; newest by `seq` is live; index (`agent_id`, `environment`, `seq`) |
 | `handoffs` (built) | `id` pk, `session_id`, `trace_id`, `agent_id`, `customer_id`, `trigger`, `reason`, `topics` jsonb, `package` jsonb, `state`, `created_at`, `resolved_by`, `resolved_at`, `note` | Indexes (`state`, `created_at`) and `session_id`; resolve is an atomic conditional update (migration 0003); `queue` arrives with routing |
 | `audit_log` (built) | `id` pk (assigned under a lock, gapless), `at`, `actor`, `role`, `key_id`, `action`, `target`, `outcome`, `detail` jsonb, `prev_hash`, `hash` | Append-only: triggers refuse UPDATE, DELETE and TRUNCATE; the hash chain exposes edits made around them (migration 0006) |
-| `knowledge_sources` | `id` pk, `name`, `kind`, `updated_at`, `status` | |
-| `scenarios` | `id` pk, `suite`, `definition` jsonb, `required` bool, `origin_trace_id` | |
 | `simulation_runs` (built) | `id` pk, `created_at`, `mode`, `source`, `passed`, `seconds`, `counts` jsonb, `agent_digests` jsonb, `meta` jsonb, `results` jsonb | Index on `created_at`; results hold per-scenario digests used by the gate (migration 0004); `agent_version_id` replaces digests once versions exist |
-| `experiments` | `id` pk, `agent_id`, `variant_a`, `variant_b`, `split`, `state` | |
 
-Indexes on `sessions(customer_id)`, `traces(session_id)`, `approvals(state)`. Retention jobs delete old `messages` and `trace_events` by policy.
 | `managed_scenarios` (built) | `name` pk, `agent_id`, `required`, `definition` jsonb, `created_by`, `updated_by`, `created_at`, `updated_at`, `revision` | Scenarios saved by the editor; run and gated like file scenarios; a name used by a file belongs to the file |
 | `knowledge_documents.body` (built) | `text`, nullable | The document as submitted, so it can be edited; null for documents saved before this column existed |
 | `sms_sessions` (built) | `session_id` pk, `phone`, `our_number`, `created_at`, `last_seen` | Shared by SMS, WhatsApp and Telegram: `phone` is the sender (`+number`, or `tg:<id>` for Telegram) and `our_number` is the number, phone-number id or bot id it came in on; index (`phone`, `our_number`, `last_seen`) |
@@ -59,3 +52,9 @@ Indexes on `sessions(customer_id)`, `traces(session_id)`, `approvals(state)`. Re
 | `alert_events` (built) | `id` pk, `at`, `payload` jsonb | The last 200 alert events with delivery status, readable from any process |
 | `crawl_jobs` (built) | `id` pk, `source_id`, `state`, `started_at`, `updated_at` (heartbeat), `payload` jsonb | Website crawls and their progress, readable from any process; a running crawl with a recent heartbeat blocks a second crawl of the same source |
 | `knowledge_embeddings` (built, created on demand) | `chunk_id` pk fk (cascade to `knowledge_chunks`), `model`, `embedding` (pgvector, any size), `created_at` | Created at start-up when meaning-based search is configured (needs the pgvector extension), so deployments without it never need the extension; an HNSW index per vector size (`ix_ke_hnsw_<size>`) is built automatically past a size threshold; dropped by a full downgrade |
+
+**Tables proposed earlier and not built, because other tables do the job:** `agents` (versions are in `agent_versions`), `environments` (each release names its environment in `releases`), `scenarios` (saved scenarios are `managed_scenarios`; file scenarios stay files), `experiments` (staged rollouts are `rollouts` and `rollout_assignments`).
+
+**Retention.** The retention job (`NORTHCX_RETENTION_DAYS`) erases idle conversations with everything linked to them; the audit log is append-only and is never erased.
+
+**After 1.0.** The staff platform adds tables (provisional names in `NorthCX_Staff-Platform-Architecture.md`, section 4); each is added here when its migration lands, and multi-tenancy adds `tenant_id` to every table (E2).

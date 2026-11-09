@@ -9,12 +9,13 @@ An adapter translates a channel message to `POST /v1/agents/:id/chat {sessionId,
 | Channel | Phase | Notes |
 |---|---|---|
 | Web chat widget | 1 | Served by the API server |
-| Email | 3 | Via inbox integration; thread ID maps to session |
-| SMS / WhatsApp | 3 | SMS and WhatsApp built; opt-in and template rules apply |
+| Email | 3 | Built: inbound mail API and SMTP replies; thread maps to session (below) |
+| SMS / WhatsApp | 3 | Built; opt-in and template rules apply |
+| Telegram | 3 | Built (Bot API webhook) |
 | Voice | 5 | Built as a WebSocket protocol for a telephony bridge; see `NorthCX_Voice.md` |
 
 ## Voice requirements
-Low-latency streaming, barge-in handling, short replies, spoken confirmation for actions, DTMF fallback, and handoff to a phone queue. Latency budget to be set when voice starts.
+Low-latency streaming, barge-in handling, short replies, spoken confirmation for actions, DTMF fallback, and handoff to a phone queue (all built in the conversation side, `NorthCX_Voice.md`). A latency budget is not set yet; it needs measurements with a real bridge and model.
 
 ## Voice legal and consent
 Call recording and automated-call rules vary by jurisdiction. The voice adapter must announce that the caller is speaking to an automated agent, obtain recording consent where required, and honour opt-out and data-deletion requests. Legal review is required before launch.
@@ -26,7 +27,7 @@ Account-affecting actions require verification appropriate to the channel (for e
 Detect the customer's language; reply in it; keep policy text in the base language; voice supports mid-call language switching.
 
 ## Attachments (C10)
-Images and documents are stored with size and type limits, scanned, and passed to the agent as labelled untrusted input.
+Pictures, PDFs and plain text are checked by content, size-limited, optionally scanned, stored with the conversation and passed to the agent as labelled untrusted input; PDFs can be passed as masked text.
 
 ## Business hours and routing (H8)
 Channels follow the same hours and queue rules; outside hours the agent sets expectations and records a callback or ticket.
@@ -35,7 +36,7 @@ Channels follow the same hours and queue rules; outside hours the agent sets exp
 Embeddable client with streaming, attachments and handoff status.
 
 ## Open questions
-Streaming replies on the API, identity verification per channel, and per-channel style guidance in instructions.
+All three earlier questions are settled and built: streaming replies on the API (`/chat/stream`), identity verification by one-time code (below), and per-channel style (`channel_styles`). Open: sending media and buttons on messaging channels, and a latency budget for voice.
 
 
 ## Email channel — as built
@@ -59,7 +60,7 @@ Streaming replies on the API, identity verification per channel, and per-channel
 - **Opt-out:** STOP, STOPALL, UNSUBSCRIBE, CANCEL, END and QUIT stop all texts to that number (also any reply still waiting in the outbox); START and UNSTOP resume; HELP sends a fixed help text. Opt-outs are stored by one-way hash and survive customer erasure so a STOP is never forgotten.
 - **Replies:** split at sentence ends into up to three texts of at most 1,500 characters, the rest cut with an ellipsis. Per-number limit of 20 replies per hour. Attachments are noted, never read.
 - **Style (C8):** an agent spec may carry `channel_styles` (for example `sms: "Two short sentences, no markdown"`); the matching style is added to the prompt for that channel (`sms`, `email`, and `web` for chat-token callers; API callers may send `channel`). Specs without it keep their digests.
-- **Provider interface:** `valid_signature(url, params, signature)` and `send(to, from, body)`; a different provider needs only those two. Limits: no WhatsApp or other messaging apps yet, no delivery receipts, no media, and the signature algorithm is implemented from the provider's published description and checked against its documented example, not against a live account.
+- **Provider interface:** `valid_signature(url, params, signature)` and `send(to, from, body)`; a different provider needs only those two. Limits (SMS): no delivery receipts, no media, and the signature algorithm is implemented from the provider's published description and checked against its documented example, not against a live account.
 
 ## Languages (R9)
 

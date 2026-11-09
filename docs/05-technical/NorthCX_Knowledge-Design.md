@@ -2,7 +2,7 @@
 
 Status: **Built**. Updated: 2026-11-09. Master for: knowledge sources, ingestion, retrieval and citations.
 
-Covers features K4 (retrieval with citations), K5 (sources and freshness), K8 (retention and deletion). Summarisation (K6) and business-system context (K7) follow.
+Covers features K4 (retrieval with citations), K5 (sources and freshness), K8 (retention and deletion). Summarisation (K6) and business-system context (K7) are built and described in `../04-ai-architecture/NorthCX_Knowledge-and-Memory.md` and `NorthCX_Integrations.md`.
 
 ## Goals
 - An agent answers policy and product questions from the company's own documents and shows where each answer came from.
@@ -47,10 +47,10 @@ Deleting a document removes its passages immediately and leaves an audit entry. 
 - Bounds: at most 200 pages, 2 MB per page (10 MB for a PDF), 40 MB in total, 15 minutes by default, 5 crawl starts a minute per key, one crawl per source at a time.
 - Each page becomes one document with id `web:<host><path>` and its address as the URL; `Last-Modified` or the sitemap's `lastmod` is the "last reviewed" date, so freshness flags work. A re-crawl updates only pages whose text changed. With `prune`, documents from an earlier crawl whose pages the site now reports gone (404/410) are removed; a page that merely failed to load is kept, hand-written documents are never touched, and pruning is skipped when the crawl stopped at a limit.
 - Crawled text is untrusted data like everything an agent reads. Give agents that answer from crawled pages the `tool_output_injection` output check (the shipped templates do). Text hidden from readers by style sheets (rather than inline styles) is not recognised.
-- Crawl history is kept in memory per process (the last 20); the documents are the permanent result. To refresh regularly, call the crawl endpoint from a scheduler.
+- Crawls and their progress are stored in the database (`crawl_jobs`), readable from any server process; the documents are the permanent result. Regular refreshes are built as scheduled re-crawls (below).
 
-## Not in this step
-Word and other Office formats, connectors to document systems, embeddings (meaning-based ranking is planned next).
+## Not in the first step (later built where marked)
+Word and other Office formats (built: import of `.docx`, `.pptx`, `.xlsx`; the crawler still skips Office files), embeddings (built: meaning-based search, below), connectors to document systems (not built; E9).
 
 ## Meaning-based search (hybrid)
 

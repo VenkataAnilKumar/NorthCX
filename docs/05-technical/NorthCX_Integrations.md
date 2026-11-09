@@ -11,8 +11,8 @@ Status: **Partly built**. Updated: 2026-11-09. Master for: connectors and integr
 | Helpdesk / inbox | Tickets, human queue | Channel adapter + handoff |
 | Knowledge | Articles, policies | Retrieval tool |
 
-## Connector library (T5)
-In-tree, tested connectors for common categories, each with typed tools, approval defaults and scenarios: order lookup, shipment tracking, refunds and credits, subscription changes, account profile updates, ticket create/update, appointment booking.
+## Connector library (T5): the plan and what was built
+The plan was in-tree, tested connectors for common categories (order lookup, shipment tracking, refunds and credits, subscription changes, account profile updates, tickets, appointment booking). What was built is a connector format (YAML files that describe a REST API and its tools) with five generic starting points; see "Connector library (T5)" below. Native connectors for named products are planned (E9).
 
 ## Permissions (T6)
 Tools are granted per agent and scoped per customer, so an agent can only touch the current customer's records.
@@ -24,7 +24,7 @@ Writes carry an idempotency key derived from session and call; retries never dup
 Tests and simulations can run tools in dry-run mode that records the intended action without executing it.
 
 ## Webhooks (P8)
-Signed events for conversation status changes, approvals and handoffs.
+Signed status events with retries and a polling feed, and a test sender (`POST /v1/events/test`); see "Status events" below.
 
 ## Embedding the customer chat
 1. Your server holds a **channel key** (create it on the Access page) in its secrets store.
@@ -59,7 +59,7 @@ Narrow scope; typed input; least-privilege credentials; idempotency key for writ
 Credentials come from environment or a secrets manager, never from prompts or traces.
 
 ## Open
-Which connectors ship in-tree vs as separate packages.
+Which native connectors ship in-tree and which as separate packages (E9; the first, per D6: a ticketing pack, then Slack, then Salesforce), and an MCP client and server (E4).
 
 
 ## Customer context (K7)
@@ -144,6 +144,7 @@ Set `NORTHCX_EVENTS_WEBHOOK_URL` and `NORTHCX_EVENTS_WEBHOOK_SECRET` and NorthCX
 | `approval.requested` | a tool call is waiting for approval (`approvalId`, `tool`, `agent`) |
 | `approval.decided`, `approval.expired` | a person decided, or the approval timed out and the conversation was handed to a person |
 | `conversation.rated` | a customer rated a conversation (`rating`; the comment is never sent) |
+| `conversation.abuse` | abuse detection noticed abusive language, threats, repetition or a burst (kinds and strike count) |
 | `alert.fired` | an alert rule started firing (`rule`, `metric`, `severity`, `value`, `threshold`) |
 | `version.created`, `release.published`, `release.rolled_back`, `rollout.changed` | agent lifecycle changes by staff |
 | `key.created`, `key.revoked` | API key changes (ids and names, never keys) |

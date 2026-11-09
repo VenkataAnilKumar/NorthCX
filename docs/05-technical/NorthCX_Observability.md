@@ -8,19 +8,19 @@ Status: **Built**. Updated: 2026-11-09. Master for: traces, metrics, logs and ex
 - **Logs:** structured, no PII.
 
 ## Export
-Trace events map to OpenTelemetry spans (run = root span, model/tool/guardrail = children) for an external backend; the built-in store remains the source of record.
+Trace events map to OpenTelemetry spans (run = root span, model/tool/guardrail = children), or to Langfuse traces, for an external backend; the built-in store remains the source of record.
 
 ## Metric definitions
 See `01-product/NorthCX_Success-Metrics.md` for numerators, denominators and targets.
 
 ## Alerts (O9)
-Error rate, model latency, escalation spikes, guardrail-block spikes, cost per run, approval queue age.
+Planned list: error rate, model latency, escalation spikes, guardrail-block spikes, cost per run, approval queue age. Built: six default rules (error, escalation, guardrail blocks, tool errors, fallback-model calls, slow replies; below); cost per run and approval queue age are not alert rules yet.
 
 ## Search and tags (O10)
 Filter conversations by intent, status, agent version, language, tag and date; reviewers tag failure causes, which feed failure analysis (O7).
 
-## Insights (Phase 4)
-Dashboards for resolution rate, top intents, failure reasons, approval turnaround, cost.
+## Insights (built in Phase 4)
+Figures with numerators and denominators, a provisional resolution rate beside containment, failure reasons, intent gaps, ratings, tokens and estimated cost (below). Approval turnaround is not a figure yet.
 
 ## Privacy
 Redaction applies before export; access to traces is role-restricted.

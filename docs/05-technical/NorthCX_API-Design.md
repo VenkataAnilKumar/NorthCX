@@ -25,6 +25,7 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 | POST | `/knowledge/sources/{id}/import` | `filename` (and optional `externalId`, `url`): the file is the body (PDF, HTML, Markdown, text) (`knowledge:write`) (built) |
 | POST | `/knowledge/sources/{id}/crawl` | `url`, `maxPages`, `maxDepth`, `delaySeconds`, `includePaths`, `excludePaths`, `useSitemap`, `prune`: starts a background crawl of an operator-listed host; 202 with a job (`knowledge:write`) (built) |
 | GET | `/knowledge/crawls`, `/knowledge/crawls/{id}` | crawl progress and outcome (`knowledge:read`) (built) |
+| POST | `/events/test` | send a signed sample status event to the configured events webhook and report whether the receiver accepted it; marked as a test, not stored or retried; audited; six a minute per key (built) |
 | POST | `/alerts/test` | send a test alert through the real delivery path and report whether the receiver accepted it (`keys:manage`) (built) |
 | GET | `/monitor/findings` | Monitoring flags, newest first; filters `rule`, `severity`, `agentId`, `sessionId`, `since`, `limit` (`monitor:read`, built) |
 | GET | `/monitor/summary` | Counts per rule and severity, rule names, total (built) |
@@ -41,15 +42,10 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 | POST | `/agents/:id/versions` | `{spec | specYaml | fromBaseline, by, note?}`: save the next version (built) |
 | GET | `/agents/:id/versions`, `/agents/:id/versions/:n` | List and read versions with their YAML (built) |
 | GET | `/agents/:id/versions/:a/diff/:b` | Reviewable diff between two versions (built) |
-| POST | `/agents/:id/releases` | `{version, by, note?}`: publish; 409 `gate_not_satisfied` with `reasons` unless the gate passes for that version (built) |
-| POST | `/agents/:id/rollback` | `{by, note?, toVersion?}`: restore a previously live version or the spec file; no gate (built) |
-| GET | `/agents/:id/releases`, `/agents/:id/live` | Release history; what is serving now (built) |
 | GET | `/simulations/scenarios` | Scenarios and available modes (built) |
 | POST | `/simulations/runs` | `{mode, only?, skipJudge?, agent?, version?}`: run scenarios (against a saved version if given) and store the result; 409 if a run is in progress (built) |
 | GET | `/simulations/runs`, `/simulations/runs/:id` | Stored runs and a full report (built) |
 | GET | `/simulations/gate?agent=&version=` | Whether the agent's spec file, or a saved version, passed every required scenario (built) |
-| GET | `/audit` | Query the audit log (Phase 2) |
-| DELETE | `/customers/:id` | Delete a customer's data (Phase 3) |
 | GET | `/approvals?state=` | List approvals (built) |
 | POST | `/approvals/:id/decision` | `{approved, by, note?}`: records the decision, runs the action once if approved, continues the conversation; returns the approval plus `resume` (`reply`, `status`, `traceId` or `error`). 404 unknown, 409 already decided |
 | POST | `/approvals/expire` | `{olderThanSeconds}`: expire stale pending approvals and escalate (built) |
@@ -62,10 +58,10 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 `{reply, status: "completed"|"escalated"|"needs_approval", traceId, pendingApprovals[], handoffId}` (`handoffId` is set when the status is `escalated`)
 
 ## Errors
-`400` invalid body, `401` bad key, `404` unknown agent or trace, `429` rate limited, `500` internal. Error body `{error: {code, message}}`.
+`400` invalid body, `401` missing or invalid key, `403` the role lacks the permission, `404` unknown resource, `409` a conflict (already decided, already resolved, a run in progress, gate not satisfied), `413` body too large, `429` rate limited (with `Retry-After`), `501` a feature that is not configured, `500` internal. Error body `{error: {code, message}}`.
 
 ## Later
-Server-sent events for streaming, webhooks for status changes, pagination for lists.
+Built since this section was first written: server-sent events for streaming and signed webhooks for status events. Still open: consistent pagination across every list (most lists take `limit` and some `before` or `after`). The staff platform adds `/v1/workspace/*`, `/v1/hub/*` and policy routes (designed, `NorthCX_Staff-Platform-Architecture.md`).
 
 
 ## Idempotency
@@ -104,7 +100,6 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | POST | `/handoffs/{id}/assist` | draft suggestions for the person handling the hand-off, stored with it; 20 per minute per key (`handoffs:resolve`) (built) |
 | POST | `/agents/{id}/journeys/draft` | `description`: a journey drafted by the model from plain language, checked against the agent's tools; 10 per minute per key; needs `versions:create` (built) |
 | POST | `/builder/draft` | `agentId`, `goal`, `sources` (1-8 of `{kind: procedure\|transcript, name, text}`, 20,000 characters each): a first draft of an agent (YAML, warnings, notes, typical questions) from procedures and conversation transcripts. Saves nothing; needs `versions:create`; 5 a minute per key |
-| POST | `/insights/ask` | `question`: a performance question answered from the recorded figures (see Observability) |
 | POST | `/agents/{id}/journeys/scenarios` | `journey`: test scenario drafts, one per sample message (`simulations:run`) (built) |
 | GET | `/auth/sso/config`, `/auth/sso/login`, `/auth/sso/callback` | outside `/v1`, no key: start and finish a single sign-on (built) |
 | POST | `/me/logout` | end the caller's single-sign-on session (other keys are untouched) (built) |
@@ -129,7 +124,6 @@ Server-sent events for streaming, webhooks for status changes, pagination for li
 | GET | `/events/types` | The status event types and which are subscribed (`audit:read`) (built) |
 | GET | `/events?after=&limit=` | Poll the same status events the webhook sends; `after` is the last id seen (`audit:read`) (built) |
 | GET | `/residency` | Where this deployment keeps data and every destination it sends data to, checked against the residency file (`audit:read`) (built) |
-| POST | `/builder/draft` | `{agentId, goal, sources}`: a draft agent from procedures and transcripts; saves nothing (built) |
 | POST | `/builder/refine` | `{current, instruction}`: a revised draft with a list of changes (built) |
 | POST | `/builder/scenarios` | `{spec, examples}`: test scenarios for a draft (guarantee tests run against the draft; question tests need a live model) (built) |
 | POST | `/builder/transcribe?language=` | The body is a recording; returns transcript text through the configured transcription service (built) |

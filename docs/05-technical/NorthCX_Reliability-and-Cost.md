@@ -5,32 +5,32 @@ Status: **Built**. Updated: 2026-11-09. Master for: failure handling, retries, b
 ## Failure modes and handling
 | Failure | Handling |
 |---|---|
-| Model call error or timeout | Retry with backoff (bounded); then escalate to a human; error traced. Escalation on first failure is implemented. |
+| Model call error or timeout | Retry with backoff (bounded), then fallback models, then escalate to a human; error traced (built) |
 | Model rate limit | Queue or shed load; return a graceful message; alert |
-| Provider outage | Fallback model through the `LLM` interface (planned) |
+| Provider outage | Fallback models and a circuit breaker (built); fallback across providers is planned (E1) |
 | Tool timeout or error | Error returned to the model; one retry for idempotent reads |
-| Supervisor error | Treated as a denial (implemented) |
+| Supervisor error | Treated as a denial (built) |
 | Store unavailable | Fail the request with a clear error; do not answer without history |
 
-## Planned reliability features
-Model fallback and retries (R5), streaming (R6), cost budgets (R7), idempotent writes (T4), approval expiry, and queue-based processing for channels with delayed replies.
+## Reliability features
+Built: model fallback and retries (R5), streaming (R6), token budgets (R7), idempotent writes (T4), approval expiry, and an outbox with retries for replies sent outside a request. Planned: budgets in currency and per team (E1).
 
 ## Targets (to validate)
 | Metric | Proposal |
 |---|---|
-| Chat first-token latency (p95) | Set after streaming exists |
+| Chat first-token latency (p95) | Set after a baseline with a real model (streaming is built) |
 | Chat full-reply latency (p95) | Set after pilot |
 | API availability | 99.9% for self-hosted reference deployment |
 | Escalation on failure | 100% of failed runs reach a human path |
 
 ## Cost controls
-- Step limit per run (`maxSteps`) and rewrite limit (2).
-- Per-conversation token budget; escalate when exceeded (planned).
-- Cheaper supervisor model; shorter history via summarisation (planned).
-- Cost per run recorded in traces and reported in Insights.
+- Step limit per run (`max_steps`) and rewrite limit (2).
+- Token budget per turn and per day; escalate when exceeded (built).
+- Cheaper supervisor model and summaries; shorter history via summarisation (built).
+- Tokens per run recorded in traces; estimated cost reported in Insights.
 
 ## Capacity
-Stateless runtime workers scale horizontally; state lives in the store. Concurrency limits per customer and per API key.
+Several server processes with roles (`api`, `worker`) share state through Postgres; background jobs are leased to one process at a time. Rate limits per key, session, address and conversation; shared across processes with the Postgres limits backend.
 
 
 ## As built
@@ -40,7 +40,7 @@ Stateless runtime workers scale horizontally; state lives in the store. Concurre
 - **Circuit breaker:** after three consecutive failures a model is skipped for 30 seconds so an outage costs one fast fallback instead of a slow failure on every turn. The last model in the chain is always tried.
 - **Timeout:** each model call is limited (default 60 s) so a hung connection cannot hold a conversation.
 - **Budgets:** an agent spec may set `max_run_tokens` (1,000 to 5,000,000); a turn that reaches it stops and is handed to a person. `NORTHCX_DAILY_TOKEN_BUDGET` stops all model calls for the rest of the UTC day and hands conversations to people. Both are recorded as `budget` trace events and escalate with trigger `budget_exceeded`. Token counts come from the provider's usage report.
-- **Limits:** the daily count is per server process and resets at restart; with several servers each enforces the cap separately. There is no per-customer or per-dollar budget yet, and streaming is not built.
+- **Limits:** the daily count is per server process unless `NORTHCX_LIMITS_BACKEND=postgres` is set, in which case all processes share it (`usage_ledger`, built). There is no per-customer or per-currency budget yet.
 
 ### Write safety
 

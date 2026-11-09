@@ -1,6 +1,6 @@
 # NorthCX Code Reuse Policy
 
-Status: **Reference**. Updated: 2026-11-09. Master for: the code reuse policy (in force). Decision: NorthCX is assembled by fetching reference repositories and copying or adapting the code that implements our features, instead of writing everything from scratch. Source repositories, paths and licences are in `00-reference/NorthCX_Reference.md` (sections 10 and 11).
+Status: **Reference**. Updated: 2026-11-09. Master for: the code reuse policy (in force). The policy allows copying or adapting permissively licensed reference code with full provenance; in practice nothing has been copied, and the product depends on no reference project (see "Current rule" at the end, `NOTICE` and `THIRD_PARTY.md`).
 
 ## Principles
 1. Reuse before build: a capability is copied or adapted when a licensed source implements it well.
@@ -40,10 +40,10 @@ third_party/<source>/     unmodified or lightly modified imports with original l
 - Copy files from `ee` or `enterprise` directories or from any restricted licence.
 - Strip licence headers or copyright lines.
 - Copy generated, vendored or large binary assets without checking their licences.
-- Merge code whose licence is incompatible with the NorthCX licence (to be decided).
+- Merge code whose licence is incompatible with the NorthCX licence (Apache-2.0).
 
 ## Compatibility with the NorthCX licence
-Apache-2.0, MIT and BSD code can be included in an Apache-2.0 project. The project licence is still undecided; confirm this policy against the final choice.
+Apache-2.0, MIT and BSD code can be included in an Apache-2.0 project. NorthCX is licensed under Apache-2.0 (`LICENSE`).
 
 ## Risks
 | Risk | Mitigation |
@@ -51,7 +51,7 @@ Apache-2.0, MIT and BSD code can be included in an Apache-2.0 project. The proje
 | Missed restricted directory | Path allow-list in CI; licence scanner |
 | Transitive dependencies with other licences | Dependency licence scan in CI |
 | Divergence from upstream | Record upstream commits; isolate local changes |
-| Mixed languages complicate the build | Decide the backend language before copying (see Decision Log) |
+| Mixed languages complicate the build | Backend language decided: Python (Decision Log #3) |
 | Code quality or security issues inherited | Review, tests and scans on every import |
 
 
