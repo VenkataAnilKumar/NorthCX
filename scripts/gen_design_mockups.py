@@ -321,7 +321,7 @@ def settings_shell(active: str, title: str, sub: str, body: str) -> str:
 <main><h1>{E(title)}</h1><p class="sub">{sub}</p>{body}</main></div><div class="mock">Design mockup &middot; sample data</div></body></html>"""
 
 
-PROFILE_TABS = lambda on: '<div class="tabs">' + "".join(f'<a class="{"on" if t == on else ""}">{t}</a>' for t in ["About you", "Personal context", "My assistants", "Activity and controls"]) + "</div>"
+PROFILE_TABS = lambda on: '<div class="tabs">' + "".join(f'<a class="{"on" if t == on else ""}">{t}</a>' for t in ["About you", "Instructions and persona", "Personal context", "Skills", "My assistants", "Activity and controls"]) + "</div>"
 
 SCREENS["21-settings-profile"] = settings_shell("Profile", "Profile", "How you appear to colleagues, and how your assistants know you.", PROFILE_TABS("About you") + f"""
 <div class="g2"><div class="card"><h3>About you</h3><div class="row" style="align-items:center"><div class="av" style="width:56px;height:56px;font-size:18px">PN</div><span class="btn">Change photo</span></div>
@@ -352,16 +352,29 @@ SCREENS["46-settings-activity-controls"] = settings_shell("Profile", "Profile", 
 <div><div class="card"><h3>Controls</h3>{table(["Setting",""],[["Save my chats","<b>90 days</b> &#9662;"],["Start the next chat as a temporary chat (not saved)",'<span class="sw2 off"></span>'],["Use my chats to improve my assistants",'<span class="sw2"></span>']])}<div class="row" style="margin-top:10px"><span class="btn">Export my data</span><span class="btn d">Delete my chats</span><span class="btn d">Turn off and erase personal context</span></div></div>
 <div class="card" style="margin-top:12px"><h3>What stays out</h3><p class="note">Customer messages and personal details are never saved to your personal context or memory. Your administrator's data policy still applies to everything here, and your actions are recorded in the audit log without their content.</p></div></div></div>""")
 
-SCREENS["22-settings-memory"] = settings_shell("Memory", "Memory", "What your assistants remember about how you work. You can read, edit and erase everything here.", f"""
-<div class="card"><div class="row2"><div><b>Use memory</b><p class="note" style="margin:0">Assistants recall these notes in your chats. Turn off to stop recalling and saving.</p></div><span class="sw2"></span></div></div>
-<div class="tabs" style="margin-top:14px"><a class="on">Personal</a><a>Team: Billing</a></div>
-<div class="card" style="padding:4px 14px">{table(["Memory","Saved from","Updated",""],[
- ["Prefers short replies with the policy name cited","chat &middot; Nov 3","Nov 3",'<span class="btn">Edit</span> <span class="btn d">Erase</span>'],
- ["Works Monday to Thursday; weekly QA digest goes to Friday","chat &middot; Oct 28","Oct 28",'<span class="btn">Edit</span> <span class="btn d">Erase</span>'],
- ["Never include customer names in summaries, use order numbers","you added","Oct 20",'<span class="btn">Edit</span> <span class="btn d">Erase</span>'],
- ["Billing lead is Marco L.","chat &middot; Oct 12","Oct 12",'<span class="btn">Edit</span> <span class="btn d">Erase</span>']])}</div>
+SCREENS["22-settings-memory"] = settings_shell("Memory", "Memory", "What your assistants remember. Read it, edit it, erase it. Instructions always win over memory.", f"""
+<div class="g2"><div class="card"><div class="row2"><div><b>Remember things for me</b><p class="note" style="margin:0">Assistants save useful, lasting facts about how you work, and you can say &ldquo;remember this&rdquo; at any time.</p></div><span class="sw2"></span></div></div>
+<div class="card"><div class="row2"><div><b>Use memory in new chats</b><p class="note" style="margin:0">Turn off to start clean. You can also start a single chat without memory.</p></div><span class="sw2"></span></div></div></div>
+<div class="tabs" style="margin-top:14px"><a class="on">Personal (4)</a><a>Project: Billing escalations (3)</a><a>Team: Billing (5)</a></div>
+<div class="card" style="padding:4px 14px">{table(["Memory","Where it came from","Applies to","Updated",""],[
+ ["Prefers short replies with the policy name cited","you said &ldquo;remember&rdquo; &middot; chat Nov 3","all chats","Nov 3",'<span class="btn">Edit</span> <span class="btn d">Erase</span>'],
+ ["Works Monday to Thursday; weekly QA digest goes out Friday","noticed in chat &middot; Oct 28","all chats","Oct 28",'<span class="btn">Edit</span> <span class="btn d">Erase</span>'],
+ ["Never include customer names in summaries, use order numbers","you added","all chats","Oct 20",'<span class="btn">Edit</span> <span class="btn d">Erase</span>'],
+ ["Billing lead is Marco L.","noticed in chat &middot; Oct 12","all chats","Oct 12",'<span class="btn">Edit</span> <span class="btn d">Erase</span>']])}</div>
+<div class="g2" style="margin-top:12px"><div class="card"><h3>How memory and instructions work together</h3><p class="note">Memory is what assistants have learned about you. Instructions are what you or your organization told them to do. <b>If they conflict, instructions win</b>, and organization rules win over both. Memory never overrides a policy, a fact from a source, or a customer's data.</p></div>
+<div class="card"><h3>Keep it honest</h3><p class="note">Memory should not make an assistant simply agree with you. Assistants still cite sources and say when a source disagrees with a remembered preference. Review memory now and then; items unused for 90 days are offered for removal.</p></div></div>
 <div class="row" style="margin-top:12px"><span class="btn p">+ Add a memory</span><span class="btn">Export</span><span class="btn d">Erase all personal memory</span></div>
-<p class="note" style="margin-top:10px">Memory never stores customer messages or personal details. Team memory is shared with your team and edited by team leads.</p>""")
+<p class="note" style="margin-top:10px">Memory never stores customer messages or personal details. Project memory stays in its project; team memory is shared with the team and edited by team leads.</p>""")
+
+SCREENS["47-settings-instructions-persona"] = settings_shell("Profile", "Profile", "How you appear to colleagues, and how your assistants know you.", PROFILE_TABS("Instructions and persona") + f"""
+<div class="g2"><div><div class="card"><div class="row2"><h3 style="margin:0">Your instructions</h3><span class="note">1,140 of 4,000 characters</span></div><p class="note">Standing guidance for every chat you start. Plain language.</p>
+<div class="in" style="display:block;color:var(--text);line-height:1.6">Write like a colleague, not a bot. Keep answers short and put the decision first. Cite the policy name when a policy applies. Use order numbers, not customer names, in anything I share. If you are unsure, say so and show the source.</div>
+<div class="row" style="margin-top:10px"><span class="btn p">Save</span><span class="btn">Try it on a sample</span></div></div>
+<div class="card" style="margin-top:12px"><h3>Persona and style</h3><p class="note">How answers sound to you. Choose one, or teach it from your own writing.</p><div class="row"><span class="pill"><b>Concise</b></span><span class="pill">Formal</span><span class="pill">Friendly</span><span class="pill">Explanatory</span><span class="pill">Custom: my style</span></div>
+<div class="field"><label>Custom style from your writing</label><span class="in">3 samples added (a reply, a digest, a note)</span></div><div class="row"><span class="btn">Add a sample</span><span class="btn">Edit custom style</span></div>
+<p class="note" style="margin-top:8px">This changes how your assistants write for you. It does not change what the customer-facing agents say; that is set by your administrators.</p></div></div>
+<div><div class="card"><h3>What applies to a chat (highest wins)</h3>{table(["Layer","Set by","State"],[["Platform and organization rules","administrators",badge("locked","gr")],["Team instructions (Billing)","team lead",badge("2 rules","info")],["Project instructions","project owner",badge("per project","info")],["Your instructions","you",badge("active","ok")],["Style for this chat","you, per chat",badge("Concise","ok")],["Memory","learned","informs, never overrides"]])}<p class="note" style="margin-top:8px">A closer layer can add or narrow, never loosen a rule above it. &#128274; Locked layers show who set them.</p></div>
+<div class="card" style="margin-top:12px"><h3>Preview: same answer, your style</h3><div class="src"><b>Before</b> &middot; I have reviewed the situation and it appears that the refund may be eligible for approval under the applicable policy, subject to the stated limits.</div><div class="src"><b>Your style</b> &middot; Approve it. Order 1019 is 9 days late; the refund policy covers over 7 days (&sect;3). Over $150 needs a lead.</div></div></div></div>""")
 
 SCREENS["23-settings-connectors-mcp"] = settings_shell("Connectors", "Connectors and MCP servers", "Systems your assistants can use on your behalf. You see only what your role allows.", f"""
 <div class="tabs"><a class="on">Connectors</a><a>MCP servers</a></div>
@@ -582,6 +595,33 @@ SCREENS["43-workspace-workflow-run"] = wsapp("Workflows", head("Run: Refund over
 <div><div class="card"><h3>Run</h3>{table(["Detail",""],[["Triggered by","event: approval.requested"],["Runs as","Marco L.'s read access"],["Tokens","420"],["Cost","$0.004"],["Model","local llama-70b (rule 4)"]])}</div>
 <div class="card" style="margin-top:12px"><h3>If something fails</h3><p class="note">A failed step shows its error and keeps the run. You can retry from that step, skip it, or stop the run. Repeated failures raise an alert and can pause the workflow.</p></div>
 <div class="card" style="margin-top:12px"><h3>Recent runs</h3>{table(["Started","Result"],[["13:42",badge("waiting","warn")],["yesterday 16:10",badge("done","ok")],["Nov 7 11:02",badge("done","ok")],["Nov 6 09:48",badge("failed at step 4","bad")]])}</div></div></div>""", "Workflows", full=True)
+
+
+SCREENS["48-settings-preferences-theme"] = settings_shell("Preferences", "Preferences", "How NorthCX looks and behaves for you. These settings follow you across the Workspace and Admin.", f"""
+<div class="g2"><div><div class="card"><h3>Theme</h3><div class="row" style="gap:12px">
+<div style="width:150px;border:2px solid var(--primary);border-radius:10px;padding:8px;background:#f6f8fb"><div style="height:60px;background:#fff;border:1px solid #d9e0ea;border-radius:6px"></div><b>Light</b></div>
+<div style="width:150px;border:1px solid var(--border);border-radius:10px;padding:8px;background:#0b1220;color:#e8edf6"><div style="height:60px;background:#131c2e;border:1px solid #26324a;border-radius:6px"></div><b>Dark</b></div>
+<div style="width:150px;border:1px solid var(--border);border-radius:10px;padding:8px"><div style="height:60px;background:linear-gradient(90deg,#fff 50%,#131c2e 50%);border:1px solid var(--border);border-radius:6px"></div><b>Match my device</b></div></div>
+<div class="field"><label>Accent colour</label><div class="row"><span class="b" style="background:#0b3d91;color:#fff">Blue</span><span class="b gr">Teal</span><span class="b gr">Violet</span><span class="b gr">Green</span></div></div>
+<p class="note">Status colours (ok, warning, error) stay the same in every theme so meaning never depends on your accent.</p></div>
+<div class="card" style="margin-top:12px"><h3>Layout</h3><div class="field"><label>Density</label><span class="in">Comfortable &#9662; &nbsp; (Compact, Comfortable, Spacious)</span></div><div class="field"><label>Text size</label><span class="in">Medium &#9662;</span></div><div class="field"><label>Left navigation</label><span class="in">Expanded &#9662; &nbsp; (Expanded, Icons only)</span></div></div></div>
+<div><div class="card"><h3>Accessibility</h3>{table(["Setting",""],[["High contrast",'<span class="sw2 off"></span>'],["Reduce motion",'<span class="sw2 off"></span>'],["Always show keyboard focus",'<span class="sw2"></span>'],["Screen-reader friendly tables",'<span class="sw2"></span>']])}</div>
+<div class="card" style="margin-top:12px"><h3>Chat</h3><div class="field"><label>Default model mode</label><span class="in">Auto &#9662;</span></div><div class="field"><label>Send with</label><span class="in">Enter &#9662; &nbsp; (Enter, Ctrl+Enter)</span></div>{table(["Setting",""],[["Show which sources were used",'<span class="sw2"></span>'],["Show the model that answered",'<span class="sw2"></span>']])}</div>
+<div class="card" style="margin-top:12px"><h3>Language and region</h3><div class="field"><label>Language</label><span class="in">English &#9662;</span></div><div class="field"><label>Date and time</label><span class="in">24-hour, Europe/Amsterdam &#9662;</span></div></div></div></div>""")
+
+SCREENS["49-settings-skills"] = settings_shell("Profile", "Profile", "How you appear to colleagues, and how your assistants know you.", PROFILE_TABS("Skills") + f"""
+<div class="row2" style="margin-bottom:10px"><span class="note">A skill is a repeatable way of doing a task. It loads only when a chat needs it, so assistants stay focused.</span><span class="btn p">+ New skill</span></div>
+<div class="g2"><div class="card" style="padding:4px 14px">{table(["Skill","Source","Loads when","On"],[
+ ["<b>Refund decision note</b><br><span class=note>Structure for explaining a refund decision</span>","you","you ask for a refund note",'<span class="sw2"></span>'],
+ ["<b>Escalation summary</b><br><span class=note>Five-line summary for a lead</span>","you","you ask for a summary to a lead",'<span class="sw2"></span>'],
+ ["<b>Apology wording</b><br><span class=note>Approved wording for delays</span>","Billing team","a draft mentions a delay",'<span class="sw2"></span>'],
+ ["<b>Verify identity first</b><br><span class=note>Never discuss an account before the code check</span>","organization",badge("always","gr"),'<span class="sw2"></span>'],
+ ["<b>Weekly digest layout</b><br><span class=note>Sections and order</span>","Support leads","a digest is requested",'<span class="sw2 off"></span>']])}<p class="note" style="margin:8px 0">&#128274; Organization skills cannot be switched off. Team skills can be turned off for you.</p></div>
+<div class="card"><div class="row2"><h3 style="margin:0">Edit: Refund decision note</h3>{badge("yours","info")}</div>
+<div class="field"><label>Name</label><span class="in">Refund decision note</span></div><div class="field"><label>Use it when</label><span class="in" style="color:var(--text)">I ask for a note explaining a refund decision</span></div>
+<div class="field"><label>Steps</label><span class="in" style="color:var(--text)">1. State the decision first. 2. Name the policy and section. 3. Give the amount and the order number. 4. Say when the customer will see the money.</span></div>
+<div class="field"><label>Needs (optional)</label><span class="in">knowledge: Refund policy &times;</span></div>
+<div class="row"><span class="btn p">Save</span><span class="btn">Try it</span><span class="btn">Share with team</span></div><p class="note" style="margin-top:8px">A skill gives instructions and may point to knowledge. It cannot give an assistant new tools or access; sharing needs a reviewer.</p></div></div>""")
 
 
 def _col(title, who, items, cls="info"):
