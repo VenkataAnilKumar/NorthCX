@@ -297,7 +297,8 @@ class Registry:
                 problems.append(f"Unknown tool '{t}' (known: {', '.join(self.tool_names()) or 'none'})")
         if len(set(spec.tools)) != len(spec.tools):
             problems.append("Duplicate tool references")
-        for t in dict.fromkeys(self._all_tools(spec)):  # a customer agent never gets a staff tool; a staff agent gets only staff tools
+        reachable = list(spec.tools) + [n for r in spec.skills for s in [self.skill_for(spec, r.name)] if s is not None for n in s.tool_names()] + [n for j in spec.journeys for n in j.tool_names()]
+        for t in dict.fromkeys(reachable):  # a customer agent never gets a staff tool (not even through a skill); a staff agent gets only staff tools
             tool = self._tools.get(t)
             if tool is not None and tool.audience == "staff" and spec.audience != "staff":
                 problems.append(f"Tool '{t}' is a staff tool; only an agent with audience: staff may use it")

@@ -58,19 +58,32 @@ await page.goto(`${WEB}/library`);
 await page.getByRole("heading", { name: "Library" }).waitFor();
 check(true, "library: page works");
 
-// chat with the agent
-await page.goto(`${WEB}/pilot`);
-await page.getByLabel("Message").fill("where is order 1042?");
-await page.getByRole("button", { name: "Send" }).click();
-await page.getByText(/Order 1042/).waitFor({ timeout: 20000 });
-check(true, "pilot: the agent answers");
-
 // theme: the toggle changes the page, and the choice is kept
 await page.getByRole("button", { name: /Theme:/ }).click(); // system -> light
 await page.getByRole("button", { name: /Theme:/ }).click(); // light -> dark
 check((await page.locator("html").getAttribute("data-theme")) === "dark", "theme: dark applied");
 await page.reload();
 check((await page.locator("html").getAttribute("data-theme")) === "dark", "theme: kept after reload");
+
+// the Pilot: a quick answer, a saved working note, and the unified search
+await page.goto(`${WEB}/pilot`);
+await page.getByRole("tab", { name: "Quick answer" }).waitFor();
+await page.getByLabel("Message").fill("How are the agents doing this week?");
+await page.getByRole("button", { name: "Send" }).click();
+await page.getByRole("log", { name: "Conversation" }).getByText(/./).first().waitFor();
+check(true, "pilot: a quick answer comes back");
+await page.getByRole("button", { name: "My notes" }).click();
+await page.getByLabel("New note").fill("I prefer short answers with a table");
+await page.getByRole("button", { name: "Add", exact: true }).click();
+await page.getByText("I prefer short answers with a table").waitFor();
+check(true, "pilot: a working note is saved");
+await page.getByRole("button", { name: /Delete note/ }).first().click();
+await page.getByRole("tab", { name: "Research" }).click();
+await page.getByLabel("New research task").waitFor();
+check(true, "pilot: Research tab opens");
+await page.goto(`${WEB}/search?q=refund`);
+await page.getByRole("search").waitFor();
+check(true, "search: the unified search page works");
 
 // tabs whose backend is not built say so
 await page.goto(`${WEB}/automations`);

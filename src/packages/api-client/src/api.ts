@@ -398,3 +398,34 @@ export interface TemplateInstall extends TemplateRender { agentId: string; numbe
 /** Saves the rendered agent as a draft version (never live) and, when asked, the template's test scenarios. */
 export const createFromTemplate = (id: string, agentId: string, params: Record<string, string>, saveScenarios = true) =>
   api<TemplateInstall>(`/v1/templates/${id}/create-version`, { method: "POST", body: JSON.stringify({ agentId, params, saveScenarios }) });
+
+// ---------- Workspace (staff Pilot, tasks, search, memory) ----------
+export interface PilotSource { title: string | null; url: string | null; section: string | null; updated: string | null; stale: boolean }
+export interface PilotReply { chatId: string; reply: string; status: Status; traceId: string | null; sources: PilotSource[]; tools: string[]; temporary: boolean; memory: boolean }
+export const pilotChat = (message: string, opts: { chatId?: string; style?: "quick" | "research"; memory?: boolean; temporary?: boolean } = {}) =>
+  api<PilotReply>("/v1/workspace/chat", { method: "POST", body: JSON.stringify({ message, ...opts }) });
+
+export type TaskStatus = "draft" | "needs_answers" | "planned" | "approved" | "running" | "paused" | "done" | "stopped" | "failed";
+export interface PilotTaskStep { n: number; text: string; status: string; startedAt: number; endedAt: number | null; tokens: number; tools: string[]; sources: { title: string | null; section: string | null; stale: boolean }[]; error?: string }
+export interface PilotTask {
+  id: string; style: string; prompt: string; status: TaskStatus; questions: { q: string; chips: string[] }[]; answers: string[];
+  plan: { n: number; text: string; source: string }[]; steps: PilotTaskStep[]; results: { v: number; text: string; sources: { title: string | null; section: string | null; stale: boolean }[]; createdAt: number; tokens: number }[];
+  tokens: number; note: string; createdAt: number; updatedAt: number; limits: { steps: number; tokens: number };
+}
+export const createTask = (prompt: string) => api<PilotTask>("/v1/workspace/tasks", { method: "POST", body: JSON.stringify({ prompt, style: "research" }) });
+export const listTasks = () => api<{ tasks: PilotTask[] }>("/v1/workspace/tasks").then((r) => r.tasks);
+export const getTask = (id: string) => api<PilotTask>(`/v1/workspace/tasks/${id}`);
+export const answerTask = (id: string, answers: string[]) => api<PilotTask>(`/v1/workspace/tasks/${id}/answers`, { method: "POST", body: JSON.stringify({ answers }) });
+export const editTaskPlan = (id: string, steps: { text: string; source?: string }[]) => api<PilotTask>(`/v1/workspace/tasks/${id}/plan`, { method: "PUT", body: JSON.stringify({ steps }) });
+export const approveTask = (id: string) => api<PilotTask>(`/v1/workspace/tasks/${id}/approve`, { method: "POST" });
+export const controlTask = (id: string, action: "pause" | "stop") => api<PilotTask>(`/v1/workspace/tasks/${id}/${action}`, { method: "POST" });
+export const deleteTask = (id: string) => api<{ deleted: boolean }>(`/v1/workspace/tasks/${id}`, { method: "DELETE" });
+
+export interface WorkspaceResult { kind: "knowledge" | "conversation" | "handoff"; id: string; title: string; snippet: string; why: string; provider: string; url: string | null; meta: Record<string, unknown>; score: number }
+export const workspaceSearch = (q: string) => api<{ results: WorkspaceResult[]; skipped: { source: string; reason: string }[]; searched: string[] }>(`/v1/workspace/search?q=${encodeURIComponent(q)}`);
+
+export interface MemoryNote { id: string; note: string; createdAt: number; updatedAt: number }
+export const listNotes = () => api<{ notes: MemoryNote[] }>("/v1/workspace/memory").then((r) => r.notes);
+export const addNote = (note: string) => api<{ id: string; note: string; new: boolean }>("/v1/workspace/memory", { method: "POST", body: JSON.stringify({ note }) });
+export const deleteNote = (id: string) => api<{ deleted: boolean }>(`/v1/workspace/memory/${id}`, { method: "DELETE" });
+export const eraseNotes = () => api<{ removed: number }>("/v1/workspace/memory", { method: "DELETE" });
