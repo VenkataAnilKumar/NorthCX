@@ -29,9 +29,9 @@ Status: **2026-11-09.** Tracks whether the product documents cover the full desi
 2. ~~Pilot decisions~~ Decided (decision 163).
 3. Profile: personal-context sources first; read-only personal assistants without a reviewer; default retention for personal chats.
 4. ~~Models~~ Decided (decision 164).
-5. Agent Hub: organization-only or later a marketplace (D1); who may install; first customer agents; names.
-6. Builder: name, first-release scope, proactive suggestions default.
-7. Automations: who may publish; whether workflows may call customer-facing agents.
+5. ~~Agent Hub~~ Decided (decision 165).
+6. ~~Builder~~ Decided (decision 165).
+7. ~~Automations~~ Decided (decision 165).
 8. Organization settings page list (25 pages).
 9. Platform: open versus commercial (D1); staff product naming (D2); plan decisions D3 to D9.
 

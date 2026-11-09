@@ -19,10 +19,10 @@ Schedule, webhook, platform event (for example a hand-off created or an approval
 
 ## 4. Rules
 1. An automation acts with the permissions of the person or service identity it names, never more.
-2. A write never runs without an approval rule that allows it. Customer-facing agents are not called by workflows until the owner decision on that is made.
+2. A write never runs without an approval rule that allows it. Workflows may not call customer-facing agents in the first release (decision 165).
 3. Limits per automation: runs per day, steps per run, cost per run, run time. Exceeding a limit stops the run and notifies the owner.
 4. A **kill switch** stops an automation and all its running runs at once; every stop is audited.
-5. Publishing needs a reviewer (decision pending: who may publish).
+5. Publishing needs a reviewer (decided, decision 165).
 6. A run that needs a person and gets no answer by the deadline ends as `expired` and does nothing further.
 7. Every run records inputs, step outputs (masked), people involved, cost and result.
 
@@ -43,7 +43,7 @@ Schedule, webhook, platform event (for example a hand-off created or an approval
 | AU12 | Several-process safety | A run is leased to one worker at a time |
 
 ## 6. Builder
-The **Builder** assistant (Admin, Build group) helps an administrator or developer draft an agent or automation from a description, procedures or transcripts. It only produces reviewable drafts: nothing it writes goes live, saves itself or widens access. It runs the same checks as a hand-written definition and explains each warning. Proposed: an improvement loop that suggests changes from failed conversations, shown as a diff, never applied automatically. Open: name, first-release scope, whether proactive suggestions are on by default.
+The **Builder** assistant (Admin, Build group) helps an administrator or developer draft an agent or automation from a description, procedures or transcripts. It only produces reviewable drafts: nothing it writes goes live, saves itself or widens access. It runs the same checks as a hand-written definition and explains each warning. Proposed: an improvement loop that suggests changes from failed conversations, shown as a diff, never applied automatically. Decided (decision 165): the name stays Builder; in the first release it only produces reviewable drafts; proactive suggestions are off by default.
 
-## 7. Open decisions
-Who may publish a workflow; whether workflows may call customer-facing agents.
+## 7. Decisions (decision 165)
+A reviewer must approve publishing a workflow. Workflows may not call customer-facing agents in the first release; revisit later.

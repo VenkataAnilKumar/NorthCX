@@ -72,8 +72,8 @@ Installing never makes an agent live; every install passes its scenarios and the
 | 22.8 | Author predefined staff assistants once E5 to E7 exist | L |
 | 22.9 | Signing of built-in entries and provenance records | S |
 
-## 9. Decisions needed
-1. **Is the hub only inside one organization, or does it later include a shared marketplace?** Recommended: inside the organization only for now; revisit with D1.
-2. **Who may install?** Recommended: developers install into Staging; release managers release; administrators see everything.
-3. **Which predefined customer agents first?** Recommended: billing and invoices, delivery problems and account help, because they use tools and approvals that already exist.
-4. **Naming:** "Agent Hub" and "Assistants" (Workspace) as drawn, or other names.
+## 9. Decisions (decided by the owner, 2026-11-09, decision 165)
+1. **Scope:** the hub is inside one organization only for now; a shared marketplace waits for the open-versus-commercial decision (D1).
+2. **Who may install:** developers install into Staging; release managers release; administrators see everything.
+3. **First predefined customer agents:** billing and invoices, delivery problems and account help, because they use tools and approvals that already exist.
+4. **Names:** "Agent Hub" (Admin) and "Assistants" (Workspace), as drawn.
