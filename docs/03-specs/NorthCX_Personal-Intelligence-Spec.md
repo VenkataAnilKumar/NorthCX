@@ -45,5 +45,5 @@ Saving is automatic or by "remember this". Scopes: personal, space, team. Each i
 ## 6. Privacy and safety
 Memory is stored per tenant and person; an administrator cannot read a person's personal memory, but can set retention and turn the feature off. Memory content is untrusted input to the model, never instructions with authority. Prompt-injection text inside a remembered item cannot raise permissions.
 
-## 7. Open decisions
-Which personal-context sources first (recommended: hand-offs, approvals, own drafts and outputs, team documents); whether read-only personal assistants may be shared without a reviewer; default retention for personal chats.
+## 7. Decisions (decision 166, 2026-11-09)
+First personal-context sources: the person's own hand-offs, approvals, drafts and outputs, and team documents; calendar and email come later. Read-only personal assistants may be shared without a reviewer; any that can write need one. Default retention for personal chats is 90 days, a placeholder to validate; a person may shorten it but not lengthen it, and an administrator may change the default.

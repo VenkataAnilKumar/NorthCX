@@ -27,7 +27,7 @@ Status: **2026-11-09.** Tracks whether the product documents cover the full desi
 ## Owner decisions still open (they do not block implementation of the first slice)
 1. ~~Tabs and first-release set~~ Decided (decision 162).
 2. ~~Pilot decisions~~ Decided (decision 163).
-3. Profile: personal-context sources first; read-only personal assistants without a reviewer; default retention for personal chats.
+3. ~~Profile~~ Decided (decision 166).
 4. ~~Models~~ Decided (decision 164).
 5. ~~Agent Hub~~ Decided (decision 165).
 6. ~~Builder~~ Decided (decision 165).
