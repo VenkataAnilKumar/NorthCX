@@ -24,7 +24,8 @@ MAX_BODY = 100_000
 MAX_VERSIONS = 20
 DEFAULT_DAYS, MAX_DAYS = 90, 365
 MAX_PER_OWNER = 500
-FILE_EXT = (".txt", ".md", ".csv", ".json", ".log")
+FILE_EXT = (".txt", ".md", ".csv", ".json", ".log", ".pdf")
+MAX_PDF_BYTES = 5 * 1024 * 1024    # a PDF is read for its text and only the text is kept
 MAX_FILE = 200_000                  # characters in one file
 MAX_FILES = 10                      # per space
 FILE_CONTEXT = 12_000               # most characters of files the Pilot reads in one question
@@ -338,13 +339,21 @@ class ContentService:
         await self.repo.delete_space(space_id)
 
     # ---- files in a space: plain text the Pilot may read when working there ----
-    async def add_file(self, space_id: str, who: str, admin: bool, name: str, text: str) -> SpaceFile:
+    async def add_file(self, space_id: str, who: str, admin: bool, name: str, text: str | None = None, pdf: bytes | None = None) -> SpaceFile:
         s = await self._space_for(space_id, who, admin)
         if s.owner != who and not admin:
             raise ContentError(403, "Only the owner can add files to a space")
         base = (name or "").strip().replace("\\", "/").rsplit("/", 1)[-1]
         if not 1 <= len(base) <= 100 or not base.lower().endswith(FILE_EXT):
-            raise ContentError(400, f"Files are plain text: the name must end in {', '.join(FILE_EXT)}")
+            raise ContentError(400, f"Files are plain text or PDF: the name must end in {', '.join(FILE_EXT)}")
+        if base.lower().endswith(".pdf"):
+            if not pdf or len(pdf) > MAX_PDF_BYTES:
+                raise ContentError(400, f"Send the PDF itself, up to {MAX_PDF_BYTES // (1024 * 1024)} MB")
+            from .ingest import IngestError, from_pdf
+            try:
+                text = (await from_pdf(pdf, base)).text
+            except IngestError as e:
+                raise ContentError(400, f"That PDF has no text that can be read ({e}); scans are not supported") from e
         if not isinstance(text, str) or not text.strip() or "\x00" in text:
             raise ContentError(400, "The file must be text, and not empty")
         if len(text) > MAX_FILE:

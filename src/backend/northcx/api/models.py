@@ -390,7 +390,9 @@ class SpaceBody(BaseModel):
 
 class SpaceFileBody(BaseModel):
     name: str = Field(min_length=1, max_length=100)
-    text: str = Field(min_length=1, max_length=200000)
+    text: str | None = Field(default=None, max_length=200000)
+    data_base64: str | None = Field(default=None, alias="dataBase64", max_length=7_500_000)      # for a PDF: the file itself, read here for its text
+    model_config = {"populate_by_name": True}
 
 
 class SpaceEditBody(BaseModel):

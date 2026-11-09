@@ -9,15 +9,23 @@ function Files({ space, canEdit }: { space: SpaceItem; canEdit: boolean }) {
   const pick = async (file: File | undefined) => {
     if (!file) return;
     setErr(null);
-    try { await addSpaceFile(space.id, file.name, await file.text()); reload(); } catch (e) { setErr((e as Error).message); }
+    try {
+      if (file.name.toLowerCase().endsWith(".pdf")) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let bin = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        await addSpaceFile(space.id, file.name, { dataBase64: btoa(bin) });
+      } else await addSpaceFile(space.id, file.name, { text: await file.text() });
+      reload();
+    } catch (e) { setErr((e as Error).message); }
   };
   return (
     <div className="mt-3">
       <h3 className="text-sm font-semibold">Files</h3>
-      <p className="text-xs text-muted">Plain text only (.txt, .md, .csv, .json, .log), up to 10 files of 200,000 characters. Customer personal data is masked when a file is added. The Pilot reads them as data when you work in this space.</p>
+      <p className="text-xs text-muted">Plain text (.txt, .md, .csv, .json, .log) or a PDF with a text layer (only its text is kept; scans are not read), up to 10 files of 200,000 characters. Customer personal data is masked when a file is added. The Pilot reads them as data when you work in this space.</p>
       {err && <div className="my-2"><ErrorBox message={err} /></div>}
       {data?.length ? <ul className="mt-1 text-sm">{data.map((f) => <li key={f.id}>{f.name} <span className="text-xs text-muted">({f.size.toLocaleString()} characters)</span>{canEdit && <button className="btn ml-2" onClick={() => void deleteSpaceFile(space.id, f.id).then(reload).catch((e) => setErr(e.message))}>Remove</button>}</li>)}</ul> : <p className="text-sm text-muted">No files.</p>}
-      {canEdit && <label className="mt-2 block text-sm">Add a file<input type="file" accept=".txt,.md,.csv,.json,.log,text/plain" className="field mt-1 block" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} /></label>}
+      {canEdit && <label className="mt-2 block text-sm">Add a file<input type="file" accept=".txt,.md,.csv,.json,.log,.pdf,text/plain,application/pdf" className="field mt-1 block" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} /></label>}
     </div>
   );
 }

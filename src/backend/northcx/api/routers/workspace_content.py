@@ -161,7 +161,15 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if (r := staff(who)) is not None:
             return r
         try:
-            f = await svc.add_file(space_id, who.name, admin(who), body.name, body.text)
+            import base64
+            import binascii
+            try:
+                pdf = base64.b64decode(body.data_base64, validate=True) if body.data_base64 else None
+            except (binascii.Error, ValueError):
+                return _err(400, "bad_request", "dataBase64 is not valid base64")
+            if (body.text is None) == (pdf is None):
+                return _err(400, "bad_request", "Send either text or dataBase64 (for a PDF)")
+            f = await svc.add_file(space_id, who.name, admin(who), body.name, body.text, pdf)
         except ContentError as e:
             return fail(e)
         await record(request, "workspace.space_file_add", f.id, space=space_id, size=len(f.text))

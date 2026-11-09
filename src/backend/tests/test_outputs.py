@@ -215,3 +215,34 @@ async def test_a_spaces_files_survive_the_database_go_with_the_space_and_stay_in
         assert await svc.repo.list_files(sid) == []
     finally:
         TENANT.reset(token)
+
+
+def _pdf(text: str) -> bytes:
+    """A minimal one-page PDF with a text layer."""
+    content = f"BT /F1 12 Tf 72 720 Td ({text}) Tj ET".encode()
+    objs = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+            b"<< /Length " + str(len(content)).encode() + b" >>\nstream\n" + content + b"\nendstream", b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+    out, offsets = b"%PDF-1.4\n", []
+    for i, o in enumerate(objs, 1):
+        offsets.append(len(out))
+        out += f"{i} 0 obj\n".encode() + o + b"\nendobj\n"
+    xref = len(out)
+    out += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode() + b"".join(f"{o:010d} 00000 n \n".encode() for o in offsets)
+    return out + f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF".encode()
+
+
+def test_a_pdf_in_a_space_is_kept_as_masked_text_and_scans_or_bad_files_are_refused():
+    import base64
+    c, rt, key, app = world()
+    ann = key("ann")
+    sid = c.post("/v1/workspace/spaces", headers=ann, json={"name": "PDF space"}).json()["id"]
+    good = c.post(f"/v1/workspace/spaces/{sid}/files", headers=ann, json={"name": "policy.pdf", "dataBase64": base64.b64encode(_pdf("Refunds within 14 days. Write to jo@example.com")).decode()})
+    assert good.status_code == 201, good.text
+    text = c.get(f"/v1/workspace/spaces/{sid}/files/{good.json()['id']}", headers=ann).json()["text"]
+    assert "Refunds within 14 days" in text and "jo@example.com" not in text                              # only masked text is kept, not the file
+    assert c.post(f"/v1/workspace/spaces/{sid}/files", headers=ann, json={"name": "bad.pdf", "dataBase64": base64.b64encode(b"not a pdf").decode()}).status_code == 400
+    assert c.post(f"/v1/workspace/spaces/{sid}/files", headers=ann, json={"name": "x.pdf", "text": "typed"}).status_code == 400            # a .pdf must be a PDF
+    assert c.post(f"/v1/workspace/spaces/{sid}/files", headers=ann, json={"name": "x.txt", "text": "a", "dataBase64": "AAAA"}).status_code == 400
+    assert c.post(f"/v1/workspace/spaces/{sid}/files", headers=ann, json={"name": "x.txt"}).status_code == 400
+    assert c.post(f"/v1/workspace/spaces/{sid}/files", headers=ann, json={"name": "x.pdf", "dataBase64": "***not base64***"}).status_code == 400

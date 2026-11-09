@@ -611,7 +611,7 @@ export const takeLibraryItem = (id: string) => api<LibraryItem>(`/v1/workspace/l
 export const suggestLibraryItems = (text: string) => api<{ suggestions: LibraryItem[] }>("/v1/workspace/library-items/suggest", { method: "POST", body: JSON.stringify({ text }) }).then((r) => r.suggestions);
 export interface SpaceFileItem { id: string; spaceId: string; name: string; size: number; owner: string; createdAt: number; text?: string }
 export const listSpaceFiles = (spaceId: string) => api<{ files: SpaceFileItem[] }>(`/v1/workspace/spaces/${spaceId}/files`).then((r) => r.files);
-export const addSpaceFile = (spaceId: string, name: string, text: string) => api<SpaceFileItem>(`/v1/workspace/spaces/${spaceId}/files`, { method: "POST", body: JSON.stringify({ name, text }) });
+export const addSpaceFile = (spaceId: string, name: string, content: { text: string } | { dataBase64: string }) => api<SpaceFileItem>(`/v1/workspace/spaces/${spaceId}/files`, { method: "POST", body: JSON.stringify({ name, ...content }) });
 export const deleteSpaceFile = (spaceId: string, fileId: string) => api<{ deleted: boolean }>(`/v1/workspace/spaces/${spaceId}/files/${fileId}`, { method: "DELETE" });
 export const confirmPilotAction = (id: string) => api<PilotAction>(`/v1/workspace/actions/${id}/confirm`, { method: "POST" });
 export const cancelPilotAction = (id: string) => api<PilotAction>(`/v1/workspace/actions/${id}/cancel`, { method: "POST" });
