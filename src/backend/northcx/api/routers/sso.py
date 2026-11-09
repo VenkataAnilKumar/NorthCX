@@ -68,7 +68,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             if not roles:
                 raise SsoError("Your account has no role here; ask an administrator to add you to a group", f"no role for {login.email}")
             login.role = roles[0]
-            key, token = await access.issue_session(login.email, roles[0], sso.cfg.session_hours, roles[1:])
+            key, token = await access.issue_session(login.email, roles[0], sso.cfg.session_hours, roles[1:], group_names)
         except SsoError as e:
             return await sso_failed(request, e)
         await audit.append(AuditEntry(actor=login.email, role=login.role, action="sso.login", target=f"ncx_{key.key_id}", outcome="ok",

@@ -32,12 +32,14 @@ def reg():
     r = registry()
     r.tool(knowledge_tool(InMemoryKnowledge()))
     r.tool(Tool("lookup_invoice", "Look up an invoice", Ref, lambda i, c: {"status": "paid"}, effect="read"))   # tools the billing and account templates need
+    r.tool(Tool("lookup_appointments", "Look up appointments", Ref, lambda i, c: {"next": "Tuesday 10:00"}, effect="read"))
+    r.tool(Tool("lookup_plan", "Look up an account's plan", Ref, lambda i, c: {"plan": "Standard"}, effect="read"))
     r.tool(Tool("lookup_account", "Look up an account's status", Ref, lambda i, c: {"status": "active"}, effect="read"))
     return r
 
 
-def test_the_library_ships_seven_templates_with_clear_parameters():
-    assert sorted(TEMPLATES) == ["account-help", "billing-and-invoices", "delivery-problems", "human-triage", "knowledge-faq", "order-status", "returns-and-refunds"]
+def test_the_library_ships_eleven_templates_with_clear_parameters():
+    assert sorted(TEMPLATES) == ["account-help", "appointments", "billing-and-invoices", "complaints", "delivery-problems", "front-door", "human-triage", "knowledge-faq", "order-status", "plan-changes", "returns-and-refunds"]
     for t in TEMPLATES.values():
         info = t.info()
         assert info["title"] and info["intent"] and info["description"] and info["scenarios"] >= 1
@@ -103,7 +105,7 @@ def test_directories_can_add_or_replace_templates(tmp_path):
     (tmp_path / "mine.yaml").write_text(yaml.safe_dump({"id": "order-status", "title": "My order status", "spec": {"instructions": "custom"}}))
     (tmp_path / "other.yaml").write_text(yaml.safe_dump({"id": "my-new-one", "spec": {"instructions": "x"}}))
     merged = load_templates(LIBRARY, tmp_path)
-    assert merged["order-status"].title == "My order status" and "my-new-one" in merged and len(merged) == 8
+    assert merged["order-status"].title == "My order status" and "my-new-one" in merged and len(merged) == 12
     (tmp_path / "bad.yaml").write_text(": : :\n\t")
     with pytest.raises(TemplateError, match="not valid"):
         load_templates(tmp_path)

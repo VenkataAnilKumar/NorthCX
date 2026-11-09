@@ -448,10 +448,11 @@ export interface ModelsOverview {
   configured: boolean; note: string; fallbacks?: string[];
   providers: { name: string; defaultModel: string | null; isDefault: boolean; tier: string; capabilities: { tools: boolean; parallelTools: boolean; images: boolean; documents: boolean; maxContextTokens: number | null }; prices: Record<string, { inputPerMillion: number; outputPerMillion: number; currency: string }> }[];
   routing?: { policy: { sensitive: string[]; normal: string[]; publicCloudAllowedAgents: string[] }; sensitiveTopics: string[]; rules: { name: string; when: Record<string, unknown>; use: { tier?: string; model?: string } }[]; qualification: { required: boolean; exempt: string[] } } | null;
-  budget: { dailyTokenLimit: number | null; dailyMoneyLimit: number | null; currency: string; tokensToday: number; moneyToday: number };
+  budget: { dailyTokenLimit: number | null; dailyMoneyLimit: number | null; currency: string; setHere?: { dailyTokenLimit?: number; dailyMoneyLimit?: number; currency?: string }; tokensToday: number; moneyToday: number };
 }
 export const modelsOverview = () => api<ModelsOverview>("/v1/models/overview");
-export interface UsageReport { days: number; currency: string; rows: { agent: string; day: string; tokens: number; cost: number }[]; byAgent: { agent: string; tokens: number; cost: number }[]; totals: { tokens: number; cost: number }; limits: { dailyTokenLimit: number | null; dailyMoneyLimit: number | null } }
+export interface UsageDim { name: string; tokens: number; cost: number }
+export interface UsageReport { days: number; currency: string; byModel: UsageDim[]; byTeam: UsageDim[]; rows: { agent: string; day: string; tokens: number; cost: number }[]; byAgent: { agent: string; tokens: number; cost: number }[]; totals: { tokens: number; cost: number }; limits: { dailyTokenLimit: number | null; dailyMoneyLimit: number | null } }
 export const usageReport = (days: number) => api<UsageReport>(`/v1/usage?days=${days}`);
 export interface PolicyInfo { name: string; description: string; exampleConfig: Record<string, unknown>; cases: { on: string; input: unknown; expected: "allowed" | "blocked" }[] }
 export const policyLibrary = () => api<{ policies: PolicyInfo[]; note: string }>("/v1/policies");
@@ -462,3 +463,21 @@ export const updateGroup = (id: string, patch: { roles?: string[]; externalName?
 export const deleteGroup = (id: string) => api<{ deleted: boolean }>(`/v1/groups/${id}`, { method: "DELETE" });
 export const addGroupMember = (id: string, subject: string) => api<GroupInfo>(`/v1/groups/${id}/members`, { method: "POST", body: JSON.stringify({ subject }) });
 export const removeGroupMember = (id: string, subject: string) => api<GroupInfo>(`/v1/groups/${id}/members/${encodeURIComponent(subject)}`, { method: "DELETE" });
+export const setBudgets = (b: { dailyTokenLimit?: number | null; dailyMoneyLimit?: number | null; currency?: string }) => api<{ saved: boolean }>("/v1/budgets", { method: "PUT", body: JSON.stringify(b) });
+export const clearBudgets = () => api<{ cleared: boolean }>("/v1/budgets", { method: "DELETE" });
+
+// ---------- Organization policies (E16) ----------
+export interface OrgPolicyCase { on: string; input: unknown; expected: "allowed" | "blocked" }
+export interface OrgPolicyProof { passed: boolean; problems: string[]; results: { ok: boolean; got?: string; expected?: string; note?: string }[] }
+export interface OrgPolicy {
+  id: string; version: number; status: "draft" | "proposed" | "active" | "rejected" | "superseded" | "retired"; locked: boolean;
+  name: string; policy: string; config: Record<string, unknown>; cases: OrgPolicyCase[]; appliesTo: string[] | null; proof: OrgPolicyProof;
+  createdBy: string; proposedBy: string | null; decidedBy: string | null; decisionNote: string | null;
+  versions?: { version: number; status: string; createdBy: string; decidedBy: string | null }[];
+}
+export const orgPolicies = () => api<{ policies: OrgPolicy[] }>("/v1/org-policies").then((r) => r.policies);
+export const proveOrgPolicy = (policy: string, config: Record<string, unknown>, cases: OrgPolicyCase[]) => api<OrgPolicyProof>("/v1/org-policies/prove", { method: "POST", body: JSON.stringify({ policy, config, cases }) });
+export const createOrgPolicy = (b: { name: string; policy: string; config: Record<string, unknown>; cases: OrgPolicyCase[]; appliesTo?: string[] }) => api<OrgPolicy>("/v1/org-policies", { method: "POST", body: JSON.stringify(b) });
+export const editOrgPolicy = (id: string, b: { config?: Record<string, unknown>; cases?: OrgPolicyCase[]; appliesTo?: string[] }) => api<OrgPolicy>(`/v1/org-policies/${id}`, { method: "PUT", body: JSON.stringify(b) });
+export const proposeOrgPolicy = (id: string) => api<OrgPolicy>(`/v1/org-policies/${id}/propose`, { method: "POST" });
+export const decideOrgPolicy = (id: string, action: "approve" | "reject" | "retire", note?: string) => api<OrgPolicy>(`/v1/org-policies/${id}/${action}`, { method: "POST", body: JSON.stringify({ note }) });

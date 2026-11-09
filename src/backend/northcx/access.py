@@ -63,6 +63,7 @@ class Identity:
     scope_envs: tuple[str, ...] | None = None
     tenant: str = DEFAULT_TENANT  # whose key this is (WP2.2); the request is scoped to it
     extra_roles: tuple[str, ...] = ()  # more roles from group membership (WP3.2); the permissions are the union with `role`
+    groups: tuple[str, ...] = ()  # the groups (teams) the person was in when they signed in; usage is counted by team
 
     def allows_agent(self, agent_id: str) -> bool:
         return self.scope_agents is None or agent_id in self.scope_agents
@@ -99,6 +100,7 @@ class ApiKey:
     last_used_at: float | None = None
     tenant_id: str = DEFAULT_TENANT
     extra_roles: list[str] | None = None  # roles added by group membership at sign-in (the permissions are the union with `role`)
+    groups: list[str] | None = None  # names of those groups
     agents: list[str] | None = None  # limited to these agents (None: all)
     environments: list[str] | None = None  # limited to these environments (None: all)
 
@@ -282,7 +284,7 @@ class AccessControl:
             await self.keys.touch(key_id, now)
         if self.tenants is not None and k.tenant_id != DEFAULT_TENANT and not await self.tenants.is_active(k.tenant_id):
             return None  # a suspended (or removed) tenant's keys stop working at once
-        return Identity(k.name, k.role, k.key_id, tenant=k.tenant_id, extra_roles=tuple(k.extra_roles or ()), scope_agents=tuple(k.agents) if k.agents is not None else None,
+        return Identity(k.name, k.role, k.key_id, tenant=k.tenant_id, extra_roles=tuple(k.extra_roles or ()), groups=tuple(k.groups or ()), scope_agents=tuple(k.agents) if k.agents is not None else None,
                         scope_envs=tuple(k.environments) if k.environments is not None else None)
 
     async def issue(self, name: str, role: str, created_by: str, expires_in_days: float | None = None,
@@ -308,14 +310,14 @@ class AccessControl:
         self._has_keys = True
         return key, f"{key.prefix}_{secret}"
 
-    async def issue_session(self, display: str, role: str, hours: float, extra_roles: list[str] | None = None) -> tuple[ApiKey, str]:
+    async def issue_session(self, display: str, role: str, hours: float, extra_roles: list[str] | None = None, groups: list[str] | None = None) -> tuple[ApiKey, str]:
         """A short-lived key for a person who signed in through the identity provider. It is an ordinary key in every other way
         (role, audit, revocation, expiry), recorded as created by 'sso'."""
         if role not in ROLES or role == "channel" or any(r not in ROLES or r == "channel" for r in extra_roles or []):
             raise ValueError(f"Cannot sign in with the '{role}' role")
         secret = secrets.token_urlsafe(32)
         key = ApiKey(("sso: " + display)[:80], role, secrets.token_hex(4), hash_secret(secret), SSO_CREATOR, expires_at=time.time() + hours * 3600,
-                     extra_roles=[r for r in (extra_roles or []) if r != role] or None)
+                     extra_roles=[r for r in (extra_roles or []) if r != role] or None, groups=sorted(set(groups or []))[:20] or None)
         await self.keys.create(key)
         self._has_keys = True
         return key, f"{key.prefix}_{secret}"

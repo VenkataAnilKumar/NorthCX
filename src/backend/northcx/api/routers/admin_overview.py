@@ -5,8 +5,12 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from fastapi import Request
+
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
+from northcx.budget_settings import BudgetError, BudgetSettings
+from northcx.providers.budget import check_money_budget
 
 
 def register(app: FastAPI, d: AppDeps) -> None:
@@ -18,7 +22,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
         llm = runtime.llm
         registry = getattr(llm, "inner", None)
         ledger = runtime.ledger
-        budget = {"dailyTokenLimit": getattr(ledger, "daily_limit", None), "dailyMoneyLimit": getattr(ledger, "money_limit", None), "currency": getattr(ledger, "currency", "USD"),
+        tok_limit, money_limit, cur = await ledger.limits() if hasattr(ledger, "limits") else (getattr(ledger, "daily_limit", None), getattr(ledger, "money_limit", None), getattr(ledger, "currency", "USD"))
+        own = await runtime.budget_settings.get() if getattr(runtime, "budget_settings", None) else None
+        budget = {"dailyTokenLimit": tok_limit, "dailyMoneyLimit": money_limit, "currency": cur, "setHere": own or {},
                   "tokensToday": await ledger.spent(), "moneyToday": await ledger.money_spent() if hasattr(ledger, "money_spent") else 0.0}
         if registry is None or not hasattr(registry, "names"):
             return {"configured": False, "providers": [], "budget": budget, "note": "No model providers are configured (the offline demo model is in use)."}
@@ -52,10 +58,56 @@ def register(app: FastAPI, d: AppDeps) -> None:
             a = by_agent.setdefault(r["agent"], {"tokens": 0, "cost": 0.0})
             a["tokens"] += r["tokens"]
             a["cost"] += r["cost"]
-        return {"days": days, "currency": getattr(ledger, "currency", "USD"), "rows": rows,
+        dims = await ledger.usage_dims(days) if hasattr(ledger, "usage_dims") else []
+
+        def by(kind: str) -> list[dict[str, Any]]:
+            acc: dict[str, dict[str, float]] = {}
+            for r in dims:
+                if r["kind"] == kind:
+                    a = acc.setdefault(r["key"], {"tokens": 0, "cost": 0.0})
+                    a["tokens"] += r["tokens"]
+                    a["cost"] += r["cost"]
+            return [{"name": k, **v} for k, v in sorted(acc.items(), key=lambda kv: -kv[1]["tokens"])]
+        cur = (await ledger.limits())[2] if hasattr(ledger, "limits") else getattr(ledger, "currency", "USD")
+        return {"days": days, "currency": cur, "rows": rows, "byModel": by("model"), "byTeam": by("team"),
                 "byAgent": [{"agent": k, **v} for k, v in sorted(by_agent.items(), key=lambda kv: -kv[1]["tokens"])],
                 "totals": {"tokens": sum(r["tokens"] for r in rows), "cost": round(sum(r["cost"] for r in rows), 6)},
-                "limits": {"dailyTokenLimit": getattr(ledger, "daily_limit", None), "dailyMoneyLimit": getattr(ledger, "money_limit", None)}}
+                "limits": {"dailyTokenLimit": (await ledger.limits())[0] if hasattr(ledger, "limits") else None, "dailyMoneyLimit": (await ledger.limits())[1] if hasattr(ledger, "limits") else None}}
+
+    @app.put("/v1/budgets")
+    async def set_budgets(body: dict[str, Any], request: Request) -> Any:
+        """Set this tenant's daily token limit, daily spending limit and currency. A spending limit needs a price, in that currency, for every provider's default model."""
+        settings: BudgetSettings | None = getattr(runtime, "budget_settings", None)
+        if settings is None:
+            return _err(501, "not_configured", "Budgets cannot be changed on this server")
+        try:
+            clean = {k: body[k] for k in ("dailyTokenLimit", "dailyMoneyLimit", "currency") if k in body and body[k] is not None}
+            from northcx.budget_settings import validate
+            clean = validate(clean)
+            registry = getattr(runtime.llm, "inner", None)
+            if "dailyMoneyLimit" in clean:
+                if registry is None or not hasattr(registry, "names"):
+                    return _err(400, "bad_request", "A spending limit needs real model providers with prices; the offline demo model has none")
+                cur = clean.get("currency") or (await runtime.ledger.limits())[2]
+                try:
+                    check_money_budget(registry, cur)
+                except ValueError as e:
+                    return _err(400, "bad_request", f"Cannot set a spending limit: {e}")
+            out = await settings.put(clean, d.actor(request, None))
+        except BudgetError as e:
+            return _err(400, "bad_request", str(e))
+        await d.record(request, "budget.set", "tenant", **{k: v for k, v in out.items()})
+        return {"saved": True, "setHere": out}
+
+    @app.delete("/v1/budgets")
+    async def clear_budgets(request: Request) -> Any:
+        """Go back to the environment's budget settings for this tenant."""
+        settings = getattr(runtime, "budget_settings", None)
+        if settings is None:
+            return _err(501, "not_configured", "Budgets cannot be changed on this server")
+        gone = await settings.clear()
+        await d.record(request, "budget.clear", "tenant")
+        return {"cleared": gone}
 
     @app.get("/v1/policies")
     async def policies() -> Any:

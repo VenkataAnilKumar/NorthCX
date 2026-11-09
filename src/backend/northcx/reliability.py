@@ -111,6 +111,8 @@ class UsageLedger:
     currency: str = "USD"
     _days: dict[tuple[str, str], int] = field(default_factory=dict)
     _micros: dict[tuple[str, str], int] = field(default_factory=dict)  # money per agent per day, in millionths of the currency
+    _dims: dict[tuple[str, str, str], list[int]] = field(default_factory=dict)  # (kind, key, day) -> [tokens, micros]: usage by model and by team
+    settings: Any = None  # northcx.budget_settings.BudgetSettings: limits an administrator set from the Admin app, over the defaults above
 
     @staticmethod
     def _day(at: float | None = None) -> str:
@@ -138,10 +140,29 @@ class UsageLedger:
         day = self._day(at)
         return sum(n for (a, d), n in self._micros.items() if d == day and (agent_id is None or a == agent_id)) / 1_000_000
 
-    async def charge(self, agent_id: str, tokens: int, cost: float = 0.0) -> None:
+    async def limits(self) -> tuple[int | None, float | None, str]:
+        """(token limit, money limit, currency) in force for the current tenant."""
+        if self.settings is None:
+            return self.daily_limit, self.money_limit, self.currency
+        return await self.settings.effective(self.daily_limit, self.money_limit, self.currency)
+
+    def _dim(self, kind: str, key: str, tokens: int, cost: float) -> None:
+        d = self._dims.setdefault((kind, key, self._day()), [0, 0])
+        d[0] += max(0, int(tokens))
+        d[1] += max(0, round(cost * 1_000_000))
+
+    async def charge(self, agent_id: str, tokens: int, cost: float = 0.0, model: str | None = None, team: str | None = None) -> None:
         self.add(agent_id, tokens)
         if cost:
             self.add_money(agent_id, cost)
+        if model:
+            self._dim("model", model, tokens, cost)
+        if team:
+            self._dim("team", team, tokens, cost)
+
+    async def usage_dims(self, days: int) -> list[dict]:
+        cutoff = self._day(time.time() - (days - 1) * 86400)
+        return [{"kind": k, "key": key, "day": d, "tokens": v[0], "cost": v[1] / 1_000_000} for (k, key, d), v in sorted(self._dims.items(), key=lambda kv: (kv[0][2], kv[0][0], kv[0][1])) if d >= cutoff]
 
     async def spent(self, agent_id: str | None = None) -> int:
         return self.used_today(agent_id)
@@ -156,7 +177,8 @@ class UsageLedger:
         return [{"agent": a, "day": d, "tokens": self._days.get((a, d), 0), "cost": self._micros.get((a, d), 0) / 1_000_000} for a, d in keys]
 
     async def over_budget(self) -> bool:
-        return self.exhausted()
+        tokens, money, _ = await self.limits()
+        return (tokens is not None and self.used_today(None) >= tokens) or (money is not None and self.money_today(None) >= money)
 
     def exhausted(self, at: float | None = None) -> bool:
         return (self.daily_limit is not None and self.used_today(None, at) >= self.daily_limit) or \

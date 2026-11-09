@@ -33,12 +33,12 @@ def world(templates=None):
     return TestClient(create_app(rt, rt.traces, {"support": support_agent()}, access=ac, releases=svc, simulations=sim, templates=tpl)), tpl, svc
 
 
-def test_the_library_has_the_three_first_predefined_agents_each_with_at_least_five_scenarios():
+def test_the_library_has_the_seven_predefined_customer_agents_each_with_at_least_five_scenarios():
     tpl = load_templates(LIBRARY)
-    for name in ("billing-and-invoices", "delivery-problems", "account-help"):
+    for name in ("billing-and-invoices", "delivery-problems", "account-help", "appointments", "plan-changes", "complaints", "front-door"):
         info = tpl[name].info()
         assert info["scenarios"] >= 5 and info["audience"] == "customer" and info["category"] and info["notes"] and info["sees"] and info["does"] and info["version"] == "1"
-        assert "hand" in " ".join(info["does"]).lower()                                  # each says what it hands over to a person
+        assert any(w in " ".join(info["does"]).lower() for w in ("hand", "pass"))                                  # each says what it hands over to a person
 
 
 def test_the_hub_fields_are_optional_and_validated():

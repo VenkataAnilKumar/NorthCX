@@ -272,6 +272,29 @@ class HubBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class OrgPolicyProveBody(BaseModel):
+    policy: str = Field(min_length=1, max_length=60)
+    config: dict[str, Any] = Field(default_factory=dict)
+    cases: list[dict[str, Any]] = Field(default_factory=list, max_length=50)
+
+
+class OrgPolicyBody(OrgPolicyProveBody):
+    name: str = Field(min_length=3, max_length=80)
+    applies_to: list[str] | None = Field(default=None, alias="appliesTo", max_length=100)  # leave out for every customer agent
+    model_config = {"populate_by_name": True}
+
+
+class OrgPolicyEditBody(BaseModel):
+    config: dict[str, Any] | None = None
+    cases: list[dict[str, Any]] | None = Field(default=None, max_length=50)
+    applies_to: list[str] | None = Field(default=None, alias="appliesTo", max_length=100)
+    model_config = {"populate_by_name": True}
+
+
+class OrgPolicyDecisionBody(BaseModel):
+    note: str | None = Field(default=None, max_length=1000)
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

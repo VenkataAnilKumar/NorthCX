@@ -102,7 +102,13 @@ def build_runtime(c: SimpleNamespace) -> None:
     runtime.qualifications = Qualifications(PgQualifications(c.engine) if c.db_url else None)
     if getattr(llm, "selector", None) is not None:
         llm.selector.qualifier = runtime.qualifications
-    if money_limit is not None and c.providers is not None:
+    from northcx.db import PgOrgPolicies
+    from northcx.org_policies import OrgPolicyService
+    runtime.org_policies = OrgPolicyService(PgOrgPolicies(c.engine) if c.db_url else None)
+    from northcx.budget_settings import BudgetSettings
+    from northcx.db import PgSettings
+    runtime.budget_settings = runtime.ledger.settings = BudgetSettings(PgSettings(c.engine) if c.db_url else None)
+    if c.providers is not None:  # every answer is costed from the operator's own prices (the usage pages need it, and a limit can be set from the Admin app at any time)
         runtime.pricing = c.providers.price_for
     if db_url:
         runtime.routes = PgSessionRoutes(engine)

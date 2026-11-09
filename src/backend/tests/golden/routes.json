@@ -2,6 +2,7 @@
  "dispatch": {
   "DELETE /scim/v2/Groups/x": "/scim/v2/Groups/{group_id} -> delete_group",
   "DELETE /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> delete_user",
+  "DELETE /v1/budgets": "/v1/budgets -> clear_budgets",
   "DELETE /v1/groups/x": "/v1/groups/{group_id} -> delete_group",
   "DELETE /v1/groups/x/members/x": "/v1/groups/{group_id}/members/{subject} -> remove_member",
   "DELETE /v1/knowledge/schedules/x": "/v1/knowledge/schedules/{schedule_id} -> kb_schedule_delete",
@@ -75,6 +76,7 @@
   "GET /v1/models/overview": "/v1/models/overview -> models_overview",
   "GET /v1/monitor/findings": "/v1/monitor/findings -> monitor_findings",
   "GET /v1/monitor/summary": "/v1/monitor/summary -> monitor_summary",
+  "GET /v1/org-policies": "/v1/org-policies -> list_policies",
   "GET /v1/policies": "/v1/policies -> policies",
   "GET /v1/privacy/customers/a/b/export": "/v1/privacy/customers/{customer_id:path}/export -> privacy_export",
   "GET /v1/regression": "/v1/regression -> regression_status",
@@ -151,6 +153,12 @@
   "POST /v1/knowledge/sources/x/import": "/v1/knowledge/sources/{source_id}/import -> kb_import",
   "POST /v1/knowledge/sources/x/schedule": "/v1/knowledge/sources/{source_id}/schedule -> kb_schedule",
   "POST /v1/me/logout": "/v1/me/logout -> logout",
+  "POST /v1/org-policies": "/v1/org-policies -> create_policy",
+  "POST /v1/org-policies/prove": "/v1/org-policies/prove -> prove_policy",
+  "POST /v1/org-policies/x/approve": "/v1/org-policies/{policy_id}/approve -> approve_policy",
+  "POST /v1/org-policies/x/propose": "/v1/org-policies/{policy_id}/propose -> propose_policy",
+  "POST /v1/org-policies/x/reject": "/v1/org-policies/{policy_id}/reject -> reject_policy",
+  "POST /v1/org-policies/x/retire": "/v1/org-policies/{policy_id}/retire -> retire_policy",
   "POST /v1/privacy/retention/run": "/v1/privacy/retention/run -> privacy_retention",
   "POST /v1/release-requests/x/approve": "/v1/release-requests/{request_id}/approve -> approve_request",
   "POST /v1/release-requests/x/cancel": "/v1/release-requests/{request_id}/cancel -> cancel_request",
@@ -175,8 +183,10 @@
   "POST /v1/workspace/tasks/x/stop": "/v1/workspace/tasks/{task_id}/stop -> stop_task",
   "PUT /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> replace_user",
   "PUT /v1/agents/x/rollouts/x/percent": "/v1/agents/{agent_id}/rollouts/{rollout_id}/percent -> rollout_percent",
+  "PUT /v1/budgets": "/v1/budgets -> set_budgets",
   "PUT /v1/groups/x": "/v1/groups/{group_id} -> update_group",
   "PUT /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_put_document",
+  "PUT /v1/org-policies/x": "/v1/org-policies/{policy_id} -> edit_policy",
   "PUT /v1/sessions/x/attachments": "/v1/sessions/{session_id}/attachments -> upload_attachment",
   "PUT /v1/sessions/x/review": "/v1/sessions/{session_id}/review -> put_review",
   "PUT /v1/sessions/x/tags/x": "/v1/sessions/{session_id}/tags/{tag} -> add_tag",
@@ -195,6 +205,11 @@
    "DELETE",
    "/scim/v2/Users/{user_id}",
    "delete_user"
+  ],
+  [
+   "DELETE",
+   "/v1/budgets",
+   "clear_budgets"
   ],
   [
    "DELETE",
@@ -560,6 +575,11 @@
    "GET",
    "/v1/monitor/summary",
    "monitor_summary"
+  ],
+  [
+   "GET",
+   "/v1/org-policies",
+   "list_policies"
   ],
   [
    "GET",
@@ -943,6 +963,36 @@
   ],
   [
    "POST",
+   "/v1/org-policies",
+   "create_policy"
+  ],
+  [
+   "POST",
+   "/v1/org-policies/prove",
+   "prove_policy"
+  ],
+  [
+   "POST",
+   "/v1/org-policies/{policy_id}/approve",
+   "approve_policy"
+  ],
+  [
+   "POST",
+   "/v1/org-policies/{policy_id}/propose",
+   "propose_policy"
+  ],
+  [
+   "POST",
+   "/v1/org-policies/{policy_id}/reject",
+   "reject_policy"
+  ],
+  [
+   "POST",
+   "/v1/org-policies/{policy_id}/retire",
+   "retire_policy"
+  ],
+  [
+   "POST",
    "/v1/privacy/retention/run",
    "privacy_retention"
   ],
@@ -1063,6 +1113,11 @@
   ],
   [
    "PUT",
+   "/v1/budgets",
+   "set_budgets"
+  ],
+  [
+   "PUT",
    "/v1/groups/{group_id}",
    "update_group"
   ],
@@ -1070,6 +1125,11 @@
    "PUT",
    "/v1/knowledge/sources/{source_id}/documents/{external_id:path}",
    "kb_put_document"
+  ],
+  [
+   "PUT",
+   "/v1/org-policies/{policy_id}",
+   "edit_policy"
   ],
   [
    "PUT",

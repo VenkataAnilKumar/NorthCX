@@ -6,13 +6,14 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Any
 
 from sqlalchemy import BigInteger, cast, delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from northcx.access import RateLimiter
-from northcx.db.models import RateCounterRow, UsageLedgerRow
+from northcx.db.models import RateCounterRow, UsageDimRow, UsageLedgerRow
 from northcx.db.stores._base import _Base
 from northcx.reliability import UsageLedger
 from northcx.tenancy import current_tenant
@@ -90,10 +91,31 @@ class PgUsageLedger(_Base):
     def _today():
         return func.to_char(func.timezone("UTC", func.now()), "YYYY-MM-DD")
 
-    async def charge(self, agent_id: str, tokens: int, cost: float = 0.0) -> None:
+    settings: Any = None  # northcx.budget_settings.BudgetSettings
+
+    async def limits(self) -> tuple[int | None, float | None, str]:
+        if self.settings is None:
+            return self.daily_limit, self.money_limit, self.currency
+        return await self.settings.effective(self.daily_limit, self.money_limit, self.currency)
+
+    async def usage_dims(self, days: int) -> list[dict]:
+        cutoff = func.to_char(func.timezone("UTC", func.now()) - func.make_interval(0, 0, 0, days - 1), "YYYY-MM-DD")
+        q = select(UsageDimRow.kind, UsageDimRow.key, UsageDimRow.day, UsageDimRow.tokens, UsageDimRow.cost_micros).where(UsageDimRow.day >= cutoff).order_by(UsageDimRow.day, UsageDimRow.kind, UsageDimRow.key)
+        try:
+            async with self._ro() as s:
+                return [{"kind": r.kind, "key": r.key, "day": r.day, "tokens": int(r.tokens), "cost": int(r.cost_micros) / 1_000_000} for r in (await s.execute(q)).all()]
+        except Exception as e:  # noqa: BLE001
+            self._warn.once_a_minute("usage", e)
+            return await self.local.usage_dims(days)
+
+    async def charge(self, agent_id: str, tokens: int, cost: float = 0.0, model: str | None = None, team: str | None = None) -> None:
         tokens = max(0, int(tokens))
         micros = max(0, round(cost * 1_000_000))
         self.local.add(agent_id, tokens)
+        if model:
+            self.local._dim("model", model, tokens, cost)
+        if team:
+            self.local._dim("team", team, tokens, cost)
         if micros:
             self.local.add_money(agent_id, cost)
         c = self._cache.setdefault(current_tenant(), [0, 0, -1e9])
@@ -107,6 +129,11 @@ class PgUsageLedger(_Base):
         try:
             async with self._sm.begin() as s:
                 await s.execute(stmt)
+                for kind, key in (("model", model), ("team", team)):
+                    if key:
+                        d = pg_insert(UsageDimRow).values(day=self._today(), kind=kind, key=key[:200], tokens=tokens, cost_micros=micros)
+                        await s.execute(d.on_conflict_do_update(index_elements=[UsageDimRow.tenant_id, UsageDimRow.day, UsageDimRow.kind, UsageDimRow.key],
+                                                                set_={"tokens": UsageDimRow.tokens + tokens, "cost_micros": UsageDimRow.cost_micros + micros}))
         except Exception as e:  # noqa: BLE001
             self._warn.once_a_minute("token budget", e)
 
@@ -144,11 +171,12 @@ class PgUsageLedger(_Base):
             return await self.local.usage_rows(days)
 
     async def over_budget(self) -> bool:
-        if self.daily_limit is None and self.money_limit is None:
+        tokens_limit, money_limit, _ = await self.limits()
+        if tokens_limit is None and money_limit is None:
             return False
         c = self._cache.setdefault(current_tenant(), [0, 0, -1e9])
         if time.monotonic() - c[2] >= LEDGER_REFRESH:  # one shared read every few seconds, plus this process's own additions in between
             c[0], c[2] = await self.spent(None), time.monotonic()
             c[1] = round(await self.money_spent(None) * 1_000_000)
-        return (self.daily_limit is not None and c[0] >= self.daily_limit) or \
-               (self.money_limit is not None and c[1] >= round(self.money_limit * 1_000_000))
+        return (tokens_limit is not None and c[0] >= tokens_limit) or \
+               (money_limit is not None and c[1] >= round(money_limit * 1_000_000))

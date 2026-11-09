@@ -2447,6 +2447,72 @@
         ]
       }
     },
+    "/v1/budgets": {
+      "put": {
+        "summary": "Set Budgets",
+        "description": "Set this tenant's daily token limit, daily spending limit and currency. A spending limit needs a price, in that currency, for every provider's default model.",
+        "operationId": "set_budgets_v1_budgets_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Set Budgets V1 Budgets Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "budgets"
+        ]
+      },
+      "delete": {
+        "summary": "Clear Budgets",
+        "description": "Go back to the environment's budget settings for this tenant.",
+        "operationId": "clear_budgets_v1_budgets_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Clear Budgets V1 Budgets Delete"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "budgets"
+        ]
+      }
+    },
     "/v1/builder/draft": {
       "post": {
         "summary": "Builder Draft",
@@ -5464,6 +5530,368 @@
         "x-required-permission": "monitor:read",
         "tags": [
           "monitor"
+        ]
+      }
+    },
+    "/v1/org-policies": {
+      "get": {
+        "summary": "List Policies",
+        "operationId": "list_policies_v1_org_policies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Policies V1 Org Policies Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "org-policies"
+        ]
+      },
+      "post": {
+        "summary": "Create Policy",
+        "operationId": "create_policy_v1_org_policies_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicyBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Policy V1 Org Policies Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "org-policies"
+        ]
+      }
+    },
+    "/v1/org-policies/prove": {
+      "post": {
+        "summary": "Prove Policy",
+        "description": "Run cases against a policy setting without saving anything (for the editor).",
+        "operationId": "prove_policy_v1_org_policies_prove_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicyProveBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Prove Policy V1 Org Policies Prove Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "org-policies"
+        ]
+      }
+    },
+    "/v1/org-policies/{policy_id}": {
+      "put": {
+        "summary": "Edit Policy",
+        "description": "Edit the draft; if the latest version is in force, this starts a new draft version and the one in force stays in force.",
+        "operationId": "edit_policy_v1_org_policies__policy_id__put",
+        "parameters": [
+          {
+            "name": "policy_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Policy Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicyEditBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Edit Policy V1 Org Policies  Policy Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "org-policies"
+        ]
+      }
+    },
+    "/v1/org-policies/{policy_id}/approve": {
+      "post": {
+        "summary": "Approve Policy",
+        "operationId": "approve_policy_v1_org_policies__policy_id__approve_post",
+        "parameters": [
+          {
+            "name": "policy_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Policy Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicyDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Approve Policy V1 Org Policies  Policy Id  Approve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "org-policies"
+        ]
+      }
+    },
+    "/v1/org-policies/{policy_id}/propose": {
+      "post": {
+        "summary": "Propose Policy",
+        "operationId": "propose_policy_v1_org_policies__policy_id__propose_post",
+        "parameters": [
+          {
+            "name": "policy_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Policy Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Propose Policy V1 Org Policies  Policy Id  Propose Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "org-policies"
+        ]
+      }
+    },
+    "/v1/org-policies/{policy_id}/reject": {
+      "post": {
+        "summary": "Reject Policy",
+        "operationId": "reject_policy_v1_org_policies__policy_id__reject_post",
+        "parameters": [
+          {
+            "name": "policy_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Policy Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicyDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Reject Policy V1 Org Policies  Policy Id  Reject Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "org-policies"
+        ]
+      }
+    },
+    "/v1/org-policies/{policy_id}/retire": {
+      "post": {
+        "summary": "Retire Policy",
+        "description": "Take a locked policy out of force. Deliberate, and recorded.",
+        "operationId": "retire_policy_v1_org_policies__policy_id__retire_post",
+        "parameters": [
+          {
+            "name": "policy_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Policy Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicyDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Retire Policy V1 Org Policies  Policy Id  Retire Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "org-policies"
         ]
       }
     },
@@ -9013,6 +9441,153 @@
           "note"
         ],
         "title": "NoteBody"
+      },
+      "OrgPolicyBody": {
+        "properties": {
+          "policy": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Policy"
+          },
+          "config": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Config"
+          },
+          "cases": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Cases"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "appliesTo": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appliesto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "policy",
+          "name"
+        ],
+        "title": "OrgPolicyBody"
+      },
+      "OrgPolicyDecisionBody": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "OrgPolicyDecisionBody"
+      },
+      "OrgPolicyEditBody": {
+        "properties": {
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          },
+          "cases": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array",
+                "maxItems": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cases"
+          },
+          "appliesTo": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appliesto"
+          }
+        },
+        "type": "object",
+        "title": "OrgPolicyEditBody"
+      },
+      "OrgPolicyProveBody": {
+        "properties": {
+          "policy": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Policy"
+          },
+          "config": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Config"
+          },
+          "cases": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Cases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "policy"
+        ],
+        "title": "OrgPolicyProveBody"
       },
       "PercentBody": {
         "properties": {

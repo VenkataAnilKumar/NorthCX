@@ -68,6 +68,7 @@ from .api.routers import groups as _groups_router
 from .api.routers import scim as _scim_router
 from .api.routers import workspace as _workspace_router
 from .api.routers import hub as _hub_router
+from .api.routers import org_policies as _org_policies_router
 from .api.routers import admin_overview as _admin_overview_router
 from .tenancy import TENANT
 from .api.routers import voice as _voice_router
@@ -156,7 +157,15 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/templates", "agents:read"),
     ("GET", r"/v1/models/overview", "versions:read"),
     ("GET", r"/v1/usage", "insights:read"),
+    ("PUT", r"/v1/budgets", "keys:manage"),
+    ("DELETE", r"/v1/budgets", "keys:manage"),
     ("GET", r"/v1/policies", "agents:read"),
+    ("GET", r"/v1/org-policies", "agents:read"),
+    ("POST", r"/v1/org-policies", "versions:create"),
+    ("POST", r"/v1/org-policies/prove", "versions:create"),
+    ("PUT", r"/v1/org-policies/[^/]+", "versions:create"),
+    ("POST", r"/v1/org-policies/[^/]+/propose", "versions:create"),
+    ("POST", r"/v1/org-policies/[^/]+/(approve|reject|retire)", "releases:publish"),
     ("POST", r"/v1/templates/[^/]+/requirements", "agents:read"),
     ("POST", r"/v1/templates/[^/]+/install", "versions:create"),
     ("POST", r"/v1/templates/[^/]+/update-preview", "versions:create"),
@@ -411,6 +420,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _scim_router.register(app, deps)
     _workspace_router.register(app, deps)
     _hub_router.register(app, deps)
+    _org_policies_router.register(app, deps)
     _admin_overview_router.register(app, deps)
     _voice_router.register(app, deps)
     _public_router.register(app, deps)

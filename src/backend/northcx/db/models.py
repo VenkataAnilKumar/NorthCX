@@ -178,6 +178,7 @@ class ApiKeyRow(Base):
     last_used_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     tenant_id: Mapped[str] = mapped_column(String(40), nullable=False, server_default="default", index=True)
     extra_roles: Mapped[Any] = mapped_column(JSONB, nullable=True)  # roles added by group membership at sign-in
+    groups: Mapped[Any] = mapped_column(JSONB, nullable=True)  # names of the groups the person was in at sign-in (their teams, for usage)
     agents: Mapped[Any] = mapped_column(JSONB, nullable=True)  # null: all agents
     environments: Mapped[Any] = mapped_column(JSONB, nullable=True)  # null: all environments
 
@@ -615,6 +616,40 @@ class TemplateInstallRow(TenantScoped, Base):
     data: Mapped[Any] = mapped_column(JSONB, nullable=False)
     installed_at: Mapped[float] = mapped_column(Float, nullable=False)
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class UsageDimRow(TenantScoped, Base):
+    """Usage by model and by team, per UTC day (tokens and money in millionths of the budget currency)."""
+    __tablename__ = "usage_dims"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(8), primary_key=True)   # model | team
+    key: Mapped[str] = mapped_column(String(200), primary_key=True)
+    tokens: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    cost_micros: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0")
+
+
+class TenantSettingRow(TenantScoped, Base):
+    """A setting an administrator changes from the Admin app, overriding the environment default for that tenant."""
+    __tablename__ = "tenant_settings"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    updated_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class OrgPolicyRow(TenantScoped, Base):
+    """One version of an organization policy (E16): draft, proposed, active, rejected, retired or superseded."""
+    __tablename__ = "org_policies"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
 
 
 class JobLeaseRow(Base):

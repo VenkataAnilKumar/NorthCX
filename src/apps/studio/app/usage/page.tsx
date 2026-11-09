@@ -18,6 +18,18 @@ export default function Usage() {
             <StatTile label="Spent" value={`${data.totals.cost.toFixed(4)} ${data.currency}`} hint={data.limits.dailyMoneyLimit ? `daily limit ${data.limits.dailyMoneyLimit} ${data.currency}` : "no daily spending limit"} />
             <StatTile label="Agents with usage" value={data.byAgent.length} hint="of those that ran" />
           </div>
+          {(data.byModel.length > 0 || data.byTeam.length > 0) && (
+            <div className="mb-4 grid gap-4 lg:grid-cols-2">
+              {[["By model", data.byModel], ["By team (staff)", data.byTeam]].map(([title, rows]) => (
+                <GlassCard key={title as string} title={title as string}>
+                  {(rows as typeof data.byModel).length === 0 ? <p className="text-sm text-muted">Nothing counted yet.</p> : (
+                    <table className="tbl"><caption className="sr-only">{title as string}</caption><thead><tr><th>Name</th><th>Tokens</th><th>Spent ({data.currency})</th></tr></thead>
+                      <tbody>{(rows as typeof data.byModel).map((r) => <tr key={r.name}><td>{r.name}</td><td>{r.tokens.toLocaleString()}</td><td>{r.cost.toFixed(4)}</td></tr>)}</tbody></table>)}
+                  {title === "By team (staff)" && <p className="mt-2 text-xs text-muted">Staff assistant usage, counted under the first of the person's groups. Customer conversations are not attributed to a team.</p>}
+                </GlassCard>
+              ))}
+            </div>
+          )}
           {data.byAgent.length === 0 ? <Empty>No model usage in this period yet.</Empty> : (
             <GlassCard title="By agent">
               <table className="tbl"><caption className="sr-only">Tokens and spending by agent</caption>

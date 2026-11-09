@@ -84,6 +84,7 @@ class Runtime:
         self.secrets = secrets or NO_SECRETS
         self.monitor = monitor or Monitor()
         self.ledger = ledger or UsageLedger()
+        self.org_policies: Any = None  # northcx.org_policies.OrgPolicyService: locked organization policies applied to every customer agent
         self.pricing: Any = None  # (provider, model) -> Price | None; with a money budget every answer is costed from the operator's prices
         self.shared_limiter: Any = None  # set when limits are shared between server processes
         self.compactor = compactor
@@ -280,9 +281,9 @@ class Runtime:
         done_writes: dict[str, Any] = {}
         for step in range(agent.max_steps):
             if await self.ledger.over_budget():
-                money = getattr(self.ledger, "money_limit", None)
-                trace.add("budget", scope="daily", used=await self.ledger.spent(), limit=self.ledger.daily_limit,
-                          **({"money_used": await self.ledger.money_spent(), "money_limit": money, "currency": self.ledger.currency} if money is not None else {}))
+                tok_limit, money, cur = await self.ledger.limits() if hasattr(self.ledger, "limits") else (self.ledger.daily_limit, getattr(self.ledger, "money_limit", None), self.ledger.currency)
+                trace.add("budget", scope="daily", used=await self.ledger.spent(), limit=tok_limit,
+                          **({"money_used": await self.ledger.money_spent(), "money_limit": money, "currency": cur} if money is not None else {}))
                 return await finish(FALLBACK, "escalated", "budget_exceeded", "The daily model budget is used up")
             if agent.max_run_tokens and used >= agent.max_run_tokens:
                 trace.add("budget", scope="run", used=used, limit=agent.max_run_tokens)
@@ -300,16 +301,24 @@ class Runtime:
             used += tokens
             cost, unpriced = 0.0, False
             if self.pricing is not None and res.usage:
+                _, money_limit, cur = await self.ledger.limits() if hasattr(self.ledger, "limits") else (None, getattr(self.ledger, "money_limit", None), self.ledger.currency)
                 price = self.pricing(res.provider, res.model)
-                if price is not None and price.currency == self.ledger.currency:
+                if price is not None and price.currency == cur:
                     cost = price.cost(int(res.usage.get("input_tokens", 0)), int(res.usage.get("output_tokens", 0)))
-                else:
-                    unpriced = True  # no price in the budget currency: counted as zero, and said so in the trace
-            await self.ledger.charge(agent.id, tokens, cost)
+                elif money_limit is not None:
+                    unpriced = True  # a spending limit is in force and this answer has no price in its currency: counted as zero, and said so in the trace
+            team = None
+            if actor is not None:  # staff usage is counted by team (the first of the person's groups, alphabetically, so it is counted once)
+                team = sorted(actor.groups)[0] if getattr(actor, "groups", ()) else "(no team)"
+            model_name = (f"{res.provider}:{res.model}" if res.provider and res.model else res.model) or None
+            try:
+                await self.ledger.charge(agent.id, tokens, cost, model=model_name, team=team)
+            except TypeError:  # a ledger written before usage was counted by model and team
+                await self.ledger.charge(agent.id, tokens, cost)
             if res.decision is not None:
                 trace.add("model_choice", step=step, **res.decision)
             trace.add("llm", step=step, stop_reason=res.stop_reason,
-                      **({"tokens": tokens} if tokens else {}), **({"cost": round(cost, 6), "currency": self.ledger.currency} if cost else {}), **({"unpriced": True} if unpriced else {}), **({"model": res.model} if res.model else {}),
+                      **({"tokens": tokens} if tokens else {}), **({"cost": round(cost, 6), "currency": cur if self.pricing is not None and res.usage else self.ledger.currency} if cost else {}), **({"unpriced": True} if unpriced else {}), **({"model": res.model} if res.model else {}),
                       **({"fallback": True} if res.fallback else {}))
             messages.append({"role": "assistant", "content": res.content})
             uses = [b for b in res.content if b.get("type") == "tool_use"]
@@ -586,7 +595,14 @@ class Runtime:
     async def _check(self, agent: Agent, kind: str, payload: Any, session_id: str, messages: list[Message], trace: Trace,
                      info: dict[str, Any] | None = None) -> str | None:
         gctx = GuardrailContext(session_id, messages, **(info or {}))
-        for g in agent.guardrails:
+        org = []
+        if self.org_policies is not None and agent.audience != "staff":  # locked organization policies cover every customer agent, whatever its own definition says
+            try:
+                org = await self.org_policies.guardrails_for(agent.id)
+            except Exception as e:  # noqa: BLE001 - policies that cannot be loaded fail closed
+                trace.add("guardrail", guardrail="org-policies", reason=f"error: {type(e).__name__}")
+                return "Supervisor error (fail closed)."
+        for g in [*agent.guardrails, *org]:
             try:
                 v = await (g.check_reply(payload, gctx) if kind == "reply" else g.check_tool_call(payload[0], payload[1], gctx))
             except Exception as e:  # supervisor errors fail closed

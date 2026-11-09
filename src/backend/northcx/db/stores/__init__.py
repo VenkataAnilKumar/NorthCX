@@ -15,6 +15,8 @@ from .scim import PgScimUsers
 from .tenants import PgTenants
 from .tasks import PgTasks
 from .hub import PgInstalls
+from .settings import PgSettings
+from .org_policies import PgOrgPolicies
 from .release_requests import PgReleaseRequests
 from .shared_state import PgAlertState, PgCrawlJobs
 from .limits import PgLimiter, PgUsageLedger

@@ -55,7 +55,7 @@ def test_providers_tiers_prices_rules_and_budget_are_shown_without_any_key():
     assert next(p for p in out["providers"] if p["name"] == "loc")["tier"] == "local"
     assert out["routing"]["policy"]["sensitive"] == ["local"] and out["routing"]["rules"][0] == {"name": "simple", "when": {"sensitive": False}, "use": {"tier": "local"}}
     assert out["routing"]["qualification"] == {"required": True, "exempt": ["pub:big"]} and "payment" in out["routing"]["sensitiveTopics"]
-    assert out["budget"] == {"dailyTokenLimit": 1000, "dailyMoneyLimit": 5.0, "currency": "USD", "tokensToday": 120, "moneyToday": 0.25}
+    assert out["budget"] == {"dailyTokenLimit": 1000, "dailyMoneyLimit": 5.0, "currency": "USD", "setHere": {}, "tokensToday": 120, "moneyToday": 0.25}
     assert "key" not in str(out).lower().replace("keys are never shown", "")
 
 
@@ -106,3 +106,107 @@ async def test_usage_comes_from_the_database_for_the_callers_tenant(app_engine):
         assert sorted((r["agent"], r["tokens"]) for r in rows) == [("billing", 50), ("support", 300)] and abs(sum(r["cost"] for r in rows) - 0.35) < 1e-9
     with as_tenant("globex"):
         assert [(r["agent"], r["tokens"]) for r in await led.usage_rows(7)] == [("support", 7)]
+
+
+# ---------- usage by model and team, budgets from the page ----------
+def providers_stack(prices=True):
+    reg = ProviderRegistry()
+    reg.register(Fake("pub", "big", {"big": Price(3.0, 15.0, "USD")} if prices else {}), default=True)
+    rel = ReliableLLM(reg, [], retries=0, timeout=None)
+    return rel, reg
+
+
+def test_usage_is_counted_by_model_and_by_team_for_staff():
+    from northcx.budget_settings import BudgetSettings
+    rel, reg = providers_stack()
+    ledger = UsageLedger()
+    ledger.settings = BudgetSettings()
+    c, rt = app_with(rel, ledger)
+    rt.pricing = reg.price_for
+    ac = c.app  # noqa: F841
+    loop = asyncio.new_event_loop()
+    from northcx.access import Identity
+    agent = support_agent()
+    loop.run_until_complete(rt.run(agent, "s1", "hello"))                         # a customer conversation: counted by model, no team
+    from northcx.workspace import WorkspaceService
+    ws = WorkspaceService(rt, rt.traces, None, None, None, None)
+    ann = Identity("ann", "developer", "k1", groups=("Support leads", "Billing"))
+    loop.run_until_complete(rt.run(ws.agent(ann), "staff:1:c", "hi", "staff:1", actor=ann))
+    loop.run_until_complete(rt.run(ws.agent(Identity("bob", "viewer", "k2")), "staff:2:c", "hi", "staff:2", actor=Identity("bob", "viewer", "k2")))
+    out = c.get("/v1/usage?days=7", headers=H).json()
+    assert [m["name"] for m in out["byModel"]] == ["pub:big"] and out["byModel"][0]["tokens"] == 4500 and out["byModel"][0]["cost"] > 0
+    assert {t["name"]: t["tokens"] for t in out["byTeam"]} == {"Billing": 1500, "(no team)": 1500}      # counted once, under the first group alphabetically
+
+
+def test_a_budget_set_from_the_page_replaces_the_environment_default_for_that_tenant_and_can_be_cleared():
+    from northcx.budget_settings import BudgetSettings
+    rel, reg = providers_stack()
+    ledger = UsageLedger(None, None, "USD")
+    ledger.settings = BudgetSettings()
+    c, rt = app_with(rel, ledger)
+    rt.budget_settings = ledger.settings
+    rt.pricing = reg.price_for
+    assert c.get("/v1/models/overview", headers=H).json()["budget"]["dailyTokenLimit"] is None
+    assert c.put("/v1/budgets", headers=H, json={"dailyTokenLimit": 2000, "dailyMoneyLimit": 0.01, "currency": "usd"}).json() == {"saved": True, "setHere": {"dailyTokenLimit": 2000, "dailyMoneyLimit": 0.01, "currency": "USD"}}
+    b = c.get("/v1/models/overview", headers=H).json()["budget"]
+    assert b["dailyTokenLimit"] == 2000 and b["dailyMoneyLimit"] == 0.01 and b["setHere"]["currency"] == "USD"
+    loop = asyncio.new_event_loop()
+    agent = support_agent()
+    first = loop.run_until_complete(rt.run(agent, "s1", "hello"))
+    assert first.status == "completed"                                                    # 1500 tokens, 0.0105 money: over the 0.01 limit now
+    ledger.settings._cache.clear()
+    second = loop.run_until_complete(rt.run(agent, "s2", "hello"))
+    assert second.status == "escalated" and next(e for e in second.trace.events if e.type == "budget").data["money_limit"] == 0.01
+    assert c.delete("/v1/budgets", headers=H).json() == {"cleared": True}
+    ledger.settings._cache.clear()
+    assert loop.run_until_complete(rt.run(agent, "s3", "hello")).status == "completed"      # back to no limit
+
+
+def test_bad_budgets_are_refused_with_a_reason_and_a_spending_limit_needs_prices():
+    from northcx.budget_settings import BudgetSettings
+    rel, reg = providers_stack(prices=False)
+    ledger = UsageLedger()
+    ledger.settings = BudgetSettings()
+    c, rt = app_with(rel, ledger)
+    rt.budget_settings = ledger.settings
+    for body, why in [({"dailyTokenLimit": 5}, "1,000"), ({"dailyTokenLimit": "many"}, "whole number"), ({"dailyMoneyLimit": -1}, "positive"), ({"currency": "dollars"}, "three-letter")]:
+        r = c.put("/v1/budgets", headers=H, json=body)
+        assert r.status_code == 400 and why in r.json()["error"]["message"], (body, r.text)
+    r = c.put("/v1/budgets", headers=H, json={"dailyMoneyLimit": 5})
+    assert r.status_code == 400 and "no price" in r.json()["error"]["message"] and c.get("/v1/models/overview", headers=H).json()["budget"]["dailyMoneyLimit"] is None
+    assert c.put("/v1/budgets", headers=H, json={"dailyTokenLimit": 5000}).status_code == 200            # a token limit needs no price
+    loop = asyncio.new_event_loop()
+    key = lambda role: {"authorization": "Bearer " + loop.run_until_complete(c.app.state.access.issue(role, role, "t"))[1]} if hasattr(c.app.state, "access") else None  # noqa: E731
+    assert c.put("/v1/budgets", json={"dailyTokenLimit": 5000}).status_code == 401
+
+
+async def test_settings_usage_dims_and_groups_survive_the_database_per_tenant(app_engine):
+    from contextlib import contextmanager
+
+    from northcx.access import AccessControl
+    from northcx.budget_settings import BudgetSettings
+    from northcx.db import PgKeys, PgSettings, PgUsageLedger
+    from northcx.tenancy import TENANT
+
+    @contextmanager
+    def as_tenant(name):
+        token = TENANT.set(name)
+        try:
+            yield
+        finally:
+            TENANT.reset(token)
+    s = BudgetSettings(PgSettings(app_engine))
+    led = PgUsageLedger(app_engine, None, None, "USD")
+    led.settings = s
+    for tenant, limit in (("acme", 5000), ("globex", 9000)):
+        with as_tenant(tenant):
+            await s.put({"dailyTokenLimit": limit}, "rae")
+            await led.charge("support", 100, 0.1, model="pub:big", team="Support")
+    with as_tenant("acme"):
+        assert (await led.limits())[0] == 5000 and [(d["kind"], d["key"], d["tokens"]) for d in await led.usage_dims(7)] == [("model", "pub:big", 100), ("team", "Support", 100)]
+        assert await s.clear() and (await led.limits())[0] is None
+    with as_tenant("globex"):
+        assert (await led.limits())[0] == 9000
+    ac = AccessControl(keys=PgKeys(app_engine))
+    _, secret = await ac.issue_session("rae", "developer", 4, groups=["Support", "Billing"])
+    assert (await AccessControl(keys=PgKeys(app_engine)).authenticate(secret)).groups == ("Billing", "Support")
