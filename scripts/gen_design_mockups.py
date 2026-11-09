@@ -247,11 +247,25 @@ WS_NAV_FULL = [("Work", [("Inbox", "&#129525;"), ("Approvals", "&#9989;"), ("Cus
 WS_ALIAS = {"Chat": "Pilot", "Threads": "Inbox", "Artifacts": "Outputs", "Projects": "Spaces", "Scheduled": "Automations", "Workflows": "Automations", "Knowledge": "Library", "Reviews": "Quality", "Insights": "Performance"}
 
 
+SUB_GROUPS = [("Pilot", "&#129517;", [], 0), ("Work", "&#129525;", ["Inbox", "Approvals", "Customers"], 2), ("Assist", "&#129302;", ["Assistants", "Search", "Library"], 0),
+              ("Create", "&#128196;", ["Outputs", "Spaces", "Automations"], 0), ("Team", "&#128221;", ["Quality", "Performance"], 0)]
+
+
+def subnav(group):
+    out = '<a class="%s"><span>&#8962; &nbsp;Home</span></a>' % ("on" if group == "Home" else "")
+    for g, ic, _subs, n in SUB_GROUPS:
+        out += f'<a class="{"on" if g == group else ""}"><span>{ic} &nbsp;{g}</span>{f"<span class=n>{n}</span>" if n else ""}</a>'
+    return out
+
+
 def wsapp(active: str, work: str, title: str, recent_on: int | None = None, full: bool = True, nav_html: str = "") -> str:
     active = WS_ALIAS.get(active, active)
     if nav_html:
         nav = nav_html
     elif full:
+        grp = "Home" if active == "Home" else "Pilot" if active == "Pilot" else next((g for g, _i, subs, _n in SUB_GROUPS if active in subs), active)
+        nav = subnav(grp)
+    elif False:
         nav = f'<a class="{"on" if active == "Home" else ""}"><span>&#8962; &nbsp;Home</span></a>' + "".join(f'<div class="grp" style="padding:8px 10px 2px">{g}</div>' + "".join(f'<a class="{"on" if n == active else ""}"><span>{ic} &nbsp;{n}</span>{"<span class=n>2</span>" if n == "Approvals" else ""}</a>' for n, ic in items) for g, items in WS_NAV_FULL)
     else:
         nav = "".join(f'<a class="{"on" if n == active else ""}"><span>{ic} &nbsp;{n}</span></a>' for n, ic in WS_NAV)
@@ -688,17 +702,6 @@ body{{padding:28px;min-height:900px}}h1{{margin-bottom:4px}}</style></head><body
 <div class="card" style="margin-top:12px"><h3>Cross-cutting</h3><div class="row"><span class="tag">Global search (Ctrl K)</span><span class="tag">Tenant and environment switcher</span><span class="tag">Role-aware navigation (items hide, not grey out)</span><span class="tag">Light and dark</span><span class="tag">Keyboard and screen-reader support</span><span class="tag">Empty, loading and error states</span><span class="tag">Confirm before destructive actions, recorded in audit</span></div></div></body></html>"""
 
 
-SUB_GROUPS = [("Pilot", "&#129517;", [], 0), ("Work", "&#129525;", ["Inbox", "Approvals", "Customers"], 2), ("Assist", "&#129302;", ["Assistants", "Search", "Library"], 0),
-              ("Create", "&#128196;", ["Outputs", "Spaces", "Automations"], 0), ("Team", "&#128221;", ["Quality", "Performance"], 0)]
-
-
-def subnav(group):
-    out = '<a class="%s"><span>&#8962; &nbsp;Home</span></a>' % ("on" if group == "Home" else "")
-    for g, ic, _subs, n in SUB_GROUPS:
-        out += f'<a class="{"on" if g == group else ""}"><span>{ic} &nbsp;{g}</span>{f"<span class=n>{n}</span>" if n else ""}</a>'
-    return out
-
-
 def subtabs(group, on):
     subs = next(x[2] for x in SUB_GROUPS if x[0] == group)
     return '<style>.pb{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:600}.pb.on{background:var(--primary);color:#fff;border-color:var(--primary)}.pb .n{background:#fde68a;color:#7c2d12;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px}</style><div class="row" style="gap:6px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px">' + "".join(
@@ -711,6 +714,16 @@ SCREENS["53-workspace-subtabs"] = wsapp("Work", subtabs("Work", "Inbox") + head(
 <div class="card" style="margin-top:12px"><b>Left side: six items</b><p class="note">Home, Pilot, Work, Assist, Create and Team. The badge on Work comes from Approvals, so waiting work is never hidden. Team shows only for leads and reviewers. Press Ctrl K to jump to any tab by name.</p></div>""", "Workspace sub-tabs", nav_html=subnav("Work"))
 
 SCREENS["54-workspace-subtabs-assist"] = wsapp("Assist", subtabs("Assist", "Assistants") + head("Assistants", "Predefined staff assistants. Pick one to start a Pilot task.") + """<div class="card"><p class="note">Assist holds Assistants, Search and Library. Pilot is its own left item and opens full width, with no sub-tab row; its own inner tabs (Plan, Result, Files and the rest) sit inside the task.</p></div>""", "Workspace sub-tabs (Assist)", nav_html=subnav("Assist"))
+
+
+SCREENS["55-workspace-home"] = wsapp("Home", head("Good morning, Dana", "What needs you, and where to pick up.") + f"""<div class="g3"><div class="card"><h3>Needs you</h3><p><b>2</b> approvals waiting<br><b>3</b> conversations need a person</p><span class="btn p">Open Work</span></div>
+<div class="card"><h3>Pick up</h3><p class="note">Summarise yesterday's refund escalations<br>Weekly QA digest (draft)</p><span class="btn">Open Pilot</span></div>
+<div class="card"><h3>Today</h3><p class="note">9 resolved &middot; 14 refund hand-offs &middot; average first reply 3 min (sample)</p></div></div>
+<div class="card" style="margin-top:12px"><h3>Start something</h3><div class="row"><span class="pill">Ask an assistant</span><span class="pill">Search the library</span><span class="pill">New automation</span></div></div>""", "Workspace home")
+
+SCREENS["56-workspace-create"] = wsapp("Outputs", subtabs("Create", "Outputs") + head("Outputs", "Everything assistants made for you.", '<span class="btn">Export</span>') + table(["Output", "Space", "Version", "Shared"], [["<b>Refund escalation summary</b>", "Billing escalations", "v2", "Team"], ["<b>Apology for delayed parcels (draft)</b>", "Personal", "v1", "Private"], ["<b>Weekly QA digest</b>", "Quality", "v4", "Team"]]) + """<p class="note" style="margin-top:10px">Create holds Outputs, Spaces and Automations. Each output shows who made it, which sources it used and which model.</p>""", "Workspace Create", nav_html=subnav("Create"))
+
+SCREENS["57-workspace-team"] = wsapp("Quality", subtabs("Team", "Quality") + head("Quality", "Review and coach. Visible to leads and reviewers only.") + table(["Conversation", "Agent", "Score", "State"], [["Duplicate charge (masked)", "billing-help", "4.5", badge("reviewed", "ok")], ["Delayed delivery (masked)", "care-copilot", "3.0", badge("needs review", "warn")], ["Plan change (masked)", "billing-help", "&ndash;", badge("sampled", "info")]]) + """<p class="note" style="margin-top:10px">Team holds Quality and Performance and is hidden for everyone else, so staff who are not leads see five left items.</p>""", "Workspace Team", nav_html=subnav("Team"))
 
 
 if __name__ == "__main__":

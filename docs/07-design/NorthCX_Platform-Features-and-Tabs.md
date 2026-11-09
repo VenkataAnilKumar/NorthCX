@@ -29,7 +29,7 @@ The left side shows only **six items**, not twelve tabs. Pilot is its own item b
 | **Create** | Outputs, Spaces, Automations |
 | **Team** (leads and reviewers only; hidden for everyone else) | Quality, Performance |
 
-Settings and the profile stay in the corner. Rules: a count badge on a sub-tab (for example Approvals) also shows on its group item, so nothing waiting is hidden; the group remembers the last sub-tab you used; a group with one visible sub-tab shows no sub-tab row; search and the command bar (Ctrl K, jump to any tab by typing its name) reach every tab in one step. The Admin app uses the same idea: its four groups (Operate, Build, Govern, Platform) already work this way. Mockups: `docs/assets/design/53-workspace-subtabs.png` (Work with its sub-tabs) and `54-workspace-subtabs-assist.png` (Assist).
+Settings and the profile stay in the corner. Rules: a count badge on a sub-tab (for example Approvals) also shows on its group item, so nothing waiting is hidden; the group remembers the last sub-tab you used; a group with one visible sub-tab shows no sub-tab row; search and the command bar (Ctrl K, jump to any tab by typing its name) reach every tab in one step. The Admin app uses the same idea: its four groups (Operate, Build, Govern, Platform) already work this way. Mockups, one per left item: Home `55-workspace-home.png`, Pilot `50-pilot-research-plan.png`, Work `53-workspace-subtabs.png`, Assist `54-workspace-subtabs-assist.png`, Create `56-workspace-create.png`, Team `57-workspace-team.png`. Every Workspace mockup now uses the six-item sidebar.
 
 ### Work
 | Tab | Purpose | Features | State |
