@@ -736,6 +736,101 @@
         ]
       }
     },
+    "/v1/agents/{agent_id}/qualifications": {
+      "get": {
+        "summary": "List Qualifications",
+        "operationId": "list_qualifications_v1_agents__agent_id__qualifications_get",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Qualifications V1 Agents  Agent Id  Qualifications Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:read",
+        "tags": [
+          "agents"
+        ]
+      },
+      "post": {
+        "summary": "Qualify Model",
+        "description": "Judge a finished live run made against a candidate model, and record whether that model may serve this agent.",
+        "operationId": "qualify_model_v1_agents__agent_id__qualifications_post",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QualifyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Qualify Model V1 Agents  Agent Id  Qualifications Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "scenarios:require",
+        "tags": [
+          "agents"
+        ]
+      }
+    },
     "/v1/agents/{agent_id}/releases": {
       "post": {
         "summary": "Publish",
@@ -6824,6 +6919,28 @@
         ],
         "title": "PublishBody"
       },
+      "QualifyBody": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Model"
+          },
+          "runId": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Runid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "runId"
+        ],
+        "title": "QualifyBody"
+      },
       "RefineBody": {
         "properties": {
           "current": {
@@ -7207,6 +7324,18 @@
               }
             ],
             "title": "Version"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
           }
         },
         "type": "object",

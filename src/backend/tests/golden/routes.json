@@ -20,6 +20,7 @@
   "GET /v1/agents": "/v1/agents -> list_agents",
   "GET /v1/agents/x/environments": "/v1/agents/{agent_id}/environments -> agent_environments",
   "GET /v1/agents/x/live": "/v1/agents/{agent_id}/live -> live",
+  "GET /v1/agents/x/qualifications": "/v1/agents/{agent_id}/qualifications -> list_qualifications",
   "GET /v1/agents/x/releases": "/v1/agents/{agent_id}/releases -> release_history",
   "GET /v1/agents/x/rollouts": "/v1/agents/{agent_id}/rollouts -> list_rollouts",
   "GET /v1/agents/x/rollouts/x/comparison": "/v1/agents/{agent_id}/rollouts/{rollout_id}/comparison -> rollout_comparison",
@@ -88,6 +89,7 @@
   "POST /v1/agents/x/journeys/draft": "/v1/agents/{agent_id}/journeys/draft -> journey_draft",
   "POST /v1/agents/x/journeys/scenarios": "/v1/agents/{agent_id}/journeys/scenarios -> journey_scenarios",
   "POST /v1/agents/x/promote": "/v1/agents/{agent_id}/promote -> promote",
+  "POST /v1/agents/x/qualifications": "/v1/agents/{agent_id}/qualifications -> qualify_model",
   "POST /v1/agents/x/releases": "/v1/agents/{agent_id}/releases -> publish",
   "POST /v1/agents/x/rollback": "/v1/agents/{agent_id}/rollback -> rollback",
   "POST /v1/agents/x/rollouts": "/v1/agents/{agent_id}/rollouts -> start_rollout",
@@ -234,6 +236,11 @@
    "GET",
    "/v1/agents/{agent_id}/live",
    "live"
+  ],
+  [
+   "GET",
+   "/v1/agents/{agent_id}/qualifications",
+   "list_qualifications"
   ],
   [
    "GET",
@@ -574,6 +581,11 @@
    "POST",
    "/v1/agents/{agent_id}/promote",
    "promote"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/qualifications",
+   "qualify_model"
   ],
   [
    "POST",
