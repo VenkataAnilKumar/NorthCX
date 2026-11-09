@@ -18,7 +18,7 @@ Left: Workspace navigation and recent chats. Centre: the conversation and compos
 6. A step that would write to a system stops and asks the person. The ask names the exact action and input.
 7. The result is saved as a versioned output, with sources, steps and cost, and can be shared, scheduled or turned into an automation.
 
-## 4. Task styles (decision pending on which ship first; recommended: Quick answer and Research)
+## 4. Task styles (decided, decision 163: Quick answer and Research ship first; Think and Do follow, and Do waits for connected tools)
 | Style | Behaviour | Plan | Background | Writes |
 |---|---|---|---|---|
 | Quick answer | One answer with citations | No | No | Never |
@@ -43,7 +43,7 @@ The Context tab lists the instructions, space instructions, memory and personal 
 | PI1 | Plan before work for Research and Do, with estimate | Nothing runs before approval |
 | PI2 | Clarifying questions with chips, at most three | The plan reflects the answers |
 | PI3 | Live Steps view with time, tokens, cost, model | A running task shows each step as it completes |
-| PI4 | Pause, redirect, stop | Redirect keeps completed steps and changes only the rest |
+| PI4 | Pause and stop in the first version; redirect in the second | Redirect keeps completed steps and changes only the rest |
 | PI5 | Writes always ask first | A write step without a recorded approval cannot run |
 | PI6 | Permissions of the signed-in person | An assistant cannot read a source the person cannot |
 | PI7 | Citations on every claim from a source | An answer with no source says so |
@@ -58,5 +58,5 @@ The Context tab lists the instructions, space instructions, memory and personal 
 ## 9. Failures
 A model or tool failure ends the step with a reason and offers retry, skip or stop; the plan is not silently changed. A source removed mid-run is reported and the step marked incomplete. Closing the browser does not stop a background run; the person can reopen it from Recent.
 
-## 10. Open decisions
-Which task styles ship first; plan on every task or on request; pause and redirect in the first version; per-space file limits.
+## 10. Decisions (decision 163, 2026-11-09)
+Task styles: Quick answer and Research first. Plan: shown for Research and Do, skipped for Quick answer and Think. Steering: pause and stop in the first version, redirect in the second. Files: limits are set per space by an administrator, with conservative defaults whose numbers are chosen when the feature is built and measured.
