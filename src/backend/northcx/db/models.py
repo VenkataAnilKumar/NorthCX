@@ -4,8 +4,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, Computed, DateTime, Float, ForeignKey, Identity, Index, Integer, LargeBinary, String, Text, UniqueConstraint, func, text
+from sqlalchemy import BigInteger, Boolean, Computed, DateTime, Float, ForeignKey, ForeignKeyConstraint, Identity, Index, Integer, LargeBinary, String, Text, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
+
+from northcx.db.tenant_sql import TENANT_DEFAULT_SQL
+from northcx.tenancy import current_tenant
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -13,32 +16,45 @@ class Base(DeclarativeBase):
     pass
 
 
-class SessionRow(Base):
+def tenant_col(pk: bool = False) -> Any:
+    """The tenant a row belongs to: filled from the session's tenant by the database (and by the ORM), isolated by row-level security."""
+    return mapped_column(String(40), primary_key=pk, nullable=False, server_default=text(TENANT_DEFAULT_SQL), default=current_tenant)
+
+
+class TenantScoped:
+    """Marks the models whose rows belong to one tenant (the ORM adds the tenant predicate to their statements)."""
+    tenant_id: Mapped[str] = tenant_col()
+
+
+class SessionRow(TenantScoped, Base):
     __tablename__ = "sessions"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     id: Mapped[str] = mapped_column(String(200), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
-class MessageRow(Base):
+class MessageRow(TenantScoped, Base):
     __tablename__ = "messages"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    session_id: Mapped[str] = mapped_column(String(200), ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False)
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False)
     seq: Mapped[int] = mapped_column(Integer, nullable=False)
     role: Mapped[str] = mapped_column(String(20), nullable=False)
     content: Mapped[Any] = mapped_column(JSONB, nullable=False)
-    __table_args__ = (UniqueConstraint("session_id", "seq", name="uq_messages_session_seq"),)
+    __table_args__ = (UniqueConstraint("tenant_id", "session_id", "seq", name="uq_messages_session_seq"),
+                      ForeignKeyConstraint(["tenant_id", "session_id"], ["sessions.tenant_id", "sessions.id"], ondelete="CASCADE"))
 
 
-class FactRow(Base):
+class FactRow(TenantScoped, Base):
     __tablename__ = "customer_facts"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     customer_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     key: Mapped[str] = mapped_column(String(200), primary_key=True)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
-class TraceRow(Base):
+class TraceRow(TenantScoped, Base):
     __tablename__ = "traces"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     session_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -52,7 +68,7 @@ class TraceRow(Base):
     __table_args__ = (Index("ix_traces_session", "session_id"), Index("ix_traces_started", "started_at"))
 
 
-class TraceEventRow(Base):
+class TraceEventRow(TenantScoped, Base):
     __tablename__ = "trace_events"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     trace_id: Mapped[str] = mapped_column(String(64), ForeignKey("traces.id", ondelete="CASCADE"), nullable=False)
@@ -63,7 +79,7 @@ class TraceEventRow(Base):
     __table_args__ = (UniqueConstraint("trace_id", "seq", name="uq_trace_events_seq"),)
 
 
-class ApprovalRow(Base):
+class ApprovalRow(TenantScoped, Base):
     __tablename__ = "approvals"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     trace_id: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -82,7 +98,7 @@ class ApprovalRow(Base):
     __table_args__ = (Index("ix_approvals_state", "state"),)
 
 
-class HandoffRow(Base):
+class HandoffRow(TenantScoped, Base):
     __tablename__ = "handoffs"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     session_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -183,7 +199,7 @@ class AuditRow(Base):
     __table_args__ = (Index("ix_audit_actor", "actor", "id"), Index("ix_audit_action", "action", "id"), Index("ix_audit_tenant", "tenant_id", "id"))
 
 
-class OutboxRow(Base):
+class OutboxRow(TenantScoped, Base):
     __tablename__ = "outbox"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     session_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -322,8 +338,9 @@ class AttachmentRow(Base):
     __table_args__ = (Index("ix_attachments_session", "session_id"),)
 
 
-class SessionRouteRow(Base):
+class SessionRouteRow(TenantScoped, Base):
     __tablename__ = "session_routes"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
@@ -354,8 +371,9 @@ class RolloutAssignmentRow(Base):
     __table_args__ = (Index("ix_rollout_assign_session", "session_id"),)
 
 
-class ReviewRow(Base):
+class ReviewRow(TenantScoped, Base):
     __tablename__ = "conversation_reviews"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     verdict: Mapped[str] = mapped_column(String(16), nullable=False)
     handoff: Mapped[str] = mapped_column(String(16), nullable=False)
@@ -366,8 +384,9 @@ class ReviewRow(Base):
     __table_args__ = (Index("ix_reviews_at", "reviewed_at"),)
 
 
-class ConversationTagRow(Base):
+class ConversationTagRow(TenantScoped, Base):
     __tablename__ = "conversation_tags"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     tag: Mapped[str] = mapped_column(String(40), primary_key=True)
     by: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -375,8 +394,9 @@ class ConversationTagRow(Base):
     __table_args__ = (Index("ix_tags_tag", "tag"),)
 
 
-class FeedbackRow(Base):
+class FeedbackRow(TenantScoped, Base):
     __tablename__ = "conversation_feedback"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
     comment: Mapped[str] = mapped_column(String(1000), nullable=False, server_default="")
@@ -397,7 +417,7 @@ class TraceExportRow(Base):
     __table_args__ = (Index("ix_trace_exports_trace", "trace_id"), Index("ix_trace_exports_pending", "delivered_at", "created_at"))
 
 
-class InboxEventRow(Base):
+class InboxEventRow(TenantScoped, Base):
     __tablename__ = "inbox_events"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     handoff_id: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -440,7 +460,7 @@ class SmsOptOutRow(Base):
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
-class CustomerMemoryRow(Base):
+class CustomerMemoryRow(TenantScoped, Base):
     __tablename__ = "customer_memories"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     customer_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -450,13 +470,14 @@ class CustomerMemoryRow(Base):
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
     tsv: Mapped[Any] = mapped_column(TSVECTOR, Computed("to_tsvector('english', text)", persisted=True))
-    __table_args__ = (UniqueConstraint("customer_id", "text_hash", name="uq_memory_fact"), Index("ix_memories_customer", "customer_id", "updated_at"),
+    __table_args__ = (UniqueConstraint("tenant_id", "customer_id", "text_hash", name="uq_memory_fact"), Index("ix_memories_customer", "customer_id", "updated_at"),
                       Index("ix_memories_tsv", "tsv", postgresql_using="gin"))
 
 
-class SessionIndexRow(Base):
+class SessionIndexRow(TenantScoped, Base):
     """Which conversations belong to which customer ('' = no known customer), and when each was last active."""
     __tablename__ = "session_index"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     customer_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     first_seen: Mapped[float] = mapped_column(Float, nullable=False)

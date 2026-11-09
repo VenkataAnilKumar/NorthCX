@@ -295,7 +295,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        stop = start_background(role, leases, runtime=runtime, traces=traces, flow=flow, agents=agents, approval_ttl_seconds=approval_ttl_seconds,
+        stop = start_background(role, leases, tenants=access.tenants, runtime=runtime, traces=traces, flow=flow, agents=agents, approval_ttl_seconds=approval_ttl_seconds,
                                 alerts=alerts, privacy=privacy, audit=audit, retention_days=retention_days, kb=kb, crawl_scheduler=crawl_scheduler)
         yield
         await stop()

@@ -88,6 +88,31 @@ class InMemoryTenants:
         return [b for b in self._b.values() if b.tenant_id == tenant_id]
 
 
+async def for_each_tenant(service: Any, job: Any, log: Any = None) -> None:
+    """Run a background job once for every active tenant, each with that tenant as the current one, so it sees and writes only that tenant's
+    rows. One tenant's failure does not stop the others. With no tenant service (a single-company deployment) it runs once for `default`."""
+    ids = [DEFAULT_TENANT]
+    if service is not None:
+        try:
+            ids = [t.id for t in await service.repo.list() if t.status == "active"] or [DEFAULT_TENANT]
+        except Exception:  # noqa: BLE001 - the tenant list could not be read: the default tenant still gets its pass
+            if log is not None:
+                log.exception("could not list tenants for a background pass")
+    first: Exception | None = None
+    for tid in ids:
+        token = TENANT.set(tid)
+        try:
+            await job()
+        except Exception as e:  # noqa: BLE001
+            first = first or e
+            if log is not None:
+                log.exception("background pass failed for tenant %s", tid)
+        finally:
+            TENANT.reset(token)
+    if first is not None and len(ids) == 1:
+        raise first  # a single-tenant deployment behaves exactly as before: the caller logs and retries
+
+
 class TenantService:
     def __init__(self, repo: TenantRepo | None = None, preview: bool = False):
         self.repo, self.preview = repo or InMemoryTenants(), preview

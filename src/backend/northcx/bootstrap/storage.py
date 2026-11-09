@@ -1,4 +1,5 @@
 import os
+import sys
 from northcx.access import InMemoryKeys
 from northcx.voice import InMemoryCalls
 from northcx.attachments import InMemoryAttachments
@@ -24,13 +25,41 @@ from northcx.versions import InMemoryReleases, InMemoryVersions
 from types import SimpleNamespace
 
 
+def _check_tenant_isolation(db_url: str) -> None:
+    """When tenants other than `default` exist (or the preview switch is on), refuse to start on a database role that bypasses row-level security."""
+    import asyncio
+
+    from sqlalchemy.pool import NullPool
+
+    from northcx.db.tenant_sql import isolation_problem
+
+    async def check() -> str | None:
+        engine = create_engine(db_url, poolclass=NullPool)
+        try:
+            async with engine.connect() as c:
+                from sqlalchemy import text
+                tenants = (await c.execute(text("select count(*) from tenants"))).scalar_one()
+            if tenants <= 1 and os.environ.get("NORTHCX_TENANCY_PREVIEW") != "1":
+                return None
+            return await isolation_problem(engine)
+        finally:
+            await engine.dispose()
+
+    problem = asyncio.run(check())
+    if problem:
+        sys.exit(f"Tenant isolation is in use but would not protect tenants: {problem}. Run the server as an ordinary database role "
+                 "(see Deployment Guide, 'Tenants and the database role') and give NORTHCX_MIGRATION_DATABASE_URL to the table owner.")
+
+
 def build_storage(c: SimpleNamespace) -> None:
     """Repositories: Postgres when a database URL is set, in memory otherwise."""
     engine = None
     db_url = database_url_from_env(env_or_file("NORTHCX_DATABASE_URL"))
     if db_url:
-        migrate(db_url)  # apply pending migrations before serving
+        migration_url = database_url_from_env(env_or_file("NORTHCX_MIGRATION_DATABASE_URL")) or db_url  # a table owner may migrate while the server runs as a plain role
+        migrate(migration_url)  # apply pending migrations before serving
         engine = create_engine(db_url)
+        _check_tenant_isolation(db_url)
         store, traces, approvals = PgMemoryStore(engine), PgTraceStore(engine), PgApprovalStore(engine)
         outbox_repo, handoffs, sim_runs = PgOutbox(engine), PgHandoffs(engine), PgSimRuns(engine)
         versions_repo, releases_repo = PgVersions(engine), PgReleases(engine)

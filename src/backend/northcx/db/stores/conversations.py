@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from northcx.db.models import FactRow, MessageRow, SessionRow, TraceEventRow, TraceRow
 from northcx.db.stores._base import _Base, _jsonable
 from northcx.knowledge import tokens
+from northcx.tenancy import current_tenant
 from northcx.memory import check_note, MAX_PER_CUSTOMER, Memory, text_hash
 from northcx.trace import Trace, TraceEvent, TraceSummary
 from northcx.types import Message
@@ -30,8 +31,8 @@ class PgMemoryStore(_Base):
         """Replace the session's history atomically. Saves for one session are serialised by an advisory lock."""
         async with self._sm.begin() as s:
             await s.execute(text("select pg_advisory_xact_lock(hashtext(:id))"), {"id": session_id})
-            await s.execute(pg_insert(SessionRow).values(id=session_id).on_conflict_do_update(
-                index_elements=[SessionRow.id], set_={"updated_at": func.now()}))
+            await s.execute(pg_insert(SessionRow).values(id=session_id, tenant_id=current_tenant()).on_conflict_do_update(
+                index_elements=[SessionRow.tenant_id, SessionRow.id], set_={"updated_at": func.now()}))
             # Only what changed is written: a normal turn appends a few messages, so the (growing) earlier history is left alone.
             existing = (await s.execute(select(MessageRow.role, MessageRow.content).where(MessageRow.session_id == session_id).order_by(MessageRow.seq))).all()
             new = [{"session_id": session_id, "seq": i, "role": m["role"], "content": _jsonable(m["content"])} for i, m in enumerate(messages)]
@@ -50,8 +51,8 @@ class PgMemoryStore(_Base):
 
     async def set_fact(self, customer_id: str, key: str, value: str) -> None:
         async with self._sm.begin() as s:
-            await s.execute(pg_insert(FactRow).values(customer_id=customer_id, key=key, value=value).on_conflict_do_update(
-                index_elements=[FactRow.customer_id, FactRow.key], set_={"value": value, "updated_at": func.now()}))
+            await s.execute(pg_insert(FactRow).values(customer_id=customer_id, key=key, value=value, tenant_id=current_tenant()).on_conflict_do_update(
+                index_elements=[FactRow.tenant_id, FactRow.customer_id, FactRow.key], set_={"value": value, "updated_at": func.now()}))
 
 
 class PgTraceStore(_Base):
@@ -100,7 +101,7 @@ class PgSessionRoutes(_Base):
     async def set(self, session_id: str, agent_id: str) -> None:
         async with self._sm.begin() as s:
             await s.execute(text("insert into session_routes (session_id, agent_id, updated_at) values (:s, :a, :t) "
-                                 "on conflict (session_id) do update set agent_id = excluded.agent_id, updated_at = excluded.updated_at"),
+                                 "on conflict (tenant_id, session_id) do update set agent_id = excluded.agent_id, updated_at = excluded.updated_at"),
                             {"s": session_id, "a": agent_id, "t": time.time()})
 
     async def erase_session(self, session_id: str) -> int:

@@ -30,6 +30,8 @@ def create_engine(url: str, **kwargs) -> AsyncEngine:
         kwargs.setdefault("pool_reset_on_return", None)
         kwargs.setdefault("pool_size", int(os.environ.get("NORTHCX_DB_POOL_SIZE") or 20))
         kwargs.setdefault("max_overflow", 10)
+    from northcx.db.tenant_sql import install_session_hooks
+    install_session_hooks()  # once per process: every session says which tenant it is for
     return create_async_engine(url, **kwargs)
 
 

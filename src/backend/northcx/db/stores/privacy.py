@@ -17,7 +17,7 @@ class PgPrivacy(_Base):
         now = time.time() if now is None else now
         async with self._sm.begin() as s:
             await s.execute(text("insert into session_index (session_id, customer_id, first_seen, last_seen) values (:s, :c, :n, :n) "
-                                 "on conflict (session_id, customer_id) do update set last_seen = excluded.last_seen"),
+                                 "on conflict (tenant_id, session_id, customer_id) do update set last_seen = excluded.last_seen"),
                             {"s": session_id, "c": customer_id or "", "n": now})
 
     async def sessions_for_customer(self, customer_id: str) -> list[str]:

@@ -55,7 +55,7 @@ class PgFeedback(_Base):
     async def add(self, session_id: str, rating: int, comment: str, at: float | None = None) -> bool:
         async with self._sm.begin() as s:
             r = await s.execute(text("insert into conversation_feedback (session_id, rating, comment, created_at) values (:s, :r, :c, :t) "
-                                     "on conflict (session_id) do update set rating = excluded.rating, comment = excluded.comment, created_at = excluded.created_at "
+                                     "on conflict (tenant_id, session_id) do update set rating = excluded.rating, comment = excluded.comment, created_at = excluded.created_at "
                                      "returning (xmax = 0) as inserted"), {"s": session_id, "r": rating, "c": comment[:1000], "t": time.time() if at is None else at})
             return bool(r.scalar_one())
 
@@ -78,7 +78,7 @@ class PgReviews(_Base):
         async with self._sm.begin() as s:
             r = await s.execute(text(
                 "insert into conversation_reviews (session_id, verdict, handoff, failures, note, reviewer, reviewed_at) values (:s, :v, :h, cast(:f as jsonb), :n, :r, :t) "
-                "on conflict (session_id) do update set verdict = excluded.verdict, handoff = excluded.handoff, failures = excluded.failures, note = excluded.note, "
+                "on conflict (tenant_id, session_id) do update set verdict = excluded.verdict, handoff = excluded.handoff, failures = excluded.failures, note = excluded.note, "
                 "reviewer = excluded.reviewer, reviewed_at = excluded.reviewed_at returning (xmax = 0) as inserted"),
                 {"s": review.session_id, "v": review.verdict, "h": review.handoff, "f": json.dumps(review.failures), "n": review.note, "r": review.reviewer, "t": review.reviewed_at})
             return bool(r.scalar_one())

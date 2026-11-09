@@ -61,3 +61,35 @@ def engine(db_url):
 
     asyncio.run(clean())
     return create_engine(db_url, poolclass=NullPool)  # NullPool: no connections outlive a test's event loop
+
+
+@pytest.fixture
+def app_engine(engine, db_url):
+    """An engine that connects as an ordinary database role (not the owner, not a superuser), the way a tenant-aware deployment must run the
+    server: row-level security applies to it. Skips if the test database user cannot create roles."""
+    from urllib.parse import urlsplit, urlunsplit
+
+    from sqlalchemy import text
+    from sqlalchemy.pool import NullPool
+
+    from northcx.db import create_engine
+
+    async def prepare() -> bool:
+        eng = create_engine(db_url, poolclass=NullPool)
+        try:
+            async with eng.begin() as c:
+                await c.execute(text("do $$ begin if not exists (select 1 from pg_roles where rolname = 'northcx_app_test') then "
+                                     "create role northcx_app_test login password 'app-test-pw' nosuperuser nobypassrls; end if; end $$"))
+                await c.execute(text("grant all on all tables in schema public to northcx_app_test"))
+                await c.execute(text("grant all on all sequences in schema public to northcx_app_test"))
+            return True
+        except Exception:
+            return False
+        finally:
+            await eng.dispose()
+
+    if not asyncio.run(prepare()):
+        pytest.skip("the test database user cannot create roles")
+    u = urlsplit(db_url)
+    host = u.netloc.rsplit("@", 1)[-1]
+    return create_engine(urlunsplit((u.scheme, f"northcx_app_test:app-test-pw@{host}", u.path, "", "")), poolclass=NullPool)
