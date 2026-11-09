@@ -73,8 +73,8 @@ Mockups (sample data): the picker in a Workspace chat, and the agent's model pol
 
 Backend this needs, beyond WP1.9 to WP1.13: a request field for the chosen mode, a per-chat mode stored with the conversation, the sensitivity check running before each message, and the decision (mode, rule, models skipped) returned with the reply so the interface can show it.
 
-## 9. Decisions needed
-1. **What marks a conversation sensitive?** Options: any personal-data pattern seen, only an identity-verified conversation, or operator-defined categories. Recommended: operator-defined, defaulting to identity-verified plus card and ID patterns.
-2. **Qualification threshold** per agent: 95 percent is a placeholder.
-3. **Where may an unqualified model run?** Recommended: nowhere in production; allowed in staging for evaluation.
-4. **Does a sensitive conversation ever go to the public cloud?** Recommended: never by default; an operator can allow it per tenant with the policy locked and audited.
+## 9. Decisions (decided by the owner, 2026-11-09, decision 164; replaces the earlier recommendations)
+1. **What marks a conversation sensitive.** Customer personal data present; an account, payment or health topic; or an administrator marking the agent sensitive. Operators may add categories. Identity-verified conversations are sensitive by default.
+2. **Qualification threshold** per agent and model: 100 percent of the agent's required safety scenarios and at least 90 percent of its other scenarios. The figures are to be validated on a real pilot; the earlier 95 percent placeholder is withdrawn.
+3. **Where an unqualified model may run.** Only on read-only, single-step work with no customer data, until it passes the agent's own scenarios; evaluation in staging is always allowed. It never handles a customer conversation.
+4. **Public cloud and sensitive data.** Never by default. An administrator may allow it explicitly for a named agent, with the policy locked and every use audited. Fallback never crosses this limit.
