@@ -29,6 +29,11 @@ export function itemBadge(i: NavItem): number | undefined {
   return own + kids || undefined;
 }
 
+const lastKey = (app: string) => `northcx.lastTab.${app}`;
+function readLast(app: string): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(lastKey(app)) || "{}"); } catch { return {}; }
+}
+
 export function SubTabs({ items, path, Link }: { items: SubItem[]; path: string; Link: LinkLike }) {
   let current = -1, len = -1;
   items.forEach((t, i) => { if (isActive(path, t.href) && t.href.length > len) { current = i; len = t.href.length; } });
@@ -89,6 +94,23 @@ export function AppShell(props: {
   const collapsed = prefs.nav === "collapsed" || narrow;
   const { item: current } = activeItem(nav, path);
   const subs = current?.children ?? [];
+  const [last, setLast] = useState<Record<string, string>>({});
+  useEffect(() => { setLast(readLast(appName)); }, [appName]);
+  useEffect(() => {
+    // Each group remembers the last sub-tab used.
+    const { item, sub } = activeItem(nav, path);
+    if (!item || !sub) return;
+    setLast((l) => {
+      if (l[item.href] === sub.href) return l;
+      const next = { ...l, [item.href]: sub.href };
+      try { localStorage.setItem(lastKey(appName), JSON.stringify(next)); } catch { /* storage can be blocked */ }
+      return next;
+    });
+  }, [nav, path, appName]);
+  const target = (i: NavItem) => {
+    const remembered = i.children?.find((c) => c.href === last[i.href]);
+    return remembered?.href ?? i.children?.[0]?.href ?? i.href;
+  };
   const toggleNav = useCallback(() => update({ nav: prefs.nav === "collapsed" ? "expanded" : "collapsed" }), [prefs.nav, update]);
 
   useEffect(() => {
@@ -117,7 +139,7 @@ export function AppShell(props: {
               const active = current?.href === i.href;
               const badge = itemBadge(i);
               return (
-                <Link key={i.href} href={i.children?.[0]?.href ?? i.href} className="rail-link" aria-current={active ? "page" : undefined} aria-label={collapsed ? `${i.label}${badge ? `, ${badge} waiting` : ""}` : undefined}>
+                <Link key={i.href} href={target(i)} className="rail-link" aria-current={active ? "page" : undefined} aria-label={collapsed ? `${i.label}${badge ? `, ${badge} waiting` : ""}` : undefined}>
                   <NavIcon name={i.icon} />
                   <span className="rail-label">{i.label}</span>
                   {badge ? <span className="rail-badge" aria-label={`${badge} waiting`}>{badge}</span> : null}
@@ -127,9 +149,9 @@ export function AppShell(props: {
             })}
           </nav>
           <div className="mt-2 flex flex-col gap-2">
-            <button type="button" className="rail-link" onClick={toggleNav} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} title={`${collapsed ? "Expand" : "Collapse"} (Ctrl B)`}>
+            {!narrow && <button type="button" className="rail-link" onClick={toggleNav} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} title={`${collapsed ? "Expand" : "Collapse"} (Ctrl B)`}>
               <NavIcon name={collapsed ? "Expand" : "Collapse"} /><span className="rail-label">{collapsed ? "Expand" : "Collapse"}</span>
-            </button>
+            </button>}
             {user && !collapsed && <div className="border-t border-border px-2 pt-3 text-xs text-muted">{user}</div>}
           </div>
         </aside>
@@ -149,7 +171,7 @@ export function AppShell(props: {
             <ThemeToggle />
           </header>
         )}
-        {subs.filter((s) => s).length > 1 && <div className="flex items-center justify-between gap-3"><h1 className="sr-only">{current?.label}</h1><div><SubTabs items={subs} path={path} Link={Link} /></div></div>}
+        {subs.filter((s) => s).length > 1 && <div><SubTabs items={subs} path={path} Link={Link} /></div>}
         <main className="min-w-0 flex-1">{children}</main>
       </div>
       {full && (

@@ -13,6 +13,7 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Workspace routes renamed to the final tabs (Inbox, Approvals, Customers, Pilot, Assistants, Search, Library, Outputs, Spaces, Automations, Quality, Performance); tabs without a backend say so. Admin has the six items Overview, Operate, Build, Govern, Platform and Personal; pages not built yet show an honest not-available page.
 - A contrast test checks every text pair on the design tokens against WCAG AA in light, dark, each accent and high contrast; it found and fixed four dark-theme values.
 - A Workspace container image and compose service (port 3002, `NORTHCX_WORKSPACE_PORT`); CI smoke-tests it.
+- Review fixes: each group remembers its last sub-tab; one heading per page; the collapse button is hidden on narrow screens where the rail is always icons; the Admin browser smoke test now seeds the version and simulation run it needs, so it passes on a fresh stack.
 
 ### Added (model providers, first part)
 - `northcx/providers/`: provider types, a registry that routes `provider:model` names (bare names keep going to the default provider), capability checks, and Claude as an adapter with two clients: the official SDK and an optional direct HTTPS client (`NORTHCX_ANTHROPIC_CLIENT=http`). The SDK's `citations: null` fields are no longer carried into conversation history.

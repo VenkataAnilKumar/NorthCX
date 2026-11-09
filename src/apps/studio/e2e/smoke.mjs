@@ -67,6 +67,13 @@ await page.getByRole("region", { name: "Human review" }).waitFor();
 check(true, "insights: human review cards");
 
 // versions page: checklist and rollout panel
+{ // a fresh stack has no saved version yet: make version 1 from the baseline so the page has something to show
+  const auth = { authorization: `Bearer ${KEY}`, "content-type": "application/json" };
+  const have = await (await fetch(`${API}/v1/agents/support/versions`, { headers: auth })).json();
+  if (!have.versions?.length) await fetch(`${API}/v1/agents/support/versions`, { method: "POST", headers: auth, body: JSON.stringify({ fromBaseline: true }) });
+  // the release gate wants the required scenarios run against that version before a rollout may start
+  await fetch(`${API}/v1/simulations/runs`, { method: "POST", headers: auth, body: JSON.stringify({ agent: "support", version: 1, mode: "scripted", skipJudge: true }) });
+}
 await page.goto(`${WEB}/agents/support`);
 await page.getByRole("region", { name: /Publish checklist for version 1/ }).waitFor();
 check((await page.getByRole("region", { name: /Publish checklist/ }).innerText()).includes("ready"), "versions: checklist ready");

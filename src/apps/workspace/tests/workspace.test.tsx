@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AppShell, applyPrefs, ComingSoon, DEFAULT_PREFS, StatTile } from "@northcx/ui";
+import { activeItem, AppShell, applyPrefs, ComingSoon, DEFAULT_PREFS, StatTile } from "@northcx/ui";
 
 const Link = ({ href, children, className, ...rest }: { href: string; children?: React.ReactNode; className?: string }) => createElement("a", { href, className, ...rest }, children);
 
@@ -40,5 +40,15 @@ describe("preferences", () => {
     expect(root.hasAttribute("data-density")).toBe(false);
     applyPrefs(DEFAULT_PREFS, root);
     expect(root.getAttributeNames()).toEqual([]);
+  });
+});
+
+describe("navigation helpers", () => {
+  const nav = [{ href: "/", label: "Home", icon: "Home" as const }, { href: "/inbox", label: "Work", icon: "Work" as const, children: [{ href: "/inbox", label: "Inbox" }, { href: "/approvals", label: "Approvals" }] }];
+  it("finds the item and sub-tab that own a path, including nested paths", () => {
+    expect(activeItem(nav, "/approvals/x").item?.label).toBe("Work");
+    expect(activeItem(nav, "/approvals").sub?.label).toBe("Approvals");
+    expect(activeItem(nav, "/").item?.label).toBe("Home");
+    expect(activeItem(nav, "/nowhere").item).toBeUndefined();
   });
 });
