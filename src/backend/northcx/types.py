@@ -1,8 +1,13 @@
 """Message and model types. Blocks use the same dict shapes as the Claude Messages API."""
 from __future__ import annotations
 
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Protocol
+
+# What the model chooser may know about the conversation being served; set by the runtime for the length of a turn, so the supervisor,
+# summaries and assist calls made inside it are chosen by the same data rules. Empty means unknown, and the chooser then assumes sensitive.
+MODEL_CONTEXT: ContextVar[dict[str, Any] | None] = ContextVar("northcx_model_context", default=None)
 
 Block = dict[str, Any]  # {"type": "text"|"tool_use"|"tool_result", ...}
 Message = dict[str, Any]  # {"role": "user"|"assistant", "content": str | list[Block]}
@@ -15,6 +20,7 @@ class LLMRequest:
     tools: list[dict[str, Any]] = field(default_factory=list)
     model: str | None = None
     max_tokens: int = 1024
+    context: dict[str, Any] | None = None  # what the model chooser may use: agent, channel, sensitive, needs_tools, effect, language
 
 
 @dataclass
@@ -25,6 +31,7 @@ class LLMResponse:
     model: str | None = None  # the model that actually answered
     fallback: bool = False  # answered by a fallback model
     provider: str | None = None  # which provider answered, when several are configured
+    decision: dict[str, Any] | None = None  # why this model was chosen (rule, tier, models skipped), when a selector is in use
 
 
 class LLM(Protocol):

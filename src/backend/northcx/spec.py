@@ -93,6 +93,7 @@ class AgentSpec(BaseModel):
     model: str | None = None
     max_steps: int = Field(default=8, ge=1, le=50)
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
+    sensitive: bool = False  # treat every conversation of this agent as sensitive (model choice: no tier the data policy forbids)
     channel_styles: dict[str, str] = Field(default_factory=dict)
     journeys: list[JourneySpec] = Field(default_factory=list, max_length=20)
     attachments: list[str] = Field(default_factory=list)  # attachment kinds accepted: image, pdf, pdf_text, text. Empty: none
@@ -160,6 +161,8 @@ class AgentSpec(BaseModel):
         data = self.model_dump(mode="json")
         if data.get("max_run_tokens") is None:
             del data["max_run_tokens"]  # keeps digests of specs written before this field existed
+        if not data.get("sensitive"):
+            data.pop("sensitive", None)  # keeps digests of specs written before this field existed
         for key in ("skills", "voice", "tool_scopes", "skill_snapshots"):
             if not data[key]:
                 del data[key]  # keeps digests of specs written before these fields existed
@@ -379,6 +382,7 @@ class Registry:
                 model=spec.model,
                 max_steps=spec.max_steps,
                 max_run_tokens=spec.max_run_tokens,
+                sensitive=spec.sensitive,
                 channel_styles=dict(spec.channel_styles),
                 languages=list(spec.languages),
                 journeys=list(spec.journeys),

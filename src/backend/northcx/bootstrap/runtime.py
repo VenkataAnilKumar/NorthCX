@@ -6,6 +6,7 @@ from northcx.channels.email import SmtpSender
 from northcx.summarize import Compactor
 from northcx.api.background import ROLES
 from northcx.db import PgLeases, PgUsageLedger
+from northcx.providers.budget import check_money_budget
 from northcx.reliability import UsageLedger
 from northcx.verification import InMemoryVerify, OtpService, VerifyConfig
 from northcx.monitor import Monitor
@@ -58,12 +59,30 @@ def build_runtime(c: SimpleNamespace) -> None:
     sms_provider = c.sms_provider
     store = c.store
     traces = c.traces
+    money_limit, currency = None, os.environ.get("NORTHCX_BUDGET_CURRENCY", "USD").strip().upper() or "USD"
+    if os.environ.get("NORTHCX_DAILY_BUDGET", "").strip():
+        try:
+            money_limit = float(os.environ["NORTHCX_DAILY_BUDGET"])
+            if money_limit <= 0:
+                raise ValueError
+        except ValueError:
+            sys.exit("NORTHCX_DAILY_BUDGET must be a positive number (an amount in NORTHCX_BUDGET_CURRENCY per UTC day)")
+        providers = getattr(c, "providers", None)
+        if providers is None:
+            sys.exit("NORTHCX_DAILY_BUDGET needs real model providers with prices; it cannot be used with the demo model")
+        try:
+            check_money_budget(providers, currency)
+        except ValueError as e:
+            sys.exit(f"NORTHCX_DAILY_BUDGET: {e}")
     runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, router=router, inbox=inbox, exports=exports, context=context_source,
                       memories=memory_repo if os.environ.get("NORTHCX_MEMORY", "1") != "0" else None,
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
                                  if os.environ.get("NORTHCX_SUMMARIZE_AFTER_TOKENS") else None),
                       ledger=(PgUsageLedger if limits_backend == "postgres" else UsageLedger)(*(([engine] if limits_backend == "postgres" else [])
-                              + [int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None])))
+                              + [int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None,
+                                 money_limit, currency])))
+    if money_limit is not None and c.providers is not None:
+        runtime.pricing = c.providers.price_for
     if db_url:
         runtime.routes = PgSessionRoutes(engine)
     verify_service = None

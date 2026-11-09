@@ -40,7 +40,7 @@ Several server processes with roles (`api`, `worker`) share state through Postgr
 - **Circuit breaker:** after three consecutive failures a model is skipped for 30 seconds so an outage costs one fast fallback instead of a slow failure on every turn. The last model in the chain is always tried.
 - **Timeout:** each model call is limited (default 60 s) so a hung connection cannot hold a conversation.
 - **Budgets:** an agent spec may set `max_run_tokens` (1,000 to 5,000,000); a turn that reaches it stops and is handed to a person. `NORTHCX_DAILY_TOKEN_BUDGET` stops all model calls for the rest of the UTC day and hands conversations to people. Both are recorded as `budget` trace events and escalate with trigger `budget_exceeded`. Token counts come from the provider's usage report.
-- **Limits:** the daily count is per server process unless `NORTHCX_LIMITS_BACKEND=postgres` is set, in which case all processes share it (`usage_ledger`, built). There is no per-customer or per-currency budget yet.
+- **Limits:** the daily count is per server process unless `NORTHCX_LIMITS_BACKEND=postgres` is set, in which case all processes share it (`usage_ledger`, built). A daily budget in currency is available (`NORTHCX_DAILY_BUDGET`, `NORTHCX_BUDGET_CURRENCY`; see `NorthCX_Model-Providers.md`); there is no per-customer budget yet.
 
 ### Write safety
 

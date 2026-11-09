@@ -32,7 +32,8 @@ from .outbox import Outbox
 from .secrets import NO_SECRETS, SecretStore
 from .store import MemoryStore
 from .trace import Trace, TraceRepo
-from .types import LLM, LLMRequest, Message, text_of
+from .safety.pii import PIIDetection
+from .types import LLM, MODEL_CONTEXT, LLMRequest, Message, text_of
 
 HANDOFF = "handoff_to_human"
 MAX_REWRITES = 2
@@ -77,6 +78,7 @@ class Runtime:
         self.secrets = secrets or NO_SECRETS
         self.monitor = monitor or Monitor()
         self.ledger = ledger or UsageLedger()
+        self.pricing: Any = None  # (provider, model) -> Price | None; with a money budget every answer is costed from the operator's prices
         self.shared_limiter: Any = None  # set when limits are shared between server processes
         self.compactor = compactor
         self.context = context
@@ -91,6 +93,15 @@ class Runtime:
 
     async def run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
                   trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None,
+                  channel: str | None = None, environment: str = "production", attachments: list[Any] | None = None) -> RunResult:
+        token = MODEL_CONTEXT.set(None)  # the turn sets what the model chooser may know; it never outlives the turn
+        try:
+            return await self._run(agent, session_id, message, customer_id, trusted, progress, channel, environment, attachments)
+        finally:
+            MODEL_CONTEXT.reset(token)
+
+    async def _run(self, agent: Agent, session_id: str, message: str, customer_id: str | None = None,
+                   trusted: bool = False, progress: Callable[[dict[str, Any]], Any] | None = None,
                   channel: str | None = None, environment: str = "production", attachments: list[Any] | None = None) -> RunResult:
         """`trusted=True` is for messages the platform itself writes (for example an approval outcome); they skip
         the customer input checks and are traced as `system` events."""
@@ -120,6 +131,13 @@ class Runtime:
         if self.verification is not None and customer_id and not self.dry_run and await self.verification.is_verified(session_id, customer_id):
             facts["identity_verified"] = "yes"
         kept_texts: dict[int, str] = {}
+        selector = getattr(self.llm, "selector", None)
+        if selector is not None:
+            sensitive = agent.sensitive or facts.get("identity_verified") == "yes" or any(
+                selector.is_sensitive_text(m["content"] if isinstance(m["content"], str) else " ".join(b.get("text", "") for b in m["content"] if isinstance(b, dict)))
+                for m in messages + [{"role": "user", "content": message}] if m["role"] == "user") or bool(PIIDetection().mask(message)[1])
+            MODEL_CONTEXT.set({"agent": agent.id, "channel": channel, "sensitive": sensitive, "needs_tools": bool(agent.tools),
+                               "effect": "write" if any(t.effect == "write" for t in agent.tools) else "read"})
         ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets, facts=dict(facts))
         pending: list[dict[str, Any]] = []
 
@@ -252,7 +270,9 @@ class Runtime:
         done_writes: dict[str, Any] = {}
         for step in range(agent.max_steps):
             if await self.ledger.over_budget():
-                trace.add("budget", scope="daily", used=await self.ledger.spent(), limit=self.ledger.daily_limit)
+                money = getattr(self.ledger, "money_limit", None)
+                trace.add("budget", scope="daily", used=await self.ledger.spent(), limit=self.ledger.daily_limit,
+                          **({"money_used": await self.ledger.money_spent(), "money_limit": money, "currency": self.ledger.currency} if money is not None else {}))
                 return await finish(FALLBACK, "escalated", "budget_exceeded", "The daily model budget is used up")
             if agent.max_run_tokens and used >= agent.max_run_tokens:
                 trace.add("budget", scope="run", used=used, limit=agent.max_run_tokens)
@@ -268,9 +288,18 @@ class Runtime:
                 return await finish(FALLBACK, "escalated", "model_error", "The model call failed")
             tokens = sum(int(v) for v in res.usage.values()) if res.usage else 0
             used += tokens
-            await self.ledger.charge(agent.id, tokens)
+            cost, unpriced = 0.0, False
+            if self.pricing is not None and res.usage:
+                price = self.pricing(res.provider, res.model)
+                if price is not None and price.currency == self.ledger.currency:
+                    cost = price.cost(int(res.usage.get("input_tokens", 0)), int(res.usage.get("output_tokens", 0)))
+                else:
+                    unpriced = True  # no price in the budget currency: counted as zero, and said so in the trace
+            await self.ledger.charge(agent.id, tokens, cost)
+            if res.decision is not None:
+                trace.add("model_choice", step=step, **res.decision)
             trace.add("llm", step=step, stop_reason=res.stop_reason,
-                      **({"tokens": tokens} if tokens else {}), **({"model": res.model} if res.model else {}),
+                      **({"tokens": tokens} if tokens else {}), **({"cost": round(cost, 6), "currency": self.ledger.currency} if cost else {}), **({"unpriced": True} if unpriced else {}), **({"model": res.model} if res.model else {}),
                       **({"fallback": True} if res.fallback else {}))
             messages.append({"role": "assistant", "content": res.content})
             uses = [b for b in res.content if b.get("type") == "tool_use"]

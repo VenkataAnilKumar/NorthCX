@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import dataclasses
 
-from northcx.providers.base import Capabilities, ModelInfo, Provider, ProviderError
+from northcx.providers.base import Capabilities, ModelInfo, Price, Provider, ProviderError
 from northcx.types import LLMRequest, LLMResponse
 
 
@@ -64,6 +64,11 @@ class ProviderRegistry:
         provider, bare = self.resolve(model)
         bare = bare or provider.default_model or ""
         return ModelInfo(provider.name, bare, provider.capabilities, provider.prices.get(bare))
+
+    def price_for(self, provider: str | None, model: str | None) -> Price | None:
+        """The operator-supplied price of the model that actually answered (None when it has no price)."""
+        p = self._providers.get(provider or "") or self.default
+        return p.prices.get(model or p.default_model or "")
 
     def capabilities_for(self, model: str | None) -> Capabilities:
         return self.resolve(model)[0].capabilities

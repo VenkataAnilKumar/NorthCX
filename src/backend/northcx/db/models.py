@@ -483,6 +483,7 @@ class UsageLedgerRow(Base):
     agent_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     day: Mapped[str] = mapped_column(String(10), primary_key=True)
     tokens: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    cost_micros: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0")  # money in millionths of the budget currency
 
 
 class JobLeaseRow(Base):

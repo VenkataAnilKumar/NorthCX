@@ -5,9 +5,9 @@ import asyncio
 import random
 import time
 from dataclasses import dataclass, field, replace
-from typing import Awaitable, Callable
+from typing import Any, Awaitable, Callable
 
-from .types import LLM, LLMRequest, LLMResponse
+from .types import LLM, MODEL_CONTEXT, LLMRequest, LLMResponse
 
 
 def is_transient(e: BaseException) -> bool:
@@ -47,6 +47,7 @@ class ReliableLLM:
         self.breaker_failures, self.breaker_cooldown = breaker_failures, breaker_cooldown
         self._sleep, self._clock, self._jitter = sleep, clock, jitter
         self._circuits: dict[str | None, _Circuit] = {}
+        self.selector: Any = None  # a northcx.providers.selection.Selector: restricts and orders the chain per request
         self.events: list[dict] = []  # recent attempts for diagnostics (bounded)
 
     def _note(self, **e: object) -> None:
@@ -61,7 +62,16 @@ class ReliableLLM:
 
     async def complete(self, req: LLMRequest) -> LLMResponse:
         last: BaseException | None = None
-        chain = self._chain(req.model)
+        decision = None
+        if self.selector is not None:
+            from .providers.selection import NoEligibleModel
+            try:
+                chain, decision = self.selector.chain(req.model, self.models, req.context if req.context is not None else (MODEL_CONTEXT.get() or {}))
+            except NoEligibleModel as e:
+                raise ModelUnavailable(str(e)) from e
+            req = replace(req, model=chain[0])
+        else:
+            chain = self._chain(req.model)
         for i, model in enumerate(chain):
             c = self._circuits.setdefault(model, _Circuit())
             if c.open_until > self._clock() and i < len(chain) - 1:
@@ -76,6 +86,8 @@ class ReliableLLM:
                         res.model = model
                     if i > 0:
                         res.fallback = True
+                    if decision is not None:
+                        res.decision = {**decision.to_dict(), "model": model, **({"fallback": True} if i > 0 else {})}
                     return res
                 except Exception as e:
                     last = e
@@ -95,7 +107,10 @@ class ReliableLLM:
 class UsageLedger:
     """Tokens used per day (UTC), per agent. Per process: with several servers use `PgUsageLedger` (NORTHCX_LIMITS_BACKEND=postgres) to share one count."""
     daily_limit: int | None = None
+    money_limit: float | None = None  # a daily limit in `currency` (decision 164): stops model calls like the token limit does
+    currency: str = "USD"
     _days: dict[tuple[str, str], int] = field(default_factory=dict)
+    _micros: dict[tuple[str, str], int] = field(default_factory=dict)  # money per agent per day, in millionths of the currency
 
     @staticmethod
     def _day(at: float | None = None) -> str:
@@ -112,14 +127,31 @@ class UsageLedger:
         day = self._day(at)
         return sum(n for (a, d), n in self._days.items() if d == day and (agent_id is None or a == agent_id))
 
-    async def charge(self, agent_id: str, tokens: int) -> None:
+    def add_money(self, agent_id: str, amount: float, at: float | None = None) -> None:
+        now = at if at is not None else time.time()
+        k = (agent_id, self._day(now))
+        self._micros[k] = self._micros.get(k, 0) + max(0, round(amount * 1_000_000))
+        for old in [d for d in self._micros if d[1] < self._day(now - 3 * 86400)]:
+            del self._micros[old]
+
+    def money_today(self, agent_id: str | None = None, at: float | None = None) -> float:
+        day = self._day(at)
+        return sum(n for (a, d), n in self._micros.items() if d == day and (agent_id is None or a == agent_id)) / 1_000_000
+
+    async def charge(self, agent_id: str, tokens: int, cost: float = 0.0) -> None:
         self.add(agent_id, tokens)
+        if cost:
+            self.add_money(agent_id, cost)
 
     async def spent(self, agent_id: str | None = None) -> int:
         return self.used_today(agent_id)
+
+    async def money_spent(self, agent_id: str | None = None) -> float:
+        return self.money_today(agent_id)
 
     async def over_budget(self) -> bool:
         return self.exhausted()
 
     def exhausted(self, at: float | None = None) -> bool:
-        return self.daily_limit is not None and self.used_today(None, at) >= self.daily_limit
+        return (self.daily_limit is not None and self.used_today(None, at) >= self.daily_limit) or \
+               (self.money_limit is not None and self.money_today(None, at) >= self.money_limit)

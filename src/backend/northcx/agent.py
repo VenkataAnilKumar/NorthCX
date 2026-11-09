@@ -79,4 +79,5 @@ class Agent:
     routes: list[Any] = field(default_factory=list)  # RouteSpec objects: specialists this agent may pass a conversation to
     journeys: list[Any] = field(default_factory=list)  # JourneySpec objects; progress through them is recorded on each trace
     languages: list[str] = field(default_factory=list)  # languages the agent supports; the first is the default. Empty: no language handling
+    sensitive: bool = False  # the administrator marked this agent sensitive: its conversations never use a tier the data policy forbids
     max_run_tokens: int | None = None  # stop and hand off when one turn has used this many model tokens

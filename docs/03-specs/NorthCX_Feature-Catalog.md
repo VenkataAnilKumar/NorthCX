@@ -246,12 +246,12 @@ None of these is built (early, unfinished web code exists on `main` for parts of
 ### Hybrid model selection
 | ID | Feature | Pri | Phase | State |
 |---|---|---|---|---|
-| HM1 | Data-policy constraints first | P0 | After 1.0 | Planned (designed) |
+| HM1 | Data-policy constraints first | P0 | After 1.0 | Built (needs a routing rules file) |
 | HM2 | Per-agent qualification | P1 | After 1.0 | Planned (designed) |
-| HM3 | Operator rules | P1 | After 1.0 | Planned (designed) |
+| HM3 | Operator rules | P1 | After 1.0 | Built (needs a routing rules file) |
 | HM4 | Cost ordering | P2 | After 1.0 | Planned (designed) |
-| HM5 | Fallback never crosses a forbidden tier | P0 | After 1.0 | Planned (designed) |
-| HM6 | Every choice recorded in the trace | P1 | After 1.0 | Planned (designed) |
+| HM5 | Fallback never crosses a forbidden tier | P0 | After 1.0 | Built (needs a routing rules file) |
+| HM6 | Every choice recorded in the trace | P1 | After 1.0 | Built (trace `model_choice`) |
 | HM7 | Staff model modes | P1 | After 1.0 | Planned (designed) |
 | HM8 | Local models earn trust by passing scenarios | P2 | After 1.0 | Planned (designed) |
 

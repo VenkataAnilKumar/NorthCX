@@ -78,24 +78,29 @@ class PgLimiter(_Base):
 class PgUsageLedger(_Base):
     """Tokens used per day (UTC) per agent, in the database. `daily_limit` of None means no daily budget."""
 
-    def __init__(self, engine: AsyncEngine, daily_limit: int | None = None) -> None:
+    def __init__(self, engine: AsyncEngine, daily_limit: int | None = None, money_limit: float | None = None, currency: str = "USD") -> None:
         super().__init__(engine)
-        self.daily_limit = daily_limit
-        self.local = UsageLedger(daily_limit)  # used while the database is unreachable
-        self._total, self._read_at, self._warn = 0, -1e9, _Warn()
+        self.daily_limit, self.money_limit, self.currency = daily_limit, money_limit, currency
+        self.local = UsageLedger(daily_limit, money_limit, currency)  # used while the database is unreachable
+        self._total, self._total_micros, self._read_at, self._warn = 0, 0, -1e9, _Warn()
 
     @staticmethod
     def _today():
         return func.to_char(func.timezone("UTC", func.now()), "YYYY-MM-DD")
 
-    async def charge(self, agent_id: str, tokens: int) -> None:
+    async def charge(self, agent_id: str, tokens: int, cost: float = 0.0) -> None:
         tokens = max(0, int(tokens))
+        micros = max(0, round(cost * 1_000_000))
         self.local.add(agent_id, tokens)
+        if micros:
+            self.local.add_money(agent_id, cost)
         self._total += tokens
-        if not tokens:
+        self._total_micros += micros
+        if not tokens and not micros:
             return
-        stmt = pg_insert(UsageLedgerRow).values(agent_id=agent_id, day=self._today(), tokens=tokens)
-        stmt = stmt.on_conflict_do_update(index_elements=[UsageLedgerRow.agent_id, UsageLedgerRow.day], set_={"tokens": UsageLedgerRow.tokens + tokens})
+        stmt = pg_insert(UsageLedgerRow).values(agent_id=agent_id, day=self._today(), tokens=tokens, cost_micros=micros)
+        stmt = stmt.on_conflict_do_update(index_elements=[UsageLedgerRow.agent_id, UsageLedgerRow.day],
+                                          set_={"tokens": UsageLedgerRow.tokens + tokens, "cost_micros": UsageLedgerRow.cost_micros + micros})
         try:
             async with self._sm.begin() as s:
                 await s.execute(stmt)
@@ -113,9 +118,22 @@ class PgUsageLedger(_Base):
             self._warn.once_a_minute("token budget", e)
             return self.local.used_today(agent_id)
 
+    async def money_spent(self, agent_id: str | None = None) -> float:
+        q = select(func.coalesce(func.sum(UsageLedgerRow.cost_micros), 0)).where(UsageLedgerRow.day == self._today())
+        if agent_id is not None:
+            q = q.where(UsageLedgerRow.agent_id == agent_id)
+        try:
+            async with self._ro() as s:
+                return int((await s.execute(q)).scalar_one()) / 1_000_000
+        except Exception as e:  # noqa: BLE001
+            self._warn.once_a_minute("money budget", e)
+            return self.local.money_today(agent_id)
+
     async def over_budget(self) -> bool:
-        if self.daily_limit is None:
+        if self.daily_limit is None and self.money_limit is None:
             return False
         if time.monotonic() - self._read_at >= LEDGER_REFRESH:  # one shared read every few seconds, plus this process's own additions in between
             self._total, self._read_at = await self.spent(None), time.monotonic()
-        return self._total >= self.daily_limit
+            self._total_micros = round(await self.money_spent(None) * 1_000_000)
+        return (self.daily_limit is not None and self._total >= self.daily_limit) or \
+               (self.money_limit is not None and self._total_micros >= round(self.money_limit * 1_000_000))
