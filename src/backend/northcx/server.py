@@ -244,6 +244,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/workspace/spaces/[^/]+", "workspace:use"),
     ("PUT", r"/v1/workspace/spaces/[^/]+", "workspace:use"),
     ("DELETE", r"/v1/workspace/spaces/[^/]+", "workspace:use"),
+    ("GET", r"/v1/tenant/limits", "agents:read"),
     ("GET", r"/v1/automations", "agents:read"),
     ("POST", r"/v1/automations", "versions:create"),
     ("GET", r"/v1/automations/[^/]+", "agents:read"),
@@ -421,6 +422,10 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         TENANT.set(ident.tenant)  # everything this request writes (audit entries, keys) belongs to the key's tenant
         if limits:
             ok, retry = await access.limiter.hit(f"key:{ident.key_id or ip}", limits.channel_per_minute if ident.role == "channel" else limits.per_key_per_minute)
+            if ok and getattr(runtime, "tenant_limits", None) is not None:
+                ceiling = await runtime.tenant_limits.value(ident.tenant, "requestsPerMinute")      # all of one tenant's keys together
+                if ceiling:
+                    ok, retry = await access.limiter.hit(f"tenant:{ident.tenant}", ceiling)
             if not ok:
                 return too_many(retry, "requests")
         if ident.scope_agents is not None or ident.scope_envs is not None:

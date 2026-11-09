@@ -9709,6 +9709,29 @@
         ]
       }
     },
+    "/v1/tenant/limits": {
+      "get": {
+        "summary": "Tenant Limits",
+        "description": "The ceilings that apply to this organization and where each comes from. Read-only: the platform operator sets them.",
+        "operationId": "tenant_limits_v1_tenant_limits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Tenant Limits V1 Tenant Limits Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "tenant"
+        ]
+      }
+    },
     "/v1/trace-export": {
       "get": {
         "summary": "Trace Export Status",

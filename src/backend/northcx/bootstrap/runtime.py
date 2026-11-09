@@ -107,6 +107,10 @@ def build_runtime(c: SimpleNamespace) -> None:
     runtime.org_policies = OrgPolicyService(PgOrgPolicies(c.engine) if c.db_url else None)
     from northcx.db import PgCoaching, PgCustomerNotes, PgSettings
     from northcx.customers import CustomerService
+    from northcx.tenant_limits import TenantLimits
+    runtime.tenant_limits = TenantLimits(PgSettings(c.engine) if c.db_url else None, {
+        "requestsPerMinute": float(os.environ.get("NORTHCX_TENANT_RATE_LIMIT_PER_MINUTE") or 0) or None,
+        "maxOutputs": int(os.environ.get("NORTHCX_TENANT_MAX_OUTPUTS") or 0) or None})
     from northcx.automations import AutomationService
     from northcx.db import PgContent
     from northcx.outputs import ContentService

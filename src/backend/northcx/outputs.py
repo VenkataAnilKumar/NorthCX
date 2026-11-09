@@ -87,7 +87,7 @@ class ContentRepo(Protocol):
     async def list_outputs(self, space_id: str | None, kind: str | None, now: float) -> list[Output]: ...
     async def delete_output(self, output_id: str) -> bool: ...
     async def purge_expired(self, now: float) -> int: ...
-    async def count_outputs(self, owner: str) -> int: ...
+    async def count_outputs(self, owner: str | None) -> int: ...      # None: every output in this tenant
     async def put_space(self, s: Space) -> None: ...
     async def get_space(self, space_id: str) -> Space | None: ...
     async def list_spaces(self) -> list[Space]: ...
@@ -121,9 +121,9 @@ class InMemoryContent:
             del self._o[k]
         return len(gone)
 
-    async def count_outputs(self, owner: str) -> int:
+    async def count_outputs(self, owner: str | None) -> int:
         t = current_tenant()
-        return sum(1 for (tt, _), o in self._o.items() if tt == t and o.owner == owner)
+        return sum(1 for (tt, _), o in self._o.items() if tt == t and (owner is None or o.owner == owner))
 
     async def put_space(self, s: Space) -> None:
         s.updated_at = time.time()
@@ -163,6 +163,7 @@ def _check_table(body: str) -> None:
 class ContentService:
     def __init__(self, repo: ContentRepo | None = None):
         self.repo = repo or InMemoryContent()
+        self.total_cap: Any = None                 # async () -> int | None: the most outputs this tenant may hold (set by the server from the tenant's limits)
 
     # ---- outputs ----
     async def create_output(self, owner: str, title: str, body: str, kind: str = "note", visibility: str = "private", space_id: str | None = None,
@@ -178,6 +179,9 @@ class ContentService:
             _check_table(text)
         if space_id is not None:
             await self._space_for(space_id, owner, admin)
+        cap = await self.total_cap() if self.total_cap is not None else None
+        if cap and await self.repo.count_outputs(None) >= cap:
+            raise ContentError(429, "This organization has reached the number of saved outputs its plan allows; delete some first")
         if await self.repo.count_outputs(owner) >= MAX_PER_OWNER:
             raise ContentError(429, f"You have {MAX_PER_OWNER} saved outputs; delete some first")
         now = time.time()

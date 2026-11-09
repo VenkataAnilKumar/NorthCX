@@ -17,6 +17,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
     record, runtime = d.record, d.runtime
     svc: ContentService = getattr(runtime, "content", None) or ContentService(InMemoryContent())
     runtime.content = svc
+    if getattr(runtime, "tenant_limits", None) is not None:
+        from northcx.tenancy import current_tenant
+        svc.total_cap = lambda: runtime.tenant_limits.value(current_tenant(), "maxOutputs")
     app.state.content = svc
 
     def staff(who: Identity) -> JSONResponse | None:

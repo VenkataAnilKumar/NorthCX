@@ -59,11 +59,17 @@ def start_background(role: str, leases: Leases | None, *, runtime: Any, traces: 
         tasks.append(_every(60, "alerts", alerts.evaluate, leases, message="alert evaluation failed", tenants=tenants))
     if runtime.inbox is not None:
         tasks.append(_every(10, "inbox", lambda: runtime.inbox.flush(runtime.handoffs), leases, message="inbox delivery pass failed", tenants=tenants))
-    if retention_days:  # age out old conversations once an hour
+    if retention_days or getattr(runtime, "tenant_limits", None) is not None:  # age out old conversations once an hour, as long as this tenant (or the platform) keeps them for a set time
         async def retain() -> None:
-            r = await privacy.purge_idle(retention_days)
+            from .tenancy import current_tenant
+            days = retention_days
+            if getattr(runtime, "tenant_limits", None) is not None:      # this tenant's own period, else the platform's
+                days = await runtime.tenant_limits.value(current_tenant(), "retentionDays") or retention_days
+            if not days:
+                return
+            r = await privacy.purge_idle(days)
             if r["sessions"]:
-                await audit.append(AuditEntry(actor="system", role="system", key_id=None, action="privacy.retention", target=f"older than {retention_days:g} days",
+                await audit.append(AuditEntry(actor="system", role="system", key_id=None, action="privacy.retention", target=f"older than {days:g} days",
                                               outcome="success", detail=r))
 
         tasks.append(_every(3600, "retention", retain, leases, 600.0, "retention sweep failed", tenants=tenants))

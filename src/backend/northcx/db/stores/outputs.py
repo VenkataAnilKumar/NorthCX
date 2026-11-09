@@ -51,9 +51,12 @@ class PgContent(_Base):
         async with self._sm.begin() as s:
             return (await s.execute(delete(WorkspaceOutputRow).where(WorkspaceOutputRow.expires_at <= now))).rowcount
 
-    async def count_outputs(self, owner: str) -> int:
+    async def count_outputs(self, owner: str | None) -> int:
+        q = select(func.count()).select_from(WorkspaceOutputRow)
+        if owner is not None:
+            q = q.where(WorkspaceOutputRow.owner == owner)
         async with self._ro() as s:
-            return int((await s.execute(select(func.count()).select_from(WorkspaceOutputRow).where(WorkspaceOutputRow.owner == owner))).scalar_one())
+            return int((await s.execute(q)).scalar_one())
 
     async def put_space(self, sp: Space) -> None:
         sp.updated_at = time.time()

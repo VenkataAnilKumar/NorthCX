@@ -28,6 +28,12 @@ def register(app: FastAPI, d: AppDeps) -> None:
                 "permissions": sorted(who.permissions), "serverVersion": __version__, "tenant": who.tenant, "roles": [who.role, *who.extra_roles],
                 "agents": list(who.scope_agents) if who.scope_agents is not None else None, "environments": list(who.scope_envs) if who.scope_envs is not None else None}
 
+    @app.get("/v1/tenant/limits")
+    async def tenant_limits(request: Request) -> Any:
+        """The ceilings that apply to this organization and where each comes from. Read-only: the platform operator sets them."""
+        tl = getattr(d.runtime, "tenant_limits", None)
+        return {"tenant": request.state.identity.tenant, "limits": await tl.effective(request.state.identity.tenant) if tl is not None else {}}
+
     @app.post("/v1/me/logout")
     async def logout(request: Request) -> Any:
         """End a single-sign-on session now. Other kinds of key are left alone (revoke those on the Access page)."""
