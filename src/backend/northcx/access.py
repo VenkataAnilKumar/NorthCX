@@ -258,6 +258,7 @@ class AccessControl:
         except TokenError as e:
             return None, "expired" if e.kind == "expired" else "invalid"
         # The minting key must still be good: revoking it ends every conversation it opened.
+        tenant = DEFAULT_TENANT
         if c.kid == "bootstrap":
             if not self.configured_keys:
                 return None, "invalid"
@@ -265,7 +266,8 @@ class AccessControl:
             k = await self.keys.get(c.kid)
             if k is None or not k.active() or "chat:mint" not in ROLES.get(k.role, frozenset()):
                 return None, "invalid"
-        return Identity(f"customer session {c.sid[:12]}", "customer_session", f"tok:{c.sid}", False, c.sid, c.cid, c.agent), None
+            tenant = k.tenant_id                    # the conversation belongs to the tenant of the key that opened it, never to the default tenant
+        return Identity(f"customer session {c.sid[:12]}", "customer_session", f"tok:{c.sid}", False, c.sid, c.cid, c.agent, tenant=tenant), None
 
     async def _key(self, token: str | None) -> Identity | None:
         if not token:
