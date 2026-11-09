@@ -26,21 +26,21 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   const build: SubItem[] = [
     { href: "/agents", label: "Agents" },
     { href: "/hub", label: "Agent Hub" },
-    soon("builder", "Builder"),
+    { href: "/agents/build", label: "Builder" },
     ...(can("knowledge:read") ? [{ href: "/knowledge", label: "Library" }] : []),
     soon("automations", "Automations"),
     { href: "/simulations", label: "Simulations" },
-    soon("models", "Models and budgets"),
+    { href: "/models", label: "Models and budgets" },
     { href: "/chat", label: "Test console" },
   ];
   const govern: SubItem[] = [
-    soon("people", "People and groups"),
+    { href: "/people", label: "People and groups" },
     ...(any("keys:manage", "audit:read") ? [{ href: "/access", label: "Access keys" }, { href: "/access#audit", label: "Audit and activity" }] : []),
-    soon("policies", "Policies"),
+    { href: "/policies", label: "Policies" },
     soon("trust", "Trust and reliability"),
     ...(can("audit:read") ? [{ href: "/residency", label: "Data residency" }] : []),
   ];
-  const platform: SubItem[] = [soon("channels", "Channels"), soon("systems", "Systems"), soon("usage", "Usage and billing"), soon("org", "Organization settings")];
+  const platform: SubItem[] = [soon("channels", "Channels"), soon("systems", "Systems"), { href: "/usage", label: "Usage and billing" }, soon("org", "Organization settings")];
   const personal: SubItem[] = [
     { href: "/profile", label: "Profile" },
     { href: "/preferences", label: "Preferences" },

@@ -607,6 +607,16 @@ class WorkspaceTaskRow(TenantScoped, Base):
     __table_args__ = (Index("ix_workspace_tasks_owner", "tenant_id", "owner", "created_at"),)
 
 
+class TemplateInstallRow(TenantScoped, Base):
+    """Which hub template an agent was installed from, with the settings used and the agent as the template made it (E22)."""
+    __tablename__ = "template_installs"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    agent_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    installed_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

@@ -97,6 +97,8 @@ def build_runtime(c: SimpleNamespace) -> None:
             sys.exit(f"Configuration error: NORTHCX_WORKSPACE_POLICY_FILE: {e}")
     from northcx.db import PgTasks
     runtime.task_repo = PgTasks(c.engine) if c.db_url else None
+    from northcx.db import PgInstalls
+    runtime.install_repo = PgInstalls(c.engine) if c.db_url else None
     runtime.qualifications = Qualifications(PgQualifications(c.engine) if c.db_url else None)
     if getattr(llm, "selector", None) is not None:
         llm.selector.qualifier = runtime.qualifications

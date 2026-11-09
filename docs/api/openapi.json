@@ -3647,6 +3647,28 @@
         ]
       }
     },
+    "/v1/hub/installs": {
+      "get": {
+        "summary": "List Installs",
+        "operationId": "list_installs_v1_hub_installs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Installs V1 Hub Installs Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "hub"
+        ]
+      }
+    },
     "/v1/insights/ask": {
       "post": {
         "summary": "Insights Ask",
@@ -5248,6 +5270,29 @@
         ]
       }
     },
+    "/v1/models/overview": {
+      "get": {
+        "summary": "Models Overview",
+        "description": "The model providers (never their keys), the data policy and routing rules, the fallback order and today's spending against its limits.",
+        "operationId": "models_overview_v1_models_overview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Models Overview V1 Models Overview Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:read",
+        "tags": [
+          "models"
+        ]
+      }
+    },
     "/v1/monitor/findings": {
       "get": {
         "summary": "Monitor Findings",
@@ -5419,6 +5464,29 @@
         "x-required-permission": "monitor:read",
         "tags": [
           "monitor"
+        ]
+      }
+    },
+    "/v1/policies": {
+      "get": {
+        "summary": "Policies",
+        "description": "The policy library: what each ready-made policy does, an example setting, and the allow and block cases that prove it.",
+        "operationId": "policies_v1_policies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Policies V1 Policies Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "policies"
         ]
       }
     },
@@ -7080,6 +7148,60 @@
         ]
       }
     },
+    "/v1/templates/{template_id}/install": {
+      "post": {
+        "summary": "Install",
+        "description": "Create a draft from a template, save its scenarios and run them, and record where the agent came from. The agent is not live.",
+        "operationId": "install_v1_templates__template_id__install_post",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HubBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Install V1 Templates  Template Id  Install Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "templates"
+        ]
+      }
+    },
     "/v1/templates/{template_id}/render": {
       "post": {
         "summary": "Render Template",
@@ -7113,6 +7235,167 @@
               "application/json": {
                 "schema": {
                   "title": "Response Render Template V1 Templates  Template Id  Render Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/v1/templates/{template_id}/requirements": {
+      "post": {
+        "summary": "Requirements",
+        "description": "Check a template against this deployment: tools, knowledge, channels, tests, model rules. Saves nothing.",
+        "operationId": "requirements_v1_templates__template_id__requirements_post",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HubBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Requirements V1 Templates  Template Id  Requirements Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/v1/templates/{template_id}/update": {
+      "post": {
+        "summary": "Update",
+        "description": "Create a new draft version from the template's newer version, using the settings from the install. Local changes are shown, never silently merged: the new draft is the template's text, and the person decides what to carry over.",
+        "operationId": "update_v1_templates__template_id__update_post",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HubBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Update V1 Templates  Template Id  Update Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/v1/templates/{template_id}/update-preview": {
+      "post": {
+        "summary": "Update Preview",
+        "operationId": "update_preview_v1_templates__template_id__update_preview_post",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HubBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Update Preview V1 Templates  Template Id  Update Preview Post"
                 }
               }
             }
@@ -7300,6 +7583,51 @@
         "x-required-permission": "traces:read",
         "tags": [
           "traces"
+        ]
+      }
+    },
+    "/v1/usage": {
+      "get": {
+        "summary": "Usage",
+        "description": "Tokens and money per agent per day for the caller's tenant, with totals. Money counts only answers from models that have a price in the budget currency.",
+        "operationId": "usage_v1_usage_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 7,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Usage V1 Usage Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "insights:read",
+        "tags": [
+          "usage"
         ]
       }
     },
@@ -8523,6 +8851,50 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HubBody": {
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Agentid"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
+          "by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agentId"
+        ],
+        "title": "HubBody"
       },
       "JourneyDraftBody": {
         "properties": {

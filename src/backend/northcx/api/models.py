@@ -264,6 +264,14 @@ class NoteBody(BaseModel):
     note: str = Field(min_length=5, max_length=300)
 
 
+class HubBody(BaseModel):
+    agent_id: str = Field(alias="agentId", min_length=2, max_length=40)
+    params: dict[str, Any] = Field(default_factory=dict)
+    by: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=1000)
+    model_config = {"populate_by_name": True}
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

@@ -61,6 +61,29 @@ await page.keyboard.press("Control+.");
 check((await mainNav.count()) === 0, "admin: full window hides the rail");
 await page.keyboard.press("Escape");
 
+// the new Admin pages open and show their content
+await page.goto(`${WEB}/models`);
+await page.getByRole("heading", { name: "Models and budgets" }).waitFor();
+check(true, "admin: Models and budgets page opens");
+await page.goto(`${WEB}/usage`);
+await page.getByRole("heading", { name: "Usage and billing" }).waitFor();
+check(true, "admin: Usage page opens");
+await page.goto(`${WEB}/policies`);
+await page.getByRole("heading", { name: "Policies" }).waitFor();
+await page.getByText("tool_limit").first().waitFor();
+check(true, "admin: Policies page lists the policy library");
+await page.goto(`${WEB}/people`);
+await page.getByRole("heading", { name: "People and groups" }).waitFor();
+await page.getByLabel("New group name").fill("Smoke group");
+await page.getByRole("button", { name: "Create group" }).click();
+await page.getByRole("heading", { name: "Smoke group" }).waitFor();
+await page.getByRole("button", { name: "Delete", exact: true }).first().click();
+check(true, "admin: a group can be created and deleted");
+await page.goto(`${WEB}/hub`);
+await page.getByRole("heading", { name: "Agent Hub" }).waitFor();
+await page.getByText("Billing and invoices").waitFor();
+check(true, "admin: the Agent Hub shows the new predefined agents");
+
 // insights shows the human-review cards
 await page.goto(`${WEB}/insights`);
 await page.getByRole("region", { name: "Human review" }).waitFor();

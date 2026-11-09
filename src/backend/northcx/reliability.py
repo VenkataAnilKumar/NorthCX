@@ -149,6 +149,12 @@ class UsageLedger:
     async def money_spent(self, agent_id: str | None = None) -> float:
         return self.money_today(agent_id)
 
+    async def usage_rows(self, days: int) -> list[dict]:
+        """Tokens and money per agent per UTC day for the last `days` days (this process's counts)."""
+        cutoff = self._day(time.time() - (days - 1) * 86400)
+        keys = sorted({k for k in list(self._days) + list(self._micros) if k[1] >= cutoff}, key=lambda k: (k[1], k[0]))
+        return [{"agent": a, "day": d, "tokens": self._days.get((a, d), 0), "cost": self._micros.get((a, d), 0) / 1_000_000} for a, d in keys]
+
     async def over_budget(self) -> bool:
         return self.exhausted()
 

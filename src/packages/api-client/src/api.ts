@@ -389,7 +389,7 @@ export async function importKnowledgeFile(source: string, file: File): Promise<{
 }
 
 // ---- agent hub (templates) ----
-export interface TemplateInfo { id: string; title: string; description: string; intent: string; parameters: { name: string; description: string; default: string | null; required: boolean }[]; requiresTools: string[]; scenarios: number }
+export interface TemplateInfo { id: string; title: string; description: string; intent: string; parameters: { name: string; description: string; default: string | null; required: boolean }[]; requiresTools: string[]; scenarios: number; audience?: string; category?: string; channels?: string[]; version?: string; notes?: string; sees?: string[]; does?: string[]; needs?: { tools: string[]; knowledge: boolean; channels: string[] } }
 export interface TemplateRender { specYaml: string; scenariosYaml: string; scenarios: number; missingTools: string[]; warnings: string[] }
 export const listTemplates = () => api<{ templates: TemplateInfo[] }>("/v1/templates").then((r) => r.templates);
 export const renderTemplate = (id: string, agentId: string, params: Record<string, string>) =>
@@ -429,3 +429,36 @@ export const listNotes = () => api<{ notes: MemoryNote[] }>("/v1/workspace/memor
 export const addNote = (note: string) => api<{ id: string; note: string; new: boolean }>("/v1/workspace/memory", { method: "POST", body: JSON.stringify({ note }) });
 export const deleteNote = (id: string) => api<{ deleted: boolean }>(`/v1/workspace/memory/${id}`, { method: "DELETE" });
 export const eraseNotes = () => api<{ removed: number }>("/v1/workspace/memory", { method: "DELETE" });
+
+
+// ---------- Agent Hub ----------
+export interface HubCheck { id: string; label: string; ok: boolean; blocking: boolean; detail: string }
+export interface HubRequirements { ok: boolean; checks: HubCheck[] }
+export interface HubInstall { agent: string; template: string; templateVersion: string; params: Record<string, string>; version: number; installedBy: string; scenarios: string[]; tests: { ran?: boolean; passed?: boolean; counts?: { total: number; passed: number; failed: number }; reason?: string }; installedAt: number; updatedAt: number; title: string; currentTemplateVersion: string | null; updateAvailable: boolean; templateAvailable: boolean }
+export interface HubUpdatePreview { from: string; to: string; installedVersion: number; currentVersion: number | null; templateChanges: { identical: boolean; instructions: string | null; tools: { added: string[]; removed: string[] }; other: Record<string, unknown> }; localChanges: { identical: boolean; instructions: string | null; tools: { added: string[]; removed: string[] }; other: Record<string, unknown> }; scenarios: { added: string[]; removed: string[]; kept: string[] } }
+export const hubRequirements = (id: string, agentId: string, params: Record<string, string>) => api<HubRequirements>(`/v1/templates/${id}/requirements`, { method: "POST", body: JSON.stringify({ agentId, params }) });
+export const hubInstall = (id: string, agentId: string, params: Record<string, string>) =>
+  api<{ agent: string; version: number; live: boolean; requirements: HubRequirements; scenariosSaved: string[]; tests: HubInstall["tests"] }>(`/v1/templates/${id}/install`, { method: "POST", body: JSON.stringify({ agentId, params }) });
+export const hubInstalls = () => api<{ installs: HubInstall[] }>("/v1/hub/installs").then((r) => r.installs);
+export const hubUpdatePreview = (id: string, agentId: string) => api<HubUpdatePreview>(`/v1/templates/${id}/update-preview`, { method: "POST", body: JSON.stringify({ agentId }) });
+export const hubUpdate = (id: string, agentId: string) => api<{ version: number; live: boolean; scenariosSaved: string[] }>(`/v1/templates/${id}/update`, { method: "POST", body: JSON.stringify({ agentId }) });
+
+// ---------- Models and budgets, Usage, Policies, Groups ----------
+export interface ModelsOverview {
+  configured: boolean; note: string; fallbacks?: string[];
+  providers: { name: string; defaultModel: string | null; isDefault: boolean; tier: string; capabilities: { tools: boolean; parallelTools: boolean; images: boolean; documents: boolean; maxContextTokens: number | null }; prices: Record<string, { inputPerMillion: number; outputPerMillion: number; currency: string }> }[];
+  routing?: { policy: { sensitive: string[]; normal: string[]; publicCloudAllowedAgents: string[] }; sensitiveTopics: string[]; rules: { name: string; when: Record<string, unknown>; use: { tier?: string; model?: string } }[]; qualification: { required: boolean; exempt: string[] } } | null;
+  budget: { dailyTokenLimit: number | null; dailyMoneyLimit: number | null; currency: string; tokensToday: number; moneyToday: number };
+}
+export const modelsOverview = () => api<ModelsOverview>("/v1/models/overview");
+export interface UsageReport { days: number; currency: string; rows: { agent: string; day: string; tokens: number; cost: number }[]; byAgent: { agent: string; tokens: number; cost: number }[]; totals: { tokens: number; cost: number }; limits: { dailyTokenLimit: number | null; dailyMoneyLimit: number | null } }
+export const usageReport = (days: number) => api<UsageReport>(`/v1/usage?days=${days}`);
+export interface PolicyInfo { name: string; description: string; exampleConfig: Record<string, unknown>; cases: { on: string; input: unknown; expected: "allowed" | "blocked" }[] }
+export const policyLibrary = () => api<{ policies: PolicyInfo[]; note: string }>("/v1/policies");
+export interface GroupInfo { id: string; name: string; roles: string[]; members: string[]; externalName: string | null; description: string; createdBy: string; createdAt: number }
+export const listGroups = () => api<{ groups: GroupInfo[] }>("/v1/groups").then((r) => r.groups);
+export const createGroup = (name: string, roles: string[], externalName?: string) => api<GroupInfo>("/v1/groups", { method: "POST", body: JSON.stringify({ name, roles, ...(externalName ? { externalName } : {}) }) });
+export const updateGroup = (id: string, patch: { roles?: string[]; externalName?: string; description?: string }) => api<GroupInfo>(`/v1/groups/${id}`, { method: "PUT", body: JSON.stringify(patch) });
+export const deleteGroup = (id: string) => api<{ deleted: boolean }>(`/v1/groups/${id}`, { method: "DELETE" });
+export const addGroupMember = (id: string, subject: string) => api<GroupInfo>(`/v1/groups/${id}/members`, { method: "POST", body: JSON.stringify({ subject }) });
+export const removeGroupMember = (id: string, subject: string) => api<GroupInfo>(`/v1/groups/${id}/members/${encodeURIComponent(subject)}`, { method: "DELETE" });

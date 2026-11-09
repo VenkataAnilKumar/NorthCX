@@ -132,6 +132,17 @@ class PgUsageLedger(_Base):
             self._warn.once_a_minute("money budget", e)
             return self.local.money_today(agent_id)
 
+    async def usage_rows(self, days: int) -> list[dict]:
+        """Tokens and money per agent per UTC day for the last `days` days, for the caller's tenant (row-level security)."""
+        cutoff = func.to_char(func.timezone("UTC", func.now()) - func.make_interval(0, 0, 0, days - 1), "YYYY-MM-DD")
+        q = select(UsageLedgerRow.agent_id, UsageLedgerRow.day, UsageLedgerRow.tokens, UsageLedgerRow.cost_micros).where(UsageLedgerRow.day >= cutoff).order_by(UsageLedgerRow.day, UsageLedgerRow.agent_id)
+        try:
+            async with self._ro() as s:
+                return [{"agent": r.agent_id, "day": r.day, "tokens": int(r.tokens), "cost": int(r.cost_micros) / 1_000_000} for r in (await s.execute(q)).all()]
+        except Exception as e:  # noqa: BLE001
+            self._warn.once_a_minute("usage", e)
+            return await self.local.usage_rows(days)
+
     async def over_budget(self) -> bool:
         if self.daily_limit is None and self.money_limit is None:
             return False

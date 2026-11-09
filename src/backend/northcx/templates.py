@@ -44,11 +44,23 @@ class Template:
     spec: dict[str, Any]
     scenarios: list[dict[str, Any]] = field(default_factory=list)
     requires_tools: list[str] = field(default_factory=list)
+    # Hub details (WP22.1); every one is optional, so a template written before they existed stays valid
+    audience: str = "customer"
+    category: str = "General"
+    channels: list[str] = field(default_factory=list)       # channels it is meant for
+    version: str = "1"
+    notes: str = ""
+    sees: list[str] = field(default_factory=list)           # what it can see
+    does: list[str] = field(default_factory=list)           # what it can do
+    requires_knowledge: bool = False
+    requires_channels: list[str] = field(default_factory=list)
 
     def info(self) -> dict[str, Any]:
         return {"id": self.id, "title": self.title, "description": self.description, "intent": self.intent,
                 "parameters": [{"name": p.name, "description": p.description, "default": p.default, "required": p.required and p.default is None} for p in self.params],
-                "requiresTools": _fill(self.requires_tools, {p.name: p.default or "" for p in self.params}), "scenarios": len(self.scenarios)}
+                "requiresTools": _fill(self.requires_tools, {p.name: p.default or "" for p in self.params}), "scenarios": len(self.scenarios),
+                "audience": self.audience, "category": self.category, "channels": self.channels, "version": self.version, "notes": self.notes, "sees": self.sees, "does": self.does,
+                "needs": {"tools": _fill(self.requires_tools, {p.name: p.default or "" for p in self.params}), "knowledge": self.requires_knowledge, "channels": self.requires_channels}}
 
 
 @dataclass
@@ -65,7 +77,7 @@ def parse_template(data: Any, source: str = "") -> Template:
     where = source or "template"
     if not isinstance(data, dict):
         raise TemplateError(f"{where}: must be a mapping")
-    unknown = set(data) - {"id", "title", "description", "intent", "parameters", "spec", "scenarios", "requires"}
+    unknown = set(data) - {"id", "title", "description", "intent", "parameters", "spec", "scenarios", "requires", "audience", "category", "channels", "version", "notes", "sees", "does"}
     if unknown:
         raise TemplateError(f"{where}: unknown setting(s) {', '.join(sorted(unknown))}")
     tid = str(data.get("id", ""))
@@ -85,8 +97,14 @@ def parse_template(data: Any, source: str = "") -> Template:
     if used - declared - {"agent_id"}:
         raise TemplateError(f"{where}: uses undeclared parameter(s) {', '.join(sorted(used - declared - {'agent_id'}))}")
     req = data.get("requires") or {}
+    if str(data.get("audience", "customer")) not in ("customer", "staff"):
+        raise TemplateError(f"{where}: audience must be customer or staff")
+    lists = {k: [str(x) for x in (data.get(k) or [])] for k in ("channels", "sees", "does")}
     return Template(tid, str(data.get("title", tid)), str(data.get("description", "")), str(data.get("intent", "")), params, spec,
-                    list(data.get("scenarios") or []), [str(t) for t in req.get("tools") or []])
+                    list(data.get("scenarios") or []), [str(t) for t in req.get("tools") or []],
+                    audience=str(data.get("audience", "customer")), category=str(data.get("category", "General"))[:60], channels=lists["channels"], version=str(data.get("version", "1")),
+                    notes=str(data.get("notes", ""))[:500], sees=lists["sees"], does=lists["does"], requires_knowledge=bool(req.get("knowledge", False)),
+                    requires_channels=[str(c) for c in req.get("channels") or []])
 
 
 def load_templates(*paths: str | Path) -> dict[str, Template]:

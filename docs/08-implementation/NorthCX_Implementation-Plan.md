@@ -212,6 +212,7 @@ Commission the penetration test (scope: Threat Model and Security Review, with t
 **Tests:** matrix of roles by tools; customer text never treated as a staff instruction; memory isolation; tenant isolation. **Depends on:** E2, E3.
 
 ### E22 Agent Hub and predefined agents (accepted 2026-11-09, decision 176; size L)
+**Status (2026-11-09, Phase 5):** built: WP22.1 (template metadata), 22.2 (requirements check), 22.3 (install flow with tests and install records), 22.4 (updates with local changes visible), 22.6 for the Admin Hub, and 22.7 for three of the seven customer agents (billing and invoices, delivery problems, account help, six scenarios each). Not built: 22.5 (organization templates and review), 22.8 (staff assistants as hub entries), 22.9 (signing), the Workspace Assistants catalog, the other four predefined customer agents.
 A gallery of predefined agents with an install flow (details, requirements check, tests, draft), updates, an organization-only hub and signed built-in entries; builds on the four existing templates. Work packages WP22.1 to WP22.9 and decisions are in `07-design/NorthCX_Agent-Hub-Design.md`. Depends on: WP0.1 (done); staff assistants depend on E5 to E7.
 
 ### E6 Libraries and generated outputs (size L, WP6.1 to WP6.3)

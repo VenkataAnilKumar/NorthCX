@@ -55,6 +55,7 @@
   "GET /v1/handoffs": "/v1/handoffs -> list_handoffs",
   "GET /v1/handoffs/x": "/v1/handoffs/{handoff_id} -> get_handoff",
   "GET /v1/handoffs/x/inbox": "/v1/handoffs/{handoff_id}/inbox -> handoff_inbox",
+  "GET /v1/hub/installs": "/v1/hub/installs -> list_installs",
   "GET /v1/insights/failures": "/v1/insights/failures -> insights_failures",
   "GET /v1/insights/gaps": "/v1/insights/gaps -> insights_gaps",
   "GET /v1/insights/overview": "/v1/insights/overview -> insights_overview",
@@ -71,8 +72,10 @@
   "GET /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_get_document",
   "GET /v1/me": "/v1/me -> me",
   "GET /v1/memories": "/v1/memories -> memories_list",
+  "GET /v1/models/overview": "/v1/models/overview -> models_overview",
   "GET /v1/monitor/findings": "/v1/monitor/findings -> monitor_findings",
   "GET /v1/monitor/summary": "/v1/monitor/summary -> monitor_summary",
+  "GET /v1/policies": "/v1/policies -> policies",
   "GET /v1/privacy/customers/a/b/export": "/v1/privacy/customers/{customer_id:path}/export -> privacy_export",
   "GET /v1/regression": "/v1/regression -> regression_status",
   "GET /v1/release-requests": "/v1/release-requests -> list_release_requests",
@@ -96,6 +99,7 @@
   "GET /v1/traces": "/v1/traces -> list_traces",
   "GET /v1/traces/x": "/v1/traces/{trace_id} -> get_trace",
   "GET /v1/traces/x/exports": "/v1/traces/{trace_id}/exports -> trace_exports",
+  "GET /v1/usage": "/v1/usage -> usage",
   "GET /v1/voice/calls": "/v1/voice/calls -> voice_calls",
   "GET /v1/workspace/memory": "/v1/workspace/memory -> list_memory",
   "GET /v1/workspace/search": "/v1/workspace/search -> workspace_search",
@@ -156,7 +160,11 @@
   "POST /v1/simulations/scenarios": "/v1/simulations/scenarios -> create_scenario",
   "POST /v1/simulations/scenarios/validate": "/v1/simulations/scenarios/validate -> validate_scenario",
   "POST /v1/templates/x/create-version": "/v1/templates/{template_id}/create-version -> template_version",
+  "POST /v1/templates/x/install": "/v1/templates/{template_id}/install -> install",
   "POST /v1/templates/x/render": "/v1/templates/{template_id}/render -> render_template",
+  "POST /v1/templates/x/requirements": "/v1/templates/{template_id}/requirements -> requirements",
+  "POST /v1/templates/x/update": "/v1/templates/{template_id}/update -> update",
+  "POST /v1/templates/x/update-preview": "/v1/templates/{template_id}/update-preview -> update_preview",
   "POST /v1/workspace/chat": "/v1/workspace/chat -> workspace_chat",
   "POST /v1/workspace/chat/stream": "/v1/workspace/chat/stream -> workspace_chat_stream",
   "POST /v1/workspace/memory": "/v1/workspace/memory -> add_memory",
@@ -455,6 +463,11 @@
   ],
   [
    "GET",
+   "/v1/hub/installs",
+   "list_installs"
+  ],
+  [
+   "GET",
    "/v1/insights/failures",
    "insights_failures"
   ],
@@ -535,6 +548,11 @@
   ],
   [
    "GET",
+   "/v1/models/overview",
+   "models_overview"
+  ],
+  [
+   "GET",
    "/v1/monitor/findings",
    "monitor_findings"
   ],
@@ -542,6 +560,11 @@
    "GET",
    "/v1/monitor/summary",
    "monitor_summary"
+  ],
+  [
+   "GET",
+   "/v1/policies",
+   "policies"
   ],
   [
    "GET",
@@ -657,6 +680,11 @@
    "GET",
    "/v1/traces/{trace_id}/exports",
    "trace_exports"
+  ],
+  [
+   "GET",
+   "/v1/usage",
+   "usage"
   ],
   [
    "GET",
@@ -960,8 +988,28 @@
   ],
   [
    "POST",
+   "/v1/templates/{template_id}/install",
+   "install"
+  ],
+  [
+   "POST",
    "/v1/templates/{template_id}/render",
    "render_template"
+  ],
+  [
+   "POST",
+   "/v1/templates/{template_id}/requirements",
+   "requirements"
+  ],
+  [
+   "POST",
+   "/v1/templates/{template_id}/update",
+   "update"
+  ],
+  [
+   "POST",
+   "/v1/templates/{template_id}/update-preview",
+   "update_preview"
   ],
   [
    "POST",
