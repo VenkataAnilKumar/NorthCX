@@ -50,6 +50,7 @@ Per-tenant storage with row-level security (E2). Retention, export and erase per
 Task and automation runs are durable and leased; a worker restart resumes from the last finished step. Per-task and per-tenant budgets use the shared limiter. A model failure ends a step with a reason; the person chooses retry, skip or stop.
 
 ## 9. Front-end architecture
+The visual design, navigation modes and tab icons follow `../07-design/NorthCX_UI-UX-Design-Proposal.md`.
 Both apps share `packages/ui` (tokens, glass surfaces, themes through `data-` attributes, accessibility settings, shell and navigation components) and `packages/api-client`. Preferences are stored per browser first and per user when the backend exists. Server components fetch with the person's session; the browser never holds a long-lived API key.
 
 ## 10. Open design points

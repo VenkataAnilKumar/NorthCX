@@ -6,7 +6,7 @@ Status: **Designed**. Updated: 2026-11-09. Master for: the staff Workspace app. 
 A separate web app for the people who supervise the agents: support staff, team leads and reviewers. It has its own address, one sign-in with the Admin app, and one design system. It does not replace the helpdesk, and it never sends a message to a customer without a person doing so.
 
 ## 2. Navigation (decided, decisions 153, 157)
-Six left items: Home, Pilot, Work (Inbox, Approvals, Customers), Assist (Assistants, Search, Library), Create (Outputs, Spaces, Automations), Team (Quality, Performance; leads and reviewers only). A badge on a sub-tab also shows on its group. Each group remembers the last sub-tab used. A command bar (Ctrl K) reaches any tab by name. A group with one visible sub-tab shows no sub-tab row.
+Six left items: Home, Pilot, Work (Inbox, Approvals, Customers), Assist (Assistants, Search, Library), Create (Outputs, Spaces, Automations), Team (Quality, Performance; leads and reviewers only). A badge on a sub-tab also shows on its group. Each group remembers the last sub-tab used. A command bar (Ctrl K) reaches any tab by name. The rail can be expanded, collapsed to icons (Ctrl B) or hidden in full window mode (Ctrl .), as designed in `../07-design/NorthCX_UI-UX-Design-Proposal.md`. A group with one visible sub-tab shows no sub-tab row.
 
 ## 3. Cross-cutting rules
 1. A person sees only what their roles allow; assistants act with the signed-in person's permissions, never more.

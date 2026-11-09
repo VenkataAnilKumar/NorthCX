@@ -1,6 +1,6 @@
-# NorthCX UI and UX design proposal
+# NorthCX UI and UX design
 
-Status: **Proposed**. Updated: 2026-11-09. Master for: the visual and interaction design of the Workspace and Admin apps (colour, glass surfaces, type, layout, motion, components, accessibility). A proposal for the owner to confirm; nothing here is built. It extends the glass design system outlined in `NorthCX_Design-System.md`. Tabs, names and features are in `NorthCX_Platform-Features-and-Tabs.md`. Mockups use invented sample data.
+Status: **Designed** (approved by the owner on 2026-11-09, decisions 173 to 175). Updated: 2026-11-09. Master for: the visual and interaction design of the Workspace and Admin apps (colour, glass surfaces, type, layout, motion, components, navigation modes, tab icons, accessibility). Nothing here is built. It extends the glass design system outlined in `NorthCX_Design-System.md`. Tabs, names and features are in `NorthCX_Platform-Features-and-Tabs.md`. Mockups use invented sample data.
 
 ![Workspace, light](../assets/design/ui-1-workspace-light.png)
 ![Pilot, dark](../assets/design/ui-2-pilot-dark.png)
@@ -80,11 +80,13 @@ Full window is meant for the Pilot (a long plan or result), the Inbox when worki
 
 **Tab icons** (mockup `ui-4-tab-icons.png`): one line icon per left item, 24 px grid, 1.6 px stroke, round caps, no fill, drawn for NorthCX (no third-party icon set, so no dependency or licence to track). Workspace: Home (house), Pilot (sparkle), Work (inbox tray), Assist (speech bubble), Create (stacked layers), Team (bars). Admin: Overview (four tiles), Operate (pulse line), Build (cube), Govern (shield with tick), Platform (server stack), Personal (person). Rules: icons appear on the six left items and nowhere else; sub-tabs and the 25 Admin pages stay text-only; every icon has a text label (visible when expanded, a tooltip when collapsed, and an accessible name for screen readers); the accent colours only the selected icon; the waiting-count badge uses the accent. Mockups: `ui-5-collapsed-rail.png`, `ui-6-full-window.png`.
 
-## 12. Open questions for the owner
-1. **Accent colour:** the proposal uses a calm blue. Alternatives: a deep teal or a graphite-only look with no accent hue.
-2. **Default theme:** match the device (recommended), or light first.
-3. **Brand mark:** a wordmark only for now (as drawn), or a symbol.
-4. **Density:** comfortable by default (as drawn) or compact for the Admin app.
-5. **Full window shortcut:** Ctrl . (proposed) or another key; and whether full window should also hide the sub-tabs.
+## 12. Working defaults (approved as drawn; changeable later)
+The owner approved the design as drawn on 2026-11-09. The four open questions were not answered separately, so the choices below are the working defaults, to be revisited with real users and real contrast measurements:
+1. **Accent colour:** calm blue (`#3b5bfd` light, `#7f95ff` dark); a short list of other hues in Preferences.
+2. **Default theme:** match the device.
+3. **Brand mark:** wordmark only for now.
+4. **Density:** comfortable by default; compact available in Preferences (an option for the Admin app).
+5. **Full window:** shortcut Ctrl . ; the page title and sub-tabs stay visible.
+Colour values are a proposal until measured: the AA contrast check on every screen (section 9) is part of the first build.
 
 Mockup source: `scripts/gen_ui_proposal.py` (six screens: `ui-1` to `ui-6`) (HTML in `07-design/mockups/ui-*.html`, images in `assets/design/ui-*.png`).

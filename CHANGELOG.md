@@ -6,6 +6,7 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ### Documentation (staff platform design, 2026-11-09)
 - Designed and documented, not built: the staff Workspace (six left items with sub-tabs), the Pilot, Assistants and the Agent Hub, Builder, Automations, personal intelligence, hybrid model selection, and the regrouped Admin app (25 organization pages, six left items with sub-tabs). New specifications for the Workspace, Pilot, personal intelligence and automations; a staff platform architecture; feature catalog section 12 (77 planned features); requirements FR35 to FR41; personas, stories, journeys, threat model, non-functional requirements, testing and design system updates; 59 mockups; decisions 153 to 171.
+- UI and UX design approved: glass surfaces, one accent colour, a floating six-item rail that can be collapsed to icons or hidden in full window mode, original tab icons, AA contrast rules (`docs/07-design/NorthCX_UI-UX-Design-Proposal.md`, six mockups).
 - Early web-app code for the Workspace and the new Admin shell is on `main` as work in progress and still uses the earlier tab names.
 
 ### Added (model providers, first part)

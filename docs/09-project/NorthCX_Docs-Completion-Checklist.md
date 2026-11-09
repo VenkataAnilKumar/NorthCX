@@ -21,7 +21,7 @@ Status: **Plan**. Updated: 2026-11-09. Master for: what the documents cover and 
 | Technical architecture | `05-technical/NorthCX_Staff-Platform-Architecture.md` | Done (proposed) |
 | Database and API | `NorthCX_Database-Schema.md`, `NorthCX_API-Design.md` | Proposed tables and routes are in the architecture document; these two are updated when each migration or route lands (the sync tests require it) |
 | Security | Threat model and Security-and-Compliance (staff platform sections) | Done |
-| Design | Platform-Features-and-Tabs, Admin-Platform-Design, Agent-Hub-Design, Design-System, Studio (with the former Studio-UI-Spec), 59 mockups | Done |
+| Design | UI-UX-Design-Proposal (approved look, navigation modes, tab icons), Platform-Features-and-Tabs, Admin-Platform-Design, Agent-Hub-Design, Design-System, Studio (with the former Studio-UI-Spec), 59 mockups | Done |
 | Plan | Implementation-Plan, Gap-Closure-Plan, Roadmap, Project-Status (finished 1.0 plans are in `99-archive/`) | Done; plan epics already cover E1 to E22 |
 | Testing | `08-implementation/NorthCX_Testing-Strategy.md` | Done |
 | Glossary and decisions | Glossary; Decision-Log to #161 | Done |

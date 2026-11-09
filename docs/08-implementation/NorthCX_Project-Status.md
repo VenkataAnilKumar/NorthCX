@@ -3,7 +3,7 @@
 Status: **Reference**. Updated: 2026-11-09. Master for: a one-page snapshot of where the project stands. A one-page summary of where the project stands and what is planned. The detail lives in `NorthCX_Release-Checklist.md` (finishing 1.0) and `NorthCX_Gap-Closure-Plan.md` (after 1.0). Update this page when a wave ships or a decision is made.
 
 ## Product documentation (2026-11-09)
-The product documents now cover the whole designed platform: vision and requirements (FR1 to FR41), personas, stories and journeys, the feature catalog (section 12), four after-1.0 specifications, the staff platform architecture, threat model and security, non-functional requirements, testing, design system, roadmap and decision log (to #172). What remains is listed in `../09-project/NorthCX_Docs-Completion-Checklist.md`. No design-phase feature is built.
+The product documents now cover the whole designed platform: vision and requirements (FR1 to FR41), personas, stories and journeys, the feature catalog (section 12), four after-1.0 specifications, the staff platform architecture, threat model and security, non-functional requirements, testing, design system, roadmap and decision log (to #175). What remains is listed in `../09-project/NorthCX_Docs-Completion-Checklist.md`. No design-phase feature is built.
 
 ## Done
 - **Phases 1 to 6 are complete:** the agent engine, safety, approvals, simulations and releases, Studio, six channels (web, email, SMS, WhatsApp, Telegram, voice), knowledge, analytics, identity checks, abuse detection, status events and data residency.
