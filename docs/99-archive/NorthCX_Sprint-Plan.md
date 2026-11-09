@@ -1,5 +1,7 @@
 # NorthCX Sprint Plan
 
+> **Archived 2026-11-09.** The 1.0 sprints are finished; current plan: `../08-implementation/NorthCX_Implementation-Plan.md`. Kept for history; not maintained.
+
 Status: Draft. Two-week sprints; estimates are placeholders until velocity is measured. Workstreams (W1-W16) are defined in `NorthCX_Phase-Plan.md`.
 
 | Sprint | Phase | Focus | Items |

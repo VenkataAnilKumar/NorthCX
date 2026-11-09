@@ -50,7 +50,7 @@ Specified in `NorthCX_Handoff-and-Approvals-Spec.md`.
 - **Built:** trace per run and trace API; trace export (OpenTelemetry, Langfuse) with redaction; metrics with denominators, containment and satisfaction, intent gaps, failure analysis; alerts with delivery tracking; conversation search and tags; plain-language analytics with filters and charts; signed status events.
 
 ## 10. Studio (U1-U8)
-Screens and behaviour in `07-design/NorthCX_Studio-UI-Spec.md`.
+Screens and behaviour in `07-design/NorthCX_Studio.md`.
 
 ## 11. Platform (P1-P11)
 - **Built:** bearer key auth, environment and file configuration; seven roles with hashed, expiring keys; hash-chained audit log; rate limits; OpenID Connect single sign-on; containers and a compose stack; signed webhooks and status events; data-residency policy; self-hosting.

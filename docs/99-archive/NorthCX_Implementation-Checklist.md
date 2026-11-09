@@ -1,5 +1,7 @@
 # NorthCX Implementation Checklist
 
+> **Archived 2026-11-09.** The 1.0 checklist is complete; the living checklist is section 14 of `../08-implementation/NorthCX_Implementation-Plan.md`. Kept for history; not maintained.
+
 Status: Living checklist. IDs refer to the Feature Catalog.
 
 ## Phase 1 (done in the TypeScript prototype and reproduced in the Python backend: 29 tests)

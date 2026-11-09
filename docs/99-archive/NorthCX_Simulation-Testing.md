@@ -1,5 +1,7 @@
 
 
+> **Archived 2026-11-09.** Merged into `../04-ai-architecture/NorthCX_Simulation-and-Evals.md`. Kept for history; not maintained.
+
 ## Regression from real conversations and knowledge changes (Q5, Q7) — as built
 
 **Scenario drafts (Q5).** `GET /v1/sessions/{id}/scenario-draft` turns a recorded conversation into a scenario: the customer's messages (personal data masked), a scripted replay of what the model did (tool calls and final answers), and expectations about each turn (status, tools called, guardrails hit, whether it went to a person). The draft is tagged `regression` and `required: false`, so it never blocks a release until a person reviews it and sets `required: true`. Warnings say what could not be captured: a held action needs a `decide` step, a draft the supervisors rejected was not recorded, platform-written turns and other agents' turns are skipped. A draft that would not load as a scenario is refused. Replaying a draft checks that today's agent (policies, tools, guardrails) still handles the recorded conversation the same way; because the model's answers are replayed, it tests everything around the model, not the model's wording.

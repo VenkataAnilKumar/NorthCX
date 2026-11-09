@@ -1,5 +1,7 @@
 # NorthCX Plan: closing the known gaps before 1.0.0
 
+> **Archived 2026-11-09.** All four batches were built (decisions 131 to 134); current plan: `../08-implementation/NorthCX_Implementation-Plan.md`. Kept for history; not maintained.
+
 Status: done. All four batches below were built and pushed (decision log entries 131 to 134); the exceptions are listed under "Not built" in the Knowledge, Observability, Integrations and Channels documents. Each batch is a separate commit pushed to `claude/awesome-brown-o0nk5s` and `main`, with tests, docs, decision-log entries, catalog and CHANGELOG updates, and a real-service check where one can be run here (local Postgres with pgvector; browser smoke for Studio).
 
 Rules that apply to every item: no new dependency on a reference project; new libraries only if ordinary infrastructure (prefer the standard library); every outbound address is operator configuration, https, no redirects, and is added to the residency report; anything a model returns is validated against a fixed list; nothing drafted by a model is saved or made live without a person.

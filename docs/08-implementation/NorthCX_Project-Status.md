@@ -7,7 +7,7 @@ The product documents now cover the whole designed platform: vision and requirem
 
 ## Done
 - **Phases 1 to 6 are complete:** the agent engine, safety, approvals, simulations and releases, Studio, six channels (web, email, SMS, WhatsApp, Telegram, voice), knowledge, analytics, identity checks, abuse detection, status events and data residency.
-- **The follow-up gaps are closed** (marked built in `NorthCX_Next-Features-Plan.md`): Office files, scheduled crawls, the approximate-nearest-neighbour index, per-source embedding models, analytics filters and charts, agent test scenarios, refinement and audio transcription, WhatsApp media, templates and several numbers, and Telegram.
+- **The follow-up gaps are closed** (marked built in `../99-archive/NorthCX_Next-Features-Plan.md`): Office files, scheduled crawls, the approximate-nearest-neighbour index, per-source embedding models, analytics filters and charts, agent test scenarios, refinement and audio transcription, WhatsApp media, templates and several numbers, and Telegram.
 - **Presentation and release readiness:** the README is a landing page with real screenshots; the release checklist and CI fixes are in; the commits are authored as the project owner.
 - **Verification:** more than 1,300 backend tests plus Studio and SDK tests; a clean-checkout run of the install, tests and builds.
 

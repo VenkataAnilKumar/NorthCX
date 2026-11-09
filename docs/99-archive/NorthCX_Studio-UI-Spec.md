@@ -1,5 +1,7 @@
 # NorthCX Studio UI Spec
 
+> **Archived 2026-11-09.** Merged into `../07-design/NorthCX_Studio.md`. Kept for history; not maintained.
+
 > **Note (2026-11-09):** this describes the Studio on `main` (flat navigation). The planned grouped Admin app, the Workspace and the shared design system are specified in `NorthCX_Platform-Features-and-Tabs.md`, `NorthCX_Admin-Platform-Design.md` and `NorthCX_Design-System.md`. Names there win where they differ.
 
 Status: Draft. Phase 4.

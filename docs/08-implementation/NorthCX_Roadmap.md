@@ -10,7 +10,7 @@ Status: **Plan**. Updated: 2026-11-09. Master for: the one-page order of release
 | Future | 4-5 | Studio, insights, experiments, voice, agent assist |
 | Exploring | 6+ | Agent-assisted building, natural-language analytics, multi-tenancy, metering and outcome billing |
 
-Detail: `NorthCX_Phase-Plan.md`.
+Detail of the finished 1.0 phases: `../99-archive/NorthCX_Phase-Plan.md`.
 
 ## Principles
 Safety and testability before reach; reach before polish; Studio after the definition format is stable.
