@@ -147,3 +147,47 @@ async def test_limits_survive_the_database_and_stay_in_their_tenant(app_engine):
     await tl.clear("acme")
     tl._cache.clear()
     assert (await tl.effective("acme"))["retentionDays"]["value"] is None
+
+
+async def test_the_retention_job_uses_the_tenants_own_period_and_the_platform_default():
+    """The job runs once per tenant; this runs its body for one tenant to be sure the import and the lookup work."""
+    from northcx.api.background import start_background
+    from northcx.tenancy import TENANT
+    rt = Runtime(ScriptedLLM([]), InMemoryStore(), TraceStore())
+    rt.tenant_limits = TenantLimits(InMemorySettings(), {})
+    await rt.tenant_limits.put("acme", {"retentionDays": 7}, "platform")
+    purged: list[float] = []
+
+    class Privacy:
+        async def purge_idle(self, days):
+            purged.append(days)
+            return {"sessions": 0, "removed": {}}
+    ran = []
+
+    def fake_every(seconds, name, job, *a, **k):
+        ran.append((name, job))
+
+        class T:
+            def cancel(self): ...
+        return T()
+    import northcx.api.background as bg
+    original = bg._every
+    bg._every = fake_every
+    try:
+        stop = start_background("all", None, runtime=rt, traces=rt.traces, flow=None, agents=None, approval_ttl_seconds=None, alerts=None, privacy=Privacy(), audit=InMemoryAudit(),
+                                retention_days=None, kb=None, crawl_scheduler=None)
+        job = dict(ran)["retention"]
+        token = TENANT.set("acme")
+        try:
+            await job()
+        finally:
+            TENANT.reset(token)
+        token = TENANT.set("globex")
+        try:
+            await job()                                  # no period for this tenant and no platform default: nothing is erased
+        finally:
+            TENANT.reset(token)
+        await stop()
+    finally:
+        bg._every = original
+    assert purged == [7]

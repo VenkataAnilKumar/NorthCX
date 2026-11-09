@@ -61,7 +61,7 @@ def start_background(role: str, leases: Leases | None, *, runtime: Any, traces: 
         tasks.append(_every(10, "inbox", lambda: runtime.inbox.flush(runtime.handoffs), leases, message="inbox delivery pass failed", tenants=tenants))
     if retention_days or getattr(runtime, "tenant_limits", None) is not None:  # age out old conversations once an hour, as long as this tenant (or the platform) keeps them for a set time
         async def retain() -> None:
-            from .tenancy import current_tenant
+            from northcx.tenancy import current_tenant
             days = retention_days
             if getattr(runtime, "tenant_limits", None) is not None:      # this tenant's own period, else the platform's
                 days = await runtime.tenant_limits.value(current_tenant(), "retentionDays") or retention_days
