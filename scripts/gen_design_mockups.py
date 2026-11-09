@@ -53,7 +53,7 @@ def shell(active: str, title: str, sub: str, body: str, env: str = "Production",
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{CSS}</style></head><body>
 <div class="app"><aside><div class="brand">NorthCX</div><div class="nav">{nav}</div><div class="who">Signed in as <b>Priya N.</b><br>Administrator &middot; SSO</div></aside>
 <div style="position:relative"><div class="top"><div class="search">Search conversations, agents, people, settings&hellip; &nbsp;<span class="tag">Ctrl K</span></div><div class="sp"></div><span class="pill">Tenant <b>{E(tenant)}</b></span><span class="pill">Environment <b>{E(env)}</b></span><span class="pill">Alerts <b>1</b></span><div class="av">PN</div></div>
-<main><h1>{E(title)}</h1><p class="sub">{E(sub)}</p>{body}</main></div></div><div class="mock">Design mockup &middot; sample data</div></body></html>"""
+<main><h1>{E(title)}</h1><p class="sub">{sub}</p>{body}</main></div></div><div class="mock">Design mockup &middot; sample data</div></body></html>"""
 
 
 def stat(label, value, delta=""):

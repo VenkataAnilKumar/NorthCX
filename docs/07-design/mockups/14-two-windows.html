@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Two windows (mockup)</title><style>
+:root{--bg:#e9edf3;--surface:#fff;--text:#0f172a;--muted:#5b6678;--border:#d9e0ea;--primary:#0b3d91}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 Inter,ui-sans-serif,system-ui,sans-serif;padding:24px;width:1600px;height:900px}
+h1{margin:0 0 2px;font-size:22px}p{margin:0 0 14px;color:var(--muted)}
+.wins{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.win{background:var(--surface);border:1px solid #b9c3d3;border-radius:12px;box-shadow:0 10px 30px #0f172a2a;overflow:hidden}
+.chrome{display:flex;align-items:center;gap:10px;background:#dfe5ee;padding:8px 12px;border-bottom:1px solid var(--border)}
+.dots i{display:inline-block;width:10px;height:10px;border-radius:50%;background:#b9c3d3;margin-right:5px}
+.url{flex:1;background:#fff;border-radius:999px;padding:3px 14px;color:var(--muted);font-size:12px}.url b{color:#0f7b3f}
+.view{position:relative;width:760px;height:470px;overflow:hidden}
+.view iframe{position:absolute;left:0;top:0;width:1440px;height:900px;border:0;transform:scale(.5278);transform-origin:0 0}
+.cap{padding:10px 14px;border-top:1px solid var(--border);font-size:13px}.cap b{display:block;margin-bottom:2px}
+.sw{position:absolute;right:14px;top:42px;width:230px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px #0f172a33;padding:8px;font-size:12px;z-index:5}
+.sw div{padding:6px 8px;border-radius:6px}.sw .on{background:#dce9ff;color:#0b4fb3;font-weight:700}.sw small{display:block;color:var(--muted);font-weight:400}
+.link{margin-top:14px;display:flex;gap:18px;align-items:center;font-size:13px}.chip{border:1px solid var(--border);background:#fff;border-radius:8px;padding:5px 10px}
+.arrow{color:var(--primary);font-weight:700}
+</style></head><body>
+<h1>Two separate windows, one sign-in</h1><p>Workspace and Admin are different apps at different addresses. A person with both roles opens either from the app switcher, and links jump between them. Sample data.</p>
+<div class="wins">
+ <div class="win"><div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url"><b>&#128274;</b> workspace.acme-support.example/queue/billing</span></div>
+  <div class="view"><iframe src="09-staff-workspace.html" title="Workspace"></iframe></div>
+  <div class="cap"><b>Window 1: Workspace</b>For support staff: queue, conversations, approvals, drafts. No configuration anywhere.</div></div>
+ <div class="win"><div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url"><b>&#128274;</b> admin.acme-support.example/agents/billing-help</span></div>
+  <div class="view"><iframe src="03-agent-governance.html" title="Admin"></iframe>
+   <div class="sw"><div class="on">Admin<small>Agents, people, policies, audit</small></div><div>Workspace<small>Queue and conversations</small></div><div style="border-top:1px solid #d9e0ea;margin-top:4px;color:#5b6678">Signed in as Priya N.</div></div></div>
+  <div class="cap"><b>Window 2: Admin</b>For administrators, release managers, developers, reviewers and auditors. App switcher shown open.</div></div>
+</div>
+<div class="link"><span class="chip">Admin: Handoff row</span><span class="arrow">&rarr; Open in Workspace &rarr;</span><span class="chip">Workspace: conversation c-4f21</span>
+<span style="width:40px"></span><span class="chip">Workspace: agent name &ldquo;billing-help&rdquo;</span><span class="arrow">&rarr; Open in Admin &rarr;</span><span class="chip">Admin: Agents / billing-help</span><span style="flex:1"></span><span class="chip">Same sign-in &middot; same design tokens &middot; roles decide which window you can open</span></div>
+</body></html>

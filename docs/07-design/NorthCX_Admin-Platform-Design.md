@@ -26,6 +26,10 @@ Coding and general agent workbenches (Codex, the Claude Code desktop app, MiniMa
 
 **Recommendation for NorthCX:** separate windows (separate addresses and navigation) with one sign-in, one design system and deep links between them. The staff workspace is its own app because its audience works all day in one queue, needs speed and a narrow permission set, and should never show configuration. The admin platform (Studio, extended) holds operate, build, govern and platform items for the people who configure and oversee agents. Small cross-links keep them feeling like one product: "Open in workspace" from a hand-off, "Open in admin" from an agent. A person with both roles gets an app switcher in the top bar.
 
+### How the two windows look together
+![Two windows](../assets/design/14-two-windows.png)
+Two browser windows at different addresses, one sign-in. The app switcher (shown open in the Admin window) appears only for people who hold roles for both. Links jump across: a hand-off row in Admin opens the conversation in Workspace; an agent name in Workspace opens that agent in Admin.
+
 ## 2. Navigation (admin platform)
 
 Four groups replace today's flat list of 14 items. Items a role cannot use are hidden, not greyed out.
