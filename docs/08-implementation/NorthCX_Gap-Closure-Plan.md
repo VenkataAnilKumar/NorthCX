@@ -72,7 +72,7 @@ Wave 5  Reach                                           -> later
         E13 marketing site and demo booking (E21); Slack/Teams/helpdesk surfaces; E20 Office add-ins; browser extension; native mobile; marketplace
 ```
 
-New catalog IDs are reserved per epic (section 11). Decision-log entries continue from #138.
+**Order note (2026-11-09):** the Implementation Plan is the master for order and moved E2 multi-tenancy to Wave 2 (release 1.2) and E7 QA scoring to Wave 3; where the chart above differs, the Implementation Plan wins. New catalog IDs are reserved per epic (section 11). Decision-log entries continued from #138 and now run to #172.
 
 ## 5. Wave 0: finish 1.0 and prepare the ground
 
@@ -87,6 +87,8 @@ New catalog IDs are reserved per epic (section 11). Decision-log entries continu
 | **E0.6 Webhook tester** generalising the alert test: `POST /v1/events/test` sends a signed sample of any event type to the configured webhook | Developer experience; used by the portal later | Test and audit entry |
 | **E0.7 Split the web code into apps and shared packages** (decision D10; **done for Studio and the two shared packages**, later apps are created when their first feature arrives): `src/apps/studio` (today's `src/web`), shared `src/packages/ui` and `src/packages/api-client`, managed as npm workspaces; later apps (`workspace`, `admin`, `ops`, `backoffice`) are created only when their first feature arrives; marketing, trust, legal and developer portal live in `src/site`; embedded surfaces in `src/surfaces/*` | The staff workspace, admin portal, ops console and back office have different audiences, auth policies, traffic and shipping rules (the back office must never be in a customer bundle; the ops console only in private deployments). The code is about 3,000 lines now, so extracting the shared parts is cheap | No behaviour change: the web tests, type-check, production build and browser smoke pass before and after; CI, compose and docs updated; no app imports another app, only packages |
 | **E0.8 Multi-replica readiness** | The API is mostly stateless but several parts are per process: rate limits and abuse counters (E0.3), background loops that run in every copy (outbox retries and alert evaluation can duplicate), alert state and crawl job status held in memory, attachments in the database, sticky voice and streaming connections | A setting to run the background loops only on dedicated workers; claims on the outbox and export queues; alert state in the database; documented topology (web, API replicas, workers, pooler, Postgres); a two-replica test in CI that sends each outbox message once and fires each alert once |
+
+**Status (2026-11-09):** E0.1 to E0.8 are done (WP0.1 to WP0.8 in the Implementation Plan); the web split also gained `src/apps/workspace` (early work), and the Admin app is the Studio extended rather than a separate `admin` app (decision 168).
 
 **Not mine to do, needed to call it 1.0:** live-model pass, judge calibration, penetration test, tag push (see the release checklist).
 
@@ -163,8 +165,8 @@ The product shift: the same engine, a different audience. A **staff principal** 
 - **Audience field.** `AgentSpec` gets an optional `audience: staff` (removed from the canonical form when absent, so existing digests are unchanged). Staff agents may use staff tools; customer agents cannot be given them (validated at version creation).
 - **Tool context carries the actor.** `ToolContext` gains the caller's permissions, so every staff tool checks them itself ("search conversations" requires `traces:read`; "export" requires the export permission). A staff agent therefore can never do more than the person using it.
 - **Staff tools (first set):** search knowledge, search conversations (masked), get a conversation (masked, audited), ask insights (E-O8, exists), list hand-offs and approvals, draft a reply, summarise a conversation, create a report (E6). Each tool is read-only except the ones that create an output.
-- **Endpoint and UI:** `POST /v1/workspace/chat` (streamed like customer chat, bound to the signed-in identity; `customer_id = staff:<id>` for memory), and a **Workspace** home in Studio: chat, saved prompts from libraries (E6), recent outputs.
-- **Staff memory:** namespaces `staff:<id>` (private) and `team:<id>` (shared), using the existing memory service with the existing recall and erase paths; shown and editable in Studio.
+- **Endpoint and UI:** `POST /v1/workspace/chat` (streamed like customer chat, bound to the signed-in identity; `customer_id = staff:<id>` for memory), and the **Workspace**, which was later decided to be its own app (`apps/workspace`), not a page in Studio (decisions 153 to 168): Home, Pilot, Work, Assist, Create and Team.
+- **Staff memory:** namespaces `staff:<id>` (private) and `team:<id>` (shared), using the existing memory service with the existing recall and erase paths; shown and editable under Personal > Memory in the Admin app and in the Pilot's Context tab (`../03-specs/NorthCX_Personal-Intelligence-Spec.md`).
 - **Permission-aware search framework.** A `SearchProvider` protocol: `search(query, identity) -> results with source and access`. Providers: knowledge, conversations, hand-offs, and later connectors (E9). Results fuse with the existing reciprocal rank fusion, each provider has a timeout, and **a provider that cannot prove the caller's access returns nothing**. This is the foundation for "why are refunds up this week?" across systems.
 - **Staff guardrails:** per-role approved models and tools; export data-loss rules (mask by default, volume thresholds that require approval); everything in the audit log with the same hash chain.
 - **Tests:** a staff agent cannot call a tool its caller lacks permission for (matrix over roles x tools); staff tools masked like conversation search; prompt-injection scenarios against staff tools (a customer message containing instructions must not reach staff tools as commands); memory isolation between staff and teams; tenant isolation (E2).
@@ -202,7 +204,7 @@ The product shift: the same engine, a different audience. A **staff principal** 
 ### E10. Metering, plans and usage export (P11, depends on E2)
 - **Usage events** (append-only, per tenant): conversations, turns, tokens by model with currency cost, voice minutes, approvals, automations runs, storage. Rolled up hourly; exposed through the API and an invoice-ready CSV. Idempotent by event id.
 - **Plans and feature flags:** a plan lists limits and enabled features; enforcement points exist already (limits, budgets), so this is configuration plus a clear error ("your plan does not include X").
-- **"Resolved" definition:** until a definition is agreed (D8) billing uses conversations and seats; the insights pages keep reporting *containment* and say so.
+- **"Resolved" definition:** a provisional resolution rate is reported beside containment (WP0.10); until it is validated on pilot data, billing uses conversations and seats (D8).
 - **Provider integration** (a payments or billing service) is a separate, later task and needs an account; the plan stops at an export other systems can read.
 - **Size:** M (about 1,500 lines plus about 70 tests).
 
@@ -282,7 +284,7 @@ The target set is ten portals and surfaces. This section maps each to the epics 
 **Marketing content rule (E13).** The site states only what the repository can back up. It carries **no invented customer stories, logos, quotes, numbers or certifications**; the stories section ships as a placeholder with a documented way to add real ones with written permission.
 
 ### 10.3 Dependencies in one line each
-- The admin portal, back office, workspace, developer sandbox and support access all need **multi-tenancy (E2)** and **identity (E3)**; build those first.
+- The Admin app's identity pages, the back office, the Workspace, the developer sandbox and support access all need **multi-tenancy (E2)** and **identity (E3)**; build those first.
 - The visual editor needs **automations (E8)**; workspace analytics needs **E5, E8** and **currency usage (E1)**.
 - Policy management needs **E3** and the staff guardrails of **E5**.
 - Embedded surfaces need the **workspace API (E5)** and, for vendor surfaces, **vendor accounts**.
@@ -291,11 +293,11 @@ The target set is ten portals and surfaces. This section maps each to the epics 
 
 | Area | Rule |
 |---|---|
-| **Migrations** | Continue the numbered series (next is 0029); every migration is reversible, tested on a database seeded by the previous release, and the migration/model equivalence test stays green |
+| **Migrations** | Continue the numbered series (0029 and 0030 were used in Wave 0; next is 0031); every migration is reversible, tested on a database seeded by the previous release, and the migration/model equivalence test stays green |
 | **Tests** | Standing security tests extend with each epic (no pasted SQL, no dangerous constructs, redirects off, CORS, parsers fuzz). New: generated **tenant-isolation sweeps** from the route table. Real-Postgres tests for every store (the existing in-memory plus Postgres parameterisation) |
 | **Performance** | The load tool is the gate: E0.3, E2 and E5 each re-run it; the documented figures in `NorthCX_Performance.md` are updated, never silently lowered |
 | **Security** | Threat-model entries per epic before merge; new outbound hosts go through the SSRF checks, https, no redirects, and the residency report; anything a model returns is validated against a fixed list; nothing a model drafts is saved without a person |
-| **Docs** | Feature catalog IDs, decision log, Deployment Guide (every new setting), `.env.example`, compose pass-through, CHANGELOG, README status. Reserved catalog IDs: E1 `M1-M5`, E2 `P10`, E3 `P12-P17`, E4 `T11-T12`, E5 `W1-W5`, E6 `W6-W8`, E7 `O11-O12`, E8 `X1-X5`, E9 `T13-T16`, E10 `P11`, E11 `P18-P20`, E12 `P21-P23`, E13 `P28-P29`, E14 `X6-X7`, E15 `O13-O14`, E16 `S12-S14`, E17 `P24`, E18 `P25`, E19 `P26-P27`, E20 `C11`, E21 `P30` |
+| **Docs** | Feature catalog IDs, decision log, Deployment Guide (every new setting), `.env.example`, compose pass-through, CHANGELOG, README status. Reserved catalog IDs (2026-11-05): E1 `M1-M5`, E2 `P10`, E3 `P12-P17`, E4 `T11-T12`, E7 `O11-O12`, E9 `T13-T16`, E10 `P11`, E11 `P18-P20`, E12 `P21-P23`, E13 `P28-P29`, E15 `O13-O14`, E16 `S12-S14`, E17 `P24`, E18 `P25`, E19 `P26-P27`, E20 `C11`, E21 `P30`. The staff-platform reservations (E5 `W1-W5`, E6 `W6-W8`, E8 `X1-X5`, E14 `X6-X7`) were replaced on 2026-11-09 by section 12 of the Feature Catalog (W1-W14, PI, PN, AU, AH, HM, AD) |
 | **Studio** | Each epic ships its UI with accessible components (table versions of charts, keyboard use) and a browser smoke step in `e2e/smoke.mjs` |
 | **Versioning** | Wave releases are 1.1 to 1.4; each ships release notes that restate what is verified here, partly verified, and not verified |
 
@@ -305,13 +307,13 @@ The target set is ten portals and surfaces. This section maps each to the epics 
 |---|---|---|
 | **1.0.0** | Wave 0 hardening plus the items only you can do (live-model pass, penetration test, tag) | The release checklist |
 | **1.1** | E1, E3, E4 (E2 may follow immediately) | Conformance suite on all adapters; keys, groups and SCIM sweeps; MCP client against a fake server |
-| **1.2** | E2 then E5, E6, E7, E16, E18 | Tenant-isolation sweeps and fuzz; load-test gate; staff-tool permission matrix; policy and support-access sweeps |
+| **1.2** | E2 then E5, E6, E16, E18 (the Implementation Plan moved E7 to 1.3) | Tenant-isolation sweeps and fuzz; load-test gate; staff-tool permission matrix; policy and support-access sweeps |
 | **1.3** | E8, E9, E14, E15 | Automation safety suite; connector contract tests; honest connector labels; workflow round-trip tests |
 | **1.4** | E10, E11, E12, E17, E19 | Metering idempotency; Helm/Terraform validation; compliance and legal documents reviewed by the owner and counsel |
 
 **Reordering from the gap analysis's "MVP", and why.** The gap analysis puts managed cloud, the staff workspace, two vendor copilots, three connectors, SAML/SCIM and metering in one stage. This plan splits them: the model layer and identity pieces are cheap and unlock the rest; tenancy comes **before** anything that stores per-customer credentials or workspace data; the workspace needs tenancy and actor-aware tools; vendor copilots and connectors wait for the connector SDK so each vendor is a small pack, not a project.
 
-**First slice (milestone 1.1 start), in order**
+**First slice (milestone 1.1 start), in order** (status 2026-11-09: steps 1, 2 and 6 are done; step 3 is done for the interface and the Anthropic adapter, WP1.1 and WP1.2; the rest is next)
 1. E0.1 split `server.py` into routers (no behaviour change) and E0.2 lock file. *Gate: suite unchanged.*
 2. E0.3 shared rate limits. *Gate: two-process test; load figure.*
 3. E1 provider interface, capability flags and the conformance suite with the Anthropic adapter first; then the OpenAI-compatible adapter against the fake server; then the providers file, qualified names and residency entries.

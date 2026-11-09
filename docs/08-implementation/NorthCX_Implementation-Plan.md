@@ -24,7 +24,7 @@ Status: **Plan**. Updated: 2026-11-09. Master for: the working plan: waves, epic
 1. Code, with the standing security tests green (no pasted SQL, no dangerous constructs, redirects off, CORS rules, parsers fuzz).
 2. Unit tests, plus real-Postgres tests for every store (in-memory and Postgres parameterised), plus a browser step in the Studio smoke test if there is UI.
 3. The full backend suite, web type-check and tests, and SDK tests pass; the load tool is re-run if the work touches the hot path (section 11).
-4. Docs: Deployment Guide (every new setting), `.env.example` and compose pass-through (a test enforces both), API design narrative (the route reference is generated), feature catalog IDs, decision-log entry (numbers continue from #141), CHANGELOG, residency report entry for any new outbound address, threat-model entry.
+4. Docs: Deployment Guide (every new setting), `.env.example` and compose pass-through (a test enforces both), API design narrative (the route reference is generated), feature catalog IDs, decision-log entry (numbers continue from the last entry, #172 on 2026-11-09), CHANGELOG, residency report entry for any new outbound address, threat-model entry.
 5. The verification label is written in the CHANGELOG entry.
 6. Committed as the project owner with the co-author trailer, pushed to both branches, remote SHA verified.
 
@@ -39,7 +39,7 @@ Status: **Plan**. Updated: 2026-11-09. Master for: the working plan: waves, epic
 | 3 Reach and knowledge | Email, SMS, WhatsApp, Telegram; knowledge, citations, crawler, file import, hybrid search; summarisation, retention, export, erasure; fallback, budgets, idempotency, signed webhooks; trace export; environments; skills, templates, connectors, scopes | Mock-provider tests | Live provider round trips |
 | 4 Studio and insight | Studio (about 15 pages), insights with denominators, alerts, search and tags, journeys, languages, SSO, rollouts, review | Browser smoke test | Real-model behaviour |
 | 5 Voice and assist | Voice bridge, agent assist, hand-back, multi-agent, attachments, browser SDK and widget | Simulated bridge, browser tests | A live call |
-| 6 Hardening and release | Security review and threat model, load and cost tools, plain-language analytics, agent drafting, residency, status events, identity verification, abuse detection, release files, README, release candidate | 1349 backend, 27 web, 29 SDK tests; clean-checkout run | Pen test, live model, container image build, CI on GitHub |
+| 6 Hardening and release | Security review and threat model, load and cost tools, plain-language analytics, agent drafting, residency, status events, identity verification, abuse detection, release files, README, release candidate | 1349 backend, 27 web, 29 SDK tests; clean-checkout run | Pen test, live model (the container build and CI on GitHub were proven later, WP0.9) |
 
 The first web split (Studio in `src/apps/studio`, shared packages in `src/packages`) is complete. Everything below starts from that tree.
 
@@ -66,7 +66,7 @@ The first web split (Studio in `src/apps/studio`, shared packages in `src/packag
 
 Goal: the release candidate becomes 1.0.0, and the codebase is ready to take multi-tenancy without a rewrite. Sequence: WP0.1, WP0.2, WP0.3 in order; WP0.4 to WP0.9 in any order afterwards; WP0.10 to WP0.12 in parallel with the owner.
 
-### WP0.1 Router split and bootstrap split (size L, V) — **routers and stores done; bootstrap split pending**
+### WP0.1 Router split and bootstrap split (size L, V) — **done**
 **Status (2026-11-05):** done: `create_app` went from about 2,100 lines to a setup function, `server.py` from 2,516 to about 500 lines; 132 routes now live in 21 modules under `northcx/api/routers/` (each with `register(app, d)`), the request models in `northcx/api/models.py`, shared helpers in `northcx/api/common.py`, the shared-dependencies object in `northcx/api/deps.py` (fields typed `Any` for now; typing them is a follow-up); `db/stores.py` became a package of nine domain modules; guards in place: a golden route-dispatch snapshot (every route and the handler that wins for it), the layout test (600-line cap, one `register` per router, deps fields exactly match use, absolute imports only in moved packages), and the full suite (1356 passing) and the Studio browser smoke test on the result. Also done: `__main__.py` (526 lines) is now a 15-line entry point over `northcx/bootstrap/` (nine start-up steps, one module each, run in the original order over a shared namespace; the layout test covers it, and the server-start test passes). The `AppDeps` fields are now typed, and `record`, `actor`, `too_many`, `need_rel`, `need_env`, `rel_error` and `version_json` live in `northcx/api/helpers.py`; `server.py` is 424 lines with its unused imports removed. WP0.1 is complete.
 **Why:** `create_app` is one function of about 2,100 lines with 131 route handlers and about 40 parameters; `__main__.py` is 526 lines of wiring; `db/stores.py` is 1,439 lines with 30 store classes. Every later epic adds routes and stores.
 **Steps**
@@ -141,7 +141,7 @@ Commission the penetration test (scope: Threat Model and Security Review, with t
 | **1.7** | Experimental routing: a deterministic classifier chooses a cheaper model for simple turns; recorded in the trace; scenario type compares both | M | V, X (quality) |
 | **1.8** | One conformance suite over every adapter (plain reply, tool call, round trip, parallel tools, errors, usage, cancellation) with recorded fixtures; a local fake OpenAI-compatible server run through runtime, simulations and judge | L | V |
 **Status (2026-11-08):** WP1.1 and WP1.2 done: `northcx/providers/` (types, `ProviderRegistry` with `provider:model` names, `require_tools`), Claude moved to `providers/anthropic.py` with the SDK client and a direct HTTPS client (`NORTHCX_ANTHROPIC_CLIENT=http`), `llm.py` re-exports, the server builds a registry with Claude as the default; one conformance file runs over both clients (26 tests); the full suite is unchanged. Neither client has been run against the live API (no key). Remaining: WP1.3 to WP1.8.
-**Proposed additions (not yet accepted):** WP1.9 to WP1.13, hybrid local, private-cloud and public-cloud selection with data-policy constraints, per-agent qualification and a routing-rules file; see `04-ai-architecture/NorthCX_Hybrid-Model-Selection.md`. WP1.7 (cost routing) would become the experimental part of this.
+**Proposed additions (work packages not yet formally accepted; the rules they implement were decided in decision 164):** WP1.9 to WP1.13, hybrid local, private-cloud and public-cloud selection with data-policy constraints, per-agent qualification and a routing-rules file; see `04-ai-architecture/NorthCX_Hybrid-Model-Selection.md`. WP1.7 (cost routing) would become the experimental part of this.
 **Acceptance:** the existing suite passes unchanged on the Anthropic adapter; the same example scenarios pass on the fake server; budgets stop conversations in currency; a self-hosted-style server configuration works end to end in a browser run. **Depends on:** WP0.1, WP0.4.
 
 ### E3 Identity and governance (size XL, split into WP3.1 to WP3.6)
@@ -206,8 +206,8 @@ Policy library screen with allow and block cases; tenant and team policy sets; a
 ### E18 Support access (size M, V)
 Customer-approved, time-limited sessions (default 2 hours, maximum 24), read-only by default, banner and log entry for the customer while active, revocable, every action in the tenant's audit log under the support identity. **Tests:** no access without an unexpired approval; read-only enforced on every route (generated from the route table); expiry and revocation immediate. **Depends on:** E2.
 
-### First admin app (size L, V)
-`apps/admin`: users, groups, keys with scopes, SSO and SCIM settings, roles, guardrail policies (E16), audit, usage placeholders; stricter session policy (step-up sign-in, shorter sessions). **Depends on:** E3, E16.
+### Regrouped Admin app (size L, V)
+Not a separate `apps/admin`: decided on 2026-11-09 that the Admin app is the Studio extended (`apps/studio`), with six left items and 25 organization and 10 personal pages as sub-tabs (decisions 167 and 168; `07-design/NorthCX_Platform-Features-and-Tabs.md`, section 5). This package adds the organization pages that need E3 and E16: people and groups, keys with scopes, SSO and SCIM settings, roles, policies, audit and activity, usage placeholders; stricter session policy (step-up sign-in, shorter sessions). Early shell code is on `main` and is reworked to the final layout first. **Depends on:** E3, E16.
 
 **Wave 2 exit:** release 1.2 gate; the penetration test should cover tenant isolation before any hosted use (X).
 
@@ -285,7 +285,7 @@ GPU and inference health through an adapter that reads common metrics text forma
 
 | Gate | When | Pass criterion |
 |---|---|---|
-| Shared limiter | WP0.4 | Under 5 percent throughput cost at the documented rate |
+| Shared limiter | WP0.4 | Under 5 percent throughput cost at the documented rate (not measured as a throughput gate; about 3 ms per check was measured, see WP0.4) |
 | Router split | WP0.1 | No change in throughput |
 | Provider layer | E1 | Adapter overhead under 5 ms per call with a fake server |
 | Tenancy | WP2.9 | Within 10 percent of the documented figure |
@@ -315,7 +315,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 | Action | Who | Needed by | Lead time |
 |---|---|---|---|
 | API key(s) for the live-model pass and each new provider | Owner | WP0.11, E1.3 | Immediate |
-| Repository Actions enabled; first CI run | Owner | WP0.9 | Immediate |
+| Repository Actions enabled; first CI run | Owner | WP0.9 | Done (CI runs on every push) |
 | Penetration test commissioned | Owner and an outside tester | Before 1.0.0; again before hosted use | Weeks |
 | Push `v1.0.0-rc.1` tag; cut 1.0.0 | Owner | End of Wave 0 | Minutes |
 | Test identity provider (SAML, SCIM) | Owner | WP3.3, 3.4 | Days |
