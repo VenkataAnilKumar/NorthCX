@@ -15,7 +15,20 @@ Status: **working specification, 2026-11-09.** One place that gathers what was d
 The two apps have separate addresses, one sign-in and one design system. A person with roles in both gets an app switcher; links jump between them (for example from a hand-off in Admin to the conversation in Workspace). **Look and feel:** "glass", meaning translucent surfaces over a soft gradient in light and dark, with solid surfaces when the system or the person asks for less transparency, and high-contrast and reduced-motion options.
 
 ## 2. Workspace: tabs and features (final names, decided 2026-11-09)
-Home is the landing page; Settings is in the corner. Twelve tabs in four groups (3 + 4 + 3 + 2). The owner approved these names on 2026-11-09. Whether Approvals, Customers, Library, Quality and Performance become tabs was proposed and is not yet confirmed (section 10); the six tabs the owner decided earlier are Pilot, Assistants, Search, Outputs, Spaces and Inbox, with Automations replacing Workflows and Scheduled.
+Home is the landing page; Settings is in the corner. Twelve tabs in four groups (3 + 4 + 3 + 2), shown as five left items with sub-tabs (see below). The owner approved these names on 2026-11-09. Whether Approvals, Customers, Library, Quality and Performance become tabs was proposed and is not yet confirmed (section 10); the six tabs the owner decided earlier are Pilot, Assistants, Search, Outputs, Spaces and Inbox, with Automations replacing Workflows and Scheduled.
+
+### How the tabs are shown (proposed 2026-11-09): sub-tabs instead of a long list
+The left side shows only **five items**, not twelve tabs. Each group opens its own **sub-tabs** across the top of the page. The twelve tabs and their names do not change; only where they are shown changes.
+
+| Left item | Sub-tabs |
+|---|---|
+| **Home** | none (the landing page) |
+| **Work** | Inbox, Approvals, Customers |
+| **Assist** | Pilot, Assistants, Search, Library |
+| **Create** | Outputs, Spaces, Automations |
+| **Team** (leads and reviewers only; hidden for everyone else) | Quality, Performance |
+
+Settings and the profile stay in the corner. Rules: a count badge on a sub-tab (for example Approvals) also shows on its group item, so nothing waiting is hidden; the group remembers the last sub-tab you used; Pilot opens full width and hides the sub-tab row while a task is running; a group with one visible sub-tab shows no sub-tab row; search and the command bar (jump to any tab by typing its name) reach every tab in one step. The Admin app uses the same idea: its four groups (Operate, Build, Govern, Platform) already work this way. Open for the owner: whether Pilot should be its own left item instead of living under Assist, because it is the page people open most.
 
 ### Work
 | Tab | Purpose | Features | State |
