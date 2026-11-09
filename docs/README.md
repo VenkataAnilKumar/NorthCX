@@ -7,7 +7,7 @@ NorthCX is an open-source customer-experience agent platform built on the Claude
 ## Reading order
 | Folder | Documents |
 |---|---|
-| `00-reference/` | `NorthCX_Reference.md` (all external research and component selections), `NorthCX_North-Gap-Analysis.md` (comparison with Cohere North and build plan for a "North for CX") |
+| `00-reference/` | `NorthCX_Reference.md` (all external research and component selections), `NorthCX_North-Gap-Analysis.md` (comparison with Cohere North and build plan for a "North for CX"), `NorthCX_Feature-Research-2026-11.md` (market research on agent, user and admin platform features) |
 | `01-product/` | Product-Definition, PRD, Personas, Success-Metrics, Pricing-Model, Templates, Product-Overview |
 | `02-market/` | Competitive-Analysis |
 | `03-specs/` | Feature-Catalog, Feature-Spec, Handoff-and-Approvals-Spec, Release-Management, Non-Functional-Requirements, User-Stories, User-Journey |
