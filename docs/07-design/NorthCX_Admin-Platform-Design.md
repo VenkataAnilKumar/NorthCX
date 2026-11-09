@@ -86,6 +86,17 @@ A **Workflows** tab in the Workspace (Create group, above Scheduled; the navigat
 
 **Decisions needed.** (1) Merge Scheduled into Workflows now or later. (2) Who may publish a workflow: any staff member for read-only workflows, a reviewer when there is a write step (recommended). (3) Whether workflows may call customer-facing agents (not recommended at first).
 
+## 0d. Which tabs are required, and when (recommendation, 2026-11-09)
+Ordered by what the product cannot work without, then by what the backend can support today.
+
+| Tier | Workspace tabs | Why | Backend today |
+|---|---|---|---|
+| **Required for the first Workspace release** | Threads, Approvals, Chat, Assistants, Search, Knowledge | A person must be able to take over a conversation, decide an approval, ask an assistant, find an answer and read the source | Threads, Approvals, Knowledge and a first Search use what exists (hand-offs, approvals, knowledge search); Chat and Assistants need the staff backend (E5) and the Agent Hub entries |
+| **Next** | Artifacts, Customers, Reviews, Insights | Outputs people keep, a person across channels, reviewer work, team numbers | Artifacts E6; Customers needs a customer link and a privacy decision; Reviews E7; Insights E15 |
+| **Later** | Projects, Workflows, Scheduled | Useful grouping and automation, but not needed to work a conversation | Projects E5/E6; Workflows and Scheduled E8 and E14 |
+
+Admin required for the first release: Overview, Agents, Knowledge, Channels, Access keys, Audit and activity, Policies, Data residency, plus Profile, Memory, Connectors and Privacy under Personal. Models and budgets, People and groups and Agent Hub follow with E1, E3 and E22.
+
 ## 1. Who uses what
 
 ![Surfaces and navigation](../assets/design/11-information-architecture.png)
