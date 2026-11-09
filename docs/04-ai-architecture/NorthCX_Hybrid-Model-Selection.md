@@ -18,8 +18,8 @@ Some customers need data to stay on their own servers; some conversations are to
 A provider in the providers file (WP1.4) declares its tier, region, capabilities and prices. The residency report already lists every destination text can go to; tiers extend it.
 
 ## 3. How a model is chosen: constraints, then qualification, then cost
-1. **Constraints (hard, never traded away).** Which tiers may this conversation use? Inputs: the tenant's data policy, whether the conversation has been marked sensitive (identity verified, personal-data patterns seen by the masking detector, an attachment), the channel, and the agent's needs (tools, images). Result: the **eligible set**. If it is empty, the conversation goes to a person, never to a forbidden tier.
-2. **Qualification.** A model may serve an agent only if it passed that agent's required scenarios at the agent's threshold (default 95 percent), checked at release and again whenever the model, prompt or tools change. This is the guard against a cheap model that cannot do the job.
+1. **Constraints (hard, never traded away).** Which tiers may this conversation use? Inputs: the tenant's data policy, whether the conversation is sensitive (decision 164: customer personal data present, an account, payment or health topic, an agent the administrator marked sensitive; identity-verified conversations count as sensitive; operators may add categories), the channel, and the agent's needs (tools, images). Result: the **eligible set**. If it is empty, the conversation goes to a person, never to a forbidden tier.
+2. **Qualification.** A model may serve an agent only if it passed that agent's required scenarios at the agent's threshold (decision 164: 100 percent of its required safety scenarios and at least 90 percent of the others, to validate on a pilot), checked at release and again whenever the model, prompt or tools change. This is the guard against a cheap model that cannot do the job.
 3. **Preference.** Among eligible, qualified models: the rules the operator wrote (first match wins), then lowest cost, then lowest latency.
 4. **Fallback.** The existing retry and fallback chain, restricted to the eligible set: a local-only conversation fails over to another local model or to a person.
 5. **Record.** The chosen model, the rule that chose it and the models skipped (with the reason) go into the conversation's trace, so the choice can be audited and explained.
@@ -53,15 +53,15 @@ Controlled evidence is thin. One preprint comparing small open-weight models wit
 | 1.12 | Studio and Admin screens: tiers, rules, qualification table, decision log, share local, cost saved | M |
 | 1.13 (experiment) | Cascade and learned router behind a flag, compared in scenarios | M |
 
-## 10. How people choose
+## 9. How people choose
 Choice is layered. Each layer can only narrow what the layer above allows, and a locked option says who locked it and why.
 
 | Who | What they choose | Where |
 |---|---|---|
-| **Administrator** | Which providers and models exist, their tier and region, the routing rules, the data policy (which data may go where), the qualification threshold, which roles may pick a model at all | Admin: Models and routing, Policies |
-| **Agent owner** | Which of the allowed models this agent may use (only models that passed its scenarios), its default selection (Auto or a named model), its fallback order, whether staff may pick | Admin: the agent's model policy |
+| **Administrator** | Which providers and models exist, their tier and region, the routing rules, the data policy (which data may go where), the qualification threshold, which roles may pick a model at all | Admin: Build > Models and budgets, Govern > Policies |
+| **Agent owner** | Which of the allowed models this agent may use (only models that passed its scenarios), its default selection (Auto or a named model), its fallback order, whether staff may pick | Admin: Build > Agents, the agent's model policy |
 | **Staff member** | In a Workspace chat: **Auto** (recommended, rules decide), **Faster and cheaper**, **Best quality**, or **Private only**; a personal default in Preferences. Only options the policy allows are selectable; the rest show why they are unavailable | Workspace: the model picker beside the prompt |
-| **Developer** | Any model allowed for the agent, when testing in Admin or running a scenario against a candidate model | Admin: test console and simulations |
+| **Developer** | Any model allowed for the agent, when testing in Admin or running a scenario against a candidate model | Admin: Build > Test console and Simulations |
 | **Customer** | Nothing; the agent and the rules decide | |
 
 The picker offers **modes**, not model names, because names change and most people cannot judge them; the model actually used is always shown on the answer ("Answered by ..., rule 1, why this model?"). Each mode shows speed, an estimated cost per message, and where the text goes (your servers, your region, the provider's). A side panel states what the chat contains (customer data or not), which tiers are allowed, what was chosen and whether anything leaves the network, and updates as the person types. When customer data appears in a chat that started on a cloud model, the next message switches to a private model and says so; it never silently sends the data on.
@@ -73,7 +73,7 @@ Mockups (sample data): the picker in a Workspace chat, and the agent's model pol
 
 Backend this needs, beyond WP1.9 to WP1.13: a request field for the chosen mode, a per-chat mode stored with the conversation, the sensitivity check running before each message, and the decision (mode, rule, models skipped) returned with the reply so the interface can show it.
 
-## 9. Decisions (decided by the owner, 2026-11-09, decision 164; replaces the earlier recommendations)
+## 10. Decisions (decided by the owner, 2026-11-09, decision 164; replaces the earlier recommendations)
 1. **What marks a conversation sensitive.** Customer personal data present; an account, payment or health topic; or an administrator marking the agent sensitive. Operators may add categories. Identity-verified conversations are sensitive by default.
 2. **Qualification threshold** per agent and model: 100 percent of the agent's required safety scenarios and at least 90 percent of its other scenarios. The figures are to be validated on a real pilot; the earlier 95 percent placeholder is withdrawn.
 3. **Where an unqualified model may run.** Only on read-only, single-step work with no customer data, until it passes the agent's own scenarios; evaluation in staging is always allowed. It never handles a customer conversation.

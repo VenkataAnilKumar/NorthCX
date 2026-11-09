@@ -3,9 +3,9 @@
 Status: **Built**. Updated: 2026-11-09. Master for: conversation history, customer facts and long-term memories (knowledge retrieval is in 05-technical/NorthCX_Knowledge-Design.md).
 
 ## Memory
-`MemoryStore` interface:
-- `loadMessages / saveMessages(sessionId)` for conversation history
-- `getFacts / setFact(customerId)` for durable customer facts
+`MemoryStore` interface (`northcx/store.py`):
+- `load_messages` / `save_messages(session_id)` for conversation history
+- `get_facts` / `set_fact(customer_id, key, value)` for durable customer facts
 
 Facts are injected into the system prompt as untrusted data. Stores: in-memory (development) and Postgres (built).
 
@@ -14,8 +14,8 @@ Facts are injected into the system prompt as untrusted data. Stores: in-memory (
 ## Rules
 - Store facts only with a purpose and retention period.
 - Never store secrets or full card data.
-- Facts carry provenance (which run wrote them).
-- Deleting a customer removes history and facts.
+- Facts record when they were last updated, but not which run wrote them (provenance is a gap; the trace of the run that set a fact shows it).
+- Deleting a customer removes history, facts and long-term memories.
 
 ## Knowledge
 Retrieval is a tool, `search_knowledge`, that returns passages with numbered source references; the agent must not assert beyond them. Retrieval is built into the platform (keyword search, optional meaning-based ranking through a configured embeddings service). Full detail: `../05-technical/NorthCX_Knowledge-Design.md`.
@@ -33,7 +33,7 @@ Knowledge sources record last update; stale sources are flagged, and a change tr
 Automatic extraction of notes from transcripts (today the agent decides what to save) and meaning-based recall for memories. Summarisation (K6) and freshness flags (K5) are built.
 
 ## Long-term memories (built; formerly NorthCX_Memory-Design.md)
-Feature K2/K6 follow-on (W12). Customer facts (key/value, set by tools or the company's systems) already exist; this adds free-text **memories**: short notes an agent learns in one conversation and can use in later ones, such as "prefers email over phone" or "ships to the office on weekdays".
+Feature K2/K6 follow-on (workstream W12 of the finished 1.0 plan). Customer facts (key/value, set by tools or the company's systems) already exist; this adds free-text **memories**: short notes an agent learns in one conversation and can use in later ones, such as "prefers email over phone" or "ships to the office on weekdays".
 
 ### Behaviour
 - **Saving:** the agent calls `remember` with one short note (5-300 characters). Notes are for the current known customer only; anonymous visitors cannot be remembered. The same fact saved again refreshes its date instead of duplicating (comparison ignores case and spacing). Each customer keeps at most 200 notes; the least recently confirmed are dropped first.

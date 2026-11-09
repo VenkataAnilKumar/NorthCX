@@ -15,12 +15,12 @@ The SDK is **isolated behind one interface**. The runtime, supervisors, simulati
 Not built yet: other providers (OpenAI-compatible next), the providers file, fallback chains across providers with capability checks at release time, currency budgets. See the Implementation Plan, E1.
 
 ## Next: more providers (planned, E1)
-The next steps add other providers behind the same interface. Items 1 and 4 are partly done:
+The next steps add other providers behind the same interface. Built already: item 1 (as an option), the provider-qualified names of item 4 and the capability declarations of item 5 (`require_tools` refuses an agent with tools on a model without them). Still to do: items 2 and 3, fallback chains across providers, and checking capabilities at release time:
 
 1. **Direct Claude client** (built as an option; the SDK stays the default until parity is proven live). Call the Claude Messages API over HTTPS ourselves (the request and response shapes are already what the runtime uses), keeping the SDK only until parity is proven by the existing test suite and a live comparison.
 2. **Provider adapters.** One small adapter per provider (for example an OpenAI-compatible one that also covers many self-hosted models). Each translates between NorthCX's neutral request and the provider's format.
 3. **Neutral message format.** Messages and tool calls currently use Claude's block shapes (`text`, `tool_use`, `tool_result`). When a second provider arrives, that shape stays as NorthCX's own neutral format and each adapter translates at its edge; the runtime does not change.
-4. **Per-agent and per-purpose model choice.** An agent already names a model (`model`), and summaries and the judge accept their own. With several providers a model name will be qualified by provider (`anthropic:claude-...`), and the fallback chain may mix providers.
+4. **Per-agent and per-purpose model choice.** An agent already names a model (`model`), and summaries and the judge accept their own. Model names can already be qualified by provider (`anthropic:claude-...`); with several providers the fallback chain may mix providers.
 5. **Capabilities.** Providers differ in tool calling, parallel calls, token reporting, context size and cost. Each adapter will declare what it supports so the platform can refuse a configuration that cannot work (for example an agent that needs tools on a model that has none) instead of failing in a conversation.
 
 ## Rules for adapters

@@ -25,13 +25,13 @@ Status: **Built**. Updated: 2026-11-09. Master for: guardrails and supervisors. 
 ## Policy categories to cover
 Personal data exposure, unauthorised commitments (refunds, discounts), unsupported claims, regulated advice, tone and brand, prompt-injection attempts.
 
-## Planned extensions (S7-S11)
+## Extensions (S7-S11), all built
 - **Forced-handoff topics (built, Phase 2):** a list in the agent spec (name, case-insensitive regular expressions, optional reply). A customer message that matches any topic goes straight to a person: the model is never called, the match is traced (`forced_topic`), and the handoff records which topics matched. Platform-written notices are not checked. Matching is deterministic and blunt: patterns need word boundaries to avoid false hits ("issue" contains "sue"), a false positive costs a human visit rather than a wrong answer, and patterns are limited to 300 characters. Model-based topic detection is a later option.
 - **Input checks (built):** injection screening and abuse detection on customer messages, and screening of tool output. See "Abuse detection" below.
-- **PII detection and redaction (Phase 3):** in replies and in exported traces.
-- **Full coverage monitoring (Phase 3):** every conversation scored, not a sample.
-- **Policy library (Phase 3):** reusable policies, each with passing and blocking scenarios.
-- **Per-tool argument policies:** limits such as maximum amounts by customer tier.
+- **PII detection and redaction (built):** masking or refusing personal data in customer input and tool results, in exported traces, conversation search and drafts; replies are covered by the `no_personal_data_in_reply` policy and the card-number rule.
+- **Full coverage monitoring (built):** deterministic rules on every turn, findings, a Monitoring page and alerts.
+- **Policy library (built):** five configurable policies (`tool_limit`, `forbidden_phrases`, `required_phrase`, `no_personal_data_in_reply`, `max_reply_length`), each with allow and block cases run in CI.
+- **Per-tool argument policies (built in part):** `tool_limit` caps a numeric field (for example refunds above 500); limits that differ by customer tier are done with tool scopes (T6) or approval rules, not with one policy.
 
 ## Abuse detection (S8) — as built
 Add `abuse_detection` to an agent's `input_guardrails` (optionally with `config`). It reads the conversation itself, so it stores nothing:

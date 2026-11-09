@@ -8,19 +8,21 @@ Status: **Built**. Updated: 2026-11-09. Master for: the agent run loop, skills, 
 | Agent | An `Agent` built from a YAML spec or in code: id, instructions, tools, guardrails, model, `max_steps` (`northcx/agent.py`, `spec.py`) |
 | Tool | A function with a Pydantic input model, an optional approval rule, a read or write effect and optional scopes |
 | Guardrail | Supervisor that checks tool calls and/or replies (`guardrails.py`); input and output checks in `safety/` |
-| Session | Message history identified by `sessionId` |
+| Session | Message history identified by a session id (`sessionId` in the HTTP API) |
 | Run | One user message processed to a final reply |
 | Trace | Ordered event log for a run |
 
 ## Run loop
-1. Load session history and customer facts; append the user message.
+1. Load session history, customer facts, context from the company's systems and relevant long-term memories; if a person has the conversation, keep the message for them and stay quiet.
+1a. Input checks before the model: personal-data masking, takeover phrasing, abuse and bursts, forced hand-off topics, language detection, budget limits (see Guardrails and Supervisors). A blocked message ends the run with a hand-off.
+1b. Append the user message.
 2. Build the system prompt: instructions, customer facts, handoff rule.
 3. Call the model with tool specs plus the built-in `handoff_to_human` tool.
 3a. If the model call fails, the run is escalated and the error is traced.
 4. If the model returns text only: run reply guardrails. Allowed, return it and drop any rejected drafts and supervisor feedback from saved history. Rejected, append a supervisor message and retry (max 2 rewrites), then escalate.
 5. If the model returns tool calls, for each call in order: record it; handoff ends the run as `escalated` (every `tool_use` in the turn still gets a `tool_result`, so saved history stays valid); unknown tool or invalid input returns an error result; tool guardrails may block; `requiresApproval` stores a pending approval and stops the run as `needs_approval`; otherwise execute and return the result (errors are returned, not thrown).
 6. Append tool results and loop. After `max_steps`, escalate.
-7. Save history and trace; return `{reply, status, traceId, pendingApprovals}`.
+7. Save history and trace; return a `RunResult` (`reply`, `status`, `trace`, `pending_approvals`, `handoff_id`).
 
 ## Statuses
 `completed`, `escalated`, `needs_approval`.

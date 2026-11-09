@@ -1,13 +1,9 @@
 # NorthCX Simulation and Evals
 
-Status: **Built**. Updated: 2026-11-09. Master for: simulations, scenarios, judge and the release gate. The runner, scenario format, judge, command line, stored runs, release-gate rule, API and web page are built (`src/backend/northcx/simulation`); enforcement at promotion arrives with versions (sprint 10); simulated customers and regression-from-trace are planned.
+Status: **Built**. Updated: 2026-11-09. Master for: simulations, scenarios, judge and the release gate. Code in `src/backend/northcx/simulation`; example scenarios in `src/backend/examples/scenarios`. Built: the runner, scenario files, the judge with an agreement check, the command line, stored runs, the release gate enforced at publishing and promotion, simulated customers with eight personas, regression scenarios drafted from conversations, and re-runs on knowledge changes. Not done: calibrating the judge against a real model, and running the live-model suites with a real model.
 
 ## Scenario format
-```
-{ name, agent, customerId?,
-  turns: ["user message", ...],
-  expect: { status?, toolsCalled?, toolsNotCalled?, replyIncludes?, judge?: { rubric } } }
-```
+YAML files, several scenarios per file separated by `---`. Each has `name`, `description`, `agent`, optional `tags`, a scripted `model` (the replies a scripted model gives, or empty for none), `turns` (a customer message, or `converse: <persona>` for a simulated customer, each with its own `expect`), and a scenario-level `expect` (for example `status`, `tools_called`, `tools_not_called`, `guardrail_hits`, `max_model_calls`, `handoff`, reply text checks and an optional judge rubric). The full field list is in the "As built" sections below and in the example files.
 
 ## Execution
 1. Run each turn through the runtime with a fresh session.
@@ -23,13 +19,13 @@ Status: **Built**. Updated: 2026-11-09. Master for: simulations, scenarios, judg
 Happy-path intents, policy violations (must be blocked), approval-required actions, handoff triggers, prompt-injection attempts, regression cases from production traces.
 
 ## Simulated customers (Q6)
-A persona-driven simulated customer (goal, patience, honesty, adversarial intent) converses with the agent for several turns. Personas include confused, angry, evasive, multilingual and prompt-injecting customers.
+A persona-driven simulated customer (goal, patience, honesty, adversarial intent) converses with the agent for several turns. The library has eight personas: `friendly`, `impatient`, `confused`, `abusive`, `prompt_injector`, `pii_dumper`, `legal_pressure` and `off_topic` (details below). Personas in languages other than English are not built.
 
 ## Regression from production (Q5)
 A failed or escalated production trace can be turned into a scenario; real, messy phrasing is preferred over templates.
 
 ## Triggers (Q7)
-Simulations re-run when instructions, tools, policies, models or knowledge sources change.
+Built: scenarios tagged `knowledge` re-run when documents or sources change (`NORTHCX_RERUN_ON_KNOWLEDGE`). Changes to instructions, tools, policies and the model change the version's digest, so the release gate asks for new proof before release. Re-running automatically on tool or schema changes is not built.
 
 ## Judge calibration (Q3)
 A labelled set of conversations measures judge agreement with humans; the judge only gates CI above the agreed threshold.
@@ -38,7 +34,7 @@ A labelled set of conversations measures judge agreement with humans; the judge 
 Pass rate per scenario and suite, policy-escape count, tool-call accuracy, handoff correctness, cost per scenario.
 
 ## CI gate
-A pull request fails if a required scenario fails or the live-model pass rate drops below the threshold.
+A change fails CI if a required scenario fails in the scripted suite (built). A live-model pass-rate threshold in CI needs an API key and is not set up.
 
 
 ## As built (Phase 2, sprint 8)
@@ -69,7 +65,7 @@ python -m northcx.simulation examples/scenarios --specs examples --registry exam
 Exit code 0 when every required scenario passes, 1 when one fails, 2 for a loading or usage error. CI runs the scripted suite on every change.
 
 ### Example suite
-Fifteen scenarios for the support agent: order lookup, small refund, refund for an in-transit order, large refund approved, large refund rejected, approval expiry, three forced-topic cases (including a word-boundary case), prompt injection, personal data masked before the model, card number never reaching the customer, repeated supervisor rejection, handoff on request, and one judge scenario. Tests confirm the gate has teeth: removing the forced topics, the reply guardrail, the input guardrails, or the approval rule each makes the suite fail.
+At sprint 8, fifteen scenarios for the support agent (eighteen in `src/backend/examples/scenarios` today, including three adversarial ones added with Q6): order lookup, small refund, refund for an in-transit order, large refund approved, large refund rejected, approval expiry, three forced-topic cases (including a word-boundary case), prompt injection, personal data masked before the model, card number never reaching the customer, repeated supervisor rejection, handoff on request, and one judge scenario. Tests confirm the gate has teeth: removing the forced topics, the reply guardrail, the input guardrails, or the approval rule each makes the suite fail.
 
 
 ## As built (Phase 2, sprint 9): stored runs and the release gate
@@ -82,11 +78,11 @@ Fifteen scenarios for the support agent: order lookup, small refund, refund for 
 
 **API.** `GET /v1/simulations/scenarios`, `POST /v1/simulations/runs` (`mode`, `only`, `skipJudge`; one run at a time, 409 if busy; runs synchronously, so use scripted mode or the command line for long suites), `GET /v1/simulations/runs`, `GET /v1/simulations/runs/{id}`, and `GET /v1/simulations/gate?agent=`. The server loads scenarios from `NORTHCX_SCENARIOS_DIR` (default: the example scenarios); without scenarios these endpoints answer 501.
 
-**CI.** The backend job runs the scripted suite, records the run with the commit, and fails the build when a required scenario fails. Sprint 10 makes promotion check the same gate for the exact version being promoted.
+**CI.** The backend job runs the scripted suite, records the run with the commit, and fails the build when a required scenario fails. Publishing and promotion check the same gate for the exact version (built in sprint 10; see Release Management).
 
 **Web.** The Simulations page shows the gate per agent (satisfied or blocked, with reasons), starts a run, lists recent runs, and shows each scenario's result and failure details.
 
-**Limits.** The server runs scenarios in its own process against fresh in-memory stores, with real example tools; a dry-run mode for tools arrives with sprint 12. Live runs were only tested with a fake model.
+**Limits.** The server runs scenarios in its own process against fresh in-memory stores, with real example tools; write tools are replaced by their dry-run result in simulations (built later, T8). Live runs were only tested with a fake model.
 
 ## Regression from real conversations and knowledge changes (Q5, Q7) — as built
 
@@ -96,7 +92,7 @@ Fifteen scenarios for the support agent: order lookup, small refund, refund for 
 
 **Tags.** A scenario may carry `tags`; they are labels only and do not change its digest, so tagging never invalidates earlier gate runs.
 
-**Not built.** Simulated customers with personas (Q6), calibrating the judge against a real model, and re-running on tool or schema changes.
+**Not built.** Calibrating the judge against a real model, and re-running on tool or schema changes. (Simulated customers, Q6, were built afterwards; next section.)
 
 
 ## Simulated customers and attack suites (Q6) — as built
