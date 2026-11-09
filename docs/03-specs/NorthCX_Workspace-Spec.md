@@ -41,4 +41,4 @@ Backend unavailable: read-only banner, drafts kept locally, no silent loss. Perm
 Customers tab (second release), web search for assistants (later, off by default), live call assist, a mobile app, sharing outside the organization.
 
 ## 7. Open decisions
-Which tabs ship first (recommended: Inbox, Approvals, Pilot, Assistants, Search, Library); whether Approvals, Library, Quality and Performance are confirmed tabs; per-space file limits.
+Per-space file limits. (Decided, decision 162: all twelve tabs are confirmed; the first release is Inbox, Approvals, Pilot, Assistants, Search and Library; Customers is second release; Outputs, Spaces, Automations, Quality and Performance follow as their backends land.)

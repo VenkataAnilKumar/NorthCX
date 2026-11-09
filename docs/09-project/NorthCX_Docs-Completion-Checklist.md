@@ -25,7 +25,7 @@ Status: **2026-11-09.** Tracks whether the product documents cover the full desi
 | Glossary and decisions | Glossary; Decision-Log to #161 | Done |
 
 ## Owner decisions still open (they do not block implementation of the first slice)
-1. Confirm Approvals, Library, Quality and Performance as tabs, and the first-release set (recommended: Inbox, Approvals, Pilot, Assistants, Search, Library).
+1. ~~Tabs and first-release set~~ Decided (decision 162).
 2. Pilot: which task styles ship first; plan on every task or on request; pause and redirect in the first version; per-space file limits.
 3. Profile: personal-context sources first; read-only personal assistants without a reviewer; default retention for personal chats.
 4. Models: what marks a conversation sensitive; qualification threshold; where unqualified models may run; whether sensitive data may ever go to the public cloud.
