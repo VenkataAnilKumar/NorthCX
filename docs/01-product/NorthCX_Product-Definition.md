@@ -17,9 +17,9 @@ NorthCX is an open-source platform for building, testing, releasing and running 
 ## 3a. Platform surfaces (design decided 2026-11-09; built only where marked in the Feature Catalog)
 The product is one platform with two jobs: customer-facing agents that resolve issues under supervision, and a **Workspace** where the staff who supervise them work, with assistants of their own. It has two web apps (one sign-in, one design system) beside the customer channels:
 - **Workspace** for support staff, team leads and reviewers. Six left items: Home, Pilot, Work (Inbox, Approvals, Customers), Assist (Assistants, Search, Library), Create (Outputs, Spaces, Automations) and Team (Quality, Performance; leads and reviewers only). The **Pilot** is where a person gives an assistant a task: it asks clarifying questions, writes a plan for approval, then works in the background, on the company's own data only in the first release.
-- **Settings and Admin** (the Studio, extended) for administrators, release managers, developers, reviewers and auditors: Operate, Build, Govern and Platform groups, an **Agent Hub** (a catalog of agents and assistants; installing never makes one live), a **Builder** assistant, and personal settings with **personal intelligence** (instructions, persona, memory, skills; organization rules always outrank personal ones).
+- **Settings and Admin** (the Studio, extended) for administrators, release managers, developers, reviewers and auditors: six left items (Overview, Operate, Build, Govern, Platform, Personal) holding 25 organization pages and 10 personal pages as sub-tabs, an **Agent Hub** (a catalog of agents and assistants; installing never makes one live), a **Builder** assistant, and personal settings with **personal intelligence** (instructions, persona, memory, skills; organization rules always outrank personal ones).
 - **Hybrid model selection:** local, private and public models chosen by privacy limits, qualification, rules and cost; a fallback never crosses a forbidden tier.
-Details: `../07-design/NorthCX_Platform-Features-and-Tabs.md`. Everything in this section except the customer channels and the current Studio is designed, not built.
+Details: `../07-design/NorthCX_Platform-Features-and-Tabs.md`. Everything in this section except the customer channels and the 1.0 Studio pages is designed, not built; early, unfinished code for the two web apps is on `main`.
 
 ## 4. Product pillars
 | Pillar | Promise | Key features (catalog IDs) |
@@ -41,7 +41,7 @@ Described in `NorthCX_Personas.md`: CX lead, platform engineer, compliance owner
 
 ## 7. Scope
 ### In scope (v1)
-Agent authoring in code and Studio, tools and approvals, supervision, handoff, chat and email and messaging, knowledge retrieval, persistent memory, simulations, release management, traces and insights, self-hosting, voice (late v1).
+Agent authoring in code and Studio, tools and approvals, supervision, handoff, chat and email and messaging, knowledge retrieval, persistent memory, simulations, release management, traces and insights, self-hosting, voice through a telephony bridge the operator connects (built; NorthCX does not ship speech or telephony).
 ### Out of scope (v1)
 General-purpose autonomous agents (browsing, code execution), hosted multi-tenant SaaS, replacing the helpdesk, outcome-based billing, full workforce management.
 ### After 1.0 (decided 2026-11-08)
@@ -69,4 +69,4 @@ Multi-tenancy and the staff workspace move into scope after 1.0 (not in 1.0); th
 Model provider availability and terms; customer-system APIs for actions; data-protection rules; telephony and messaging provider terms; open-source licence compatibility.
 
 ## 11. Open decisions
-Studio adopt-or-build; runtime language confirmation; initial vertical focus.
+Open versus commercial (D1), which also decides pricing and any marketplace. Settled: the Studio was built rather than adopted; the backend language is Python (Decision Log #3); the initial focus is the one in section 5, still to be confirmed by pilots.

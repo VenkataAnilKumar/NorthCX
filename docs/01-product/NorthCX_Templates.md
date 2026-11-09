@@ -26,4 +26,4 @@ A template is a ready-made agent for a common support need, together with the sc
 - Templates give you a sensible start, not a finished product: read the instructions, adjust them to your policies, and keep the scenarios.
 
 ## Not built
-A gallery in the web console, saving scenarios from the API (they are files today), and templates for voice or for multi-agent set-ups.
+A finished gallery in the web console (the Agent Hub page that lists and installs these templates is early, unfinished work; its design is `../07-design/NorthCX_Agent-Hub-Design.md`), saving scenarios from the API (they are files today), and templates for voice or for multi-agent set-ups.

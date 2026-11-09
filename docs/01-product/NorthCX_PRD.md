@@ -59,17 +59,17 @@ Priority P0/P1/P2. "Done when" is the acceptance test.
 | FR34 | Optional extensions: mobile/web SDK, attachments, single sign-on, data residency, multi-tenancy, metering | P2 | 4-Later | C7,C10,P5,P6,P10,P11 | Decided per extension after v1 |
 
 ### After 1.0: Workspace and platform additions (designed 2026-11-09; none are built yet)
-Detail and screens: `07-design/NorthCX_Platform-Features-and-Tabs.md`. Catalog IDs for these are assigned when each is scheduled.
+Detail and screens: `07-design/NorthCX_Platform-Features-and-Tabs.md`. Catalog IDs are in section 12 of the Feature Catalog; the epics that build them are named in the implementation plan.
 
 | ID | Requirement | Pri | Phase | Catalog | Done when |
 |---|---|---|---|---|---|
-| FR35 | Workspace app for staff: Inbox, Approvals, Search, Library, Outputs, Spaces, Quality, Performance under six left items with sub-tabs | P1 | After 1.0 | E5, E6 | A staff member resolves a hand-off and decides an approval without opening the Studio |
-| FR36 | Pilot: assistant tasks with clarifying questions, a plan the person approves, background runs, pause and redirect, files and sources, task styles | P1 | After 1.0 | E5 | A Research task runs from an approved plan and returns a cited result |
-| FR37 | Assistants and Agent Hub: predefined staff assistants and a catalog; installing never makes an agent live | P1 | After 1.0 | E5 | An assistant installs, is reviewed, and only then runs |
-| FR38 | Automations: multi-step work with triggers, people where needed, limits and a kill switch | P2 | After 1.0 | E8, E14 | A scheduled automation runs, pauses for a person, and can be stopped |
-| FR39 | Personal intelligence: instructions, persona, memory and skills in layers; organization rules outrank team, space and personal ones; memory informs and never overrides | P1 | After 1.0 | E5 | A personal instruction cannot weaken an organization rule |
-| FR40 | Hybrid model selection: local, private and public models by privacy limits, qualification, rules and cost; a fallback never crosses a forbidden tier | P1 | After 1.0 | E1 | A sensitive conversation never reaches a public model, including on fallback |
-| FR41 | Customers view: cross-channel timeline for leads and reviewers; masked, search by reference only, every open audited (second release) | P2 | After 1.0 | E2 | An open is audited and a deletion request removes the record |
+| FR35 | Workspace app for staff: Inbox, Approvals, Search, Library, Outputs, Spaces, Quality, Performance under six left items with sub-tabs | P1 | After 1.0 | W1-W14 (E5, E6) | A staff member resolves a hand-off and decides an approval without opening the Studio |
+| FR36 | Pilot: assistant tasks with clarifying questions, a plan the person approves, background runs, pause and stop (redirect in the second version), files and sources, task styles (Quick answer and Research first) | P1 | After 1.0 | PI1-PI14 (E5, E8) | A Research task runs from an approved plan and returns a cited result |
+| FR37 | Assistants and Agent Hub: predefined staff assistants and a catalog; installing never makes an agent live | P1 | After 1.0 | AH1-AH10, W6 (E22, E5) | An assistant installs, is reviewed, and only then runs |
+| FR38 | Automations: multi-step work with triggers, people where needed, limits and a kill switch | P2 | After 1.0 | AU1-AU12, AD7 (E8, E14) | A scheduled automation runs, pauses for a person, and can be stopped |
+| FR39 | Personal intelligence: instructions, persona, memory and skills in layers; organization rules outrank team, space and personal ones; memory informs and never overrides | P1 | After 1.0 | PN1-PN12 (E5) | A personal instruction cannot weaken an organization rule |
+| FR40 | Hybrid model selection: local, private and public models by privacy limits, qualification, rules and cost; a fallback never crosses a forbidden tier | P1 | After 1.0 | HM1-HM8 (E1) | A sensitive conversation never reaches a public model, including on fallback |
+| FR41 | Customers view: cross-channel timeline for leads and reviewers; masked, search by reference only, every open audited (second release) | P2 | After 1.0 | W4 (E2, E5) | An open is audited and a deletion request removes the record |
 
 ## 5. Non-functional requirements
 See `03-specs/NorthCX_Non-Functional-Requirements.md`.
@@ -87,6 +87,8 @@ Defined in `NorthCX_Success-Metrics.md`. Headline targets (initial, to validate)
 | 5 | A live call resolves an intent |
 | 6 | Security review closed; v1.0 tagged |
 
+**State (2026-11-09):** phases 1 to 6 are built and tested. The release is a candidate (1.0.0-rc.1), not tagged 1.0.0: a pass with a real model, an independent penetration test and a run on a normal machine are outstanding (`08-implementation/NorthCX_Release-Checklist.md`). The phase 5 criterion was met with simulated calls; no real phone line was tested.
+
 ## 8. Dependencies
 Model provider; customer-system APIs; telephony/messaging providers; database; container hosting.
 
@@ -102,4 +104,4 @@ Model provider; customer-system APIs; telephony/messaging providers; database; c
 | Metrics are guesses | Medium | Pilot measurement before committing targets |
 
 ## 10. Open questions
-Resolution window length (3 days is the provisional default); which channels first for pilots; Studio build vs adopt; project licence.
+Resolution window length (3 days is the provisional default); which channels first for pilots; open versus commercial (D1). Settled: the Studio was built, not adopted; the licence is Apache-2.0.

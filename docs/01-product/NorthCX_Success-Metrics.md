@@ -13,7 +13,7 @@ Status: **Plan**. Updated: 2026-11-09. Master for: metric definitions and propos
 | Customer satisfaction | Post-conversation survey score | At or above human baseline |
 | Reopen rate | Conversations reopened on the same issue within the window (needs a customer link across conversations; not built) | Lower than baseline |
 | Cost per resolution | (Model + infrastructure + review cost) / resolved conversations | Falling trend |
-| First-reply latency | p95 time to first token or reply | Set after streaming |
+| First-reply latency | p95 time to first token or reply | Set after a baseline with a real model (streaming is built) |
 | Handoff context completeness | Handoffs with transcript, actions and summary / handoffs | 100% |
 
 ## Build and release metrics

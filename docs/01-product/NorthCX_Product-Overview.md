@@ -2,6 +2,8 @@
 
 Status: **Reference**. Updated: 2026-11-09. Master for: a snapshot of the 1.0 product as ten layers (2026-11-05). Release candidate 1.0.0-rc.1 at the time. Describes the product as ten layers, from what users see down to how it is sold. Companion documents: `NorthCX_Product-Definition.md` (vision and pillars), `NorthCX_PRD.md`, `NorthCX_Personas.md`, `../03-specs/NorthCX_Feature-Catalog.md` (every feature with its status), `../08-implementation/NorthCX_Gap-Closure-Plan.md` (what comes after 1.0).
 
+**Changed since this snapshot (to 2026-11-09).** Built: a provider registry with `provider:model` names and Claude through the SDK or a direct HTTPS client (WP1.1, WP1.2); PDFs read as masked text; a generated API reference and a webhook test sender; shared rate limits and budgets across processes (Postgres backend); several processes with roles and job leases; hash-pinned dependencies with an audit job. Designed, not built: the staff Workspace and the regrouped Admin app with sub-tabs, the Pilot, Agent Hub, Builder, Automations, personal intelligence and hybrid model selection (`../07-design/NorthCX_Platform-Features-and-Tabs.md`). Decided: the staff product's working name is NorthCX Workspace (D2). The rows below are updated where a fact changed; the layer summary keeps the snapshot's view.
+
 **Status legend used throughout:** ✅ built and tested · 🔶 partly built · 🗺️ planned (epic and wave in the gap-closure plan) · ⛔ not something this repository can deliver alone (needs an outside party).
 
 **In one paragraph.** NorthCX is an open-source, self-hosted platform for building, testing, releasing and running supervised AI agents that talk to customers and do the work: look up an order, issue a refund, update an account, and hand over to a person when they should. It is built on the Claude API, runs on your own infrastructure, and treats every reply and every action as something to check, test and audit. Today it is customer-facing; the plan extends it to the staff who serve those customers.
@@ -50,7 +52,7 @@ Grouped by the eight pillars of the product definition.
 
 | Aspect | Today | Plan |
 |---|---|---|
-| **Providers** | Claude through the Messages API, behind a single interface (`LLM.complete`); nothing else in the code depends on the SDK | 🗺️ E1: provider adapters (OpenAI-compatible hosted and self-hosted servers first), provider-qualified model names, capability flags so an impossible configuration is refused at release time |
+| **Providers** | Claude through the Messages API (SDK or a direct HTTPS client), behind a single interface (`LLM.complete`) and a provider registry with `provider:model` names; nothing else in the code depends on the SDK | 🗺️ E1: further provider adapters (OpenAI-compatible hosted and self-hosted servers first), provider-qualified model names, capability flags so an impossible configuration is refused at release time |
 | **Choice of model** | Per agent; separate models for the supervisor, summaries and the judge | 🗺️ Per team and per purpose, with mixed-provider fallback chains |
 | **Resilience** | Retries with back-off, optional fallback model, graceful hand-off when the model is down, supervisor errors fail closed | ✅ |
 | **Budgets** | Token budgets per turn and per day, step and transfer limits | 🗺️ E1: budgets in currency, per-team budgets and spend views, cheaper-model routing for simple turns |
@@ -124,7 +126,7 @@ The full map, with epics and dependencies, is section 10 of the gap-closure plan
 | **Data residency** | A policy file of allowed regions and a host-to-region map, checked at start-up (strict mode refuses to start); a report of every destination and what it receives ✅; per-tenant regions 🗺️ E2 |
 | **Hardening** | Request size limits, security headers, CORS allow-list, SSRF controls on every outbound address (https, no redirects, private ranges refused), secrets scrubbed from everything stored, rate limits per key, session, address and conversation ✅; standing security tests (no pasted SQL, no dangerous constructs, redirect and CORS rules, parser fuzzing) ✅ |
 | **Assessment** | Threat model and security review by the authors, with automated scans ✅; **independent penetration test ⛔ not done** |
-| **Known limits (stated, not hidden)** | Rate limits and budgets are per process unless the Postgres limits backend is turned on; pictures and PDFs reach the model unmasked unless the masked-text option (🗺️ E0.4) is used; roles are server-wide; no multi-factor for API keys (use SSO) |
+| **Known limits (stated, not hidden)** | Rate limits and budgets are per process unless the Postgres limits backend is turned on (built); pictures reach the model unmasked; PDFs can be read as masked text (built, `pdf_text`); roles are server-wide; no multi-factor for API keys (use SSO) |
 | **Compliance** | Controls exist and are documented; **SOC 2, ISO 27001/42001 and HIPAA need audits and an operating period ⛔**; documentation packs and customer-managed keys 🗺️ E12 |
 
 ## 8. Deployment options
@@ -149,7 +151,7 @@ Capacity figures and the load tool are in `../08-implementation/NorthCX_Performa
 | **Business systems** | Declarative HTTP connectors in YAML (host allow-list, pagination, OAuth 2), five starting points (orders, billing, accounts, CRM, helpdesk), Python tools, customer context hook | Native connector packs for the common CX stack; connector SDK; OAuth setup in Studio 🗺️ E9 |
 | **Tool protocol** | None yet | MCP client and server 🗺️ E4 |
 | **Identity** | OpenID Connect single sign-on | SAML, SCIM 🗺️ E3 |
-| **Observability and events** | Trace export (OpenTelemetry, Langfuse), alert webhooks, signed status events with a polling feed | Generated API reference and webhook tester 🗺️ E0 |
+| **Observability and events** | Trace export (OpenTelemetry, Langfuse), alert webhooks, signed status events with a polling feed | Generated API reference and webhook tester ✅ (since this snapshot); more event types as features land |
 | **Model and AI services** | Claude; optional embeddings and speech-to-text services over common API shapes | OpenAI-compatible and self-hosted models 🗺️ E1 |
 | **Developer ecosystem** | Open source (Apache-2.0), contribution guide and code of conduct, templates and skills, scenario files, CI recipe, browser SDK | Developer portal, sandbox tenant, connector and template marketplace 🗺️ |
 
@@ -157,10 +159,10 @@ Capacity figures and the load tool are in `../08-implementation/NorthCX_Performa
 
 | Piece | What exists | What is missing |
 |---|---|---|
-| **Positioning** | "An open-source platform for supervised customer-experience agents that resolve issues end to end, on infrastructure the company controls" (product definition) | A decision on naming the staff product (D2 in the gap-closure plan) |
+| **Positioning** | "An open-source platform for supervised customer-experience agents that resolve issues end to end, on infrastructure the company controls" (product definition) | Staff product working name decided: NorthCX Workspace (D2, decision 170) |
 | **Target market** | Mid-size and large companies with real support volume and engineering capacity; platform teams inside larger enterprises; first focus on e-commerce, subscription and service businesses (product definition) | Customer discovery to test it |
 | **Personas** | CX lead, platform engineer, compliance owner, support agent, reviewer, administrator, end customer (`NorthCX_Personas.md`) | Real interviews |
-| **Packaging** | Open core and self-host recommended for v1; managed cloud, outcome-based billing and commercial add-ons kept open as options (`NorthCX_Pricing-Model.md`) | Decision D1 (what is open and what is commercial); a trusted definition of "resolved" before outcome pricing |
+| **Packaging** | Open core and self-host recommended for v1; managed cloud, outcome-based billing and commercial add-ons kept open as options (`NorthCX_Pricing-Model.md`) | Decision D1 (what is open and what is commercial; still open); a trusted definition of "resolved" before outcome pricing |
 | **Landing page** | The README: banner, feature overview, real Studio screenshots, flow diagram, safety Q&A, five-minute demo, honest status | A marketing site with product, use cases by team and industry, deployment options, security, demo booking 🗺️ E13, E21 |
 | **Proof** | Honest status, release checklist, threat model, security review, a clean-checkout verification | **Customer stories: none yet** and none will be invented; a penetration test; compliance reports ⛔ |
 | **Trial path** | Offline demo model needs no API key; five-minute Docker Compose start; templates and scenarios | A hosted sandbox 🗺️ E2, E12 |
@@ -185,4 +187,4 @@ Capacity figures and the load tool are in `../08-implementation/NorthCX_Performa
 | 7 | Security and governance | Strong controls, documented limits | Pen test, tenant isolation, SAML and SCIM, compliance packs |
 | 8 | Deployment | Single host with Compose | Tenancy, charts, ops console |
 | 9 | Integrations | Channels, helpdesk, YAML connectors, exports | MCP, native connectors |
-| 10 | Go-to-market | README landing page, honest status | Marketing site, trust center, decisions D1 and D2 |
+| 10 | Go-to-market | README landing page, honest status | Marketing site, trust center, decision D1 |
