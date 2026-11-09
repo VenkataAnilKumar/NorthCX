@@ -762,6 +762,16 @@ SCREENS["58-workspace-customers"] = wsapp("Customers", subtabs("Work", "Customer
 <p class="note" style="margin-top:10px">Proposed. Needs a cross-channel customer record, and the owner still has to decide who may open this tab. Opening a customer is written to the audit log. Search is by customer reference, not by free text on names.</p>""", "Workspace Customers", nav_html=subnav("Work"))
 
 
+SCREENS["59-admin-automations"] = settings_shell("Automations", "Automations", "Every workflow in the organization: who owns it, what it costs, and a way to stop it.", f"""<div class="row2" style="margin-bottom:12px"><div class="row"><span class="pill">All owners</span><span class="pill">Status: any</span></div><span class="btn" style="border-color:var(--bad);color:var(--bad)">Stop all automations</span></div>
+{table(["Automation", "Owner", "Trigger", "Runs (7 days)", "Cost", "State", ""], [["<b>Weekly refund digest</b>", "Tess L.", "Monday 08:00", "1", "$0.40", badge("running", "ok"), '<span class="btn">Stop</span>'], ["<b>Delayed parcel follow-up</b>", "Marco L.", "Event: hand-off created", "37", "$2.10", badge("running", "ok"), '<span class="btn">Stop</span>'], ["<b>Quality sample for review</b>", "Dana K.", "Daily 18:00", "7", "$1.05", badge("failed once", "warn"), '<span class="btn">Open</span>'], ["<b>Escalation report (draft)</b>", "Dana K.", "Manual", "0", "&ndash;", badge("waiting for review", "info"), '<span class="btn p">Review</span>']])}
+<div class="g2" style="margin-top:12px"><div class="card"><h3>Rules for this organization</h3><p class="note">A reviewer must approve publishing. Writes always ask a person. Workflows may not call customer-facing agents. Limits per run: 20 steps, $0.50, 10 minutes (sample values).</p></div>
+<div class="card"><h3>Failures and alerts</h3><p class="note">Quality sample for review failed once yesterday at step 3 (source unavailable). Owner notified.</p></div></div>""")
+
+SCREENS["60-workspace-performance"] = wsapp("Performance", subtabs("Team", "Performance") + head("Performance", "Your numbers and your team's. Each figure shows what it is counted over.", '<span class="pill">Last 7 days</span>') + f"""<div class="g3">{stat("Handled by me", "46", "of 212 team hand-offs")}{stat("Resolved without reopen", "71%", "182 of 256 past the window")}{stat("First reply, median", "3 min", "p90 11 min")}</div>
+<div class="card" style="margin-top:12px"><h3>Team</h3>{table(["Person", "Handled", "Resolved", "Approvals decided", "Median reply"], [["Dana K.", "46", "39", "12", "3 min"], ["Marco L.", "58", "50", "4", "4 min"], ["Jo P.", "51", "44", "&ndash;", "5 min"]])}</div>
+<p class="note" style="margin-top:10px">A figure with no data says so instead of showing zero. Team figures are for leads; everyone sees their own.</p>""", "Workspace Performance", nav_html=subnav("Team"))
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     for name, text in SCREENS.items():

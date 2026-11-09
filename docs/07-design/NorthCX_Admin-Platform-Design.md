@@ -2,7 +2,7 @@
 
 Status: **proposed** (2026-11-09). Nothing here is built yet except what the "Today" column says. The screens are static mockups with sample data (a company called "Acme Support" is invented for the pictures); they show intent, not working software. Sources: the current Studio, the implementation plan (E1, E3, E5, E7, E10), and the market research in `00-reference/NorthCX_Feature-Research-2026-11.md`.
 
-> **Names in this document.** Several sections were written before the Workspace tab names were finalized and still use the old ones (Threads, Chat, Knowledge, Artifacts, Projects, Workflows, Scheduled, Reviews, Insights; and in Admin Knowledge, Insights, Connectors (organization) and Settings, now Library, Analytics, Systems and Organization settings). The current names, the tab list and the status of each feature are in `NorthCX_Platform-Features-and-Tabs.md`, which takes precedence. The mockup images were regenerated with the new names.
+> **Names in this document (updated 2026-11-09).** Older sections were written before the names were final. Read them with this map. **Workspace:** Threads is Inbox; Chat is Pilot; Knowledge is Library; Artifacts is Outputs; Projects is Spaces; Workflows and Scheduled are Automations; Reviews is Quality; Insights is Performance. **Admin:** Knowledge is Library; Insights is Analytics; Connectors (organization) is Systems; Settings is Organization settings; Connectors and MCP is Systems (organization) and Connectors plus MCP servers (Personal); Usage and cost and Billing and plan are one page, Usage and billing; Builder and Automations are added to Build. **Navigation:** both apps now show a few left items with sub-tabs (six each); see `NorthCX_Platform-Features-and-Tabs.md`, which takes precedence over this document for names, tab lists and the status of each feature (decisions 153 to 170). The mockup images were regenerated with the final names.
 
 
 Source files: `07-design/mockups/*.html` (regenerate with `python scripts/gen_design_mockups.py`, then `node scripts/shoot_mockups.js`). Images: `assets/design/`.
@@ -41,7 +41,7 @@ Added after the feature research (`00-reference/NorthCX_Feature-Research-2026-11
 | Home | Landing view: what needs you, what is ready, recent work, suggestions, a prompt with assistant, project and sources chosen up front | ![Home](../assets/design/25-workspace-home.png) |
 | Artifacts library | Everything produced: filter by type, project and owner; versions; share, schedule, export | ![Artifacts](../assets/design/24-workspace-artifacts.png) |
 
-**Admin (Settings and admin, Organization group; the grouped navigation now lists Overview, Agents, Knowledge, Channels, Insights, Review and QA, Simulations, Models and budgets, People and groups, Policies, Access keys, Audit and activity, Trust and reliability, Connectors, Data residency, Billing and plan)**
+**Admin (Settings and admin, Organization group; see the final list in `NorthCX_Platform-Features-and-Tabs.md`: Overview, then Operate, Build, Govern and Platform with 25 organization pages in all)**
 | Screen | What it adds | Mockup |
 |---|---|---|
 | Insights: Explorer | Ask a question in plain language; finding with figures, masked samples, recommendations that lead straight to an action (draft an article, review a limit, create a scenario), follow-ups; audited | ![Explorer](../assets/design/26-admin-insights-explorer.png) |
@@ -94,11 +94,11 @@ Ordered by what the product cannot work without, then by what the backend can su
 
 | Tier | Workspace tabs | Why | Backend today |
 |---|---|---|---|
-| **Required for the first Workspace release** | Threads, Approvals, Chat, Assistants, Search, Knowledge | A person must be able to take over a conversation, decide an approval, ask an assistant, find an answer and read the source | Threads, Approvals, Knowledge and a first Search use what exists (hand-offs, approvals, knowledge search); Chat and Assistants need the staff backend (E5) and the Agent Hub entries |
-| **Next** | Artifacts, Customers, Reviews, Insights | Outputs people keep, a person across channels, reviewer work, team numbers | Artifacts E6; Customers needs a customer link and a privacy decision; Reviews E7; Insights E15 |
+| **Required for the first Workspace release (decided, decision 162)** | Inbox, Approvals, Pilot, Assistants, Search, Library | A person must be able to take over a conversation, decide an approval, ask an assistant, find an answer and read the source | Inbox, Approvals, Library and a first Search use what exists (hand-offs, approvals, knowledge search); Pilot and Assistants need the staff backend (E5) and the Agent Hub entries |
+| **Next** | Outputs, Customers (second release), Quality, Performance, Spaces, Automations | Outputs people keep, a person across channels, reviewer work, team numbers | Outputs E6; Customers needs a customer link (decision 158); Quality E7; Performance E15; Automations E8 |
 | **Later** | Projects, Workflows, Scheduled | Useful grouping and automation, but not needed to work a conversation | Projects E5/E6; Workflows and Scheduled E8 and E14 |
 
-Admin required for the first release: Overview, Agents, Knowledge, Channels, Access keys, Audit and activity, Policies, Data residency, plus Profile, Memory, Connectors and Privacy under Personal. Models and budgets, People and groups and Agent Hub follow with E1, E3 and E22.
+Admin required for the first release: Overview, Agents, Library, Channels, Access keys, Audit and activity, Policies, Data residency, plus Profile, Memory, Connectors and Privacy under Personal. Models and budgets, People and groups and Agent Hub follow with E1, E3 and E22.
 
 ## 0e. Profile with personal intelligence (proposal, 2026-11-09)
 The owner asked for personal intelligent features in Profile, in the way consumer AI assistants personalise themselves. Profile becomes six tabs (the table below shows the original four plus Instructions and persona and Skills, added next). Everything is for the signed-in staff member's own work; none of it changes what customers' agents do.
@@ -172,9 +172,9 @@ Four groups replace today's flat list of 14 items. Items a role cannot use are h
 | Group | Items | Today in Studio |
 |---|---|---|
 | **Operate** | Overview, Conversations, Handoffs, Approvals, Review and QA | All exist as separate pages; Overview is four counters |
-| **Build** | Agents (catalog), Knowledge, Simulations, Models and budgets | Agents, Knowledge, Simulations exist; Models and budgets is new |
-| **Govern** | People and groups, Access keys, Policies, Audit and activity | Keys and audit exist on one page; the rest are new |
-| **Platform** | Connectors and MCP, Usage and cost, Data residency, Settings | Residency and Settings exist; the rest are new |
+| **Build** | Agents (catalog), Agent Hub, Builder, Library, Automations, Simulations, Models and budgets, Test console | Agents, Library, Simulations and Test console exist; the others are new |
+| **Govern** | People and groups, Access keys, Policies, Audit and activity, Trust and reliability, Data residency | Keys, audit and residency exist; the rest are new |
+| **Platform** | Channels, Systems, Usage and billing, Organization settings | Residency (now under Govern) and Organization settings exist; the rest are new |
 
 Top bar on every page: global search (Ctrl K), tenant switcher (appears once multi-tenancy exists; hidden for single-company installs), environment switcher, alerts, account menu.
 
@@ -249,9 +249,9 @@ Decision of 2026-11-09: the staff **Workspace** and the **Admin** platform are t
 |---|---|---|
 | Frame | Grouped navigation, global search (Ctrl K), tenant and environment switchers, alerts bell, account menu, app switcher, role-aware hiding | Flat navigation exists; rest New |
 | Operate | **Overview** (needs-attention list, stat tiles, agent health, channel mix, spend by team, recent changes); **Conversations** (search, filters, transcript, trace timeline); **Handoffs** (queue, detail, resolve); **Approvals** (list, decision, expiry); **Review and QA** (queue, scorecard form, calibration, sampling rules, create scenario from review) | Conversations, hand-offs, approvals, review exist as pages; Overview v2, scorecards, calibration, sampling New |
-| Build | **Agents** (catalog table, spec editor, builder, versions and releases, rollout panel, governance tab); **Knowledge** (sources, documents, import, crawl and schedules, search test, indexing status); **Simulations** (scenarios, runs, scenario editor, gate status); **Models and budgets** (providers, prices, capabilities, budgets, fallback order, routing) | Agents, knowledge, simulations exist; catalog fields, governance tab, models and budgets New |
-| Govern | **People and groups** (people, groups, role bindings, provisioning status); **Access keys** (list, scoped-key drawer, expiry, last used, revoke); **Policies** (setting table with source, lock and applies-to, change history); **Audit and activity** (filters, staff and agent actions, approval reference, integrity status, export) | Keys and audit exist on one page; the rest New |
-| Platform | **Connectors and MCP** (connectors, MCP servers, webhooks, test buttons, health); **Usage and cost** (by agent, team, model, period; export); **Data residency** (destination report, policy); **Settings** (single sign-on, SCIM, session policy, alerts, retention, branding) | Residency, SSO, settings, alerts exist; connectors UI, usage and cost, SCIM New |
+| Build | **Agents** (catalog table, spec editor, builder, versions and releases, rollout panel, governance tab); **Library** (sources, documents, import, crawl and schedules, search test, indexing status); **Simulations** (scenarios, runs, scenario editor, gate status); **Models and budgets** (providers, prices, capabilities, budgets, fallback order, routing) | Agents, knowledge, simulations exist; catalog fields, governance tab, models and budgets New |
+| Govern | **People and groups** (people, groups, role bindings, provisioning status); **Access keys** (list, scoped-key drawer, expiry, last used, revoke); **Policies** (setting table with source, lock and applies-to, change history); **Audit and activity** (filters, staff and agent actions, approval reference, integrity status, export); **Trust and reliability** (guardrail blocks, supervisor interventions, adversarial-suite trend, what has not been done); **Data residency** (destination report, policy) | Keys and audit exist on one page; the rest New |
+| Platform | **Systems** (outside systems, allowed hosts, tools, outbound events and the test sender, health); **Usage and billing** (spend by agent, team, model and period with export; plan and invoices); **Organization settings** (single sign-on, SCIM, session policy, alerts, retention, branding) | Residency, SSO, settings, alerts exist; connectors UI, usage and cost, SCIM New |
 
 ### Shared by both windows (`packages/ui` and `packages/api-client`)
 | Kind | Components | Status |

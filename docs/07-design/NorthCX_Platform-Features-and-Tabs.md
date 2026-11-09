@@ -106,7 +106,7 @@ The same idea as the Workspace. The left side shows six items and each opens its
 | **Govern** | People and groups, Access keys, Policies, Audit and activity, Trust and reliability, Data residency |
 | **Platform** | Channels, Systems, Usage and billing, Organization settings |
 | **Personal** (everyone) | Profile, Preferences, Memory, Connectors, MCP servers, Notifications, Privacy and data, Usage and limits, API keys, Security and sessions |
-The 25 organization pages and 10 personal pages are unchanged; Personal and the Organization items appear only for roles that can use them, and a person with no organization role sees only Personal. Rules as in the Workspace: a badge on a sub-tab also shows on its group; the app remembers the last sub-tab per group; Ctrl K reaches any page by name; a sub-tab row that does not fit scrolls sideways. Mockups: `docs/assets/design/01-admin-overview.png`, `35-admin-agent-hub.png`, `21-settings-profile.png`.
+The 25 organization pages and 10 personal pages are unchanged; Personal and the Organization items appear only for roles that can use them, and a person with no organization role sees only Personal. Rules as in the Workspace: a badge on a sub-tab also shows on its group; the app remembers the last sub-tab per group; Ctrl K reaches any page by name; a sub-tab row that does not fit scrolls sideways. Mockups: `docs/assets/design/01-admin-overview.png`, `35-admin-agent-hub.png`, `21-settings-profile.png`, `59-admin-automations.png` (all workflows, owners, cost and the kill switch). Workspace Performance: `60-workspace-performance.png`.
 
 ### Personal (everyone)
 | Page | What it holds | State |
