@@ -688,7 +688,7 @@ body{{padding:28px;min-height:900px}}h1{{margin-bottom:4px}}</style></head><body
 <div class="card" style="margin-top:12px"><h3>Cross-cutting</h3><div class="row"><span class="tag">Global search (Ctrl K)</span><span class="tag">Tenant and environment switcher</span><span class="tag">Role-aware navigation (items hide, not grey out)</span><span class="tag">Light and dark</span><span class="tag">Keyboard and screen-reader support</span><span class="tag">Empty, loading and error states</span><span class="tag">Confirm before destructive actions, recorded in audit</span></div></div></body></html>"""
 
 
-SUB_GROUPS = [("Work", "&#129525;", ["Inbox", "Approvals", "Customers"], 2), ("Assist", "&#129517;", ["Pilot", "Assistants", "Search", "Library"], 0),
+SUB_GROUPS = [("Pilot", "&#129517;", [], 0), ("Work", "&#129525;", ["Inbox", "Approvals", "Customers"], 2), ("Assist", "&#129302;", ["Assistants", "Search", "Library"], 0),
               ("Create", "&#128196;", ["Outputs", "Spaces", "Automations"], 0), ("Team", "&#128221;", ["Quality", "Performance"], 0)]
 
 
@@ -708,9 +708,9 @@ def subtabs(group, on):
 SCREENS["53-workspace-subtabs"] = wsapp("Work", subtabs("Work", "Inbox") + head("Inbox", "Customer conversations that need a person.", '<span class="note">Last used sub-tab is remembered</span>') + f"""<div class="card"><table><tr><th>Customer</th><th>Topic</th><th>State</th></tr>
 <tr><td>Customer 1042 (masked)</td><td>Duplicate charge</td><td><span class="b warn">Needs me</span></td></tr><tr><td>Customer 2210 (masked)</td><td>Delayed delivery</td><td><span class="b info">Agent is handling</span></td></tr>
 <tr><td>Customer 0877 (masked)</td><td>Plan change</td><td><span class="b ok">Resolved</span></td></tr></table></div>
-<div class="card" style="margin-top:12px"><b>Left side: five items</b><p class="note">Home, Work, Assist, Create and Team. The badge on Work comes from Approvals, so waiting work is never hidden. Team shows only for leads and reviewers. Press Ctrl K to jump to any tab by name.</p></div>""", "Workspace sub-tabs", nav_html=subnav("Work"))
+<div class="card" style="margin-top:12px"><b>Left side: six items</b><p class="note">Home, Pilot, Work, Assist, Create and Team. The badge on Work comes from Approvals, so waiting work is never hidden. Team shows only for leads and reviewers. Press Ctrl K to jump to any tab by name.</p></div>""", "Workspace sub-tabs", nav_html=subnav("Work"))
 
-SCREENS["54-workspace-subtabs-assist"] = wsapp("Assist", subtabs("Assist", "Assistants") + head("Assistants", "Predefined staff assistants. Pick one to start a Pilot task.") + """<div class="card"><p class="note">Assist holds Pilot, Assistants, Search and Library. Opening a Pilot task hides this sub-tab row so the task has the full width; a back arrow returns to it.</p></div>""", "Workspace sub-tabs (Assist)", nav_html=subnav("Assist"))
+SCREENS["54-workspace-subtabs-assist"] = wsapp("Assist", subtabs("Assist", "Assistants") + head("Assistants", "Predefined staff assistants. Pick one to start a Pilot task.") + """<div class="card"><p class="note">Assist holds Assistants, Search and Library. Pilot is its own left item and opens full width, with no sub-tab row; its own inner tabs (Plan, Result, Files and the rest) sit inside the task.</p></div>""", "Workspace sub-tabs (Assist)", nav_html=subnav("Assist"))
 
 
 if __name__ == "__main__":
