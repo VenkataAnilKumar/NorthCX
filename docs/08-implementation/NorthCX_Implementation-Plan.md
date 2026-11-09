@@ -194,6 +194,9 @@ Commission the penetration test (scope: Threat Model and Security Review, with t
 | **5.8** | `apps/workspace`: chat home, saved prompts, outputs panel, history, built on `packages/ui` | V (demo model), X (answer quality) |
 **Tests:** matrix of roles by tools; customer text never treated as a staff instruction; memory isolation; tenant isolation. **Depends on:** E2, E3.
 
+### E22 Agent Hub and predefined agents (proposed, not yet accepted; size L)
+A gallery of predefined agents with an install flow (details, requirements check, tests, draft), updates, an organization-only hub and signed built-in entries; builds on the four existing templates. Work packages WP22.1 to WP22.9 and decisions are in `07-design/NorthCX_Agent-Hub-Design.md`. Depends on: WP0.1 (done); staff assistants depend on E5 to E7.
+
 ### E6 Libraries and generated outputs (size L, WP6.1 to WP6.3)
 **6.1** Library items (prompt, macro, playbook, template, file) with owner, visibility (private, team, tenant), versions and usage counts, and sharing permissions; macros feed agent-assist suggestions. **6.2** Report service: CSV, HTML and Markdown first, figures computed by code, optional model narrative from aggregates only; then PowerPoint decks from a structured outline; outputs stored as expiring artifacts with download endpoints and audit. **6.3** Workspace UI for libraries and outputs. **Tests:** permissions per visibility, generated files reopened and validated, masked exports, expiry. **Label:** V.
 

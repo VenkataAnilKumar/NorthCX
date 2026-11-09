@@ -306,7 +306,7 @@ SCREENS["20-workspace-threads"] = wsapp("Threads", head("Threads", "Customer con
 
 def settings_shell(active: str, title: str, sub: str, body: str) -> str:
     personal = ["Profile", "Preferences", "Memory", "Connectors", "MCP servers", "Notifications", "Privacy and data", "Usage and limits", "API keys", "Security and sessions"]
-    org = ["Overview", "Agents", "Knowledge", "Channels", "Insights", "Review and QA", "Simulations", "Models and budgets", "People and groups", "Policies", "Access keys", "Audit and activity", "Trust and reliability", "Connectors (organization)", "Data residency", "Billing and plan"]
+    org = ["Overview", "Agents", "Agent Hub", "Knowledge", "Channels", "Insights", "Review and QA", "Simulations", "Models and budgets", "People and groups", "Policies", "Access keys", "Audit and activity", "Trust and reliability", "Connectors (organization)", "Data residency", "Billing and plan"]
     nav = '<div class="grp">Personal</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in personal) + '<div class="grp">Organization (administrators)</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in org)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{WS_CSS}</style></head><body>
 <div class="top"><div class="brand" style="padding:0">NorthCX <span class="note">Settings and admin</span></div><div class="sp"></div><span class="pill">Tenant <b>Acme Support (sample)</b></span><span class="btn">Open Workspace</span><div class="av">PN</div></div>
@@ -454,6 +454,39 @@ SCREENS["34-admin-agent-model-policy"] = settings_shell("Agents", "billing-help:
 <p class="note" style="margin-top:8px">A model can be switched on only after it passes this agent's required scenarios.</p></div>
 <div><div class="card"><h3>Default for this agent</h3><div class="field"><label>Selection</label><span class="in">Auto (follow routing rules) &#9662;</span></div><div class="field"><label>Fallback order</label><span class="in">claude-sonnet-5-5 &rarr; claude-haiku-5-5 &rarr; hand off to a person</span></div></div>
 <div class="card" style="margin-top:12px"><h3>Who can choose</h3>{table(["Person","May pick a model?"],[["Customers","never (the agent decides)"],["Staff using this agent in Workspace",badge("only Auto and Faster","info")],["Developers testing in Admin",badge("any allowed model","ok")]])}<p class="note" style="margin-top:8px">&#128274; Staff cannot choose a public model for conversations with customer data (organization policy).</p></div></div></div>""")
+
+
+def _card(title, who, desc, tags, status, btn):
+    return f'<div class="card"><div class="row2"><b>{title}</b>{status}</div><p class="note" style="margin:2px 0 6px">{who}</p><p style="margin:0 0 8px">{desc}</p><div style="margin-bottom:10px">{"".join(f"<span class=tag>{t}</span>" for t in tags)}</div><span class="btn {"p" if btn=="Install" else ""}">{btn}</span></div>'
+
+
+SCREENS["35-admin-agent-hub"] = settings_shell("Agent Hub", "Agent Hub", "Predefined agents you can install, adapt and release. Each comes with the tests that prove it works.", f"""
+<div class="tools"><span class="in">Search the hub&hellip;</span><span class="pill"><b>All</b></span><span class="pill">Customer-facing</span><span class="pill">Staff assistants</span><span class="pill">Installed</span><div style="flex:1"></div><span class="in">Category: Any &#9662;</span><span class="in">Channel: Any &#9662;</span><span class="btn">Publish your own</span></div>
+<div class="tabs"><a class="on">Browse</a><a>Installed (3)</a><a>Updates (1)</a><a>My organization</a></div>
+<div class="g3">{_card("Order status","Customer-facing &middot; built in","Answers where-is-my-order questions from your order system; hands off when it cannot find the order.",["orders-api","web","email","sms"],badge("Installed v2","ok"),"Open")}
+{_card("Returns and refunds","Customer-facing &middot; built in","Handles return questions and refund requests; refunds above the limit wait for a person.",["billing-system","approval"],badge("Update v3","warn"),"Update")}
+{_card("Knowledge FAQ","Customer-facing &middot; built in","Answers only from your documents, cites them, and hands off when they do not cover the question.",["knowledge","web","whatsapp"],badge("Installed v1","ok"),"Open")}
+{_card("Human triage","Customer-facing &middot; built in","Greets the customer, collects what a person needs, and hands the conversation over.",["handoff","all channels"],badge("Available","info"),"Install")}
+{_card("Billing and invoices","Customer-facing &middot; proposed","Invoice copies, payment status, duplicate-charge checks; refunds need approval.",["billing-system","approval"],badge("Coming","gr"),"Notify me")}
+{_card("Care copilot","Staff assistant &middot; proposed","Drafts replies, summarises conversations and finds sources for support staff; cannot send on its own.",["knowledge","workspace"],badge("Coming","gr"),"Notify me")}</div>
+<p class="note" style="margin-top:10px">Built-in agents ship with NorthCX. Your organization's own published agents appear under &ldquo;My organization&rdquo;. Nothing in the hub runs until you install it, test it and release it.</p>""")
+
+SCREENS["36-admin-hub-install"] = settings_shell("Agent Hub", "Install: Returns and refunds", "Fill in your details, check what it needs, run its tests, then release it like any agent.", f"""
+<div class="row" style="margin-bottom:12px"><span class="b ok">1 Details</span><span class="b ok">2 Requirements</span><span class="b info">3 Tests</span><span class="b gr">4 Review and release</span></div>
+<div class="g2"><div><div class="card"><h3>Requirements check</h3>{table(["Needs","Status"],[["Tool lookup_order (orders-api)",badge("connected","ok")],["Tool issue_refund (billing-system)",badge("connected","ok")],["Approval for refunds above the limit",badge("rule exists","ok")],["Knowledge source: Returns policy",badge("missing","bad")],["Channels web, email",badge("enabled","ok")],["Model qualified for this agent",badge("claude-sonnet-5-5 100%","ok")]])}<p class="note" style="margin-top:8px">One thing is missing. Add the Returns policy to knowledge or install without it (the agent will hand off questions about policy).</p><div class="row"><span class="btn p">Add knowledge source</span><span class="btn">Install without</span></div></div>
+<div class="card" style="margin-top:12px"><h3>Your details</h3><div class="field"><label>Company name</label><span class="in">Acme Support</span></div><div class="field"><label>Refund limit without approval</label><span class="in">$50</span></div><div class="field"><label>Return window (days)</label><span class="in">30</span></div></div></div>
+<div><div class="card"><h3>Tests that come with it</h3>{table(["Scenario","Result"],[["Asks for a return inside the window",badge("passes","ok")],["Asks for a refund above the limit",badge("hands off for approval","ok")],["Return outside the window",badge("explains the policy","ok")],["Tries to talk the agent past the limit",badge("refused","ok")],["Order not found",badge("hands off","ok")]])}<p class="note" style="margin-top:8px">5 of 5 passed against your settings. These join your required scenarios.</p></div>
+<div class="card" style="margin-top:12px"><h3>What this creates</h3><p class="note">A draft agent <b>returns-and-refunds</b> (version 1) in Staging. It is not live. Releasing to Production follows your release rules (two-person approval).</p><div class="row"><span class="btn p">Create draft</span><span class="btn">Cancel</span></div></div></div></div>""")
+
+SCREENS["37-workspace-agent-hub"] = wsapp("Chat", head("Assistants", "Predefined assistants your organization has made available. Pick one to start a chat with it.") + f"""
+<div class="tools"><span class="in">Search assistants&hellip;</span><span class="pill"><b>All</b></span><span class="pill">Favorites</span><span class="pill">My team</span></div>
+<div class="g3">{_card("Care copilot","Billing team &middot; v2","Drafts replies, summarises a conversation, finds the policy that applies. Cannot send anything on its own.",["knowledge","conversations (masked)"],badge("Favorite","info"),"Start chat")}
+{_card("QA assistant","Support leads &middot; v1","Scores sampled conversations against the Support scorecard and explains each score.",["reviews","scorecards"],badge("Leads only","gr"),"Start chat")}
+{_card("Report builder","All staff &middot; v1","Builds a summary or chart from your team's figures and saves it as an artifact.",["insights","artifacts"],badge("Available","ok"),"Start chat")}
+{_card("Hand-off triage","Billing team &middot; v1","Ranks open hand-offs by urgency and suggests who should take them.",["hand-offs"],badge("Scheduled daily","info"),"Start chat")}
+{_card("Escalation analyst","Billing team &middot; v1","Explains why conversations were handed off and what would have prevented it.",["insights","conversations (masked)"],badge("Available","ok"),"Start chat")}
+<div class="card" style="border-style:dashed"><b>Need something else?</b><p class="note">Ask your administrator to add an assistant from the Agent Hub, or suggest one.</p><span class="btn">Suggest an assistant</span></div></div>
+<p class="note" style="margin-top:10px">Each assistant shows what it can see and do before you start. You only see assistants your role allows.</p>""", "Assistants")
 
 
 def _col(title, who, items, cls="info"):
