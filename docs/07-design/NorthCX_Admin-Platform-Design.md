@@ -10,6 +10,20 @@ Source files: `07-design/mockups/*.html` (regenerate with `python scripts/gen_de
 
 One sign-in and one design system. **Admin platform** (today's Studio, extended) is for administrators, release managers, developers, reviewers and auditors. The **staff workspace** is a separate app for support staff and team leads, because its audience, speed needs and permissions differ. Developer portal, ops console and back office come later and are only drawn here as boxes.
 
+## 1a. Together or separate: what other platforms do
+Evidence is thin (product pages and third-party write-ups, no screenshots of the interfaces), so this is a pattern, not a measurement. Details and sources are in `00-reference/NorthCX_Feature-Research-2026-11.md` section 7.
+
+| Platform | How it splits the surfaces |
+|---|---|
+| Cohere North | An employee-facing workspace for chat, search and agents, and a separate management console (North Admin) for spending controls, security guardrails per agent and instance settings |
+| Sierra | Agent Studio (build), Insights (analytics) and Live Assist (copilot for human reps) are presented as separate products under one platform |
+| Intercom | One app, two areas: the Inbox where people work conversations (with a Fin folder and resolution-state views) and a Fin section for analysing, training, testing and deploying, with workspace-wide settings elsewhere |
+| ChatGPT Enterprise, Microsoft 365 Copilot | A chat workspace for everyone and a separate admin console (users, SSO, usage, compliance) for administrators |
+
+The pattern: **people who do the work and people who govern the system get different surfaces**, tied together by one identity and shared look. Where a vendor keeps both in one app (Intercom), it is a CX helpdesk whose staff are the same people who configure the agent.
+
+**Recommendation for NorthCX:** separate windows (separate addresses and navigation) with one sign-in, one design system and deep links between them. The staff workspace is its own app because its audience works all day in one queue, needs speed and a narrow permission set, and should never show configuration. The admin platform (Studio, extended) holds operate, build, govern and platform items for the people who configure and oversee agents. Small cross-links keep them feeling like one product: "Open in workspace" from a hand-off, "Open in admin" from an agent. A person with both roles gets an app switcher in the top bar.
+
 ## 2. Navigation (admin platform)
 
 Four groups replace today's flat list of 14 items. Items a role cannot use are hidden, not greyed out.
