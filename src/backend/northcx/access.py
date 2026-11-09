@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from collections import deque
 from typing import Any, Protocol
 
+from .tenancy import DEFAULT_TENANT
 from .tokens import PREFIX as TOKEN_PREFIX, TokenError, TokenSigner
 
 # ---------------- roles and permissions ----------------
@@ -60,6 +61,7 @@ class Identity:
     # Set for a key limited to some agents and/or environments (WP3.1); None means no limit on that axis.
     scope_agents: tuple[str, ...] | None = None
     scope_envs: tuple[str, ...] | None = None
+    tenant: str = DEFAULT_TENANT  # whose key this is (WP2.2); the request is scoped to it
     extra_roles: tuple[str, ...] = ()  # more roles from group membership (WP3.2); the permissions are the union with `role`
 
     def allows_agent(self, agent_id: str) -> bool:
@@ -95,6 +97,7 @@ class ApiKey:
     revoked_at: float | None = None
     revoked_by: str | None = None
     last_used_at: float | None = None
+    tenant_id: str = DEFAULT_TENANT
     extra_roles: list[str] | None = None  # roles added by group membership at sign-in (the permissions are the union with `role`)
     agents: list[str] | None = None  # limited to these agents (None: all)
     environments: list[str] | None = None  # limited to these environments (None: all)
@@ -220,6 +223,7 @@ class AccessControl:
         self.limits, self.limiter = limits, limiter or RateLimiter()
         self.touch_interval = touch_interval
         self._touched: dict[str, float] = {}
+        self.tenants: Any = None  # northcx.tenancy.TenantService, set by the server (WP2.2)
         self.scim: Any = None  # northcx.scim.ScimService, set by the server when NORTHCX_SCIM_TOKEN is set (WP3.3)
         self.groups: Any = None  # northcx.groups.GroupService, set by the server (WP3.2)
         self.configured_keys = bootstrap_key is not None
@@ -276,11 +280,13 @@ class AccessControl:
         if now - self._touched.get(key_id, 0) >= self.touch_interval:  # record use at most once a minute
             self._touched[key_id] = now
             await self.keys.touch(key_id, now)
-        return Identity(k.name, k.role, k.key_id, extra_roles=tuple(k.extra_roles or ()), scope_agents=tuple(k.agents) if k.agents is not None else None,
+        if self.tenants is not None and k.tenant_id != DEFAULT_TENANT and not await self.tenants.is_active(k.tenant_id):
+            return None  # a suspended (or removed) tenant's keys stop working at once
+        return Identity(k.name, k.role, k.key_id, tenant=k.tenant_id, extra_roles=tuple(k.extra_roles or ()), scope_agents=tuple(k.agents) if k.agents is not None else None,
                         scope_envs=tuple(k.environments) if k.environments is not None else None)
 
     async def issue(self, name: str, role: str, created_by: str, expires_in_days: float | None = None,
-                    agents: list[str] | None = None, environments: list[str] | None = None) -> tuple[ApiKey, str]:
+                    agents: list[str] | None = None, environments: list[str] | None = None, tenant_id: str = DEFAULT_TENANT) -> tuple[ApiKey, str]:
         """Create a key. The secret is returned once and never stored. `agents` and `environments` limit what it can reach."""
         if role not in ROLES:
             raise ValueError(f"Unknown role '{role}' (roles: {', '.join(sorted(ROLES))})")
@@ -288,7 +294,7 @@ class AccessControl:
             raise ValueError("Key names use letters, digits, spaces and . _ @ - (1 to 80 characters)")
         if expires_in_days is not None and not 0 < expires_in_days <= 3650:
             raise ValueError("expiresInDays must be between 0 and 3650")
-        if any(k.name.lower() == name.lower() and k.active() for k in await self.keys.list()):
+        if any(k.name.lower() == name.lower() and k.active() and k.tenant_id == tenant_id for k in await self.keys.list()):
             raise ValueError(f"An active key named '{name}' already exists")
         agents, environments = _scope(agents, "agents", AGENT_ID_RE), _scope(environments, "environments", None)
         if environments and any(e not in ENVIRONMENTS for e in environments):
@@ -297,7 +303,7 @@ class AccessControl:
             raise ValueError(f"The '{role}' role cannot be limited to agents or environments: it manages keys and platform settings (use release_manager, developer, reviewer, auditor or viewer)")
         secret = secrets.token_urlsafe(32)
         key = ApiKey(name, role, secrets.token_hex(4), hash_secret(secret), created_by,
-                     expires_at=time.time() + expires_in_days * 86400 if expires_in_days else None, agents=agents, environments=environments)
+                     expires_at=time.time() + expires_in_days * 86400 if expires_in_days else None, agents=agents, environments=environments, tenant_id=tenant_id)
         await self.keys.create(key)
         self._has_keys = True
         return key, f"{key.prefix}_{secret}"
@@ -324,12 +330,16 @@ class AccessControl:
                 n += 1
         return n
 
-    async def revoke(self, key_id: str, by: str) -> ApiKey:
+    async def keys_of(self, tenant_id: str) -> list[ApiKey]:
+        return [k for k in await self.keys.list() if k.tenant_id == tenant_id]
+
+    async def revoke(self, key_id: str, by: str, tenant_id: str | None = None) -> ApiKey:
+        """`tenant_id` limits the revoke to that tenant's keys: another tenant's key is 'unknown', not 'forbidden', so its existence is not revealed."""
         keys = await self.keys.list()
-        target = next((k for k in keys if k.key_id == key_id), None)
+        target = next((k for k in keys if k.key_id == key_id and (tenant_id is None or k.tenant_id == tenant_id)), None)
         if target is None:
             raise KeyError(key_id)
-        others = [k for k in keys if k.key_id != key_id and k.role == "admin" and k.active() and k.created_by != SSO_CREATOR]  # a sign-in session expires; it is not a lasting way in
-        if target.role == "admin" and target.active() and not others and not self.configured_keys:
+        others = [k for k in keys if k.key_id != key_id and k.role == "admin" and k.active() and k.created_by != SSO_CREATOR and k.tenant_id == target.tenant_id]  # a sign-in session expires; it is not a lasting way in
+        if target.role == "admin" and target.active() and not others and not (self.configured_keys and target.tenant_id == DEFAULT_TENANT):
             raise ValueError("This is the last active admin key; create another admin key first")
         return await self.keys.revoke(key_id, by)

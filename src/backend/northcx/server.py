@@ -66,6 +66,7 @@ from .api.routers import handoffs as _handoffs_router
 from .api.routers import rollouts as _rollouts_router
 from .api.routers import groups as _groups_router
 from .api.routers import scim as _scim_router
+from .tenancy import TENANT
 from .api.routers import voice as _voice_router
 from .api.routers import public as _public_router
 from .api.routers import chat as _chat_router
@@ -329,6 +330,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
         else:
             ident = OPEN_IDENTITY
         request.state.identity = ident
+        TENANT.set(ident.tenant)  # everything this request writes (audit entries, keys) belongs to the key's tenant
         if limits:
             ok, retry = await access.limiter.hit(f"key:{ident.key_id or ip}", limits.channel_per_minute if ident.role == "channel" else limits.per_key_per_minute)
             if not ok:

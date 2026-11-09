@@ -79,6 +79,9 @@ def build_security(c: SimpleNamespace) -> None:
             sys.exit(f"NORTHCX_CORS_ORIGINS: '{o}' must be an https origin such as https://www.example.com (no wildcards, no paths)")
     from northcx.groups import GroupService
     from northcx.db import PgGroups
+    from northcx.tenancy import TenantService
+    from northcx.db import PgTenants
+    access.tenants = TenantService(PgTenants(c.engine) if db_url else None, preview=os.environ.get("NORTHCX_TENANCY_PREVIEW") == "1")
     access.groups = GroupService(PgGroups(c.engine) if db_url else None)
     scim_token = env_or_file("NORTHCX_SCIM_TOKEN")
     if scim_token:

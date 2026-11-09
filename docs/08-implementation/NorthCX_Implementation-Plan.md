@@ -167,6 +167,7 @@ Commission the penetration test (scope: Threat Model and Security Review, with t
 | **3.4** | SAML behind `NORTHCX_SAML=1` using a maintained library: signed assertions only, audience, replay and clock-skew checks | L | P (vectors), X (real IdP) |
 | **3.5** | Publish approval (two-person rule) per environment, built on reviews and the checklist | M | V |
 | **3.6** | Teams, per-team budgets (needs 1.6) and the agent catalog | M | V |
+**Status (2026-11-09, Phase 3):** built: WP3.1 (scoped keys, with the route-table sweep), WP3.2 (groups and union permissions), WP3.3 (SCIM users and groups), WP3.5 (two-person release rule). Not built: WP3.4 (SAML) and WP3.6 (teams, per-team budgets, catalog). Tested against fakes and RFC-style messages, not a real identity provider.
 **Acceptance:** sweeps generated from the route table prove an out-of-scope key is refused on every agent route; SCIM deactivation ends a person's access in one request. **Depends on:** WP0.1.
 
 ### E4 MCP client and server (size L, WP4.1 to WP4.3)
@@ -193,6 +194,7 @@ Commission the penetration test (scope: Threat Model and Security Review, with t
 | **2.8** | Platform API under `/platform/v1` on a separate listener (tenant lifecycle, suspend, plan assignment); a platform role sees metadata only | M | V |
 | **2.9** | **Gates:** isolation sweep generated from the route table (every route, tenant B's key and tenant A's ids, expect 404), isolation fuzz (random interleavings of two tenants), backfill and downgrade test, load within 10 percent of the documented figure | L | V |
 | **2.10** | Threat-model section for isolation; documentation of tenancy and the single-tenant default | S | V |
+**Status (2026-11-09, Phase 3):** built: WP2.1 (decision with measurements, `05-technical/NorthCX_Tenancy-ADR.md`), WP2.2 (tenants, bindings, request-scoped tenant) and the first batch of WP2.3 (keys and audit). Not built: WP2.3 batches b to f, WP2.4 to WP2.10. No tenant isolation exists beyond keys and audit; a second tenant needs `NORTHCX_TENANCY_PREVIEW=1`.
 **Acceptance:** all gates in 2.9 green on real Postgres; a deployment with no tenants configured behaves exactly as before. **Depends on:** WP0.1, WP0.4, WP0.5, E3.1. **Outside:** operating it as a hosted service (X).
 
 ### E5 Staff workspace backend (size XL, WP5.1 to WP5.8)

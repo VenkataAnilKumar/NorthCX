@@ -160,6 +160,7 @@ class ApiKeyRow(Base):
     revoked_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     revoked_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
     last_used_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    tenant_id: Mapped[str] = mapped_column(String(40), nullable=False, server_default="default", index=True)
     extra_roles: Mapped[Any] = mapped_column(JSONB, nullable=True)  # roles added by group membership at sign-in
     agents: Mapped[Any] = mapped_column(JSONB, nullable=True)  # null: all agents
     environments: Mapped[Any] = mapped_column(JSONB, nullable=True)  # null: all environments
@@ -178,7 +179,8 @@ class AuditRow(Base):
     detail: Mapped[Any] = mapped_column(JSONB, nullable=False)
     prev_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    __table_args__ = (Index("ix_audit_actor", "actor", "id"), Index("ix_audit_action", "action", "id"))
+    tenant_id: Mapped[str] = mapped_column(String(40), nullable=False, server_default="default")
+    __table_args__ = (Index("ix_audit_actor", "actor", "id"), Index("ix_audit_action", "action", "id"), Index("ix_audit_tenant", "tenant_id", "id"))
 
 
 class OutboxRow(Base):
@@ -539,6 +541,23 @@ class ReleaseRequestRow(Base):
     decision_note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
     decided_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class TenantRow(Base):
+    __tablename__ = "tenants"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class ChannelBindingRow(Base):
+    """An inbound address (phone number id, bot id, SMS number, email domain, voice number) belongs to exactly one tenant."""
+    __tablename__ = "channel_bindings"
+    kind: Mapped[str] = mapped_column(String(24), primary_key=True)
+    address: Mapped[str] = mapped_column(String(200), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
 class JobLeaseRow(Base):

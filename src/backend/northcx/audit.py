@@ -12,6 +12,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from .tenancy import DEFAULT_TENANT, current_tenant
+
 GENESIS = "0" * 64
 
 
@@ -28,11 +30,14 @@ class AuditEntry:
     id: int = 0
     prev_hash: str = GENESIS
     hash: str = ""
+    tenant_id: str = field(default_factory=current_tenant)  # whose entry this is (the request's tenant)
 
 
 def entry_hash(e: AuditEntry) -> str:
     body = {"id": e.id, "at": round(e.at, 6), "actor": e.actor, "role": e.role, "key_id": e.key_id, "action": e.action,
             "target": e.target, "outcome": e.outcome, "detail": json.loads(json.dumps(e.detail, default=str, sort_keys=True))}
+    if e.tenant_id != DEFAULT_TENANT:
+        body["tenant"] = e.tenant_id  # the default tenant's entries hash exactly as before, so an existing chain still verifies
     return hashlib.sha256((e.prev_hash + json.dumps(body, sort_keys=True, separators=(",", ":"))).encode()).hexdigest()
 
 
@@ -60,7 +65,7 @@ def verify_entries(entries: list[AuditEntry]) -> Verification:
 class AuditRepo(Protocol):
     async def append(self, entry: AuditEntry) -> AuditEntry: ...
     async def list(self, limit: int = 100, before_id: int | None = None, actor: str | None = None,
-                   action: str | None = None) -> list[AuditEntry]: ...
+                   action: str | None = None, tenant_id: str | None = None) -> list[AuditEntry]: ...
     async def verify(self) -> Verification: ...
 
 
@@ -78,9 +83,10 @@ class InMemoryAudit:
             return entry
 
     async def list(self, limit: int = 100, before_id: int | None = None, actor: str | None = None,
-                   action: str | None = None) -> list[AuditEntry]:
+                   action: str | None = None, tenant_id: str | None = None) -> list[AuditEntry]:
         rows = [e for e in reversed(self._items) if (before_id is None or e.id < before_id)
-                and (actor is None or e.actor == actor) and (action is None or e.action == action)]
+                and (actor is None or e.actor == actor) and (action is None or e.action == action)
+                and (tenant_id is None or e.tenant_id == tenant_id)]
         return rows[:limit]
 
     async def verify(self) -> Verification:

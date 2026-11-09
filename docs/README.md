@@ -21,6 +21,7 @@ NorthCX is an open-source, self-hosted platform for supervised customer-experien
 | Guardrails | `04-ai-architecture/NorthCX_Guardrails-and-Supervisors.md` |
 | Memory | `04-ai-architecture/NorthCX_Knowledge-and-Memory.md` |
 | Knowledge retrieval | `05-technical/NorthCX_Knowledge-Design.md` |
+| Tenancy | `05-technical/NorthCX_Tenancy-ADR.md` (partly built) |
 | Models | `04-ai-architecture/NorthCX_Model-Providers.md` (built) and `NorthCX_Hybrid-Model-Selection.md` (partly built) |
 | Simulations and release gate | `04-ai-architecture/NorthCX_Simulation-and-Evals.md` |
 | Channels and voice | `05-technical/NorthCX_Channels-and-Voice.md` and `NorthCX_Voice.md` (bridge protocol) |
