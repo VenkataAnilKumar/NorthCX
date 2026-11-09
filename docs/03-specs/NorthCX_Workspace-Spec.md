@@ -1,6 +1,6 @@
 # NorthCX Workspace Specification
 
-Status: **Designed**. Updated: 2026-11-09. Master for: the staff Workspace app. Requirements for the staff Workspace app (FR35). Screens and mockups: `../07-design/NorthCX_Platform-Features-and-Tabs.md`. Catalog IDs (W1 to W14) are in `NorthCX_Feature-Catalog.md` section 12. Everything here is planned for after 1.0 (epics E5, E6, E7, E8 in the implementation plan).
+Status: **Designed**. Updated: 2026-11-09. Master for: the staff Workspace app. Requirements for the staff Workspace app (FR35). Screens and mockups: `../07-design/NorthCX_Platform-Features-and-Tabs.md`. Catalog IDs (W1 to W14) are in `NorthCX_Feature-Catalog.md` section 12. Everything here is planned for after 1.0 (epics E2, E5, E6, E7, E8 and E22 in the implementation plan).
 
 ## 1. Purpose and users
 A separate web app for the people who supervise the agents: support staff, team leads and reviewers. It has its own address, one sign-in with the Admin app, and one design system. It does not replace the helpdesk, and it never sends a message to a customer without a person doing so.
@@ -38,7 +38,7 @@ Six left items: Home, Pilot, Work (Inbox, Approvals, Customers), Assist (Assista
 Backend unavailable: read-only banner, drafts kept locally, no silent loss. Permission removed mid-session: the next request shows "no longer allowed" and the page refreshes its navigation. A conversation resolved by someone else while open: the page shows who and when and disables the resolve button. Offline: composer disabled with a reason.
 
 ## 6. Out of scope for the first release
-Customers tab (second release), web search for assistants (later, off by default), live call assist, a mobile app, sharing outside the organization.
+Customers tab (second release); Outputs, Spaces, Automations, Quality and Performance (later releases, as their backends land); web search for assistants (later, off by default), live call assist, a mobile app, sharing outside the organization.
 
-## 7. Open decisions
-Per-space file limits. (Decided, decision 162: all twelve tabs are confirmed; the first release is Inbox, Approvals, Pilot, Assistants, Search and Library; Customers is second release; Outputs, Spaces, Automations, Quality and Performance follow as their backends land.)
+## 7. Decisions
+None open. Per-space file limits are set by an administrator (decision 163). Decision 162: all twelve tabs are confirmed; the first release is Inbox, Approvals, Pilot, Assistants, Search and Library; Customers is second release; Outputs, Spaces, Automations, Quality and Performance follow as their backends land.

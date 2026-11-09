@@ -2,7 +2,7 @@
 
 Status: **Reference**. Updated: 2026-11-09. Master for: a snapshot of the 1.0 product as ten layers (2026-11-05). Release candidate 1.0.0-rc.1 at the time. Describes the product as ten layers, from what users see down to how it is sold. Companion documents: `NorthCX_Product-Definition.md` (vision and pillars), `NorthCX_PRD.md`, `NorthCX_Personas.md`, `../03-specs/NorthCX_Feature-Catalog.md` (every feature with its status), `../08-implementation/NorthCX_Gap-Closure-Plan.md` (what comes after 1.0).
 
-**Changed since this snapshot (to 2026-11-09).** Built: a provider registry with `provider:model` names and Claude through the SDK or a direct HTTPS client (WP1.1, WP1.2); PDFs read as masked text; a generated API reference and a webhook test sender; shared rate limits and budgets across processes (Postgres backend); several processes with roles and job leases; hash-pinned dependencies with an audit job. Designed, not built: the staff Workspace and the regrouped Admin app with sub-tabs, the Pilot, Agent Hub, Builder, Automations, personal intelligence and hybrid model selection (`../07-design/NorthCX_Platform-Features-and-Tabs.md`). Decided: the staff product's working name is NorthCX Workspace (D2). The rows below are updated where a fact changed; the layer summary keeps the snapshot's view.
+**Changed since this snapshot (to 2026-11-09).** Built: a provisional resolution rate beside containment; a provider registry with `provider:model` names and Claude through the SDK or a direct HTTPS client (WP1.1, WP1.2); PDFs read as masked text; a generated API reference and a webhook test sender; shared rate limits and budgets across processes (Postgres backend); several processes with roles and job leases; hash-pinned dependencies with an audit job. Designed, not built: the staff Workspace and the regrouped Admin app with sub-tabs, the Pilot, Agent Hub, Builder, Automations, personal intelligence and hybrid model selection (`../07-design/NorthCX_Platform-Features-and-Tabs.md`). Decided: the staff product's working name is NorthCX Workspace (D2). The rows below are updated where a fact changed; the layer summary keeps the snapshot's view.
 
 **Status legend used throughout:** ✅ built and tested · 🔶 partly built · 🗺️ planned (epic and wave in the gap-closure plan) · ⛔ not something this repository can deliver alone (needs an outside party).
 
@@ -46,13 +46,13 @@ Grouped by the eight pillars of the product definition.
 | **Learn** | Metrics with denominators, alerts, always-on monitoring, conversation search and tags, plain-language analytics, trace export, signed status events | ✅ |
 | **Own** | Apache-2.0, self-hosted, Docker Compose, no dependency on a vendor's runtime beyond the model API (isolated behind one interface) | ✅ |
 
-**Build helpers:** templates for common intents (order status, returns and refunds, knowledge FAQ, human triage) with their scenarios; natural-language drafts for journeys and agents (always a draft for a person to review, never saved by itself); automatic test scenarios, refinement by instruction, and transcription of recordings for drafting.
+**Build helpers:** templates for common intents (Order status, Returns and refunds, Help-centre answers, Triage and hand-off) with their scenarios; natural-language drafts for journeys and agents (always a draft for a person to review, never saved by itself); automatic test scenarios, refinement by instruction, and transcription of recordings for drafting.
 
 ## 3. Model layer
 
 | Aspect | Today | Plan |
 |---|---|---|
-| **Providers** | Claude through the Messages API (SDK or a direct HTTPS client), behind a single interface (`LLM.complete`) and a provider registry with `provider:model` names; nothing else in the code depends on the SDK | 🗺️ E1: further provider adapters (OpenAI-compatible hosted and self-hosted servers first), provider-qualified model names, capability flags so an impossible configuration is refused at release time |
+| **Providers** | Claude through the Messages API (SDK or a direct HTTPS client), behind a single interface (`LLM.complete`) and a provider registry with `provider:model` names; nothing else in the code depends on the SDK | 🗺️ E1: further provider adapters (OpenAI-compatible hosted and self-hosted servers first) and a capability check at release time (provider-qualified names and capability flags are built) |
 | **Choice of model** | Per agent; separate models for the supervisor, summaries and the judge | 🗺️ Per team and per purpose, with mixed-provider fallback chains |
 | **Resilience** | Retries with back-off, optional fallback model, graceful hand-off when the model is down, supervisor errors fail closed | ✅ |
 | **Budgets** | Token budgets per turn and per day, step and transfer limits | 🗺️ E1: budgets in currency, per-team budgets and spend views, cheaper-model routing for simple turns |
@@ -106,8 +106,8 @@ The full map, with epics and dependencies, is section 10 of the gap-closure plan
 | **Studio** (operator console) | Operators | ✅ |
 | Hand-off delivery to your helpdesk | Support staff | ✅ |
 | Staff workspace; agent and automation builder with visual editor | Staff, builders | 🗺️ |
-| Admin portal (users, groups, SSO, SCIM, roles, agent catalog, guardrail policies, connectors, usage, cost, audit) | Administrators | 🔶 keys, roles, SSO settings and audit exist; the rest 🗺️ |
-| Developer portal (API reference, SDK guides, MCP, webhooks, sandbox) | Developers | 🔶 docs and a keys screen; portal 🗺️ |
+| Admin portal (users, groups, SSO, SCIM, roles, agent catalog, guardrail policies, connectors, usage, cost, audit); since 2026-11-09 designed as the Admin app, the Studio extended | Administrators | 🔶 keys, roles, SSO settings and audit exist; the rest 🗺️ |
+| Developer portal (API reference, SDK guides, MCP, webhooks, sandbox) | Developers | 🔶 docs, a keys screen, the generated API reference and the webhook test sender (built since this snapshot); portal 🗺️ |
 | Analytics and observability dashboard | CX leads, operators | 🔶 conversation insights exist; adoption, runs and cost per team 🗺️ |
 | Trust Center and Legal Center | Customers, auditors | 🔶 threat model and security review exist; centers 🗺️; reports need an auditor ⛔ |
 | Deployment and ops console | Private-deployment operators | 🔶 health and residency pages; the rest 🗺️ |

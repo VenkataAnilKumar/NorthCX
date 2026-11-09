@@ -1,6 +1,6 @@
 # NorthCX Personal Intelligence Specification
 
-Status: **Designed**. Updated: 2026-11-09. Master for: instructions, persona, memory, skills and personal context for staff. Requirements for the personal layer of the Workspace and Settings (FR39): instructions, persona, memory, skills, personal context and the controls over them. Catalog IDs PN1 to PN12. Needs epic E5 (staff memory E5.5). Screens: `../assets/design/` (settings-skills and the Profile screens).
+Status: **Designed**. Updated: 2026-11-09. Master for: instructions, persona, memory, skills and personal context for staff. Requirements for the personal layer of the Workspace and Settings (FR39): instructions, persona, memory, skills, personal context and the controls over them. Catalog IDs PN1 to PN12. Needs epic E5 (staff memory E5.5). Screens in `../assets/design/`: `21-settings-profile.png`, `47-settings-instructions-persona.png`, `44-settings-personal-context.png`, `49-settings-skills.png`, `45-settings-my-assistants.png`, `46-settings-activity-controls.png`, `22-settings-memory.png`, `48-settings-preferences-theme.png`.
 
 ## 1. Principle
 Personal intelligence makes an assistant fit the person without ever weakening an organization rule. Every layer is opt-in, visible ("what it used"), switchable per chat and erasable.
@@ -20,7 +20,7 @@ Personal intelligence makes an assistant fit the person without ever weakening a
 | Instructions and persona | Standing instructions, style presets or a custom style from the person's own writing, a table of what applies to a chat | Instructions that conflict with a higher layer are shown as ignored, with the reason |
 | Personal context | Opt-in sources, each with consent: own hand-offs, approvals, drafts and outputs, team documents; calendar and email later; a daily briefing; suggestions and reminders; a preview of what would be used | Off until the person turns each source on; turning one off stops its use at once |
 | Skills | Reusable ways of doing a task from the person, the team and the organization | A skill is instructions only; it never adds a tool or access |
-| My assistants | Assistants the person builds, limited to their own access | Shared only with a reviewer when the assistant can write |
+| My assistants | Assistants the person builds, limited to their own access | Sharing a read-only assistant needs no reviewer; sharing one that can write needs a reviewer's approval (decision 166) |
 | Activity and controls | What assistants used, retention, temporary chats, export, delete, erase | Erase removes memory, context and chat history on request |
 
 ## 4. Memory

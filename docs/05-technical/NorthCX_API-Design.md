@@ -58,7 +58,7 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 `{reply, status: "completed"|"escalated"|"needs_approval", traceId, pendingApprovals[], handoffId}` (`handoffId` is set when the status is `escalated`)
 
 ## Errors
-`400` invalid body, `401` missing or invalid key, `403` the role lacks the permission, `404` unknown resource, `409` a conflict (already decided, already resolved, a run in progress, gate not satisfied), `413` body too large, `429` rate limited (with `Retry-After`), `501` a feature that is not configured, `500` internal. Error body `{error: {code, message}}`.
+`400` invalid body, `401` missing or invalid key, `403` the role lacks the permission, `404` unknown resource, `409` a conflict (already decided, already resolved, a run in progress, gate not satisfied), `413` body too large, `429` rate limited (with `Retry-After`), `501` a feature that is not configured, `503` the live agent version cannot be built (`agent_unavailable`; roll back), `500` internal. Error body `{error: {code, message}}`.
 
 ## Later
 Built since this section was first written: server-sent events for streaming and signed webhooks for status events. Still open: consistent pagination across every list (most lists take `limit` and some `before` or `after`). The staff platform adds `/v1/workspace/*`, `/v1/hub/*` and policy routes (designed, `NorthCX_Staff-Platform-Architecture.md`).

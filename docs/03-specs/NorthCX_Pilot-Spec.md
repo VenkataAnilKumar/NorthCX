@@ -14,7 +14,7 @@ Left: Workspace navigation and recent chats. Centre: the conversation and compos
 2. For Research and Do, the assistant may ask up to three clarifying questions, each with answer chips and free text.
 3. It writes a plan: numbered steps, sources and tools each step uses, an estimate of time and cost, the model tier and why, and whether anything writes.
 4. The person approves, edits the plan, or runs it in the background. Quick answer and Think skip the plan.
-5. Running shows live steps. The person can pause, redirect (edits the remaining plan, never rewrites what ran) or stop.
+5. Running shows live steps. The person can pause or stop; from the second version also redirect (edits the remaining plan, never rewrites what ran).
 6. A step that would write to a system stops and asks the person. The ask names the exact action and input.
 7. The result is saved as a versioned output, with sources, steps and cost, and can be shared, scheduled or turned into an automation.
 
