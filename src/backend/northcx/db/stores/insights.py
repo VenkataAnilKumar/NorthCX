@@ -18,13 +18,15 @@ from northcx.trace_export import ExportJob, MAX_ATTEMPTS as EXPORT_MAX_ATTEMPTS
 
 
 class PgInsightsSource(_Base):
-    async def turns(self, since: float, until: float, agent: str | None, environment: str, limit: int) -> list[TurnFacts]:
+    async def turns(self, since: float, until: float, agent: str | None, environment: str, limit: int, sessions: list[str] | None = None) -> list[TurnFacts]:
         q = ("select t.id, t.session_id, t.agent_id, t.environment, t.agent_version, e.type, e.t as ts, e.data from "
-             "(select * from traces where started_at between :a and :b and environment = :env" + (" and agent_id = :ag" if agent else "") +
+             "(select * from traces where started_at between :a and :b and environment = :env" + (" and agent_id = :ag" if agent else "") + (" and session_id = any(:ss)" if sessions is not None else "") +
              " order by started_at desc limit :n) t join trace_events e on e.trace_id = t.id order by t.started_at desc, t.id, e.seq")
         params: dict[str, Any] = {"a": since, "b": until, "env": environment, "n": limit}
         if agent:
             params["ag"] = agent
+        if sessions is not None:
+            params["ss"] = list(sessions)
         async with self._ro() as s:
             rows = (await s.execute(text(q), params)).all()
         out: list[TurnFacts] = []
@@ -39,15 +41,16 @@ class PgInsightsSource(_Base):
             out.append(facts_from_trace(cur))
         return out
 
-    async def handoffs(self, since: float, until: float) -> list[HandoffFacts]:
+    async def handoffs(self, since: float, until: float, sessions: list[str] | None = None) -> list[HandoffFacts]:
         async with self._ro() as s:
-            rows = (await s.execute(text("select session_id, trace_id, trigger, topics, queue, created_at from handoffs where created_at between :a and :b"),
-                                    {"a": since, "b": until})).all()
+            rows = (await s.execute(text("select session_id, trace_id, trigger, topics, queue, created_at from handoffs where created_at between :a and :b" + (" and session_id = any(:ss)" if sessions is not None else "")),
+                                    {"a": since, "b": until, **({"ss": list(sessions)} if sessions is not None else {})})).all()
         return [HandoffFacts(r.session_id, r.trace_id, r.trigger, list(r.topics), r.queue, r.created_at) for r in rows]
 
-    async def feedback(self, since: float, until: float) -> list[FeedbackFacts]:
+    async def feedback(self, since: float, until: float, sessions: list[str] | None = None) -> list[FeedbackFacts]:
         async with self._ro() as s:
-            rows = (await s.execute(text("select * from conversation_feedback where created_at between :a and :b"), {"a": since, "b": until})).all()
+            rows = (await s.execute(text("select * from conversation_feedback where created_at between :a and :b" + (" and session_id = any(:ss)" if sessions is not None else "")),
+                                    {"a": since, "b": until, **({"ss": list(sessions)} if sessions is not None else {})})).all()
         return [FeedbackFacts(r.session_id, r.rating, r.created_at, r.comment) for r in rows]
 
 

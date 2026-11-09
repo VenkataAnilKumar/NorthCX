@@ -19,6 +19,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
     record, runtime = d.record, d.runtime
     svc: AutomationService = getattr(runtime, "automations", None) or AutomationService(InMemoryAutomations())
     runtime.automations = svc
+    signer = getattr(d.access, "signer", None)
+    svc.derive = signer.derive if signer is not None else None
     app.state.automations = svc
 
     async def live_assistants() -> list[Any]:
@@ -94,7 +96,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         except AutomationError as e:
             return fail(e)
         await record(request, "automation.create", a.id, version=a.version)
-        return {**a.to_dict(full=True), **({"webhookSecret": a.secret} if a.secret else {})}      # the secret is shown now and can be replaced, not read again
+        return {**a.to_dict(full=True), **({"webhookSecret": svc.webhook_secret(a)} if a.nonce else {})}      # the secret is shown now and can be replaced, not read again
 
     @app.put("/v1/automations/{automation_id}")
     async def revise(automation_id: str, body: AutomationBody, request: Request) -> Any:
@@ -164,10 +166,11 @@ def register(app: FastAPI, d: AppDeps) -> None:
         vs = await svc.repo.versions(automation_id)
         if not vs or vs[0].data["trigger"]["type"] != "webhook":
             return _err(404, "not_found", "No webhook routine with that id")
-        new = _s.token_urlsafe(24)
+        nonce = _s.token_hex(8)
         for v in vs:
-            v.secret = new
+            v.nonce = nonce
             await svc.repo.save(v)
+        new = svc.webhook_secret(vs[0])
         await record(request, "automation.secret_rotated", automation_id)
         return JSONResponse({"webhookSecret": new}, headers={"Cache-Control": "no-store"})
 

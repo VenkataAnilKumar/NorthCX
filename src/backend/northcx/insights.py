@@ -105,9 +105,9 @@ def facts_from_trace(t: Trace) -> TurnFacts:
 
 
 class InsightsSource(Protocol):
-    async def turns(self, since: float, until: float, agent: str | None, environment: str, limit: int) -> list[TurnFacts]: ...
-    async def handoffs(self, since: float, until: float) -> list[HandoffFacts]: ...
-    async def feedback(self, since: float, until: float) -> list[FeedbackFacts]: ...
+    async def turns(self, since: float, until: float, agent: str | None, environment: str, limit: int, sessions: list[str] | None = None) -> list[TurnFacts]: ...
+    async def handoffs(self, since: float, until: float, sessions: list[str] | None = None) -> list[HandoffFacts]: ...
+    async def feedback(self, since: float, until: float, sessions: list[str] | None = None) -> list[FeedbackFacts]: ...
 
 
 def ratio(num: float, den: float, digits: int = 4) -> dict[str, Any]:
@@ -402,20 +402,20 @@ class InMemoryInsightsSource:
     def __init__(self, runtime: Any, feedback: InMemoryFeedback):
         self.rt, self.fb = runtime, feedback
 
-    async def turns(self, since, until, agent, environment, limit) -> list[TurnFacts]:
+    async def turns(self, since, until, agent, environment, limit, sessions=None) -> list[TurnFacts]:
         out = []
         for t in getattr(self.rt.traces, "_traces", {}).values():
-            if not t.events or not (since <= t.events[0].t <= until) or t.environment != environment or (agent and t.agent_id != agent):
+            if not t.events or not (since <= t.events[0].t <= until) or t.environment != environment or (agent and t.agent_id != agent) or (sessions is not None and t.session_id not in sessions):
                 continue
             out.append(facts_from_trace(t))
         return sorted(out, key=lambda f: -f.started_at)[:limit]
 
-    async def handoffs(self, since, until) -> list[HandoffFacts]:
+    async def handoffs(self, since, until, sessions=None) -> list[HandoffFacts]:
         return [HandoffFacts(h.session_id, h.trace_id, h.trigger, list(h.topics), h.queue, h.created_at)
-                for h in getattr(self.rt.handoffs, "_items", {}).values() if since <= h.created_at <= until]
+                for h in getattr(self.rt.handoffs, "_items", {}).values() if since <= h.created_at <= until and (sessions is None or h.session_id in sessions)]
 
-    async def feedback(self, since, until) -> list[FeedbackFacts]:
-        return [f for f in self.fb.items.values() if since <= f.created_at <= until]
+    async def feedback(self, since, until, sessions=None) -> list[FeedbackFacts]:
+        return [f for f in self.fb.items.values() if since <= f.created_at <= until and (sessions is None or f.session_id in sessions)]
 
 
 class InsightsService:
@@ -425,6 +425,12 @@ class InsightsService:
     async def _load(self, since: float, until: float, agent: str | None, environment: str):
         turns = await self.source.turns(since, until, agent, environment, MAX_TURNS)
         return turns, await self.source.handoffs(since, until), await self.source.feedback(since, until)
+
+    async def for_sessions(self, since: float, until: float, sessions: list[str], environment: str = "production"):
+        """The facts about just these conversations, without reading everyone else's."""
+        if not sessions:
+            return [], [], []
+        return (await self.source.turns(since, until, None, environment, MAX_TURNS, sessions), await self.source.handoffs(since, until, sessions), await self.source.feedback(since, until, sessions))
 
     async def overview(self, since: float, until: float, agent: str | None = None, environment: str = "production", filters: Filters | None = None) -> dict[str, Any]:
         turns, handoffs, feedback = await self._load(since, until, agent, environment)

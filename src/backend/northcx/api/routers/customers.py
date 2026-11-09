@@ -54,7 +54,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             await record(request, "customers.lookup", customer_ref(cid), "not_found")
             return _err(404, "not_found", "No customer with that identifier")
         now = time.time()
-        turns, handoffs, feedback = await insight._load(now - WINDOW_DAYS * 86400.0, now, None, "production")
+        turns, handoffs, feedback = await insight.for_sessions(now - WINDOW_DAYS * 86400.0, now, sessions)
         reviews = await review_repo.for_sessions(sessions)
         out = await svc.profile(cid, sessions, turns, handoffs, feedback, reviews, facts)
         await record(request, "customers.open", out["ref"], sessions=len(sessions), facts=len(facts))

@@ -119,7 +119,7 @@ class Automation:
     proposed_by: str | None = None
     decided_by: str | None = None
     decision_note: str | None = None
-    secret: str = ""                 # webhook signing secret; never returned by the API except when it is made
+    nonce: str = ""                  # makes this routine's webhook secret; the secret itself is derived on demand and never stored
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
@@ -233,6 +233,7 @@ class AutomationService:
         self.repo = repo or InMemoryAutomations()
         self.settings = settings or InMemorySettings()
         self.hooks: Hooks | None = None
+        self.derive: Callable[[str], str] | None = None      # set by the server from the token signer
         self._lock = asyncio.Lock()
         self._enabled_cache: dict[str, tuple[float, bool]] = {}
         self._tasks: set[asyncio.Task] = set()
@@ -263,7 +264,7 @@ class AutomationService:
         clean = validate_definition(data, self._reports())
         if await self.repo.versions(clean["id"]):
             raise AutomationError(409, f"A routine '{clean['id']}' already exists; change it to make a new version")
-        a = Automation(clean["id"], 1, clean["name"], clean, created_by=by, secret=secrets.token_urlsafe(24) if clean["trigger"]["type"] == "webhook" else "")
+        a = Automation(clean["id"], 1, clean["name"], clean, created_by=by, nonce=secrets.token_hex(8) if clean["trigger"]["type"] == "webhook" else "")
         await self.repo.save(a)
         return a
 
@@ -279,11 +280,11 @@ class AutomationService:
             raise AutomationError(409, "It is waiting for review; reject it first to change it")
         if cur.status == "draft":
             cur.name, cur.data = clean["name"], clean
-            if clean["trigger"]["type"] == "webhook" and not cur.secret:
-                cur.secret = secrets.token_urlsafe(24)
+            if clean["trigger"]["type"] == "webhook" and not cur.nonce:
+                cur.nonce = secrets.token_hex(8)
             await self.repo.save(cur)
             return cur
-        n = Automation(automation_id, cur.version + 1, clean["name"], clean, created_by=by, secret=cur.secret or (secrets.token_urlsafe(24) if clean["trigger"]["type"] == "webhook" else ""))
+        n = Automation(automation_id, cur.version + 1, clean["name"], clean, created_by=by, nonce=cur.nonce or (secrets.token_hex(8) if clean["trigger"]["type"] == "webhook" else ""))
         await self.repo.save(n)
         return n
 
@@ -345,10 +346,16 @@ class AutomationService:
         return await self.repo.state(automation_id)
 
     # ---- running ----
+    def webhook_secret(self, a: Automation) -> str:
+        """The routine's webhook secret: derived from the server's signing secret and the routine's nonce, so it is not in the database. Empty when not a webhook routine or nothing to derive from."""
+        from .tenancy import current_tenant as _t
+        return self.derive(f"hook|{_t()}|{a.id}|{a.nonce}") if self.derive is not None and a.nonce else ""
+
     def verify_signature(self, a: Automation, body: bytes, header: str | None) -> bool:
-        if not a.secret or not header or not header.startswith("sha256="):
+        secret = self.webhook_secret(a)
+        if not secret or not header or not header.startswith("sha256="):
             return False
-        want = hmac.new(a.secret.encode(), body, hashlib.sha256).hexdigest()
+        want = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
         return hmac.compare_digest(want, header[7:])
 
     async def run(self, automation_id: str, trigger: str, by: str, input_text: str = "", wait: bool = True) -> Run:

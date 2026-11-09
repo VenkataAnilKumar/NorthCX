@@ -11,7 +11,7 @@ from northcx.automations import CLAIM_SECONDS, Automation, Run
 from northcx.db.models import AutomationRow, AutomationRunRow, AutomationStateRow
 from northcx.db.stores._base import _Base, _jsonable
 
-_FIELDS = ("data", "created_by", "proposed_by", "decided_by", "decision_note", "secret")
+_FIELDS = ("data", "created_by", "proposed_by", "decided_by", "decision_note", "nonce")
 _RUN = ("version", "trigger", "by", "ended_at", "steps", "outcome", "error")
 CLAIM_SQL = text("update automation_state set next_run = :later where next_run is not null and next_run <= :now and not paused and "
                  "automation_id in (select automation_id from automation_state where next_run is not null and next_run <= :now and not paused order by next_run limit :n for update skip locked) "

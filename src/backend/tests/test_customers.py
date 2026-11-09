@@ -137,3 +137,14 @@ async def test_notes_and_the_switch_survive_the_database_and_stay_in_their_tenan
         assert len(await svc.notes.list("c1")) == 1 and await svc.enabled() is True
     finally:
         TENANT.reset(token)
+
+
+async def test_a_lookup_reads_only_the_customers_own_conversations(app_engine):
+    """The database is asked for these sessions only (the filter is in the query, not applied afterwards)."""
+    import time as _t
+    from northcx.db import PgInsightsSource
+    from northcx.insights import InsightsService
+    svc = InsightsService(PgInsightsSource(app_engine))
+    t, h, f = await svc.for_sessions(_t.time() - 86400, _t.time(), ["web-1"])
+    assert t == [] and h == [] and f == []
+    assert await svc.for_sessions(0, 1, []) == ([], [], [])

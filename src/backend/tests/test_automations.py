@@ -310,3 +310,17 @@ def test_a_run_lost_with_its_process_is_marked_failed_and_the_organization_limit
         loop.run_until_complete(svc.repo.save_run(Run(f"other-{i}", 1, "manual", "ann")))
     with pytest.raises(AutomationError, match="already running; try again"):
         loop.run_until_complete(svc.run("morning-brief", "manual", "ann"))
+
+
+def test_the_webhook_secret_is_never_stored_and_survives_a_restart_of_the_service():
+    app, rt, key, loop = world()
+    c = TestClient(app)
+    ann = key("ann", "release_manager")
+    made = c.post("/v1/automations", headers=ann, json={"definition": {**BRIEF, "id": "hooked", "trigger": {"type": "webhook"}}}).json()
+    svc = app.state.automations
+    stored = loop.run_until_complete(svc.repo.versions("hooked"))[0]
+    assert made["webhookSecret"] and made["webhookSecret"] not in json.dumps(stored.__dict__, default=str)
+    assert svc.webhook_secret(stored) == made["webhookSecret"]                    # derived again on demand, the same every time
+    svc.derive = None
+    assert svc.webhook_secret(stored) == ""                                         # with nothing to derive from, no signature is accepted
+    assert not svc.verify_signature(stored, b"x", sign("anything", b"x"))

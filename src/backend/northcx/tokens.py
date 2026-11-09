@@ -61,6 +61,10 @@ class TokenSigner:
             raise ValueError("token secret is too short")
         self._secret, self._clock = secret, clock
 
+    def derive(self, purpose: str) -> str:
+        """A secret for another use (a routine's webhook), derived from this one with a label, so the database never holds it and the master never leaves this class."""
+        return _b64(hmac.new(self._secret, b"northcx-derive|" + purpose.encode(), hashlib.sha256).digest())
+
     def _sign(self, payload: str) -> str:
         return _b64(hmac.new(self._secret, payload.encode(), hashlib.sha256).digest())
 
