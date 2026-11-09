@@ -9,6 +9,7 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - UI and UX design approved: glass surfaces, one accent colour, a floating six-item rail that can be collapsed to icons or hidden in full window mode, original tab icons, AA contrast rules (`docs/07-design/NorthCX_UI-UX-Design-Proposal.md`, six mockups).
 
 ### Added (Phase 10: Library items)
+- Files in Spaces: plain-text files (.txt, .md, .csv, .json, .log; ten per space, 200,000 characters each) kept in a space, masked for customer personal data as they are stored, and read by the Pilot as data (never as instructions) when you work in that space. They go with the space. Migration 0054.
 - Performance by team: when a hand-off is resolved or an approval decided, the team the person was signed in under is recorded (migration 0053), and the Team card shows figures by team; a team with fewer than five items is grouped under "Other teams" so a small team cannot single anyone out.
 - Library items (E6 6.1): prompts, macros, playbooks and canned answers staff keep for reuse, private or shared, with the last 20 versions, tags, a use counter and search; text is masked for customer personal data before it is stored. The Inbox suggests the macros and canned answers that fit a conversation's customer messages and shows the text to copy (nothing is sent from the Workspace). Migration 0052. The Workspace Library page has a "Saved items" tab.
 

@@ -608,3 +608,7 @@ export const getLibraryItem = (id: string) => api<LibraryItem>(`/v1/workspace/li
 export const deleteLibraryItem = (id: string) => api<{ deleted: boolean }>(`/v1/workspace/library-items/${id}`, { method: "DELETE" });
 export const takeLibraryItem = (id: string) => api<LibraryItem>(`/v1/workspace/library-items/${id}/use`, { method: "POST" });
 export const suggestLibraryItems = (text: string) => api<{ suggestions: LibraryItem[] }>("/v1/workspace/library-items/suggest", { method: "POST", body: JSON.stringify({ text }) }).then((r) => r.suggestions);
+export interface SpaceFileItem { id: string; spaceId: string; name: string; size: number; owner: string; createdAt: number; text?: string }
+export const listSpaceFiles = (spaceId: string) => api<{ files: SpaceFileItem[] }>(`/v1/workspace/spaces/${spaceId}/files`).then((r) => r.files);
+export const addSpaceFile = (spaceId: string, name: string, text: string) => api<SpaceFileItem>(`/v1/workspace/spaces/${spaceId}/files`, { method: "POST", body: JSON.stringify({ name, text }) });
+export const deleteSpaceFile = (spaceId: string, fileId: string) => api<{ deleted: boolean }>(`/v1/workspace/spaces/${spaceId}/files/${fileId}`, { method: "DELETE" });

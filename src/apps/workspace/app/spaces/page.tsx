@@ -1,7 +1,26 @@
 "use client";
 import { useState } from "react";
-import { createSpace, deleteSpace, editSpace, getSpace, listSpaces, useLoad, type SpaceItem } from "@northcx/api-client";
+import { addSpaceFile, createSpace, deleteSpace, deleteSpaceFile, editSpace, getSpace, listSpaceFiles, listSpaces, useLoad, type SpaceItem } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader } from "@northcx/ui";
+
+function Files({ space, canEdit }: { space: SpaceItem; canEdit: boolean }) {
+  const { data, reload } = useLoad(() => listSpaceFiles(space.id), [space.id]);
+  const [err, setErr] = useState<string | null>(null);
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setErr(null);
+    try { await addSpaceFile(space.id, file.name, await file.text()); reload(); } catch (e) { setErr((e as Error).message); }
+  };
+  return (
+    <div className="mt-3">
+      <h3 className="text-sm font-semibold">Files</h3>
+      <p className="text-xs text-muted">Plain text only (.txt, .md, .csv, .json, .log), up to 10 files of 200,000 characters. Customer personal data is masked when a file is added. The Pilot reads them as data when you work in this space.</p>
+      {err && <div className="my-2"><ErrorBox message={err} /></div>}
+      {data?.length ? <ul className="mt-1 text-sm">{data.map((f) => <li key={f.id}>{f.name} <span className="text-xs text-muted">({f.size.toLocaleString()} characters)</span>{canEdit && <button className="btn ml-2" onClick={() => void deleteSpaceFile(space.id, f.id).then(reload).catch((e) => setErr(e.message))}>Remove</button>}</li>)}</ul> : <p className="text-sm text-muted">No files.</p>}
+      {canEdit && <label className="mt-2 block text-sm">Add a file<input type="file" accept=".txt,.md,.csv,.json,.log,text/plain" className="field mt-1 block" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} /></label>}
+    </div>
+  );
+}
 
 export default function Page() {
   const { data, error, loading, reload } = useLoad(() => listSpaces());
@@ -30,6 +49,7 @@ export default function Page() {
         <GlassCard title={`In ${open.name}`} action={<button className="btn" onClick={() => setOpen(null)}>Close</button>} className="mb-6">
           <p className="text-sm"><strong>Instructions:</strong> {open.instructions || "none"}</p>
           <p className="mt-1 text-xs text-muted">Open the Pilot and choose this space to work with these instructions.</p>
+          <Files space={open} canEdit />
           <h3 className="mt-3 text-sm font-semibold">Outputs</h3>
           {open.outputs?.length ? <ul className="mt-1 text-sm">{open.outputs.map((o) => <li key={o.id}>{o.title} <span className="text-xs text-muted">({o.kind}, version {o.version})</span></li>)}</ul> : <Empty>No outputs you can see.</Empty>}
         </GlassCard>)}

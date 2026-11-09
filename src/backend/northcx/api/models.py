@@ -388,6 +388,11 @@ class SpaceBody(BaseModel):
     visibility: str = "private"
 
 
+class SpaceFileBody(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    text: str = Field(min_length=1, max_length=200000)
+
+
 class SpaceEditBody(BaseModel):
     name: str | None = Field(default=None, max_length=80)
     description: str | None = Field(default=None, max_length=500)

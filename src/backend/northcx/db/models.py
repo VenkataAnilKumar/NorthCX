@@ -791,6 +791,19 @@ class DecisionTeamRow(TenantScoped, Base):
     at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+class SpaceFileRow(TenantScoped, Base):
+    """A plain-text file kept in a space (masked on the way in)."""
+    __tablename__ = "space_files"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    space_id: Mapped[str] = mapped_column(String(20), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    owner: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    __table_args__ = (Index("ix_space_files_space", "space_id"),)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

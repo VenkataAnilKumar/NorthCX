@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse, Response
 from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
-from northcx.api.models import OutputBody, OutputEditBody, SpaceBody, SpaceEditBody
+from northcx.api.models import OutputBody, OutputEditBody, SpaceBody, SpaceEditBody, SpaceFileBody
 from northcx.outputs import ContentError, ContentService, InMemoryContent
 
 
@@ -143,6 +143,51 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return fail(e)
         await record(request, "workspace.space_edit", s.id, visibility=s.visibility)
         return s.to_dict()
+
+    @app.get("/v1/workspace/spaces/{space_id}/files")
+    async def list_files(space_id: str, request: Request) -> Any:
+        who: Identity = request.state.identity
+        if (r := staff(who)) is not None:
+            return r
+        try:
+            return {"files": [f.to_dict() for f in await svc.list_files(space_id, who.name, admin(who))]}
+        except ContentError as e:
+            return fail(e)
+
+    @app.post("/v1/workspace/spaces/{space_id}/files", status_code=201)
+    async def add_file(space_id: str, body: SpaceFileBody, request: Request) -> Any:
+        """Plain text only (.txt, .md, .csv, .json, .log). Customer personal data is masked as it is stored; the Pilot reads these as data, never as instructions."""
+        who: Identity = request.state.identity
+        if (r := staff(who)) is not None:
+            return r
+        try:
+            f = await svc.add_file(space_id, who.name, admin(who), body.name, body.text)
+        except ContentError as e:
+            return fail(e)
+        await record(request, "workspace.space_file_add", f.id, space=space_id, size=len(f.text))
+        return f.to_dict()
+
+    @app.get("/v1/workspace/spaces/{space_id}/files/{file_id}")
+    async def get_file(space_id: str, file_id: str, request: Request) -> Any:
+        who: Identity = request.state.identity
+        if (r := staff(who)) is not None:
+            return r
+        try:
+            return JSONResponse((await svc.get_file(space_id, file_id, who.name, admin(who))).to_dict(full=True), headers={"Cache-Control": "no-store"})
+        except ContentError as e:
+            return fail(e)
+
+    @app.delete("/v1/workspace/spaces/{space_id}/files/{file_id}")
+    async def delete_file(space_id: str, file_id: str, request: Request) -> Any:
+        who: Identity = request.state.identity
+        if (r := staff(who)) is not None:
+            return r
+        try:
+            await svc.delete_file(space_id, file_id, who.name, admin(who))
+        except ContentError as e:
+            return fail(e)
+        await record(request, "workspace.space_file_remove", file_id, space=space_id)
+        return {"deleted": True}
 
     @app.delete("/v1/workspace/spaces/{space_id}")
     async def delete_space(space_id: str, request: Request) -> Any:

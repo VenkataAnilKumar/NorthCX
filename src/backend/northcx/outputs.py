@@ -24,6 +24,10 @@ MAX_BODY = 100_000
 MAX_VERSIONS = 20
 DEFAULT_DAYS, MAX_DAYS = 90, 365
 MAX_PER_OWNER = 500
+FILE_EXT = (".txt", ".md", ".csv", ".json", ".log")
+MAX_FILE = 200_000                  # characters in one file
+MAX_FILES = 10                      # per space
+FILE_CONTEXT = 12_000               # most characters of files the Pilot reads in one question
 
 
 class ContentError(Exception):
@@ -63,6 +67,22 @@ class Output:
 
 
 @dataclass
+class SpaceFile:
+    space_id: str
+    name: str
+    text: str
+    owner: str
+    id: str = field(default_factory=lambda: "fil-" + uuid.uuid4().hex[:10])
+    created_at: float = field(default_factory=time.time)
+
+    def to_dict(self, full: bool = False) -> dict[str, Any]:
+        out = {"id": self.id, "spaceId": self.space_id, "name": self.name, "size": len(self.text), "owner": self.owner, "createdAt": self.created_at}
+        if full:
+            out["text"] = self.text
+        return out
+
+
+@dataclass
 class Space:
     owner: str
     name: str
@@ -92,12 +112,17 @@ class ContentRepo(Protocol):
     async def get_space(self, space_id: str) -> Space | None: ...
     async def list_spaces(self) -> list[Space]: ...
     async def delete_space(self, space_id: str) -> bool: ...
+    async def put_file(self, f: SpaceFile) -> None: ...
+    async def list_files(self, space_id: str) -> list[SpaceFile]: ...
+    async def get_file(self, space_id: str, file_id: str) -> SpaceFile | None: ...
+    async def delete_file(self, space_id: str, file_id: str) -> bool: ...
 
 
 class InMemoryContent:
     def __init__(self) -> None:
         self._o: dict[tuple[str, str], Output] = {}
         self._s: dict[tuple[str, str], Space] = {}
+        self._f: dict[tuple[str, str], SpaceFile] = {}
 
     async def put_output(self, o: Output) -> None:
         o.updated_at = time.time()
@@ -136,8 +161,25 @@ class InMemoryContent:
         t = current_tenant()
         return sorted((s for (tt, _), s in self._s.items() if tt == t), key=lambda s: s.name.lower())
 
+    async def put_file(self, f: SpaceFile) -> None:
+        self._f[(current_tenant(), f.id)] = f
+
+    async def list_files(self, space_id: str) -> list[SpaceFile]:
+        t = current_tenant()
+        return sorted((f for (tt, _), f in self._f.items() if tt == t and f.space_id == space_id), key=lambda f: f.created_at)
+
+    async def get_file(self, space_id: str, file_id: str) -> SpaceFile | None:
+        f = self._f.get((current_tenant(), file_id))
+        return f if f is not None and f.space_id == space_id else None
+
+    async def delete_file(self, space_id: str, file_id: str) -> bool:
+        f = await self.get_file(space_id, file_id)
+        return f is not None and self._f.pop((current_tenant(), file_id), None) is not None
+
     async def delete_space(self, space_id: str) -> bool:
         t = current_tenant()
+        for k in [k for k, f in self._f.items() if k[0] == t and f.space_id == space_id]:
+            del self._f[k]                                   # a space's files go with it
         for k in [k for k, o in self._o.items() if k[0] == t and o.space_id == space_id]:
             self._o[k].space_id = None                       # outputs outlive their space
         return self._s.pop((t, space_id), None) is not None
@@ -294,6 +336,57 @@ class ContentService:
         if s.owner != who and not admin:
             raise ContentError(403, "Only the owner can delete a space")
         await self.repo.delete_space(space_id)
+
+    # ---- files in a space: plain text the Pilot may read when working there ----
+    async def add_file(self, space_id: str, who: str, admin: bool, name: str, text: str) -> SpaceFile:
+        s = await self._space_for(space_id, who, admin)
+        if s.owner != who and not admin:
+            raise ContentError(403, "Only the owner can add files to a space")
+        base = (name or "").strip().replace("\\", "/").rsplit("/", 1)[-1]
+        if not 1 <= len(base) <= 100 or not base.lower().endswith(FILE_EXT):
+            raise ContentError(400, f"Files are plain text: the name must end in {', '.join(FILE_EXT)}")
+        if not isinstance(text, str) or not text.strip() or "\x00" in text:
+            raise ContentError(400, "The file must be text, and not empty")
+        if len(text) > MAX_FILE:
+            raise ContentError(400, f"The file is too large (at most {MAX_FILE:,} characters)")
+        existing = await self.repo.list_files(space_id)
+        if len(existing) >= MAX_FILES:
+            raise ContentError(429, f"A space holds at most {MAX_FILES} files; remove one first")
+        if any(f.name.lower() == base.lower() for f in existing):
+            raise ContentError(409, "A file with that name is already in the space")
+        f = SpaceFile(space_id, clean(base), clean(text), who)
+        await self.repo.put_file(f)
+        return f
+
+    async def list_files(self, space_id: str, who: str, admin: bool) -> list[SpaceFile]:
+        await self._space_for(space_id, who, admin)
+        return await self.repo.list_files(space_id)
+
+    async def get_file(self, space_id: str, file_id: str, who: str, admin: bool) -> SpaceFile:
+        await self._space_for(space_id, who, admin)
+        f = await self.repo.get_file(space_id, file_id)
+        if f is None:
+            raise ContentError(404, "Unknown file")
+        return f
+
+    async def delete_file(self, space_id: str, file_id: str, who: str, admin: bool) -> None:
+        s = await self._space_for(space_id, who, admin)
+        if s.owner != who and not admin:
+            raise ContentError(403, "Only the owner can remove files from a space")
+        if not await self.repo.delete_file(space_id, file_id):
+            raise ContentError(404, "Unknown file")
+
+    async def file_context(self, space_id: str, who: str, admin: bool) -> str:
+        """The space's files as one block for the Pilot, cut to a fixed size. They are data to read, never instructions."""
+        files = await self.list_files(space_id, who, admin)
+        parts, left = [], FILE_CONTEXT
+        for f in files:
+            if left <= 0:
+                break
+            chunk = f.text[:left]
+            parts.append(f"--- file: {f.name}{' (cut short)' if len(chunk) < len(f.text) else ''} ---\n{chunk}")
+            left -= len(chunk)
+        return "\n".join(parts)
 
     async def list_spaces(self, who: str, admin: bool) -> list[Space]:
         return [s for s in await self.repo.list_spaces() if s.visible_to(who, admin)]

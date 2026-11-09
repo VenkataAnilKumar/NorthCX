@@ -6,9 +6,9 @@ import time
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from northcx.db.models import WorkspaceOutputRow, WorkspaceSpaceRow
+from northcx.db.models import SpaceFileRow, WorkspaceOutputRow, WorkspaceSpaceRow
 from northcx.db.stores._base import _Base, _jsonable
-from northcx.outputs import Output, Space
+from northcx.outputs import Output, Space, SpaceFile
 
 
 def _o(r: WorkspaceOutputRow) -> Output:
@@ -76,7 +76,26 @@ class PgContent(_Base):
         async with self._ro() as s:
             return [_s(r) for r in (await s.execute(select(WorkspaceSpaceRow).order_by(WorkspaceSpaceRow.name).limit(1000))).scalars().all()]
 
+    async def put_file(self, f: SpaceFile) -> None:
+        async with self._sm.begin() as s:
+            s.add(SpaceFileRow(id=f.id, space_id=f.space_id, name=f.name, owner=f.owner, created_at=f.created_at, text=f.text))
+
+    async def list_files(self, space_id: str) -> list[SpaceFile]:
+        async with self._ro() as s:
+            rows = (await s.execute(select(SpaceFileRow).where(SpaceFileRow.space_id == space_id).order_by(SpaceFileRow.created_at))).scalars().all()
+        return [SpaceFile(r.space_id, r.name, r.text, r.owner, r.id, r.created_at) for r in rows]
+
+    async def get_file(self, space_id: str, file_id: str) -> SpaceFile | None:
+        async with self._ro() as s:
+            r = (await s.execute(select(SpaceFileRow).where(SpaceFileRow.space_id == space_id, SpaceFileRow.id == file_id))).scalar_one_or_none()
+        return SpaceFile(r.space_id, r.name, r.text, r.owner, r.id, r.created_at) if r else None
+
+    async def delete_file(self, space_id: str, file_id: str) -> bool:
+        async with self._sm.begin() as s:
+            return (await s.execute(delete(SpaceFileRow).where(SpaceFileRow.space_id == space_id, SpaceFileRow.id == file_id))).rowcount > 0
+
     async def delete_space(self, space_id: str) -> bool:
         async with self._sm.begin() as s:
+            await s.execute(delete(SpaceFileRow).where(SpaceFileRow.space_id == space_id))        # a space's files go with it
             await s.execute(update(WorkspaceOutputRow).where(WorkspaceOutputRow.space_id == space_id).values(space_id=None))     # outputs outlive their space
             return (await s.execute(delete(WorkspaceSpaceRow).where(WorkspaceSpaceRow.id == space_id))).rowcount > 0

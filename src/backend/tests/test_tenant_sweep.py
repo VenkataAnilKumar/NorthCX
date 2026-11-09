@@ -65,6 +65,7 @@ def seed(w) -> dict[str, str]:
     c.post("/v1/sessions/web-a/feedback", headers={"authorization": f"Bearer {tok}"}, json={"rating": 5, "comment": MARK})
     # outputs, spaces
     ids["space_id"] = ok(c.post("/v1/workspace/spaces", headers=A, json={"name": f"{MARK} space", "instructions": MARK, "visibility": "shared"}), "space")["id"]
+    ok(c.post(f"/v1/workspace/spaces/{ids['space_id']}/files", headers=A, json={"name": "acme-notes.txt", "text": MARK + " file text"}), "space file")
     ids["output_id"] = ok(c.post("/v1/workspace/outputs", headers=A, json={"title": f"{MARK} output", "body": MARK + " body", "visibility": "shared", "spaceId": ids["space_id"]}), "output")["id"]
     ids["item_id"] = ok(c.post("/v1/workspace/library-items", headers=A, json={"title": f"{MARK} macro", "body": MARK + " reply text", "kind": "macro", "visibility": "shared"}), "library item")["id"]
     # customers

@@ -21,6 +21,7 @@
   "DELETE /v1/workspace/memory/x": "/v1/workspace/memory/{note_id} -> forget_memory",
   "DELETE /v1/workspace/outputs/x": "/v1/workspace/outputs/{output_id} -> delete_output",
   "DELETE /v1/workspace/spaces/x": "/v1/workspace/spaces/{space_id} -> delete_space",
+  "DELETE /v1/workspace/spaces/x/files/x": "/v1/workspace/spaces/{space_id}/files/{file_id} -> delete_file",
   "DELETE /v1/workspace/tasks/x": "/v1/workspace/tasks/{task_id} -> delete_task",
   "GET /": "/ -> widget",
   "GET /auth/sso/callback": "/auth/sso/callback -> sso_callback",
@@ -134,6 +135,8 @@
   "GET /v1/workspace/search": "/v1/workspace/search -> workspace_search",
   "GET /v1/workspace/spaces": "/v1/workspace/spaces -> list_spaces",
   "GET /v1/workspace/spaces/x": "/v1/workspace/spaces/{space_id} -> get_space",
+  "GET /v1/workspace/spaces/x/files": "/v1/workspace/spaces/{space_id}/files -> list_files",
+  "GET /v1/workspace/spaces/x/files/x": "/v1/workspace/spaces/{space_id}/files/{file_id} -> get_file",
   "GET /v1/workspace/tasks": "/v1/workspace/tasks -> list_tasks",
   "GET /v1/workspace/tasks/x": "/v1/workspace/tasks/{task_id} -> get_task",
   "PATCH /scim/v2/Groups/x": "/scim/v2/Groups/{group_id} -> patch_group",
@@ -238,6 +241,7 @@
   "POST /v1/workspace/memory": "/v1/workspace/memory -> add_memory",
   "POST /v1/workspace/outputs": "/v1/workspace/outputs -> create_output",
   "POST /v1/workspace/spaces": "/v1/workspace/spaces -> create_space",
+  "POST /v1/workspace/spaces/x/files": "/v1/workspace/spaces/{space_id}/files -> add_file",
   "POST /v1/workspace/tasks": "/v1/workspace/tasks -> create_task",
   "POST /v1/workspace/tasks/x/answers": "/v1/workspace/tasks/{task_id}/answers -> answer_task",
   "POST /v1/workspace/tasks/x/approve": "/v1/workspace/tasks/{task_id}/approve -> approve_task",
@@ -370,6 +374,11 @@
    "DELETE",
    "/v1/workspace/spaces/{space_id}",
    "delete_space"
+  ],
+  [
+   "DELETE",
+   "/v1/workspace/spaces/{space_id}/files/{file_id}",
+   "delete_file"
   ],
   [
    "DELETE",
@@ -938,6 +947,16 @@
   ],
   [
    "GET",
+   "/v1/workspace/spaces/{space_id}/files",
+   "list_files"
+  ],
+  [
+   "GET",
+   "/v1/workspace/spaces/{space_id}/files/{file_id}",
+   "get_file"
+  ],
+  [
+   "GET",
    "/v1/workspace/tasks",
    "list_tasks"
   ],
@@ -1455,6 +1474,11 @@
    "POST",
    "/v1/workspace/spaces",
    "create_space"
+  ],
+  [
+   "POST",
+   "/v1/workspace/spaces/{space_id}/files",
+   "add_file"
   ],
   [
    "POST",
