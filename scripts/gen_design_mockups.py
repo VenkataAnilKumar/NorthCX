@@ -243,7 +243,7 @@ RECENT = ["Summarise yesterday's refund escalations", "Draft: apology for delaye
 
 
 WS_NAV_FULL = [("Work", [("Threads", "&#129525;"), ("Approvals", "&#9989;"), ("Customers", "&#128100;")]), ("Assist", [("Chat", "&#128172;"), ("Assistants", "&#129302;"), ("Search", "&#128269;"), ("Knowledge", "&#128218;")]),
-               ("Create", [("Artifacts", "&#128196;"), ("Projects", "&#128193;"), ("Scheduled", "&#9201;")]), ("Team (leads, reviewers)", [("Reviews", "&#128221;"), ("Insights", "&#128200;")])]
+               ("Create", [("Artifacts", "&#128196;"), ("Projects", "&#128193;"), ("Workflows", "&#128256;"), ("Scheduled", "&#9201;")]), ("Team (leads, reviewers)", [("Reviews", "&#128221;"), ("Insights", "&#128200;")])]
 
 
 def wsapp(active: str, work: str, title: str, recent_on: int | None = None, full: bool = False) -> str:
@@ -512,12 +512,53 @@ SCREENS["39-workspace-approvals"] = wsapp("Approvals", head("Approvals", "Action
 <div class="card"><h3>Decided today</h3>{table(["Request","Decision","By"],[["issue_refund $32","auto (under limit)","agent"],["issue_refund $120","approved","Dana K."],["issue_refund $400","rejected, handed to lead","Marco L."]])}</div></div>""", "Approvals", full=True)
 
 SCREENS["40-workspace-navigation-proposal"] = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Workspace navigation proposal (mockup)</title><style>{WS_CSS}
-body{{padding:28px;width:1440px;height:900px}}h1{{margin:0}}</style></head><body><h1>Workspace navigation: current and proposed</h1><p class="sub">Your seven tabs stay. Five are proposed, grouped so the list stays short. Role-gated tabs appear only for people who can use them.</p>
+body{{padding:28px;width:1440px;height:900px}}h1{{margin:0}}</style></head><body><h1>Workspace navigation: current and proposed</h1><p class="sub">Your seven tabs stay. Six are proposed, grouped so the list stays short. Role-gated tabs appear only for people who can use them.</p>
 <div class="g3" style="grid-template-columns:1fr 1.4fr 1fr;align-items:start">
 <div class="card"><span class="b ok">Decided</span><h3 style="margin-top:8px">Today (7)</h3>{"".join(f"<div style='padding:5px 0;border-top:1px solid var(--border)'>{ic} &nbsp;{n}</div>" for n, ic in WS_NAV)}</div>
-<div class="card"><span class="b info">Proposed (12)</span><h3 style="margin-top:8px">Grouped</h3>{"".join(f"<div class='grp' style='padding:8px 0 2px'>{g}</div>" + "".join(f"<div style='padding:5px 0;border-top:1px solid var(--border)'>{ic} &nbsp;{n}{' <span class=tag>new</span>' if n in ('Approvals','Customers','Knowledge','Reviews','Insights') else ''}</div>" for n, ic in items) for g, items in WS_NAV_FULL)}</div>
+<div class="card"><span class="b info">Proposed (13)</span><h3 style="margin-top:8px">Grouped</h3>{"".join(f"<div class='grp' style='padding:8px 0 2px'>{g}</div>" + "".join(f"<div style='padding:5px 0;border-top:1px solid var(--border)'>{ic} &nbsp;{n}{' <span class=tag>new</span>' if n in ('Approvals','Customers','Knowledge','Reviews','Insights','Workflows') else ''}</div>" for n, ic in items) for g, items in WS_NAV_FULL)}</div>
 <div class="card"><h3>Not tabs, on purpose</h3><p class="note">Shown as panels or controls, because other agent desktops treat them that way:</p>
 <div style="padding:5px 0;border-top:1px solid var(--border)"><b>Customer panel</b><br><span class="note">inside a thread</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Suggested knowledge</b><br><span class="note">inside a thread</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Playbooks and canned answers</b><br><span class="note">in Knowledge and the reply box</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Notifications</b><br><span class="note">top-bar bell</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Live call assist</b><br><span class="note">panel when a call is open</span></div><div style="padding:5px 0;border-top:1px solid var(--border)"><b>Availability and workload</b><br><span class="note">status control in the header</span></div></div></div></body></html>"""
+
+
+def _node(x, y, kind, title, detail, tone="info", sel=False):
+    b = f"border:2px solid var(--primary);" if sel else "border:1px solid var(--border);"
+    return f'<div style="position:absolute;left:{x}px;top:{y}px;width:210px;background:var(--surface);{b}border-radius:12px;padding:10px 12px"><span class="b {tone}">{kind}</span><div style="font-weight:700;margin-top:4px">{title}</div><div class="note">{detail}</div></div>'
+
+
+SCREENS["41-workspace-workflows"] = wsapp("Workflows", head("Workflows", "Multi-step work that runs by itself: a trigger, steps that use assistants and connected systems, and people where they are needed.", '<span class="btn">From template</span> <span class="btn p">+ New workflow</span>') + f"""
+<div class="card" style="padding:14px"><b>Describe what you want</b><div class="in" style="display:block;margin-top:8px;color:var(--text)">Every weekday at 07:30, rank open billing hand-offs by urgency and ask the team lead to approve any reassignments.</div><div class="row" style="margin-top:8px"><span class="btn p">Draft it</span><span class="note" style="align-self:center">You review and test a draft before anything is saved or runs.</span></div></div>
+<div class="tabs" style="margin-top:14px"><a class="on">All (8)</a><a>Mine (3)</a><a>My team (5)</a><a>Needs attention (1)</a></div>
+<div class="card" style="padding:4px 14px">{table(["Workflow","Starts when","Steps","Owner","Last run","Status",""],[
+ ["<b>Daily hand-off triage</b><br><span class=note>Rank, tag and propose reassignments</span>","Weekdays 07:30","5","Dana K.","today 07:30",badge("OK","ok"),'<span class="sw2"></span>'],
+ ["<b>Refund over limit follow-up</b><br><span class=note>Remind approver, then escalate to lead</span>","Event: approval waiting 15 min","4","Marco L.","18 min ago",badge("Waiting for approval","warn"),'<span class="sw2"></span>'],
+ ["<b>Weekly QA digest</b><br><span class=note>Score samples, write the digest, email leads</span>","Mondays 08:00","6","Support leads","Mon 08:00",badge("OK","ok"),'<span class="sw2"></span>'],
+ ["<b>New knowledge gap alert</b><br><span class=note>Post top gaps to the team channel</span>","Webhook","3","Dana K.","yesterday",badge("1 failed run","bad"),'<span class="sw2"></span>'],
+ ["<b>Knowledge freshness check</b><br><span class=note>List sources older than 90 days</span>","Monthly","2","Support leads","Nov 1",badge("Paused","gr"),'<span class="sw2 off"></span>']])}</div>
+<p class="note" style="margin-top:8px">Workflows run with the owner's read access. Anything that writes goes through an approval, like a chat. Scheduled tasks are workflows that start on a schedule.</p>""", "Workflows", full=True)
+
+SCREENS["42-workspace-workflow-editor"] = wsapp("Workflows", head("Daily hand-off triage", "Starts weekdays at 07:30 &middot; owner Dana K. &middot; draft v4, live v3", '<span class="btn">List view</span> <span class="btn">Test run</span> <span class="btn p">Publish</span>') + f"""
+<div class="split" style="grid-template-columns:1fr 340px;height:760px"><div class="card" style="position:relative;padding:0;overflow:hidden;background:repeating-linear-gradient(0deg,#0000 0 23px,#e8ecf2 23px 24px),repeating-linear-gradient(90deg,#0000 0 23px,#e8ecf2 23px 24px)">
+<svg width="100%" height="100%" style="position:absolute;left:0;top:0"><g stroke="#5b6678" stroke-width="2" fill="none"><path d="M125 118 V140"/><path d="M125 228 V250"/><path d="M125 338 V360"/><path d="M230 398 H300"/><path d="M405 448 V490"/><path d="M405 578 V620"/></g></svg>
+{_node(20,30,"Starts when","Weekdays 07:30","Time zone Europe/Amsterdam","ok")}{_node(20,140,"Get data","Open hand-offs","Connector: helpdesk (read)","info")}{_node(20,250,"Assistant","Hand-off triage","Ranks by urgency, read-only tools","info",True)}
+{_node(20,360,"Check","Any urgent?","If none, the run finishes quietly","gr")}{_node(300,360,"Person","Lead approves reassignments","Waits up to 2 h, then escalates","warn")}{_node(300,490,"Action","Reassign","Write step: approval required","bad")}{_node(300,620,"Action","Tag and notify","Add tags, post to the team channel","info")}
+<div style="position:absolute;left:236px;top:376px;font-size:11px;color:var(--muted)">yes</div><div style="position:absolute;left:34px;top:458px;font-size:11px;color:var(--muted)">no: finish</div>
+<div style="position:absolute;left:14px;bottom:12px;font-size:12px;color:var(--muted)">Keyboard: arrow keys move between steps, Enter edits. The list view shows the same workflow as text.</div></div>
+<div><div class="card"><h3>Step: Hand-off triage</h3><div class="field"><label>Assistant</label><span class="in">Hand-off triage v1 &#9662;</span></div><div class="field"><label>Instruction</label><span class="in" style="color:var(--text)">Rank each open hand-off by urgency and say why. Never close or reassign.</span></div><div class="field"><label>Tools it may use</label><span class="in">search hand-offs, read conversation (masked)</span></div></div>
+<div class="card" style="margin-top:12px"><h3>Limits and safety</h3>{table(["Limit",""],[["Time per run","5 min"],["Steps per run","20"],["Budget per run","$0.50"],["Runs at once","1"],["Write steps","need approval"]])}<p class="note" style="margin-top:6px">Kill switch: pause this workflow, or all workflows for the team.</p></div>
+<div class="card" style="margin-top:12px"><h3>Before publishing</h3>{table(["Check","Result"],[["Definition valid",badge("yes","ok")],["Dry run on yesterday's data",badge("passed","ok")],["Needs a reviewer",badge("yes: write step","warn")]])}</div></div></div>""", "Workflows", full=True)
+
+SCREENS["43-workspace-workflow-run"] = wsapp("Workflows", head("Run: Refund over limit follow-up", "Started 18 min ago by event &middot; waiting for a person", '<span class="btn">Kill run</span> <span class="btn p">Open approval</span>') + f"""
+<div class="split" style="grid-template-columns:1fr 360px;height:760px"><div class="card"><h3>Steps</h3>{table(["","Step","Result","Time"],[
+ [badge("done","ok"),"<b>Starts when</b> approval waiting 15 min","event approval a-77","00:00"],
+ [badge("done","ok"),"<b>Get data</b> the approval and the conversation (masked)","2 records","00:01"],
+ [badge("done","ok"),"<b>Assistant</b> write a short reminder for the approver","1 message &middot; 420 tokens &middot; $0.004","00:03"],
+ [badge("done","ok"),"<b>Action</b> remind Dana K.","sent in Workspace and by email","00:04"],
+ [badge("waiting","warn"),"<b>Person</b> lead decides if Dana K. does not act within 15 min","waiting 3 min of 15","00:04"],
+ [badge("not yet","gr"),"<b>Action</b> escalate to the billing lead","&mdash;","&mdash;"]])}
+<p class="note" style="margin-top:8px">A run can wait for people for hours; its state is saved, so a restart does not lose it.</p></div>
+<div><div class="card"><h3>Run</h3>{table(["Detail",""],[["Triggered by","event: approval.requested"],["Runs as","Marco L.'s read access"],["Tokens","420"],["Cost","$0.004"],["Model","local llama-70b (rule 4)"]])}</div>
+<div class="card" style="margin-top:12px"><h3>If something fails</h3><p class="note">A failed step shows its error and keeps the run. You can retry from that step, skip it, or stop the run. Repeated failures raise an alert and can pause the workflow.</p></div>
+<div class="card" style="margin-top:12px"><h3>Recent runs</h3>{table(["Started","Result"],[["13:42",badge("waiting","warn")],["yesterday 16:10",badge("done","ok")],["Nov 7 11:02",badge("done","ok")],["Nov 6 09:48",badge("failed at step 4","bad")]])}</div></div></div>""", "Workflows", full=True)
 
 
 def _col(title, who, items, cls="info"):

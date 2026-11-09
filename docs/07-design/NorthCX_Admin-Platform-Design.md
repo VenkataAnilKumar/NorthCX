@@ -65,6 +65,27 @@ The seven decided tabs (Chat, Assistants, Search, Artifacts, Projects, Scheduled
 
 Shown as panels or controls, not tabs: customer panel and suggested knowledge (inside a thread), playbooks and canned answers (in Knowledge and the reply box), notifications (top-bar bell), live call assist (a panel when a call is open), availability and workload (a status control in the header). Not proposed for now: a team chat or presence page, workforce scheduling, and a separate voice dialler; each would need its own decision.
 
+## 0c. Workflows (proposal, 2026-11-09)
+A **Workflows** tab in the Workspace (Create group, above Scheduled; the navigation proposal is now 13 tabs). It is the interface for the automations work already planned in E8 (runner, triggers, safety, builder) and the visual editor in E14.
+
+**What a workflow is.** A trigger, then steps, with people where needed: *starts when* (a schedule, a webhook, an event such as "approval waiting 15 minutes", or a person pressing run), *get data* (a connector read), *assistant* (an agent run with a prompt and an allow-list of tools), *check* (a condition), *person* (waits for a decision, with a time limit and what happens next), *action* (tag, create an artifact, notify, or a write that needs approval). Runs can wait for people for hours; state is saved so a restart does not lose them.
+
+**How it differs from what exists.** *Journeys* are the guided flows inside a customer-facing agent's conversation. *Scheduled* tasks are the simple case: a workflow whose trigger is a schedule. Workflows are staff and back-office automations. Recommended: keep the Scheduled tab for now as a filtered view of workflows that start on a schedule, and merge them once Workflows exists.
+
+| Screen | What it shows | Mockup |
+|---|---|---|
+| List | Describe-it box (natural-language draft, reviewed and tested before anything is saved), tabs All, Mine, My team, Needs attention; trigger, steps, owner, last run, status, on/off | ![Workflows](../assets/design/41-workspace-workflows.png) |
+| Editor | Canvas of steps with a list view that shows the same workflow as text (keyboard operation), step settings, limits and safety (time, steps, budget, runs at once, write steps need approval, kill switch), checks before publishing | ![Editor](../assets/design/42-workspace-workflow-editor.png) |
+| Run | Step-by-step timeline with results, tokens and cost, the person step waiting, what happens on failure (retry from a step, skip, stop), recent runs | ![Run](../assets/design/43-workspace-workflow-run.png) |
+
+**Safety rules (from E8).** A workflow runs with its owner's read access and a service identity; a step that writes goes through the same approvals as a chat; one run at a time by default, a time limit, a step cap and a budget per run; a kill switch per workflow and per team; failures raise alerts; the natural-language builder only produces a validated draft with a dry run, never a saved or running workflow; every definition is versioned and published through a reviewer when it contains a write step.
+
+**Admin side.** Policies gains the workflow rules (who may publish, which connectors workflows may call, default limits, where the kill switch sits); Usage and cost counts workflow runs per team; Audit and activity records publishes, runs of write steps and kill-switch use; Trust and reliability lists failing workflows.
+
+**Backend reality.** Nothing exists except knowledge re-crawl schedules and the claim-once scheduler, and the job leases from WP0.5 that a runner would build on. Durable run state, triggers, the runner, the builder and the editor are E8 and E14 (Wave 3).
+
+**Decisions needed.** (1) Merge Scheduled into Workflows now or later. (2) Who may publish a workflow: any staff member for read-only workflows, a reviewer when there is a write step (recommended). (3) Whether workflows may call customer-facing agents (not recommended at first).
+
 ## 1. Who uses what
 
 ![Surfaces and navigation](../assets/design/11-information-architecture.png)
