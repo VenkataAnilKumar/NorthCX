@@ -33,7 +33,7 @@ Status: **2026-11-09.** Tracks whether the product documents cover the full desi
 6. ~~Builder~~ Decided (decision 165).
 7. ~~Automations~~ Decided (decision 165).
 8. ~~Organization page list (25 pages)~~ Decided (decision 167).
-9. Platform: open versus commercial (D1); staff product naming (D2); plan decisions D3 to D9.
+9. ~~Platform~~ Decided in part (decision 170): D2 working name and D3 to D9 accepted; **D1 (open versus commercial) stays open** and still blocks pricing.
 
 ## Not documented because it is not yet known
 Real customer evidence, pricing, a pilot baseline for any metric, an independent security test, a live-model quality pass.
