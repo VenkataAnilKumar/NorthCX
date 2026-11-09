@@ -18,7 +18,7 @@ Status: **Built**. Updated: 2026-11-09. Master for: threats and their handling. 
 
 | Actor | Starting position |
 |---|---|
-| Anonymous internet | can reach public routes only (`/health`, `/ready`, the demo page, the SDK scripts, SSO start/callback, the SMS webhook) |
+| Anonymous internet | can reach public routes only (`/health`, `/ready`, the demo page, the SDK scripts, SSO start/callback, and the SMS, WhatsApp and Telegram webhooks, each authenticated by the provider's signature or secret token) |
 | Malicious customer | holds a chat token for one conversation; controls everything they type, upload or say |
 | Malicious third-party content | text in documents, knowledge pages, tool results, attachments, helpdesk notes, speech transcripts |
 | Staff with a low role (viewer, reviewer, auditor) | authenticated, limited permissions |

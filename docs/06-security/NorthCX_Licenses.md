@@ -28,7 +28,7 @@ Run on the production dependencies at 1.0.0-rc.1.
 | PDF reading (`pypdf`, BSD-3-Clause) | added in the knowledge step; pure Python |
 | Our own packages | declared Apache-2.0 in `pyproject.toml` and `package.json` |
 
-Re-run before every release (`pip-licenses`, `npx license-checker --production`) and after dependency upgrades.
+Re-run before every release (`pip-licenses`, `npx license-checker --production`) and after dependency upgrades. Not yet re-run since: the Workspace app and the shared UI package (early work, merged 2026-11-09) and the hash-pinned backend lock files; run it before the next release. CI runs `pip-audit` (known vulnerabilities, not licences) on both backend lock files.
 
 ## Contributor agreement
 Provisionally the Developer Certificate of Origin (`Signed-off-by` on commits, described in `CONTRIBUTING.md`) rather than a CLA: it needs no paperwork and matches Apache-2.0 practice. The owner can change this before 1.0.0.

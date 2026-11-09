@@ -12,11 +12,11 @@ Status: **Partly built**. Updated: 2026-11-09. Master for: security controls and
 | PII in logs and traces | Redaction, retention limits, role-restricted access |
 | Credential exposure | Secrets manager, never in prompts or traces |
 | API abuse and key guessing | Hashed bearer keys with roles, expiry and revocation; per-key, per-conversation and failed-sign-in rate limits |
-| Supply-chain risk | Pinned dependencies, licence and vulnerability scans |
+| Supply-chain risk | Hash-pinned backend dependencies, `pip-audit` and `npm audit`, licence checks before release |
 | Model provider data handling | Documented data flow, provider terms reviewed per deployment |
 
 ## Access control
-Roles: admin, developer, reviewer (approvals), viewer (traces). Keys are stored hashed.
+Seven roles (admin, release manager, developer, reviewer, auditor, viewer, channel; table below). Keys are stored hashed.
 
 ## Approval and webhook controls
 Approved actions run once, are re-validated and re-supervised at execution time, and carry an idempotency key. Platform notices written into the conversation are produced by the platform, but they embed tool output, which remains untrusted data. Webhooks are signed with HMAC-SHA256 over the timestamp and body; receivers must verify the signature in constant time and reject old timestamps. Reviewer identity is the signed-in key's name (a typed name is only used in open mode).
@@ -56,7 +56,7 @@ Each endpoint requires one named permission, listed in one table in the server. 
 
 **Identity replaces claimed names.** When authentication is on, the name recorded on a release, approval decision, handoff resolution or saved version is the key's name, whatever the request says. A name in the request body is only honoured in open mode.
 
-**Rate limits** (per process, token buckets; on by default, `NORTHCX_RATE_LIMITS=off` disables them): 600 requests per minute per key, 30 chat messages per minute per conversation, and 20 failed sign-ins per minute per client address, which also stops key guessing. Over the limit the server answers 429 with `Retry-After`. Several server processes keep separate buckets, so the effective limit scales with the number of processes.
+**Rate limits** (per process by default; with `NORTHCX_LIMITS_BACKEND=postgres` all processes share fixed one-minute windows in the database; on by default, `NORTHCX_RATE_LIMITS=off` disables them): 600 requests per minute per key, 30 chat messages per minute per conversation, and 20 failed sign-ins per minute per client address, which also stops key guessing. Over the limit the server answers 429 with `Retry-After`. Several server processes keep separate buckets, so the effective limit scales with the number of processes.
 
 **Customer chat tokens.** A channel key is a server-side secret and must never be put in a browser or app. To let a customer chat, the company's own server calls `POST /v1/chat-tokens` with its channel key and receives a signed token (HMAC-SHA256) for one conversation: it names the conversation, the customer (set by the company's server, not the customer), and optionally the one agent it may talk to, and it expires (default one hour, between one minute and one day). The browser sends it as `Authorization: Bearer ncxc_...`. A token can only send chat messages in its own conversation and read that conversation's outbox; it cannot read traces, agents, approvals, handoffs, keys or the audit log, cannot mint further tokens, and cannot name a different customer or conversation (attempts are refused and audited, without the token). Revoking the key that minted a token ends all of that key's tokens at once. The signing secret is `NORTHCX_TOKEN_SECRET`, or is derived from `NORTHCX_API_KEY`; with neither, a random secret is used and tokens stop working at restart and across servers. Individual tokens cannot be revoked before they expire (keep lifetimes short, and use a different conversation id when a customer signs out). The demo page takes the token in the URL fragment (never sent to a server), stores it for that tab only and removes it from the address bar.
 
@@ -73,7 +73,7 @@ In Postgres a trigger refuses UPDATE, DELETE and TRUNCATE on the log. Each entry
 Support for data access and deletion requests (privacy regulations), audit trail and access controls (security frameworks), PHI-safe deployment guidance (health data). Certification is out of scope for the open-source project; deployers own it.
 
 ## Open
-Pen-test plan, key rotation, data-residency options, DPA templates.
+An independent penetration test (not done), key rotation guidance, data-processing agreement templates, and a repeat of the security review for the work added since it (see Security Review). Data residency is built (section below).
 
 
 **Tool results (indirect injection).** Text returned by tools can be written by third parties (order notes, web pages, customer-entered fields). An agent can list `output_guardrails`; each text value in a tool result is checked before the model reads it. `tool_output_injection` withholds results containing phrases that address the model (for example "ignore previous instructions", "new instructions:", `system:` lines, "do not tell the customer"); `tool_output_pii` masks (or, with `mask_pii: false`, withholds) personal data. A withheld result is replaced by a notice telling the model not to act on it and to hand off if it cannot continue; the event is recorded in the trace with the tool name. A screen that fails is treated as a denial. The phrase list is narrow by design, so it is an alarm for obvious attempts; approvals, tool policies and supervisors remain the main controls. Specs without `output_guardrails` keep their existing digests.

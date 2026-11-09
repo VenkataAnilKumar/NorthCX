@@ -38,9 +38,15 @@ Scope: the backend, web console, browser SDK and deployment files at the commit 
 - Commission an independent penetration test (not done).
 - Terminate TLS at a proxy, set `FORWARDED_ALLOW_IPS`, apply shared rate limits there, keep the database off public networks (the compose file already does).
 - Use SSO for people and short-lived, narrowly used API keys for machines; issue the fewest admin keys.
-- Pin backend dependencies in your build and re-run the audits on every release.
+- Install from the hash-pinned lock files and re-run the audits on every release.
 - Decide per agent whether to accept pictures and PDFs, and whether callers' numbers may be trusted.
 - Legal review for call recording and for the countries your customers are in.
+
+## Since this review
+- Backend dependencies are hash-pinned (`requirements.lock`, `requirements-dev.lock`) and audited in CI (`pip-audit`).
+- Rate limits and daily budgets can be shared across processes (`NORTHCX_LIMITS_BACKEND=postgres`), and background jobs run under database leases.
+- PDFs can reach the model as masked text (`pdf_text`); pictures still reach it unmasked.
+- The review has not been repeated for the work added since (the provider registry, the webhook test sender, several-process operation, the unfinished Workspace and Admin web code). Repeat it, and the independent penetration test, before 1.0.0.
 
 ## Reporting a problem
 
