@@ -28,6 +28,27 @@ The owner described the layout; the two windows are:
 
 What exists today for these: memory (with recall, edit and erase APIs for customers; staff and team memory are E5.5), connectors from files (no screens), MCP is not built (E4), scheduled tasks exist only for knowledge re-crawls (E8 is the automation work), artifacts and projects do not exist (E6, E5). The earlier three-column and session-style Workspace mockups (09, 15) remain as variants for the Threads page.
 
+## 0a. New interfaces, round 2 (2026-11-09)
+Added after the feature research (`00-reference/NorthCX_Feature-Research-2026-11.md`, sections 7 to 10). Each is a candidate, not a commitment; most need new backend work. All sample data.
+
+**Workspace**
+| Screen | What it adds | Mockup |
+|---|---|---|
+| Home | Landing view: what needs you, what is ready, recent work, suggestions, a prompt with assistant, project and sources chosen up front | ![Home](../assets/design/25-workspace-home.png) |
+| Artifacts library | Everything produced: filter by type, project and owner; versions; share, schedule, export | ![Artifacts](../assets/design/24-workspace-artifacts.png) |
+
+**Admin (Settings and admin, Organization group; the grouped navigation now lists Overview, Agents, Knowledge, Channels, Insights, Review and QA, Simulations, Models and budgets, People and groups, Policies, Access keys, Audit and activity, Trust and reliability, Connectors, Data residency, Billing and plan)**
+| Screen | What it adds | Mockup |
+|---|---|---|
+| Insights: Explorer | Ask a question in plain language; finding with figures, masked samples, recommendations that lead straight to an action (draft an article, review a limit, create a scenario), follow-ups; audited | ![Explorer](../assets/design/26-admin-insights-explorer.png) |
+| Knowledge: suggested articles | Drafts written from how people resolved similar cases, each claim linked to its source, checks before publishing, nothing live until approved | ![Suggested articles](../assets/design/27-admin-expert-answers.png) |
+| Improve an agent | A session that investigates a problem, proposes a spec change as a diff, tests it (required scenarios, new scenarios, replay of past conversations) and sends it to a reviewer; nothing goes live from it | ![Improve agent](../assets/design/28-admin-improve-agent.png) |
+| Channels | All six channels in one table with address, agent, volume, hand-off rate and health; same rules on every channel; test a channel | ![Channels](../assets/design/29-admin-channels.png) |
+| Trust and reliability | Guardrail blocks, supervisor interventions, a scheduled adversarial suite with trend, protections in place, and a list of what has **not** been done (penetration test, live-model pass, certifications) | ![Trust](../assets/design/30-admin-trust.png) |
+| Privacy and data (personal) | What is kept and for how long, export and erase, where your text goes | ![Privacy](../assets/design/31-settings-privacy.png) |
+
+Backend reality: Explorer's masked drill-down and suggested articles are not built (and the drill-down is a privacy decision); the improvement session reuses drafting, scenarios and replay that exist but lacks the loop; channels data exists; the adversarial suite, trend and trust page are new; the artifact library, home and projects need E5/E6.
+
 ## 1. Who uses what
 
 ![Surfaces and navigation](../assets/design/11-information-architecture.png)

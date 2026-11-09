@@ -45,7 +45,8 @@ td{padding:9px 10px;border-bottom:1px solid var(--border)}tr:last-child td{borde
 NAV = [("Operate", [("Overview", 0), ("Conversations", 0), ("Handoffs", 3), ("Approvals", 2), ("Review and QA", 0)]),
        ("Build", [("Agents", 0), ("Knowledge", 0), ("Simulations", 0), ("Models and budgets", 0)]),
        ("Govern", [("People and groups", 0), ("Access keys", 0), ("Policies", 0), ("Audit and activity", 0)]),
-       ("Platform", [("Connectors and MCP", 0), ("Usage and cost", 0), ("Data residency", 0), ("Settings", 0)])]
+       ("Platform", [("Channels", 0), ("Connectors and MCP", 0), ("Usage and cost", 0), ("Data residency", 0), ("Trust and reliability", 0)]),
+       ("Personal", [("Profile and memory", 0), ("Settings", 0)])]
 
 
 def shell(active: str, title: str, sub: str, body: str, env: str = "Production", tenant: str = "Acme Support (sample)") -> str:
@@ -305,8 +306,8 @@ SCREENS["20-workspace-threads"] = wsapp("Threads", head("Threads", "Customer con
 
 def settings_shell(active: str, title: str, sub: str, body: str) -> str:
     personal = ["Profile", "Preferences", "Memory", "Connectors", "MCP servers", "Notifications", "Privacy and data", "Usage and limits", "API keys", "Security and sessions"]
-    org = ["People and groups", "Agents", "Models and budgets", "Policies", "Access", "Audit and activity", "Connectors (organization)", "Data residency", "Billing and plan"]
-    nav = '<div class="grp">Personal</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in personal) + '<div class="grp">Organization (administrators)</div>' + "".join(f"<a>{n}</a>" for n in org)
+    org = ["Overview", "Agents", "Knowledge", "Channels", "Insights", "Review and QA", "Simulations", "Models and budgets", "People and groups", "Policies", "Access keys", "Audit and activity", "Trust and reliability", "Connectors (organization)", "Data residency", "Billing and plan"]
+    nav = '<div class="grp">Personal</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in personal) + '<div class="grp">Organization (administrators)</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in org)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{WS_CSS}</style></head><body>
 <div class="top"><div class="brand" style="padding:0">NorthCX <span class="note">Settings and admin</span></div><div class="sp"></div><span class="pill">Tenant <b>Acme Support (sample)</b></span><span class="btn">Open Workspace</span><div class="av">PN</div></div>
 <div style="display:grid;grid-template-columns:260px 1fr;min-height:844px"><div style="background:var(--surface);border-right:1px solid var(--border);padding:12px" class="setnav">{nav}</div>
@@ -342,6 +343,79 @@ SCREENS["23-settings-connectors-mcp"] = settings_shell("Connectors", "Connectors
  ["<b>team-wiki</b><br><span class=note>added by you</span>","wiki.example.com/mcp","3 of 5 enabled",badge("read-only","ok"),badge("OK","ok"),'<span class="sw2"></span>'],
  ["<b>ticket-actions</b><br><span class=note>organization policy: needs approval</span>","tickets.example.com/mcp","&mdash;",badge("write tools","warn"),badge("Waiting for admin","warn"),'<span class="sw2 off"></span>']])}
 <p class="note" style="margin:8px 0 2px">Remote tools default to write and need an approval unless an administrator marks them read-only. Tools from servers you add are limited to your own permissions. &#128274; Third-party servers are controlled by organization policy.</p></div>""")
+
+
+# ---------- New interfaces (round 2): workspace home and artifacts; admin Explorer, Expert Answers, agent improvement, channels, trust, privacy ----------
+SCREENS["24-workspace-artifacts"] = wsapp("Artifacts", head("Artifacts", "Everything your assistants have produced for you and your team. Versioned, shareable, schedulable.", '<span class="btn">Export</span>') + f"""
+<div class="tools"><span class="in">Search artifacts&hellip;</span><span class="pill"><b>All</b></span><span class="pill">Summaries</span><span class="pill">Drafts</span><span class="pill">Reports</span><span class="pill">Digests</span><div style="flex:1"></div><span class="in">Project: Any &#9662;</span><span class="in">Owner: Me &#9662;</span></div>
+<div class="split" style="grid-template-columns:1fr 400px;height:690px"><div class="card" style="padding:4px 14px">{table(["Artifact","Type","Project","Shared","Updated"],[
+ ["<b>Refund escalation summary</b><br><span class=note>v2 &middot; from chat</span>",badge("Summary","info"),"Billing escalations","Team","just now"],
+ ["<b>Weekly QA digest</b><br><span class=note>v14 &middot; scheduled</span>",badge("Digest","ok"),"Weekly QA review","Leads","Mon 08:00"],
+ ["<b>Apology for delayed parcels</b><br><span class=note>v3 &middot; draft</span>",badge("Draft","warn"),"My drafts","Only me","1 h ago"],
+ ["<b>Duplicate charges: order list</b><br><span class=note>v1</span>",badge("Report","gr"),"Billing escalations","Team","yesterday"],
+ ["<b>Carrier delays: weekly trend</b><br><span class=note>v6 &middot; scheduled</span>",badge("Report","gr"),"Billing escalations","Team","Mon"]])}</div>
+<div class="art"><div class="row2"><b>Refund escalation summary</b><span class="b ok">v2 current</span></div><p class="note">Created by care-copilot for you &middot; sources: 14 conversations (masked), Refund policy</p>
+<p style="margin-top:8px">Nine of fourteen refund escalations yesterday came from delayed deliveries. All six over-limit approvals were decided within ten minutes&hellip;</p>
+<h3 style="margin-top:12px">Versions</h3>{table(["Version","Who","When"],[["v2","you, with care-copilot","just now"],["v1","care-copilot","1 h ago"]])}
+<div class="row" style="margin-top:12px"><span class="btn p">Open</span><span class="btn">Share</span><span class="btn">Schedule</span><span class="btn">Export</span><span class="btn d">Delete</span></div><p class="note" style="margin-top:8px">Sharing never exposes conversations you cannot see. Shared copies show the sources they were built from.</p></div></div>""", "Artifacts")
+
+SCREENS["25-workspace-home"] = wsapp("Chat", f"""<div style="max-width:880px;margin:30px auto 0"><h1 style="font-size:28px;margin:0 0 4px">Good afternoon, Dana</h1><p class="sub">2 things need you. Your Monday QA digest is ready.</p>
+<div class="card" style="padding:16px;margin-top:14px"><span class="mut" style="font-size:16px">What do you want to do?</span><div class="row" style="margin-top:14px;gap:8px"><span class="pill">+</span><span class="pill">Assistant <b>care-copilot</b></span><span class="pill">Project <b>Billing escalations</b></span><span class="pill">Sources <b>Knowledge, Conversations</b></span><div style="flex:1"></div><span class="btn p">Start</span></div></div>
+<div class="row" style="margin-top:12px"><span class="pill">Summarise my open threads</span><span class="pill">Draft replies for waiting approvals</span><span class="pill">What changed in the refund policy?</span><span class="pill">Show conversations that were rated 1 or 2</span></div>
+<div class="g3" style="margin-top:20px"><div class="card"><h3>Needs you</h3><p><b>c-4f21</b> approval &middot; refund $180 <span class="b warn">6 min</span></p><p><b>c-4f1c</b> reply waiting <span class="b info">11 min</span></p><span class="btn p">Open Threads</span></div>
+<div class="card"><h3>Ready for you</h3><p><b>Weekly QA digest</b><br><span class="note">Scheduled &middot; Mon 08:00 &middot; 240 reviewed</span></p><span class="btn">Open artifact</span></div>
+<div class="card"><h3>Recent</h3><p class="note">Refund escalation summary &middot; just now</p><p class="note">Apology for delayed parcels &middot; 1 h ago</p><p class="note">Why did billing-help hand off? &middot; yesterday</p></div></div></div>""", "Home")
+
+SCREENS["26-admin-insights-explorer"] = settings_shell("Insights", "Insights: Explorer", "Ask a question about your conversations in plain language. Answers use masked samples and cite them.", f"""
+<div class="card" style="padding:14px"><div class="in" style="font-size:15px;color:var(--text)">Why did refund hand-offs go up last week?</div><div class="row" style="margin-top:10px"><span class="pill">Last 7 days &#9662;</span><span class="pill">Agent <b>billing-help</b></span><span class="pill">Production</span><div style="flex:1"></div><span class="btn p">Ask</span></div></div>
+<div class="g2" style="margin-top:12px"><div class="card"><h3>Finding</h3><p>Refund hand-offs rose from <b>31</b> to <b>52</b> (+68%). <b>Delayed deliveries</b> explain most of the rise.</p>
+{table(["Cause","Hand-offs","Change"],[["Delayed delivery","26",'<span class="b bad">+19</span>'],["Duplicate charge","12",'<span class="b warn">+3</span>'],["Plan change","8","0"],["Other","6","-1"]])}
+<p class="note" style="margin-top:8px">52 conversations analysed. 6 shown below as masked samples.</p>
+<h3 style="margin-top:12px">Samples (masked)</h3><div class="src"><b>c-4f21</b> customer says the parcel is 9 days late and asks for money back. The agent could not approve $180.</div><div class="src"><b>c-4f0a</b> customer asks where a parcel is after 8 days; no tracking update found.</div><div class="src"><b>c-4ef2</b> customer reports being charged twice; agent verified, hand-off needed for the refund.</div></div>
+<div><div class="card"><h3>Recommendations</h3><p><b>1.</b> Knowledge has no answer for carrier delays over 7 days.</p><span class="btn p">Draft an article</span><p style="margin-top:12px"><b>2.</b> The agent hands off refunds over $50; 21 of 26 were under $200 and approved.</p><span class="btn">Review the refund limit</span><p style="margin-top:12px"><b>3.</b> No test covers a delayed-parcel refund.</p><span class="btn">Create scenario</span></div>
+<div class="card" style="margin-top:12px"><h3>Follow-ups</h3><div class="row"><span class="pill">Which carriers?</span><span class="pill">Which days?</span><span class="pill">Same for returns?</span></div></div>
+<div class="card" style="margin-top:12px"><h3>Why this is safe</h3><p class="note">Samples are masked. You only see conversations your role allows. The question and the conversations opened are recorded in the audit log.</p></div></div></div>""")
+
+SCREENS["27-admin-expert-answers"] = settings_shell("Knowledge", "Knowledge: Suggested articles", "Drafts written from how your people resolved similar cases. Nothing is published until someone approves it.", f"""
+<div class="tabs"><a>Sources</a><a>Documents</a><a>Gaps</a><a class="on">Suggested articles <span class="n" style="background:var(--warn-bg);color:var(--warn);border-radius:9px;padding:0 6px;font-size:11px">4</span></a></div>
+<div class="g2"><div class="card" style="padding:4px 10px">{table(["Draft","Based on","Asked","Status"],[
+ ["<b>Refunds for parcels delayed over 7 days</b>","11 resolved cases","26 times",badge("Needs review","warn")],["<b>Duplicate charge after a retry</b>","5 resolved cases","12 times",badge("Needs review","warn")],["<b>Changing plan mid-cycle</b>","8 resolved cases","8 times",badge("Approved","ok")],["<b>Invoice copy by email</b>","3 resolved cases","6 times",badge("Rejected","gr")]])}</div>
+<div class="card"><div class="row2"><b>Refunds for parcels delayed over 7 days</b>{badge("Draft v1","warn")}</div><p class="note">Written from 11 resolved hand-offs by 4 people (masked). Wording is grounded in these cases; each claim links to its source.</p>
+<p style="margin-top:8px">If a parcel is more than 7 days late, check tracking first. If the carrier shows no movement for 5 days, the customer is eligible for a full refund. Refunds over $150 need a lead's approval.</p>
+<div class="src"><b>Sources</b> &middot; c-4f21, c-4e77, c-4de2 &hellip; (8 more) &middot; Refund policy &sect;3</div><div class="src"><b>Check before publishing</b> &middot; the $150 limit differs from the policy page ($200). Confirm which is right.</div>
+<div class="row" style="margin-top:12px"><span class="btn p">Edit and approve</span><span class="btn">Publish to knowledge</span><span class="btn d">Reject</span></div></div></div>""")
+
+SCREENS["28-admin-improve-agent"] = settings_shell("Agents", "Improve billing-help", "An improvement session: investigate, propose a change, test it, then send it to a reviewer. Nothing goes live from here.", f"""
+<div class="split" style="grid-template-columns:1fr 440px;height:760px"><div class="card" style="display:flex;flex-direction:column;position:relative"><div class="row2"><b>Session: delayed-parcel refunds</b><span class="pill">Builder assistant</span></div>
+<div class="chat" style="margin-top:12px"><div class="msg u">Why did billing-help hand off so many delayed-parcel refunds?</div><div class="msg a">26 of 52 refund hand-offs last week were delayed parcels. In 21 of them the refund was under $200 and was approved. The agent's limit is $50 and it has no guidance for carrier delays.<div class="src">Looked at: 26 conversations (masked) &middot; spec v7 &middot; knowledge gaps</div></div>
+<div class="msg u">Propose a fix that keeps people in the loop for large refunds.</div><div class="msg a">I propose raising the no-approval limit to $100 for delayed parcels only, and adding a knowledge article. I replayed 20 past conversations against the change.</div></div></div>
+<div><div class="card"><h3>Proposed change to spec</h3><div class="src mono" style="background:#fdecec">- issue_refund: up to $50 without approval</div><div class="src mono" style="background:#e8f6ee">+ issue_refund: up to $100 without approval when reason is delayed_delivery</div><div class="src mono" style="background:#e8f6ee">+ knowledge: Refunds for parcels delayed over 7 days (suggested article, needs approval)</div></div>
+<div class="card" style="margin-top:12px"><h3>Tests</h3>{table(["Check","Result"],[["Required scenarios (41)",badge("41 passed","ok")],["New scenario: delayed parcel $90",badge("passes","ok")],["New scenario: delayed parcel $120",badge("hands off","ok")],["Replay of 20 past conversations",badge("17 same, 3 improved","ok")]])}</div>
+<div class="card" style="margin-top:12px"><h3>Next</h3><p class="note">A reviewer must approve. Production releases need two people.</p><div class="row"><span class="btn p">Request review</span><span class="btn">Edit proposal</span><span class="btn d">Discard</span></div></div></div></div>""")
+
+SCREENS["29-admin-channels"] = settings_shell("Channels", "Channels", "Where customers reach your agents. One agent, the same rules on every channel.", f"""
+<div class="g4">{stat("Channels live","6","web, email, SMS, WhatsApp, Telegram, voice")}{stat("Conversations (7 d)","12,480","")}{stat("Hand-off rate","14%","lowest on web 11%, highest on voice 22%")}{stat("Issues","1","email delivery retrying")}</div>
+<div class="card" style="margin-top:12px;padding:4px 10px">{table(["Channel","Address","Agent","7-day volume","Hand-offs","Health",""],[
+ ["<b>Web chat</b>","widget on acme.example","support-agent","5,740","11%",badge("OK","ok"),'<span class="btn">Configure</span>'],
+ ["<b>Email</b>","support@acme.example","support-agent","2,995","15%",badge("Replies retrying","warn"),'<span class="btn">Configure</span>'],
+ ["<b>WhatsApp</b>","+31 20 555 0100 &middot; +31 20 555 0101","support-agent, returns","1,750","13%",badge("OK","ok"),'<span class="btn">Configure</span>'],
+ ["<b>SMS</b>","+31 20 555 0102","returns","1,120","12%",badge("OK","ok"),'<span class="btn">Configure</span>'],
+ ["<b>Telegram</b>","@acme_support_bot","support-agent","310","14%",badge("OK","ok"),'<span class="btn">Configure</span>'],
+ ["<b>Voice</b>","+31 20 555 0103","support-agent","565","22%",badge("OK","ok"),'<span class="btn">Configure</span>']])}</div>
+<div class="g3" style="margin-top:12px"><div class="card"><h3>Same rules everywhere</h3><p class="note">Guardrails, approvals and tool scopes come from the agent, not the channel. Channel settings only change delivery: limits, templates, opening hours.</p></div>
+<div class="card"><h3>Add a channel</h3><p class="note">Assistant apps and other surfaces can be added through MCP or the API.</p><span class="btn">Browse options</span></div><div class="card"><h3>Test a channel</h3><p class="note">Send a test message through the real path and see the result.</p><span class="btn">Run test</span></div></div>""")
+
+SCREENS["30-admin-trust"] = settings_shell("Trust and reliability", "Trust and reliability", "What protects customers today, how it is performing, and what has not been done yet.", f"""
+<div class="g4">{stat("Guardrail blocks (7 d)","212","1.7% of turns")}{stat("Supervisor interventions","38","corrected 31 &middot; handed off 7")}{stat("Adversarial suite","96%","58 of 60 passed &middot; ran Nov 8")}{stat("Audit chain","Verified","checked 10 min ago")}</div>
+<div class="g2" style="margin-top:12px"><div class="card"><h3>Adversarial scenarios, last 8 runs</h3><div style="display:flex;align-items:flex-end;gap:10px;height:110px;margin:10px 0"><div style="flex:1;background:var(--primary);height:90%"></div><div style="flex:1;background:var(--primary);height:92%"></div><div style="flex:1;background:var(--primary);height:88%"></div><div style="flex:1;background:var(--primary);height:94%"></div><div style="flex:1;background:var(--primary);height:95%"></div><div style="flex:1;background:var(--primary);height:93%"></div><div style="flex:1;background:var(--primary);height:96%"></div><div style="flex:1;background:var(--primary);height:96%"></div></div>
+{table(["Failing now","Category","Since"],[["Instruction hidden in a PDF","prompt injection","Nov 8"],["Refund amount split in two requests","policy bypass","Nov 8"]])}</div>
+<div class="card"><h3>Protections in place</h3>{table(["Control","State"],[["Supervisor on replies",badge("on","ok")],["Deterministic tool scopes and approvals",badge("on","ok")],["PII masking in traces",badge("on","ok")],["Abuse detection",badge("on","ok")],["Data residency policy",badge("compliant","ok")],["Hash-chained audit log",badge("verified","ok")]])}</div></div>
+<div class="card" style="margin-top:12px"><h3>Not done yet (shown on purpose)</h3>{table(["Item","State"],[["Independent penetration test",badge("not done","bad")],["Live-model quality pass",badge("not done","bad")],["SOC 2, ISO 27001",badge("not started","gr")],["Judge agreement with reviewers",badge("not measured","warn")]])}</div>""")
+
+SCREENS["31-settings-privacy"] = settings_shell("Privacy and data", "Privacy and data", "What is stored about you and your work, how long, and how to export or erase it.", f"""
+<div class="g2"><div class="card"><h3>What is kept</h3>{table(["Data","Kept for","Where"],[["Your chats with assistants","90 days","eu"],["Artifacts you created","until you delete them","eu"],["Memory notes","until you erase them","eu"],["Audit entries about your actions","2 years (cannot be erased)","eu"]])}<p class="note" style="margin-top:8px">Set by your organization. Customer conversations are masked in everything shown to you here.</p></div>
+<div><div class="card"><h3>Your data</h3><div class="row"><span class="btn p">Export my data</span><span class="btn d">Erase my chats</span><span class="btn d">Erase my memory</span></div><p class="note" style="margin-top:8px">Erasing is recorded in the audit log without the content.</p></div>
+<div class="card" style="margin-top:12px"><h3>Where your text goes</h3><p class="note">Your messages are sent to the model provider your administrator configured (Anthropic, region us) and to the knowledge search service. See the organization's data residency page.</p></div></div></div>""")
 
 
 def _col(title, who, items, cls="info"):
