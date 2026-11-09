@@ -6490,6 +6490,342 @@
         ]
       }
     },
+    "/v1/quality/calibration": {
+      "get": {
+        "summary": "Quality Calibration",
+        "operationId": "quality_calibration_v1_quality_calibration_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Quality Calibration V1 Quality Calibration Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "traces:read",
+        "tags": [
+          "quality"
+        ]
+      }
+    },
+    "/v1/quality/coaching": {
+      "get": {
+        "summary": "List Coaching",
+        "operationId": "list_coaching_v1_quality_coaching_get",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sessionid"
+            }
+          },
+          {
+            "name": "about",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "About"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Coaching V1 Quality Coaching Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "reviews:write",
+        "tags": [
+          "quality"
+        ]
+      },
+      "post": {
+        "summary": "Add Coaching",
+        "operationId": "add_coaching_v1_quality_coaching_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoachingBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Add Coaching V1 Quality Coaching Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "reviews:write",
+        "tags": [
+          "quality"
+        ]
+      }
+    },
+    "/v1/quality/coaching/{note_id}": {
+      "delete": {
+        "summary": "Delete Coaching",
+        "operationId": "delete_coaching_v1_quality_coaching__note_id__delete",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Note Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete Coaching V1 Quality Coaching  Note Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "reviews:write",
+        "tags": [
+          "quality"
+        ]
+      }
+    },
+    "/v1/quality/rubric": {
+      "get": {
+        "summary": "Get Rubric",
+        "operationId": "get_rubric_v1_quality_rubric_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Rubric V1 Quality Rubric Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "traces:read",
+        "tags": [
+          "quality"
+        ]
+      },
+      "put": {
+        "summary": "Put Rubric",
+        "operationId": "put_rubric_v1_quality_rubric_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RubricBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Put Rubric V1 Quality Rubric Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "quality"
+        ]
+      },
+      "delete": {
+        "summary": "Reset Rubric",
+        "operationId": "reset_rubric_v1_quality_rubric_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Reset Rubric V1 Quality Rubric Delete"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "quality"
+        ]
+      }
+    },
+    "/v1/quality/scorecards": {
+      "get": {
+        "summary": "Scorecards",
+        "description": "Score every conversation in the period against the rubric. Checks that did not apply to a conversation are left out of its score.",
+        "operationId": "scorecards_v1_quality_scorecards_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 7,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Scorecards V1 Quality Scorecards Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "traces:read",
+        "tags": [
+          "quality"
+        ]
+      }
+    },
     "/v1/regression": {
       "get": {
         "summary": "Regression Status",
@@ -9515,6 +9851,35 @@
         ],
         "title": "ChatBody"
       },
+      "CoachingBody": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Sessionid"
+          },
+          "about": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "About"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 5,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessionId",
+          "about",
+          "note"
+        ],
+        "title": "CoachingBody"
+      },
       "CrawlBody": {
         "properties": {
           "url": {
@@ -10527,6 +10892,39 @@
           "percent"
         ],
         "title": "RolloutBody"
+      },
+      "RubricBody": {
+        "properties": {
+          "criteria": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Criteria"
+          },
+          "passMark": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Passmark",
+            "default": 70
+          },
+          "sample": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Sample",
+            "default": 0.1
+          }
+        },
+        "type": "object",
+        "required": [
+          "criteria"
+        ],
+        "title": "RubricBody"
       },
       "ScenarioBody": {
         "properties": {

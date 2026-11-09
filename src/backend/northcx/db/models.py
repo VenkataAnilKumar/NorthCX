@@ -665,6 +665,18 @@ class OrgTemplateRow(TenantScoped, Base):
     data: Mapped[Any] = mapped_column(JSONB, nullable=False)
 
 
+class CoachingNoteRow(TenantScoped, Base):
+    """A coaching note a lead or reviewer wrote about a conversation (E7)."""
+    __tablename__ = "coaching_notes"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    about: Mapped[str] = mapped_column(String(80), nullable=False)
+    note: Mapped[str] = mapped_column(String(1000), nullable=False)
+    author: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

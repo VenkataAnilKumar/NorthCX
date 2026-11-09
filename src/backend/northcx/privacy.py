@@ -119,6 +119,9 @@ class InMemoryPrivacy:
         ro = getattr(self, "rollouts", None)
         if ro is not None:
             n["rolloutAssignments"] = await ro.erase_session(session_id)
+        co = getattr(self, "coaching", None)
+        if co is not None:
+            n["coachingNotes"] = await co.erase_session(session_id)
         rv = getattr(self, "reviews", None)
         if rv is not None:
             n["reviews"] = await rv.erase_session(session_id)

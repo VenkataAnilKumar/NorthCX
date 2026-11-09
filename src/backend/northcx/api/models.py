@@ -300,6 +300,20 @@ class OrgTemplateBody(BaseModel):
     template: dict[str, Any] | None = None             # the same document as a JSON object
 
 
+class RubricBody(BaseModel):
+    criteria: list[dict[str, Any]] = Field(min_length=1, max_length=20)
+    pass_mark: float = Field(default=70, alias="passMark", ge=1, le=100)
+    sample: float = Field(default=0.1, ge=0, le=1)
+    model_config = {"populate_by_name": True}
+
+
+class CoachingBody(BaseModel):
+    session_id: str = Field(alias="sessionId", min_length=1, max_length=200)
+    about: str = Field(min_length=2, max_length=80)
+    note: str = Field(min_length=5, max_length=300)
+    model_config = {"populate_by_name": True}
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

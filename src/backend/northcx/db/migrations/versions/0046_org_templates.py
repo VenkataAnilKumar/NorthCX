@@ -1,7 +1,7 @@
 """Organization templates with versions and review (WP22.5), tenant-isolated from the start.
 
 Revision ID: 0046
-Revises: 0044
+Revises: 0045
 """
 import sqlalchemy as sa
 from alembic import op

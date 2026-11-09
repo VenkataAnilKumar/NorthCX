@@ -105,6 +105,10 @@ def build_runtime(c: SimpleNamespace) -> None:
     from northcx.db import PgOrgPolicies, PgOrgTemplates
     from northcx.org_policies import OrgPolicyService
     runtime.org_policies = OrgPolicyService(PgOrgPolicies(c.engine) if c.db_url else None)
+    from northcx.db import PgCoaching, PgSettings
+    from northcx.qa import RubricService
+    runtime.coaching = PgCoaching(c.engine) if c.db_url else None
+    runtime.rubrics = RubricService(PgSettings(c.engine) if c.db_url else None)
     from northcx.org_templates import OrgTemplateService
     from northcx.templates import LIBRARY, load_templates
     runtime.org_templates = OrgTemplateService(PgOrgTemplates(c.engine) if c.db_url else None, set(load_templates(LIBRARY)))

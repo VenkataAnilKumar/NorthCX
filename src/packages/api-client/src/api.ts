@@ -510,3 +510,22 @@ export interface PerformanceReport {
   team: { handoffsResolved: number; approvalsDecided: number; handlers: number; handoffTime: TimeStats; approvalTime: TimeStats; openNow: number; oldestOpenSeconds: number | null; afterHours: number; series: PerfSeries[]; people?: { name: string; items: number }[] };
 }
 export const performance = (days: number, individuals = false) => api<PerformanceReport>(`/v1/workspace/performance?days=${days}${individuals ? "&individuals=true" : ""}`);
+
+// ---------- Quality (Workspace) ----------
+export interface RubricCriterion { id: string; label: string; weight: number; check: string; n?: number; phrases?: string[] }
+export interface Rubric { criteria: RubricCriterion[]; passMark: number; sample: number; version: number; isDefault: boolean; checks?: { kinds: string[] } }
+export interface QaScored { sessionId: string; agentId: string; turns: number; score: number | null; criteria: { id: string; label: string; weight: number; result: "pass" | "fail" | "na"; reason: string | null }[] }
+export interface Scorecards {
+  days: number; rubricVersion: number; passMark: number; scored: number; conversations: number; averageScore: number | null; passRate: { value: number | null; numerator: number; denominator: number };
+  byAgent: { agent: string; scored: number; average: number }[]; byCheck: { id: string; label: string; passed: number; failed: number }[]; lowest: QaScored[]; sampleToReview: string[]; truncated: boolean; note: string;
+}
+export interface Calibration { compared: number; agreement: { value: number | null; numerator: number; denominator: number }; scoreSaidGoodReviewerSaidWrong: number; scoreSaidBadReviewerSaidCorrect: number; disagreements: { sessionId: string; score: number; verdict: string }[]; note: string; passMark: number }
+export interface CoachingNote { id: string; sessionId: string; about: string; note: string; author: string; createdAt: number }
+export const getRubric = () => api<Rubric>("/v1/quality/rubric");
+export const putRubric = (r: { criteria: RubricCriterion[]; passMark: number; sample: number }) => api<Rubric>("/v1/quality/rubric", { method: "PUT", body: JSON.stringify(r) });
+export const resetRubric = () => api<{ reset: boolean }>("/v1/quality/rubric", { method: "DELETE" });
+export const scorecards = (days: number) => api<Scorecards>(`/v1/quality/scorecards?days=${days}`);
+export const qaCalibration = (days: number) => api<Calibration>(`/v1/quality/calibration?days=${days}`);
+export const coachingNotes = (sessionId?: string) => api<{ notes: CoachingNote[] }>(`/v1/quality/coaching${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ""}`).then((r) => r.notes);
+export const addCoachingNote = (sessionId: string, about: string, note: string) => api<CoachingNote>("/v1/quality/coaching", { method: "POST", body: JSON.stringify({ sessionId, about, note }) });
+export const deleteCoachingNote = (id: string) => api<{ deleted: boolean }>(`/v1/quality/coaching/${id}`, { method: "DELETE" });
