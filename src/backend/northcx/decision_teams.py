@@ -3,11 +3,29 @@ here, so Performance can show a team's figures. Hand-offs and approvals themselv
 from __future__ import annotations
 
 import time
+from contextvars import ContextVar
 from typing import Any, Protocol
 
 from .tenancy import current_tenant
 
 NO_TEAM = "(no team)"
+VIEWER_TEAM: ContextVar[str] = ContextVar("northcx_viewer_team", default=NO_TEAM)     # the team of whoever the current request is for; set when a route starts
+
+
+def current_team() -> str:
+    return VIEWER_TEAM.get()
+
+
+def team_visible(owner: str, owner_team: str, visibility: str, who: str, admin: bool) -> bool:
+    """Private: its owner (and an administrator). Shared: everyone who uses the Workspace. Team: people signed in under the same team as its owner, when it has one."""
+    if owner == who or admin or visibility == "shared":
+        return True
+    return visibility == "team" and bool(owner_team) and owner_team != NO_TEAM and owner_team == current_team()
+
+
+def require_team() -> str:
+    """The team to record on something shared with a team; refused for someone in no team, because nobody would be able to see it."""
+    return current_team()
 
 
 def team_of(identity: Any) -> str:

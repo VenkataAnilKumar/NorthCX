@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse, Response
 from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
+from northcx.decision_teams import VIEWER_TEAM, team_of
 from northcx.api.models import OutputBody, OutputEditBody, SpaceBody, SpaceEditBody, SpaceFileBody
 from northcx.outputs import ContentError, ContentService, InMemoryContent
 
@@ -23,6 +24,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     app.state.content = svc
 
     def staff(who: Identity) -> JSONResponse | None:
+        VIEWER_TEAM.set(team_of(who))                     # who is asking, for what is shared with a team
         if who.session_id is not None or who.role in ("channel", "customer_session", "trigger"):
             return _err(403, "forbidden", "Outputs and spaces are for signed-in staff")
         return None

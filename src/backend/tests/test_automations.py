@@ -38,6 +38,7 @@ def world(replies=None):
     agents = {"support": support_agent(), "shift-briefing": reg.build(render(t, "shift-briefing", {}, reg).spec, BuildContext(llm=llm))}
     ac = AccessControl(bootstrap_key=KEY)
     app = create_app(rt, rt.traces, agents, access=ac)
+    app.state.test_access = ac
     key = lambda n, r: {"authorization": "Bearer " + loop.run_until_complete(ac.issue(n, r, "t"))[1]}  # noqa: E731
     return app, rt, key, loop
 
@@ -688,3 +689,82 @@ def test_the_editor_can_convert_between_yaml_and_json_and_lists_what_a_routine_m
     assert c.post("/v1/automations/convert", headers=ann, json={"yaml": "a: [unclosed"}).status_code == 400
     assert c.post("/v1/automations/convert", headers=ann, json={}).status_code == 400
     assert c.get("/v1/automations-catalog").status_code == 401
+
+
+def test_a_person_step_can_name_who_may_answer_by_role_or_team_and_nobody_else_can():
+    app, rt, key, loop = world()
+    c = TestClient(app)
+    ann, ben = key("ann", "release_manager"), key("ben", "release_manager")
+    lead = {**PERSON, "id": "lead-check", "steps": [PERSON["steps"][0], {**PERSON["steps"][1], "approver": {"role": "admin"}}, PERSON["steps"][2]]}
+    publish(c, ann, ben, lead)
+    svc = app.state.automations
+    run = loop.run_until_complete(svc.run("lead-check", "manual", "ann"))
+    assert run.to_dict()["waiting"]["approver"] == {"role": "admin"}
+    rev = key("rev", "reviewer")
+    denied = c.post(f"/v1/automation-runs/{run.id}/decision", headers=rev, json={"approve": True})
+    assert denied.status_code == 403 and "admin role" in denied.json()["error"]["message"]
+    assert c.post(f"/v1/automation-runs/{run.id}/decision", headers=ADM, json={"approve": True}).status_code == 200
+    team = {**PERSON, "id": "team-check", "steps": [PERSON["steps"][0], {**PERSON["steps"][1], "approver": {"group": "billing"}}, PERSON["steps"][2]]}
+    publish(c, ann, ben, team)
+    run2 = loop.run_until_complete(svc.run("team-check", "manual", "ann"))
+    person = lambda name, *groups: {"authorization": "Bearer " + loop.run_until_complete(app.state.test_access.issue_session(name, "reviewer", 8, groups=list(groups)))[1]}  # noqa: E731
+    assert c.post(f"/v1/automation-runs/{run2.id}/decision", headers=person("Cy", "returns"), json={"approve": True}).status_code == 403          # another team
+    assert c.post(f"/v1/automation-runs/{run2.id}/decision", headers=person("Bo", "billing"), json={"approve": True}).status_code == 200            # the team asked
+    for bad in ({"role": "channel"}, {"role": "nonsense"}, {"group": ""}, {"role": "admin", "group": "x"}, "admin"):
+        with pytest.raises(AutomationError):
+            validate_definition({**PERSON, "steps": [{**PERSON["steps"][1], "approver": bad}]}, {"performance"}, frozenset(), frozenset())
+
+
+def test_a_destination_can_be_an_email_address_and_goes_out_only_after_approval(monkeypatch):
+    from email.message import EmailMessage
+
+    import northcx.channels.email as em
+    sent: list[EmailMessage] = []
+
+    async def fake_send(self, msg):
+        sent.append(msg)
+    monkeypatch.setattr(em.SmtpSender, "send", fake_send)
+    monkeypatch.setenv("NORTHCX_AUTOMATION_DESTINATIONS", "lead=mailto:lead@example.com,evil=mailto:a@b.com\r\nBcc: x@y.com,chat=https://example.invalid/h")
+    monkeypatch.setenv("NORTHCX_AUTOMATION_DESTINATIONS_SECRET", "s" * 20)
+    monkeypatch.setenv("NORTHCX_SMTP_URL", "smtp://localhost:2525")
+    monkeypatch.setenv("NORTHCX_EMAIL_FROM", "northcx@example.com")
+    from northcx.api.routers.automations import _destinations
+    assert set(_destinations()) == {"lead", "chat"}                                  # an address with a line break in it is not accepted
+    app, rt, key, loop = world()
+    c = TestClient(app)
+    ann, ben, rev = key("ann", "release_manager"), key("ben", "release_manager"), key("rev", "reviewer")
+    d = {"id": "mail-brief", "name": "Mailed brief", "trigger": {"type": "manual"}, "steps": [{"id": "f", "kind": "report", "report": "performance", "days": 1},
+         {"id": "p", "kind": "person", "ask": "Send it to the lead?"}, {"id": "send", "kind": "notify", "to": "lead"}]}
+    publish(c, ann, ben, d)
+    svc = app.state.automations
+    run = loop.run_until_complete(svc.run("mail-brief", "manual", "ann"))
+    assert sent == []
+    c.post(f"/v1/automation-runs/{run.id}/decision", headers=rev, json={"approve": True})
+    loop.run_until_complete(finish(svc))
+    assert len(sent) == 1 and sent[0]["To"] == "lead@example.com" and sent[0]["From"] == "northcx@example.com" and "after a person approved it" in sent[0].get_content()
+    assert loop.run_until_complete(svc.repo.get_run(run.id)).steps[-1]["sentTo"] == "lead"
+
+
+def test_the_pilot_can_propose_a_coaching_note_and_it_is_added_only_on_confirmation():
+    import northcx.pilot_actions as pa
+    assert "add_coaching_note" in pa.ACTIONS
+    from fastapi.testclient import TestClient as TC
+    from examples.support_agent import support_agent as sa
+    from northcx.llm import ScriptedLLM as SL, text as tx, tool_call as tcall
+    from northcx.runtime import Runtime as RT
+    from northcx.server import create_app as mk
+    from northcx.store import InMemoryStore as IS
+    from northcx.trace import TraceStore as TS
+    loop = asyncio.new_event_loop()
+    rt = RT(SL([]), IS(), TS())
+    ac = AccessControl(bootstrap_key=KEY)
+    c = TC(mk(rt, rt.traces, {"support": sa()}, access=ac))
+    ann = {"authorization": "Bearer " + loop.run_until_complete(ac.issue("ann", "reviewer", "t"))[1]}
+    tok = c.post("/v1/chat-tokens", json={"sessionId": "w1", "customerId": "c"}, headers=ADM).json()["token"]
+    rt.llm.script = [tx("Hi.")]
+    c.post("/v1/agents/support/chat", json={"sessionId": "w1", "message": "hello"}, headers={"authorization": f"Bearer {tok}"})
+    rt.llm.script = [tcall("propose_add_coaching_note", {"session_id": "w1", "about": "rae", "note": "Clear greeting; confirm the order number next time."}, "t1"), tx("Proposed a coaching note.")]
+    a = c.post("/v1/workspace/chat", headers=ann, json={"message": "coach rae on w1", "style": "do"}).json()["actions"][0]
+    assert c.get("/v1/quality/coaching?sessionId=w1", headers=ann).json()["notes"] == []
+    assert c.post(f"/v1/workspace/actions/{a['id']}/confirm", headers=ann).json()["result"] == "Coaching note added"
+    assert [n["about"] for n in c.get("/v1/quality/coaching?sessionId=w1", headers=ann).json()["notes"]] == ["rae"]

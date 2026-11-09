@@ -24,6 +24,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     coaching = getattr(runtime, "coaching", None) or InMemoryCoaching()
     judgements = getattr(runtime, "judgements", None) or InMemoryJudgements()
     app.state.rubrics, app.state.coaching, app.state.judgements = rubrics, coaching, judgements
+    runtime.rubrics, runtime.coaching, runtime.judgements = rubrics, coaching, judgements
     if type(runtime.privacy).__name__ == "InMemoryPrivacy":      # the Postgres backend erases the tables itself
         runtime.privacy.coaching = coaching
         runtime.privacy.judgements = judgements

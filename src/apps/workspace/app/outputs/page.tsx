@@ -26,7 +26,7 @@ function Editor({ id, onClose, onSaved }: { id: string | null; onClose: () => vo
       <div className="grid gap-3 md:grid-cols-4">
         <label className="text-sm md:col-span-2">Title<input className="field mt-1 w-full" value={title} onChange={(e) => setTitle(e.target.value)} /></label>
         <label className="text-sm">Type<select className="field mt-1 w-full" disabled={!!id} value={kind} onChange={(e) => setKind(e.target.value)}>{["note", "answer", "report", "table", "digest"].map((k) => <option key={k}>{k}</option>)}</select></label>
-        <label className="text-sm">Who can see it<select className="field mt-1 w-full" value={visibility} onChange={(e) => setVisibility(e.target.value)}><option value="private">Only me</option><option value="shared">Everyone using the Workspace</option></select></label>
+        <label className="text-sm">Who can see it<select className="field mt-1 w-full" value={visibility} onChange={(e) => setVisibility(e.target.value)}><option value="private">Only me</option><option value="team">My team</option><option value="shared">Everyone using the Workspace</option></select></label>
         {!id && <label className="text-sm">Space<select className="field mt-1 w-full" value={space} onChange={(e) => setSpace(e.target.value)}><option value="">None</option>{(spaces.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
       </div>
       <label className="mt-3 block text-sm">Content{kind === "table" ? " (CSV)" : ""}. Customer personal data is masked when you save.<textarea className="field mt-1 h-56 w-full font-mono text-xs" value={body} onChange={(e) => setBody(e.target.value)} /></label>
@@ -56,7 +56,7 @@ export default function Page() {
       {loading && !data ? <Loading /> : error ? <ErrorBox message={error} onRetry={reload} /> : !data?.length ? <Empty>No outputs yet. Save an answer from the Pilot, or write one here.</Empty> : (
         <ul className="space-y-3">{data.map((o) => (
           <li key={o.id} className="glass p-4">
-            <div className="flex flex-wrap items-start justify-between gap-2"><h2 className="font-semibold">{o.title}</h2><span className="pill">{o.visibility === "shared" ? "Shared" : "Private"}</span></div>
+            <div className="flex flex-wrap items-start justify-between gap-2"><h2 className="font-semibold">{o.title}</h2><span className="pill">{o.visibility === "shared" ? "Shared" : o.visibility === "team" ? `Team: ${o.team ?? ""}` : "Private"}</span></div>
             <p className="mt-1 text-xs text-muted">{o.kind} · version {o.version} · {o.owner} · from {o.source} · updated {when(o.updatedAt)} · expires {when(o.expiresAt)}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <button className="btn" onClick={() => setEditing(o.id)}>Open</button>

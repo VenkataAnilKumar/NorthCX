@@ -567,8 +567,8 @@ export const automationRuns = (id: string) => api<{ runs: AutoRun[] }>(`/v1/auto
 export const setAutomationsEnabled = (enabled: boolean) => api<{ enabled: boolean }>("/v1/automation-settings", { method: "PUT", body: JSON.stringify({ enabled }) });
 
 // ---------- Outputs and Spaces (Workspace) ----------
-export interface OutputItem { id: string; title: string; kind: string; visibility: "private" | "shared"; owner: string; spaceId: string | null; source: string; version: number; versions: number; createdAt: number; updatedAt: number; expiresAt: number; size: number; body?: string; history?: { n: number; at: number; by: string; size: number }[] }
-export interface SpaceItem { id: string; name: string; description: string; instructions: string; visibility: "private" | "shared"; owner: string; updatedAt: number; outputs?: OutputItem[] }
+export interface OutputItem { id: string; title: string; kind: string; visibility: "private" | "team" | "shared"; team?: string | null; owner: string; spaceId: string | null; source: string; version: number; versions: number; createdAt: number; updatedAt: number; expiresAt: number; size: number; body?: string; history?: { n: number; at: number; by: string; size: number }[] }
+export interface SpaceItem { id: string; name: string; description: string; instructions: string; visibility: "private" | "team" | "shared"; team?: string | null; owner: string; updatedAt: number; outputs?: OutputItem[] }
 export const listOutputs = (opts: { space?: string; kind?: string; mine?: boolean } = {}) =>
   api<{ outputs: OutputItem[] }>(`/v1/workspace/outputs?${new URLSearchParams({ ...(opts.space ? { space: opts.space } : {}), ...(opts.kind ? { kind: opts.kind } : {}), ...(opts.mine ? { mine: "true" } : {}) })}`).then((r) => r.outputs);
 export const getOutput = (id: string) => api<OutputItem>(`/v1/workspace/outputs/${id}`);
@@ -600,7 +600,7 @@ export interface AutomationDraft { definition: Record<string, unknown> | null; y
 export const draftAutomation = (description: string) => api<AutomationDraft>("/v1/automations/draft", { method: "POST", body: JSON.stringify({ description }) });
 
 // ---------- Library items (Workspace) ----------
-export interface LibraryItem { id: string; title: string; kind: "prompt" | "macro" | "playbook" | "canned"; visibility: "private" | "shared"; owner: string; tags: string[]; uses: number; version: number; updatedAt: number; preview: string; body?: string }
+export interface LibraryItem { id: string; title: string; kind: "prompt" | "macro" | "playbook" | "canned"; visibility: "private" | "team" | "shared"; team?: string | null; owner: string; tags: string[]; uses: number; version: number; updatedAt: number; preview: string; body?: string }
 export const listLibraryItems = (opts: { kind?: string; q?: string; mine?: boolean } = {}) =>
   api<{ items: LibraryItem[] }>(`/v1/workspace/library-items?${new URLSearchParams({ ...(opts.kind ? { kind: opts.kind } : {}), ...(opts.q ? { q: opts.q } : {}), ...(opts.mine ? { mine: "true" } : {}) })}`).then((r) => r.items);
 export const saveLibraryItem = (b: { title: string; body: string; kind: string; visibility?: string; tags?: string[] }) => api<LibraryItem>("/v1/workspace/library-items", { method: "POST", body: JSON.stringify(b) });

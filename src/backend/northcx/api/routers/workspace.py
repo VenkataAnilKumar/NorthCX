@@ -17,6 +17,7 @@ from northcx.api.deps import AppDeps
 from northcx.api.models import AnswersBody, NoteBody, PlanBody, TaskBody, WorkspaceChatBody
 from northcx.release_requests import principal
 from northcx.staff_search import ConversationProvider, HandoffProvider, KnowledgeProvider, SearchService
+from northcx.decision_teams import VIEWER_TEAM, team_of
 from northcx.tasks import TaskError, TaskService
 from northcx.workspace import WorkspaceService, register_staff_tools
 
@@ -42,6 +43,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         return f"staff:{h}", h
 
     def staff_only(who: Identity) -> JSONResponse | None:
+        VIEWER_TEAM.set(team_of(who))
         if who.session_id is not None or who.role in ("channel", "customer_session"):
             return _err(403, "forbidden", "The Workspace is for signed-in staff")
         return None

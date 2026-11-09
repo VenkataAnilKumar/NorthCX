@@ -29,7 +29,7 @@ function Saved() {
           <div className="grid gap-3 md:grid-cols-3">
             <label className="text-sm md:col-span-2">Title<input className="field mt-1 w-full" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></label>
             <label className="text-sm">Type<select className="field mt-1 w-full" disabled={!!editing} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{Object.entries(KIND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-            <label className="text-sm">Who can see it<select className="field mt-1 w-full" value={f.visibility} onChange={(e) => setF({ ...f, visibility: e.target.value })}><option value="private">Only me</option><option value="shared">Everyone using the Workspace</option></select></label>
+            <label className="text-sm">Who can see it<select className="field mt-1 w-full" value={f.visibility} onChange={(e) => setF({ ...f, visibility: e.target.value })}><option value="private">Only me</option><option value="team">My team</option><option value="shared">Everyone using the Workspace</option></select></label>
             <label className="text-sm md:col-span-2">Tags (comma separated, up to 8)<input className="field mt-1 w-full" value={f.tags} onChange={(e) => setF({ ...f, tags: e.target.value })} /></label>
           </div>
           <label className="mt-3 block text-sm">Text<textarea className="field mt-1 h-40 w-full" value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} /></label>
@@ -38,7 +38,7 @@ function Saved() {
       {loading && !data ? <Loading /> : error ? <ErrorBox message={error} onRetry={reload} /> : !data?.length ? <Empty>No saved items yet.</Empty> : (
         <ul className="space-y-3">{data.map((i) => (
           <li key={i.id} className="glass p-4">
-            <div className="flex flex-wrap items-start justify-between gap-2"><h2 className="font-semibold">{i.title}</h2><span className="pill">{i.visibility === "shared" ? "Shared" : "Private"}</span></div>
+            <div className="flex flex-wrap items-start justify-between gap-2"><h2 className="font-semibold">{i.title}</h2><span className="pill">{i.visibility === "shared" ? "Shared" : i.visibility === "team" ? `Team: ${i.team ?? ""}` : "Private"}</span></div>
             <p className="mt-1 text-xs text-muted">{KIND[i.kind]} · version {i.version} · {i.owner} · used {i.uses} times{i.tags.length ? ` · ${i.tags.join(", ")}` : ""}</p>
             <p className="mt-1 text-sm">{i.preview}</p>
             <div className="mt-2 flex flex-wrap gap-2">

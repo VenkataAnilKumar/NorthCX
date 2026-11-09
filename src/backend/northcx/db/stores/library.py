@@ -12,13 +12,13 @@ from northcx.library_items import Item
 
 
 def _i(r: LibraryItemRow) -> Item:
-    return Item(r.owner, r.title, r.kind, r.visibility, list(r.data["versions"]), list(r.data.get("tags", [])), r.uses, r.id, r.created_at, r.updated_at)
+    return Item(r.owner, r.title, r.kind, r.visibility, list(r.data["versions"]), list(r.data.get("tags", [])), r.uses, r.id, r.created_at, r.updated_at, r.data.get("team", ""))
 
 
 class PgLibrary(_Base):
     async def put(self, i: Item) -> None:
         i.updated_at = time.time()
-        vals = dict(owner=i.owner, title=i.title, kind=i.kind, visibility=i.visibility, created_at=i.created_at, updated_at=i.updated_at, data=_jsonable({"versions": i.versions, "tags": i.tags}))
+        vals = dict(owner=i.owner, title=i.title, kind=i.kind, visibility=i.visibility, created_at=i.created_at, updated_at=i.updated_at, data=_jsonable({"versions": i.versions, "tags": i.tags, "team": i.team}))
         stmt = pg_insert(LibraryItemRow).values(id=i.id, uses=i.uses, **vals)
         stmt = stmt.on_conflict_do_update(index_elements=[LibraryItemRow.tenant_id, LibraryItemRow.id], set_=vals)      # uses is changed only by bump, never overwritten by an edit
         async with self._sm.begin() as s:

@@ -43,7 +43,14 @@ class SaveOutputInput(BaseModel):
     kind: str = Field(default="note", pattern="^(note|answer|report|table|digest)$")
 
 
-ACTIONS: dict[str, tuple[type[BaseModel], str, str]] = {          # tool -> (input model, permission needed, what it does)
+class CoachingInput(BaseModel):
+    session_id: str = Field(min_length=1, max_length=200, description="The conversation the note is about")
+    about: str = Field(min_length=2, max_length=80, description="The person or agent the note is for")
+    note: str = Field(min_length=5, max_length=300, description="What went well and what to try next time. No customer details.")
+
+
+ACTIONS: dict[str, tuple[type[BaseModel], str, str]] = {
+    "add_coaching_note": (CoachingInput, "reviews:write", "Add a coaching note to a conversation"),          # tool -> (input model, permission needed, what it does)
     "tag_conversation": (TagInput, "conversations:tag", "Tag a conversation"),
     "add_customer_note": (CustomerNoteInput, "customers:write", "Add a staff note about a conversation's customer"),
     "save_output": (SaveOutputInput, "workspace:use", "Save a result to Outputs"),
@@ -111,7 +118,8 @@ class PilotActionService:
         if len(pending) >= MAX_PENDING:
             raise ActionError(429, f"You already have {MAX_PENDING} proposals waiting; confirm or cancel some first")
         summary = {"tag_conversation": lambda d: f"Tag conversation {d['session_id'][:24]} as pilot-{d['tag']}", "add_customer_note": lambda d: f"Add a note about the customer of {d['session_id'][:24]}: {d['note'][:80]}",
-                   "save_output": lambda d: f"Save '{d['title']}' to Outputs ({len(d['body'])} characters)"}[tool](data)
+                   "save_output": lambda d: f"Save '{d['title']}' to Outputs ({len(d['body'])} characters)",
+                   "add_coaching_note": lambda d: f"Add a coaching note for {d['about']} on {d['session_id'][:24]}: {d['note'][:80]}"}[tool](data)
         a = PilotAction(actor.name, chat_id, tool, data, summary)
         await self.repo.put(a)
         return a
@@ -162,6 +170,21 @@ class PilotActionService:
             except ValueError as e:
                 raise ActionError(409, str(e)) from e
             return f"Tagged as pilot-{d['tag']}"
+        if a.tool == "add_coaching_note":
+            from .memory import MemoryRejected
+            from .qa import CoachingNote
+            from .workspace import screen_staff_note
+            repo = getattr(rt, "coaching", None)
+            if repo is None:
+                raise ActionError(501, "Coaching notes are not configured on this server")
+            if not await self.ws.traces.summaries(d["session_id"], 1):
+                raise ActionError(404, "Unknown conversation")
+            try:
+                clean = screen_staff_note(d["note"])
+            except MemoryRejected as e:
+                raise ActionError(400, str(e)) from e
+            await repo.add(CoachingNote(d["session_id"], d["about"].strip(), clean, actor.name))
+            return "Coaching note added"
         if a.tool == "add_customer_note":
             from .customers import CustomerNote
             from .memory import MemoryRejected, check_note

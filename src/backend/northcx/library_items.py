@@ -12,11 +12,12 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from .decision_teams import NO_TEAM, current_team, team_visible
 from .outputs import MAX_VERSIONS, clean
 from .tenancy import current_tenant
 
 KINDS = ("prompt", "macro", "playbook", "canned")
-VISIBILITY = ("private", "shared")
+VISIBILITY = ("private", "team", "shared")
 MAX_BODY = 20_000
 MAX_ITEMS = 1000
 WORD = re.compile(r"[a-z0-9]{3,}")
@@ -41,13 +42,14 @@ class Item:
     id: str = field(default_factory=lambda: "lib-" + uuid.uuid4().hex[:12])
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
+    team: str = ""
 
     def visible_to(self, who: str, admin: bool) -> bool:
-        return self.owner == who or self.visibility == "shared" or admin
+        return team_visible(self.owner, self.team, self.visibility, who, admin)
 
     def to_dict(self, full: bool = False) -> dict[str, Any]:
         cur = self.versions[-1]
-        out = {"id": self.id, "title": self.title, "kind": self.kind, "visibility": self.visibility, "owner": self.owner, "tags": self.tags, "uses": self.uses,
+        out = {"id": self.id, "title": self.title, "kind": self.kind, "visibility": self.visibility, "team": self.team or None, "owner": self.owner, "tags": self.tags, "uses": self.uses,
                "version": cur["n"], "createdAt": self.created_at, "updatedAt": self.updated_at, "preview": cur["body"][:160]}
         if full:
             out.update({"body": cur["body"], "history": [{"n": v["n"], "at": v["at"], "by": v["by"]} for v in self.versions]})
@@ -101,6 +103,15 @@ def score(query: set[str], item: Item) -> float:
     return (3 * len(query & head) + len(query & body)) / (len(query) ** 0.5)
 
 
+def _team_for(visibility: str) -> str:
+    if visibility != "team":
+        return ""
+    team = current_team()
+    if team == NO_TEAM:
+        raise LibraryError(400, "You are not in a team, so you cannot share with a team; share with everyone or keep it private")
+    return team
+
+
 def _tags(tags: list[str] | None) -> list[str]:
     out = []
     for t in tags or []:
@@ -134,11 +145,11 @@ class LibraryService:
 
     async def create(self, owner: str, title: str, body: str, kind: str, visibility: str = "private", tags: list[str] | None = None) -> Item:
         if kind not in KINDS or visibility not in VISIBILITY:
-            raise LibraryError(400, f"kind must be one of {', '.join(KINDS)} and visibility private or shared")
+            raise LibraryError(400, f"kind must be one of {', '.join(KINDS)} and visibility private, team or shared")
         if len(await self.repo.list()) >= MAX_ITEMS:
             raise LibraryError(429, "The library is full; delete some items first")
         now = time.time()
-        i = Item(owner, self._title(title), kind, visibility, [{"n": 1, "body": self._body(body), "at": now, "by": owner}], _tags(tags), created_at=now)
+        i = Item(owner, self._title(title), kind, visibility, [{"n": 1, "body": self._body(body), "at": now, "by": owner}], _tags(tags), created_at=now, team=_team_for(visibility))
         await self.repo.put(i)
         return i
 
@@ -156,7 +167,8 @@ class LibraryService:
             i.title = self._title(title)
         if visibility is not None:
             if visibility not in VISIBILITY:
-                raise LibraryError(400, "visibility must be private or shared")
+                raise LibraryError(400, "visibility must be private, team or shared")
+            i.team = _team_for(visibility)
             i.visibility = visibility
         if tags is not None:
             i.tags = _tags(tags)

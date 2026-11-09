@@ -15,11 +15,12 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from .safety.pii import PIIDetection
+from .decision_teams import NO_TEAM, current_team, team_visible
 from .tenancy import current_tenant
 
 _MASK = PIIDetection()
 KINDS = ("note", "answer", "report", "table", "digest")
-VISIBILITY = ("private", "shared")
+VISIBILITY = ("private", "team", "shared")
 MAX_BODY = 100_000
 MAX_VERSIONS = 20
 DEFAULT_DAYS, MAX_DAYS = 90, 365
@@ -54,14 +55,15 @@ class Output:
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     expires_at: float = 0.0
+    team: str = ""          # the owner's team when it was shared with a team
 
     def visible_to(self, who: str, admin: bool) -> bool:
-        return self.owner == who or self.visibility == "shared" or admin
+        return team_visible(self.owner, self.team, self.visibility, who, admin)
 
     def to_dict(self, full: bool = False) -> dict[str, Any]:
         cur = self.versions[-1]
         out = {"id": self.id, "title": self.title, "kind": self.kind, "visibility": self.visibility, "owner": self.owner, "spaceId": self.space_id, "source": self.source,
-               "version": cur["n"], "versions": len(self.versions), "createdAt": self.created_at, "updatedAt": self.updated_at, "expiresAt": self.expires_at, "size": len(cur["body"])}
+               "team": self.team or None, "version": cur["n"], "versions": len(self.versions), "createdAt": self.created_at, "updatedAt": self.updated_at, "expiresAt": self.expires_at, "size": len(cur["body"])}
         if full:
             out.update({"body": cur["body"], "history": [{"n": v["n"], "at": v["at"], "by": v["by"], "size": len(v["body"])} for v in self.versions]})
         return out
@@ -93,12 +95,13 @@ class Space:
     id: str = field(default_factory=lambda: "spc-" + uuid.uuid4().hex[:10])
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
+    team: str = ""
 
     def visible_to(self, who: str, admin: bool) -> bool:
-        return self.owner == who or self.visibility == "shared" or admin
+        return team_visible(self.owner, self.team, self.visibility, who, admin)
 
     def to_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "name": self.name, "description": self.description, "instructions": self.instructions, "visibility": self.visibility, "owner": self.owner,
+        return {"id": self.id, "name": self.name, "description": self.description, "instructions": self.instructions, "visibility": self.visibility, "team": self.team or None, "owner": self.owner,
                 "createdAt": self.created_at, "updatedAt": self.updated_at}
 
 
@@ -186,6 +189,16 @@ class InMemoryContent:
         return self._s.pop((t, space_id), None) is not None
 
 
+def _team_for(visibility: str) -> str:
+    """The team to remember when something is shared with a team. Someone in no team cannot share with one, because no one else would see it."""
+    if visibility != "team":
+        return ""
+    team = current_team()
+    if team == NO_TEAM:
+        raise ContentError(400, "You are not in a team, so you cannot share with a team; share with everyone or keep it private")
+    return team
+
+
 def _check_text(body: str) -> str:
     if not isinstance(body, str) or not body.strip():
         raise ContentError(400, "The content cannot be empty")
@@ -212,7 +225,7 @@ class ContentService:
     async def create_output(self, owner: str, title: str, body: str, kind: str = "note", visibility: str = "private", space_id: str | None = None,
                             source: str = "manual", days: int = DEFAULT_DAYS, admin: bool = False) -> Output:
         if kind not in KINDS or visibility not in VISIBILITY:
-            raise ContentError(400, f"kind must be one of {', '.join(KINDS)} and visibility private or shared")
+            raise ContentError(400, f"kind must be one of {', '.join(KINDS)} and visibility private, team or shared")
         if not isinstance(title, str) or not 2 <= len(title.strip()) <= 120:
             raise ContentError(400, "The title must be 2 to 120 characters")
         if not 1 <= days <= MAX_DAYS:
@@ -228,7 +241,7 @@ class ContentService:
         if await self.repo.count_outputs(owner) >= MAX_PER_OWNER:
             raise ContentError(429, f"You have {MAX_PER_OWNER} saved outputs; delete some first")
         now = time.time()
-        o = Output(owner, clean(title.strip()), kind, visibility, [{"n": 1, "body": text, "at": now, "by": owner}], space_id, source, created_at=now, expires_at=now + days * 86400)
+        o = Output(owner, clean(title.strip()), kind, visibility, [{"n": 1, "body": text, "at": now, "by": owner}], space_id, source, created_at=now, expires_at=now + days * 86400, team=_team_for(visibility))
         await self.repo.put_output(o)
         return o
 
@@ -244,7 +257,8 @@ class ContentService:
             raise ContentError(403, "Only the owner can change an output")
         if visibility is not None:
             if visibility not in VISIBILITY:
-                raise ContentError(400, "visibility must be private or shared")
+                raise ContentError(400, "visibility must be private, team or shared")
+            o.team = _team_for(visibility)
             o.visibility = visibility
         if title is not None:
             if not 2 <= len(title.strip()) <= 120:
@@ -300,12 +314,12 @@ class ContentService:
 
     async def create_space(self, owner: str, name: str, description: str = "", instructions: str = "", visibility: str = "private") -> Space:
         if not isinstance(name, str) or not 2 <= len(name.strip()) <= 80 or visibility not in VISIBILITY:
-            raise ContentError(400, "The name must be 2 to 80 characters and visibility private or shared")
+            raise ContentError(400, "The name must be 2 to 80 characters and visibility private, team or shared")
         if len(description) > 500 or len(instructions) > 2000:
             raise ContentError(400, "The description is at most 500 characters and the instructions at most 2,000")
         if len(await self.repo.list_spaces()) >= 500:
             raise ContentError(429, "There are too many spaces; delete some first")
-        s = Space(owner, name.strip(), visibility, clean(description.strip()), clean(instructions.strip()))
+        s = Space(owner, name.strip(), visibility, clean(description.strip()), clean(instructions.strip()), team=_team_for(visibility))
         await self.repo.put_space(s)
         return s
 
@@ -327,7 +341,8 @@ class ContentService:
             s.instructions = clean(i.strip())
         if (v := fields.get("visibility")) is not None:
             if v not in VISIBILITY:
-                raise ContentError(400, "visibility must be private or shared")
+                raise ContentError(400, "visibility must be private, team or shared")
+            s.team = _team_for(v)
             s.visibility = v
         await self.repo.put_space(s)
         return s

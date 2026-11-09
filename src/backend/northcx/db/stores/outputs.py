@@ -12,18 +12,18 @@ from northcx.outputs import Output, Space, SpaceFile
 
 
 def _o(r: WorkspaceOutputRow) -> Output:
-    return Output(r.owner, r.title, r.kind, r.visibility, list(r.data["versions"]), r.space_id, r.source, r.id, r.created_at, r.updated_at, r.expires_at)
+    return Output(r.owner, r.title, r.kind, r.visibility, list(r.data["versions"]), r.space_id, r.source, r.id, r.created_at, r.updated_at, r.expires_at, r.data.get("team", ""))
 
 
 def _s(r: WorkspaceSpaceRow) -> Space:
-    return Space(r.owner, r.name, r.visibility, r.data.get("description", ""), r.data.get("instructions", ""), r.id, r.created_at, r.updated_at)
+    return Space(r.owner, r.name, r.visibility, r.data.get("description", ""), r.data.get("instructions", ""), r.id, r.created_at, r.updated_at, r.data.get("team", ""))
 
 
 class PgContent(_Base):
     async def put_output(self, o: Output) -> None:
         o.updated_at = time.time()
         vals = dict(owner=o.owner, title=o.title, kind=o.kind, visibility=o.visibility, space_id=o.space_id, source=o.source, created_at=o.created_at, updated_at=o.updated_at,
-                    expires_at=o.expires_at, data=_jsonable({"versions": o.versions}))
+                    expires_at=o.expires_at, data=_jsonable({"versions": o.versions, "team": o.team}))
         stmt = pg_insert(WorkspaceOutputRow).values(id=o.id, **vals)
         stmt = stmt.on_conflict_do_update(index_elements=[WorkspaceOutputRow.tenant_id, WorkspaceOutputRow.id], set_=vals)
         async with self._sm.begin() as s:
@@ -61,7 +61,7 @@ class PgContent(_Base):
     async def put_space(self, sp: Space) -> None:
         sp.updated_at = time.time()
         vals = dict(owner=sp.owner, name=sp.name, visibility=sp.visibility, created_at=sp.created_at, updated_at=sp.updated_at,
-                    data={"description": sp.description, "instructions": sp.instructions})
+                    data={"description": sp.description, "instructions": sp.instructions, "team": sp.team})
         stmt = pg_insert(WorkspaceSpaceRow).values(id=sp.id, **vals)
         stmt = stmt.on_conflict_do_update(index_elements=[WorkspaceSpaceRow.tenant_id, WorkspaceSpaceRow.id], set_=vals)
         async with self._sm.begin() as s:

@@ -24,6 +24,8 @@ def _destinations() -> dict[str, tuple[str, str]]:
         name, _, url = part.partition("=")
         if name and url.startswith(("https://", "http://")) and len(secret) >= 16:
             out[name.strip()] = (url.strip(), secret)
+        elif name and url.startswith("mailto:") and "@" in url and not any(c in url for c in "\r\n<>\" "):
+            out[name.strip()] = (url.strip(), "")                            # an address the administrator chose; sent through the server's own mail settings
     return out
 
 
@@ -84,12 +86,32 @@ def register(app: FastAPI, d: AppDeps) -> None:
 
         from northcx.notify import sign
         url, secret = destinations[name]
+        if url.startswith("mailto:"):
+            await send_mail(url[7:], payload)
+            return
         body = _json.dumps({"type": "automation.result", **payload}, sort_keys=True).encode()
         ts = str(int(_time.time()))
         async with httpx.AsyncClient(timeout=8.0, follow_redirects=False) as client:
             r = await client.post(url, content=body, headers={"content-type": "application/json", "x-northcx-timestamp": ts, "x-northcx-signature": sign(secret, ts, body)})
         if r.status_code >= 300:
             raise AutomationError(502, f"The destination answered {r.status_code}")
+
+    async def send_mail(to: str, payload: dict[str, Any]) -> None:
+        import os
+        from email.message import EmailMessage
+
+        from northcx.channels.email import SmtpError, SmtpSender
+        from northcx.secrets import env_or_file
+        smtp_url, sender = env_or_file("NORTHCX_SMTP_URL"), os.environ.get("NORTHCX_EMAIL_FROM", "").strip()
+        if not smtp_url or not sender:
+            raise AutomationError(501, "Email is not set up on this server (NORTHCX_SMTP_URL and NORTHCX_EMAIL_FROM)")
+        msg = EmailMessage()
+        msg["From"], msg["To"], msg["Subject"] = sender, to, f"NorthCX routine {payload.get('automation', '')}"[:120]
+        msg.set_content(f"{payload.get('text', '')}\n\n-- Sent by the routine '{payload.get('automation')}' after a person approved it (run {payload.get('run')}).")
+        try:
+            await SmtpSender(smtp_url).send(msg)
+        except SmtpError as e:
+            raise AutomationError(502, str(e)[:200]) from e
 
     from northcx.events import EVENTS
     svc.hooks = Hooks(run_assistant, exists, reports, over_budget, save_output, feed if d.events is not None else None, frozenset(EVENTS) if d.events is not None else frozenset(),
@@ -302,6 +324,14 @@ def register(app: FastAPI, d: AppDeps) -> None:
     @app.post("/v1/automation-runs/{run_id}/decision")
     async def decide_run(run_id: str, body: AutomationDecisionBody, request: Request) -> Any:
         """Answer a routine that is waiting for a person. Needs the permission to decide approvals; not the person who started the run."""
+        who = request.state.identity
+        pending = await svc.repo.get_run(run_id)
+        want = (pending.waiting or {}).get("approver") if pending is not None else None
+        if want:                                                      # the routine named who may answer
+            ok = (want.get("role") in (who.role, *who.extra_roles)) if "role" in want else (want.get("group") in who.groups)
+            if not ok:
+                await record(request, "automation.decide", run_id, "denied", reason="not the person asked")
+                return _err(403, "forbidden", f"This is for {'someone with the ' + want['role'] + ' role' if 'role' in want else 'someone in the ' + want['group'] + ' team'}")
         try:
             run = await svc.decide_run(run_id, body.approve, request.state.identity.name, body.note)
         except AutomationError as e:

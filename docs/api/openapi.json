@@ -14302,16 +14302,33 @@
             "title": "Name"
           },
           "text": {
-            "type": "string",
-            "maxLength": 200000,
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200000
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Text"
+          },
+          "dataBase64": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 7500000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Database64"
           }
         },
         "type": "object",
         "required": [
-          "name",
-          "text"
+          "name"
         ],
         "title": "SpaceFileBody"
       },

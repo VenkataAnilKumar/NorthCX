@@ -84,11 +84,26 @@ function StepForm({ step, catalog, onPatch, onMove, onRemove, readOnly }: { step
       <h3 className="font-semibold">{KIND_LABEL[step.kind] ?? step.kind} <span className="font-normal text-muted">({step.id})</span></h3>
       {step.kind === "report" && <><label className="block">Report{pick("report", catalog?.reports ?? [])}</label><label className="block">Days<input type="number" min={1} max={90} className="field mt-1 w-full" disabled={readOnly} value={Number(step.days ?? 7)} onChange={(e) => onPatch({ days: Number(e.target.value) })} /></label></>}
       {step.kind === "assistant" && <><label className="block">Staff assistant{pick("assistant", catalog?.assistants ?? [])}</label><label className="block">What to ask. <code>{"{{previous}}"}</code> is the step before, <code>{"{{input}}"}</code> is what the trigger sent.<textarea className="field mt-1 h-28 w-full" disabled={readOnly} value={str("prompt")} onChange={(e) => onPatch({ prompt: e.target.value })} /></label></>}
-      {step.kind === "person" && <><label className="block">Question for the person<textarea className="field mt-1 h-20 w-full" disabled={readOnly} value={str("ask")} onChange={(e) => onPatch({ ask: e.target.value })} /></label><label className="block">Wait up to (hours)<input type="number" min={1} max={72} className="field mt-1 w-full" disabled={readOnly} value={Number(step.maxWaitHours ?? 24)} onChange={(e) => onPatch({ maxWaitHours: Number(e.target.value) })} /></label></>}
+      {step.kind === "person" && <><label className="block">Question for the person<textarea className="field mt-1 h-20 w-full" disabled={readOnly} value={str("ask")} onChange={(e) => onPatch({ ask: e.target.value })} /></label><label className="block">Wait up to (hours)<input type="number" min={1} max={72} className="field mt-1 w-full" disabled={readOnly} value={Number(step.maxWaitHours ?? 24)} onChange={(e) => onPatch({ maxWaitHours: Number(e.target.value) })} /></label>
+        <ApproverFields step={step} readOnly={readOnly} onPatch={onPatch} /></>}
       {step.kind === "tag" && <label className="block">Tag (saved as auto-…)<input className="field mt-1 w-full" disabled={readOnly} value={str("tag")} onChange={(e) => onPatch({ tag: e.target.value })} /></label>}
       {step.kind === "notify" && <label className="block">Send to{pick("to", catalog?.destinations ?? [])}</label>}
       {step.kind === "output" && <label className="block">Title. <code>{"{date}"}</code> becomes the day.<input className="field mt-1 w-full" disabled={readOnly} value={str("title")} onChange={(e) => onPatch({ title: e.target.value })} /></label>}
       {!readOnly && <div className="flex gap-2 pt-1"><button className="btn" onClick={() => onMove(-1)}>Move up</button><button className="btn" onClick={() => onMove(1)}>Move down</button><button className="btn" onClick={onRemove}>Remove</button></div>}
+    </div>
+  );
+}
+
+/** Who may answer a person step: anyone allowed to decide approvals, a role, or a team. */
+function ApproverFields({ step, readOnly, onPatch }: { step: Step; readOnly: boolean; onPatch: (p: Record<string, unknown>) => void }) {
+  const cur = (step.approver ?? null) as { role?: string; group?: string } | null;
+  const kind = cur?.role !== undefined ? "role" : cur?.group !== undefined ? "group" : "any";
+  const value = cur?.role ?? cur?.group ?? "";
+  const set = (k: string, v: string) => onPatch({ approver: k === "any" ? undefined : { [k]: v } });
+  return (
+    <div className="grid gap-2 md:grid-cols-2">
+      <label className="block">Who may answer<select className="field mt-1 w-full" disabled={readOnly} value={kind} onChange={(e) => set(e.target.value, e.target.value === "role" ? "admin" : "")}><option value="any">Anyone who may decide approvals</option><option value="role">A role</option><option value="group">A team</option></select></label>
+      {kind !== "any" && <label className="block">{kind === "role" ? "Role" : "Team name"}<input className="field mt-1 w-full" disabled={readOnly} value={value} onChange={(e) => set(kind, e.target.value)} /></label>}
     </div>
   );
 }

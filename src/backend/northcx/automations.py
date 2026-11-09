@@ -120,7 +120,19 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
                 raise AutomationError(400, f"Step '{sid}': say what the person is asked, in 5 to 300 characters")
             if isinstance(hours, bool) or not isinstance(hours, int) or not 1 <= hours <= MAX_WAIT_HOURS:
                 raise AutomationError(400, f"Step '{sid}': maxWaitHours is a whole number from 1 to {MAX_WAIT_HOURS}")
-            out.append({"id": sid, "kind": "person", "ask": ask, "maxWaitHours": hours})
+            step: dict[str, Any] = {"id": sid, "kind": "person", "ask": ask, "maxWaitHours": hours}
+            who = s.get("approver")
+            if who is not None:                                   # who may answer: a role or a team, not both
+                from .access import ROLES
+                if not isinstance(who, dict) or len(who) != 1 or next(iter(who)) not in ("role", "group"):
+                    raise AutomationError(400, f"Step '{sid}': approver is {{role: ...}} or {{group: ...}}")
+                kind_, val = next(iter(who.items()))
+                if kind_ == "role" and (val not in ROLES or val in ("channel", "trigger")):
+                    raise AutomationError(400, f"Step '{sid}': approver role must be one of {', '.join(r for r in ROLES if r not in ('channel', 'trigger'))}")
+                if kind_ == "group" and (not isinstance(val, str) or not 1 <= len(val) <= 80):
+                    raise AutomationError(400, f"Step '{sid}': approver group must be a team name")
+                step["approver"] = {kind_: val}
+            out.append(step)
         elif sk == "tag":
             tag = s.get("tag")
             if not isinstance(tag, str) or not TAG_RE.match(tag):
@@ -195,7 +207,7 @@ class Run:
     def to_dict(self) -> dict[str, Any]:
         return {"id": self.id, "automationId": self.automation_id, "version": self.version, "trigger": self.trigger, "by": self.by, "status": self.status,
                 "startedAt": self.started_at, "endedAt": self.ended_at, "steps": self.steps, "outcome": self.outcome, "error": self.error,
-                "waiting": ({"step": self.waiting["step"], "ask": self.waiting["ask"], "preview": self.waiting["preview"], "until": self.waiting["until"]} if self.waiting else None)}
+                "waiting": ({"step": self.waiting["step"], "ask": self.waiting["ask"], "preview": self.waiting["preview"], "until": self.waiting["until"], "approver": self.waiting.get("approver")} if self.waiting else None)}
 
 
 class AutomationRepo(Protocol):
@@ -501,7 +513,7 @@ class AutomationService:
                     rec.update({"status": "waiting", "ask": s["ask"], "until": until})
                     run.status = "waiting"
                     run.input_text = input_text
-                    run.waiting = {"step": idx, "prev": prev, "until": until, "ask": s["ask"], "preview": prev[:600]}
+                    run.waiting = {"step": idx, "prev": prev, "until": until, "ask": s["ask"], "preview": prev[:600], "approver": s.get("approver")}
                     return                                          # the run rests here until a person decides; nothing runs and no time is counted
                 elif s["kind"] == "tag":
                     sid = _session_of(input_text)

@@ -235,7 +235,7 @@ class WorkspaceService:
                      "and finish with a short list headed 'What I could not verify'. Prefer fewer statements you can source over many you cannot.\n")
         elif style == "do" and self.actions is not None:
             tools += [t for t in self.actions.tools(chat_id) if actor.can(t.permission) and (self.policy is None or self.policy.allows(actor.role, t.name))]
-            extra = ("\nThis is a Do request. In this mode you may propose actions with the propose_ tools (tag a conversation, add a staff note about a customer, save an output), "
+            extra = ("\nThis is a Do request. In this mode you may propose actions with the propose_ tools (tag a conversation, add a staff note about a customer, add a coaching note, save an output), "
                      "and only what the person asked for. A proposal changes nothing: the person confirms it in the Pilot, or it lapses. After proposing, say plainly what you proposed. "
                      "You still cannot send anything to a customer or approve anything; the earlier rule about not changing records applies to everything except these proposals.\n")
         return Agent(id="pilot", instructions=STAFF_RULES.format(name=actor.name) + extra, tools=tools, audience="staff", sensitive=True,

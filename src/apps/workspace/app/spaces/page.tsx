@@ -44,7 +44,7 @@ export default function Page() {
       {loading && !data ? <Loading /> : error ? <ErrorBox message={error} onRetry={reload} /> : !data?.length ? <Empty>No spaces yet. Create one below.</Empty> : (
         <ul className="mb-6 grid gap-4 md:grid-cols-2">{data.map((s) => (
           <li key={s.id} className="glass p-4">
-            <div className="flex items-start justify-between gap-2"><h2 className="font-semibold">{s.name}</h2><span className="pill">{s.visibility === "shared" ? "Shared" : "Private"}</span></div>
+            <div className="flex items-start justify-between gap-2"><h2 className="font-semibold">{s.name}</h2><span className="pill">{s.visibility === "shared" ? "Shared" : s.visibility === "team" ? `Team: ${s.team ?? ""}` : "Private"}</span></div>
             <p className="mt-1 text-xs text-muted">{s.owner}</p>{s.description && <p className="mt-1 text-sm">{s.description}</p>}
             <div className="mt-2 flex flex-wrap gap-2">
               <button className="btn" onClick={() => void run(async () => setOpen(await getSpace(s.id)))}>Open</button>
@@ -64,7 +64,7 @@ export default function Page() {
       <GlassCard title={editing ? "Edit space" : "New space"}>
         <div className="grid gap-3 md:grid-cols-2">
           <label className="text-sm">Name<input className="field mt-1 w-full" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
-          <label className="text-sm">Who can see it<select className="field mt-1 w-full" value={form.visibility} onChange={(e) => setForm({ ...form, visibility: e.target.value })}><option value="private">Only me</option><option value="shared">Everyone using the Workspace</option></select></label>
+          <label className="text-sm">Who can see it<select className="field mt-1 w-full" value={form.visibility} onChange={(e) => setForm({ ...form, visibility: e.target.value })}><option value="private">Only me</option><option value="team">My team</option><option value="shared">Everyone using the Workspace</option></select></label>
           <label className="text-sm md:col-span-2">Description<input className="field mt-1 w-full" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
           <label className="text-sm md:col-span-2">Instructions for the Pilot (up to 2,000 characters). They guide it; they never give it more access.<textarea className="field mt-1 h-28 w-full" value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} /></label>
         </div>
