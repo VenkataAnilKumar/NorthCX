@@ -61,6 +61,20 @@ Settings and the profile stay in the corner. Rules: a count badge on a sub-tab (
 
 **Panels and controls that are not tabs:** customer panel and suggested knowledge (inside a conversation), notifications (a bell in the top bar), live call assist (a panel while a call is open), availability and workload (a status control in the header), the app switcher and theme switch.
 
+### Same name, two jobs: the Workspace page and the Admin page
+Some names appear in both apps on purpose. The Workspace page is where staff **do the work**; the Admin page is where administrators **set the rules, see everything and stop things**. A staff member who is not an administrator never sees the Admin page.
+| Name | In the Workspace (staff use it) | In Admin (administrators manage it) |
+|---|---|---|
+| **Library** (Admin) and **Library** (Workspace) | Browse and search sources, documents, playbooks and canned answers; out-of-date flags; propose an edit that goes to a reviewer and never changes a live source by itself | Manage the sources: add documents and files, website crawls and schedules, indexing and freshness, gaps, and approval of suggested articles drawn from resolved hand-offs |
+| **Automations** | Build and run your own and your team's routines: trigger, steps, your own run history | Every automation in the organization: owner, trigger, runs, cost and limits; publish review; failures and alerts; the kill switch for one automation or all |
+| **Inbox** (Workspace) and **Hand-offs** (Admin) | Work the conversations that need a person: read, reply, resolve with a note | Watch the same queue: size, waiting time, who is handling what; no replying from here |
+| **Approvals** | Decide the approvals addressed to you, with the exact action and customer context | Watch every approval and its age, set the approval rules, see who decided |
+| **Quality** (Workspace) and **Review and QA** (Admin) | Leads and reviewers review sampled conversations, score them and attach coaching notes | Set the scorecards, sampling rules and calibration; see the review queue for the whole organization |
+| **Performance** (Workspace) and **Analytics** (Admin) | Your own and your team's figures | Organization-wide figures by agent, channel and team; plain-language questions (Explorer) |
+| **Assistants** (Workspace) and **Agent Hub** (Admin) | Browse the assistants made available to you and start a chat | Install, update, publish, retire and decide who may use each one and what it may see |
+| **Connectors** (Personal) and **Systems** (Platform) | Systems your own assistants use on your behalf, with per-tool switches | The outside systems agents can reach: allowed hosts, tools, health, tests, outbound events |
+Rule of thumb: if the question is "what do I do with this?" it belongs in the Workspace; if it is "who may, how much, and how do I stop it?" it belongs in Admin.
+
 ## 3. The Pilot window
 **Layout.** Left: the Workspace navigation and recent chats. Centre: the conversation with a composer. Right: a panel with inner tabs. A title bar names the chat, the assistant and the space.
 
