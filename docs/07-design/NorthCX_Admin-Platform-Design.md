@@ -32,7 +32,7 @@ The owner described the layout; the two windows are:
 
 What exists today for these: memory (with recall, edit and erase APIs for customers; staff and team memory are E5.5), connectors from files (no screens), MCP is not built (E4), scheduled tasks exist only for knowledge re-crawls (E8 is the automation work), artifacts and projects do not exist (E6, E5). The earlier three-column and session-style Workspace mockups (09, 15) remain as variants for the Threads page.
 
-## 0a. New interfaces, round 2 (2026-11-09)
+## 0a. New interfaces, round 2 (2026-11-09) [design history; final names and decisions are in the tabs specification]
 Added after the feature research (`00-reference/NorthCX_Feature-Research-2026-11.md`, sections 7 to 10). Each is a candidate, not a commitment; most need new backend work. All sample data.
 
 **Workspace**
@@ -53,7 +53,7 @@ Added after the feature research (`00-reference/NorthCX_Feature-Research-2026-11
 
 Backend reality: Explorer's masked drill-down and suggested articles are not built (and the drill-down is a privacy decision); the improvement session reuses drafting, scenarios and replay that exist but lacks the loop; channels data exists; the adversarial suite, trend and trust page are new; the artifact library, home and projects need E5/E6.
 
-## 0b. More Workspace tabs: what is needed (proposal, 2026-11-09)
+## 0b. More Workspace tabs: what is needed (proposal, 2026-11-09) [design history; final names and decisions are in the tabs specification]
 The seven decided tabs (Chat, Assistants, Search, Artifacts, Projects, Scheduled, Threads) cover the working surface. Customer-service agent desktops add a few more areas; a search of their documentation shows they mostly put customer profile, suggested knowledge, macros and scripts in a **side panel inside the conversation**, not as separate areas ([Dynamics 365 productivity pane](https://learn.microsoft.com/en-us/dynamics365/customer-service/csw-productivity-pane), [8x8 customer 360 panel](https://docs.8x8.com/8x8WebHelp/contact-center/agent-workspace/Content/aw/customer-360-with-local-crm.htm), [Zendesk agent workspace](https://www.getmacha.com/blog/zendesk-agent-workspace-explained)); coaching and QA did not turn up in that search. So the proposal adds only what needs a page of its own, and keeps the list grouped.
 
 ![Navigation proposal](../assets/design/40-workspace-navigation-proposal.png)
@@ -68,7 +68,7 @@ The seven decided tabs (Chat, Assistants, Search, Artifacts, Projects, Scheduled
 
 Shown as panels or controls, not tabs: customer panel and suggested knowledge (inside a thread), playbooks and canned answers (in Knowledge and the reply box), notifications (top-bar bell), live call assist (a panel when a call is open), availability and workload (a status control in the header). Not proposed for now: a team chat or presence page, workforce scheduling, and a separate voice dialler; each would need its own decision.
 
-## 0c. Workflows (proposal, 2026-11-09)
+## 0c. Workflows (proposal, 2026-11-09) [design history; final names and decisions are in the tabs specification]
 A **Workflows** tab in the Workspace (Create group, above Scheduled; the navigation proposal is now 13 tabs). It is the interface for the automations work already planned in E8 (runner, triggers, safety, builder) and the visual editor in E14.
 
 **What a workflow is.** A trigger, then steps, with people where needed: *starts when* (a schedule, a webhook, an event such as "approval waiting 15 minutes", or a person pressing run), *get data* (a connector read), *assistant* (an agent run with a prompt and an allow-list of tools), *check* (a condition), *person* (waits for a decision, with a time limit and what happens next), *action* (tag, create an artifact, notify, or a write that needs approval). Runs can wait for people for hours; state is saved so a restart does not lose them.
@@ -89,7 +89,7 @@ A **Workflows** tab in the Workspace (Create group, above Scheduled; the navigat
 
 **Decisions needed.** (1) Merge Scheduled into Workflows now or later. (2) Who may publish a workflow: any staff member for read-only workflows, a reviewer when there is a write step (recommended). (3) Whether workflows may call customer-facing agents (not recommended at first).
 
-## 0d. Which tabs are required, and when (recommendation, 2026-11-09)
+## 0d. Which tabs are required, and when (recommendation, 2026-11-09) [design history; final names and decisions are in the tabs specification]
 Ordered by what the product cannot work without, then by what the backend can support today.
 
 | Tier | Workspace tabs | Why | Backend today |
@@ -100,7 +100,7 @@ Ordered by what the product cannot work without, then by what the backend can su
 
 Admin required for the first release: Overview, Agents, Library, Channels, Access keys, Audit and activity, Policies, Data residency, plus Profile, Memory, Connectors and Privacy under Personal. Models and budgets, People and groups and Agent Hub follow with E1, E3 and E22.
 
-## 0e. Profile with personal intelligence (proposal, 2026-11-09)
+## 0e. Profile with personal intelligence (proposal, 2026-11-09) [design history; final names and decisions are in the tabs specification]
 The owner asked for personal intelligent features in Profile, in the way consumer AI assistants personalise themselves. Profile becomes six tabs (the table below shows the original four plus Instructions and persona and Skills, added next). Everything is for the signed-in staff member's own work; none of it changes what customers' agents do.
 
 | Tab | What it holds | Mockup |
@@ -124,7 +124,7 @@ Backend reality: personal memory for staff, personal assistants (reusing the age
 
 Decisions: (1) which sources are allowed at first (recommended: hand-offs, approvals, drafts and artifacts, team documents; calendar and email later); (2) whether personal assistants may be shared without a reviewer when they can only read (recommended yes); (3) default retention of personal chats (90 days is the placeholder).
 
-## 0f. Builder (proposal, 2026-11-09)
+## 0f. Builder (proposal, 2026-11-09) [design history; final names and decisions are in the tabs specification]
 A **Builder** tab in the Admin Build group (next to Agents, Agent Hub, Knowledge and Simulations): an assistant that drafts and maintains agents. The owner agreed to list it as a proposed tab; the name and scope are still to be decided.
 
 **Exists today:** draft an agent from procedures, a policy or a recording; refine an agent; draft test scenarios; draft and test journeys; transcribe a recording (API: `/v1/builder/draft`, `/refine`, `/scenarios`, `/transcribe`, and per-agent journey drafts). Drafts are validated, personal data is masked first, the model cannot set its own model, limits, voice, attachments, routes or tool scopes, and a draft is only ever a version that goes live through a release.
@@ -267,7 +267,7 @@ Decision of 2026-11-09: the staff **Workspace** and the **Admin** platform are t
 ## 5. Rules for every screen
 Hide what the role cannot do; confirm before anything destructive and record it in the audit log; show an empty, loading and error state; keyboard and screen-reader support (labelled controls, visible focus, no colour-only status); no layout depends on hover; works at tablet width; every number says what it counts and over what period (the provisional resolution rate says so on the tile).
 
-## 6. How I would build it
+## 6. Build order (slices; planning only, nothing here is started)
 Vertical slices, each ending with backend, screens, tests and refreshed screenshots, in this order:
 
 | Slice | Contents | Depends on |
@@ -281,8 +281,11 @@ Vertical slices, each ending with backend, screens, tests and refreshed screensh
 | G | Review and QA: scorecards, calibration, sampling | E7 |
 | H | Staff workspace app (`apps/workspace`) | E5 and tenancy decisions |
 
-## 7. Decisions needed
-1. ~~One app or two for admin?~~ **Decided 2026-11-09: two separate apps, Workspace and Admin** (see 4a). Earlier question: The plan (decision #140) said Studio first, then separate admin, ops and back-office apps. I drew the admin platform as Studio extended, because the audience and sign-in are the same until multi-tenancy; splitting `apps/admin` out later is cheap because the shared parts are packages. Recommended: extend Studio now.
-2. **Naming** of the staff product (open decision D2).
-3. **Start with slice A**, or reorder?
-4. Whether the mockups should also exist as a Figma file. The Figma connection was not available in this session, so these are HTML and PNG only.
+## 7. Decisions (status 2026-11-09)
+All decisions from this document are made except open versus commercial. See the decision log (153 to 171) and `NorthCX_Platform-Features-and-Tabs.md`.
+1. **One app or two:** two separate apps, Workspace and Admin (decided; section 4a).
+2. **Naming of the staff product (D2):** working name NorthCX Workspace (decision 170).
+3. **Tabs and navigation:** six left items with sub-tabs in each app (decisions 157, 168); the first Workspace release is Inbox, Approvals, Pilot, Assistants, Search and Library (decision 162).
+4. **Build order:** slice A first is the starting point once implementation begins; the order follows the implementation plan (E1, E2, E3, E5, E6, E22, E8).
+5. **Figma:** the mockups are HTML and PNG; a Figma file has not been made.
+6. **Still open:** D1, open versus commercial (blocks pricing).
