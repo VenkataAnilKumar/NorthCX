@@ -418,6 +418,21 @@ SCREENS["31-settings-privacy"] = settings_shell("Privacy and data", "Privacy and
 <div class="card" style="margin-top:12px"><h3>Where your text goes</h3><p class="note">Your messages are sent to the model provider your administrator configured (Anthropic, region us) and to the knowledge search service. See the organization's data residency page.</p></div></div></div>""")
 
 
+SCREENS["32-admin-models-routing"] = settings_shell("Models and budgets", "Models and routing", "Choose where each kind of request is answered: on your own servers, in a private cloud, or by a public cloud model. Rules first, then cost.", f"""
+<div class="g3"><div class="card"><div class="row2"><b>Local</b>{badge("self-hosted, eu","ok")}</div><p class="note">llama-70b-instruct &middot; your servers</p><p>Data never leaves your network</p><p class="note">Tools: single and parallel &middot; no images &middot; p50 1.9 s</p></div>
+<div class="card"><div class="row2"><b>Private cloud</b>{badge("eu region","info")}</div><p class="note">your cloud account, open-weight model</p><p>Data stays in your region and account</p><p class="note">Tools: single and parallel &middot; p50 1.2 s</p></div>
+<div class="card"><div class="row2"><b>Public cloud</b>{badge("us","warn")}</div><p class="note">anthropic:claude-sonnet-5-5, claude-haiku-5-5</p><p>Text is sent to the provider</p><p class="note">Tools, images, documents &middot; p50 1.0 s</p></div></div>
+<div class="card" style="margin-top:12px"><h3>Routing rules (first match wins)</h3>{table(["#","When","Use","Why"],[
+ ["1","Conversation holds sensitive data (identity verified, card or ID patterns seen)","<b>Local only</b>",badge("locked by tenant policy","gr")],
+ ["2","Channel is voice","<b>Fast model</b> (private cloud, then public)","latency under 1.5 s"],
+ ["3","Agent has multi-step tool chains or write tools","<b>Qualified</b> models only","see qualification below"],
+ ["4","Simple question the agent answers from knowledge","<b>Local</b>","cheapest model that passed"],
+ ["5","Anything else","<b>Default</b> (public cloud)","quality"]])}<p class="note" style="margin-top:6px">Fallback never crosses a tier the data rules forbid: a local-only conversation fails over to another local model or to a person, never to the public cloud.</p></div>
+<div class="g2" style="margin-top:12px"><div class="card"><h3>Qualification (scenario pass rate)</h3>{table(["Agent","claude-sonnet-5-5","llama-70b (local)","Needed"],[["support-agent",badge("100%","ok"),badge("83% not qualified","bad"),"95%"],["returns",badge("100%","ok"),badge("96% qualified","ok"),"95%"],["billing-help",badge("100%","ok"),badge("71% not qualified","bad"),"95%"]])}<p class="note" style="margin-top:6px">A model serves an agent only after passing that agent's required scenarios. Re-checked on every release.</p></div>
+<div class="card"><h3>Last 5 decisions</h3>{table(["Conversation","Chosen","Reason"],[["c-4f30","local llama-70b","rule 4"],["c-4f21","claude-sonnet-5-5","rule 3"],["c-4f1c","local llama-70b","rule 1 (verified identity)"],["c-4f12","private cloud","rule 2"],["c-4f0a","claude-sonnet-5-5","rule 5"]])}<p class="note" style="margin-top:6px">Every decision is saved in the conversation's trace.</p></div></div>
+<div class="g4" style="margin-top:12px">{stat("Share local (7 d)","38%","of turns")}{stat("Cost (7 d)","$1,942","est. $3,100 all public")}{stat("Fallbacks","14","0 crossed a forbidden tier")}{stat("Re-qualification due","1","billing-help &middot; local")}</div>""")
+
+
 def _col(title, who, items, cls="info"):
     return f'<div class="card" style="padding:14px"><span class="b {cls}">{title}</span><p class="note" style="margin:6px 0 8px">{who}</p>' + "".join(f"<div style='padding:4px 0;border-top:1px solid var(--border)'>{i}</div>" for i in items) + "</div>"
 

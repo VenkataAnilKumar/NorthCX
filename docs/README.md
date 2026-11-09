@@ -11,7 +11,7 @@ NorthCX is an open-source customer-experience agent platform built on the Claude
 | `01-product/` | Product-Definition, PRD, Personas, Success-Metrics, Pricing-Model, Templates, Product-Overview |
 | `02-market/` | Competitive-Analysis |
 | `03-specs/` | Feature-Catalog, Feature-Spec, Handoff-and-Approvals-Spec, Release-Management, Non-Functional-Requirements, User-Stories, User-Journey |
-| `04-ai-architecture/` | Agent-Runtime, Agent-Capability-Matrix, Guardrails-and-Supervisors, Knowledge-and-Memory, Simulation-and-Evals, Data-Flow, Memory-Design, Model-Providers, Simulation-Testing |
+| `04-ai-architecture/` | Agent-Runtime, Agent-Capability-Matrix, Guardrails-and-Supervisors, Knowledge-and-Memory, Simulation-and-Evals, Data-Flow, Memory-Design, Model-Providers, Hybrid-Model-Selection (proposed), Simulation-Testing |
 | `05-technical/` | System-Architecture, Tech-Stack-Decisions, Build-vs-Adopt, Code-Reuse-Policy, Channels-and-Voice, Voice, Client-SDK, Integrations, API-Design, Database-Schema, Observability, Repo-Structure, Reliability-and-Cost, Knowledge-Design |
 | `06-security/` | Security-and-Compliance, Threat-Model, Security-Review, Licenses |
 | `07-design/` | Studio, Studio-UI-Spec, Design-System, Admin-Platform-Design (proposed screens and navigation for the admin platform and staff workspace; `mockups/` holds the HTML sources) |
