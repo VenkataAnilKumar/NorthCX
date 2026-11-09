@@ -80,4 +80,4 @@ The Workspace (see `../03-specs/NorthCX_Workspace-Spec.md`) becomes the daily su
 Maya (CX lead) and Dev (platform engineer) keep the Admin app; Maya also uses Performance and Quality. Personas remain hypotheses to validate.
 
 ### Tess, Team lead (new, hypothesis)
-Runs a support team of 8 to 30. Wants a clear view of waiting work, quality and response times, a way to coach with real examples, and shared assistants and automations for routine reports, without engineering help. Worries about assistants seeing customer data they should not, and about numbers she cannot trace. Success: weekly report built in minutes from team figures; a coaching note attached to a real conversation.
+Runs a support team of 8 to 30. Wants a clear view of waiting work, quality and response times, a way to coach with real examples, and shared assistants and automations for routine reports, without engineering help. Worries about assistants seeing customer data they should not, and about numbers that cannot be traced. Success: weekly report built in minutes from team figures; a coaching note attached to a real conversation.

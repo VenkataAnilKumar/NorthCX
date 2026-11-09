@@ -5,8 +5,8 @@ Status: **Plan**. Updated: 2026-11-09. Master for: non-functional requirements. 
 | Area | Requirement |
 |---|---|
 | Availability | Reference deployment 99.9%; graceful degradation when the model provider fails (escalate, never silent failure) |
-| Latency | Targets set after streaming exists; supervisor adds bounded overhead; voice has a stricter budget |
-| Scalability | Stateless runtime workers; scale horizontally; per-key and per-customer concurrency limits |
+| Latency | Targets set after a baseline with a real model (streaming is built; figures so far use an offline model, see Performance); supervisor adds bounded overhead; voice has a stricter budget |
+| Scalability | Several processes with `api` and `worker` roles share state through Postgres (built); scale horizontally; per-key, per-session and per-address rate limits; two simultaneous messages in the same conversation can still overwrite each other's turn (see Knowledge-and-Memory) |
 | Reliability | Retries with backoff for idempotent operations; no duplicate side effects (idempotency keys) |
 | Data integrity | Saved conversation history is always valid; writes are transactional |
 | Security | Least privilege tools; secrets outside prompts and traces; hashed API keys; role-based access; audit of every action |

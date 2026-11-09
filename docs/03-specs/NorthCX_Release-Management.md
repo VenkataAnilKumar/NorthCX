@@ -24,10 +24,10 @@ Agent behaviour changes whenever instructions, tools, policies or knowledge chan
 7. A change to knowledge or policy triggers a simulation re-run.
 
 ## Data
-`agent_versions`, `releases`, `environments` (see Database-Schema).
+`agent_versions`, `releases` (each release names its environment; there is no separate environments table), `rollouts` and `rollout_assignments`, `simulation_runs` (see Database-Schema).
 
-## API sketch
-`POST /v1/agents/:id/versions`, `GET /v1/agents/:id/versions`, `POST /v1/agents/:id/releases {version, environment}`, `POST /v1/agents/:id/rollback {environment, toVersion}`.
+## API (as built; full list in the generated reference `docs/api`)
+`POST/GET /v1/agents/{id}/versions`, `POST /v1/agents/{id}/releases`, `POST /v1/agents/{id}/rollback`, `POST /v1/agents/{id}/rollouts` and the rollout routes `percent`, `promote`, `abort` and `comparison`, `POST /v1/simulations/runs`, `GET /v1/simulations/gate`.
 
 ## Acceptance
 - A version cannot be modified after creation.
@@ -55,7 +55,7 @@ Agent behaviour changes whenever instructions, tools, policies or knowledge chan
 **Behaviour to know about.**
 - A conversation in progress continues with whatever version is live when the next message arrives; it is not pinned to the version it started on.
 - An approval resolved after a release or rollback is executed and described by the live agent, which re-validates the held input and re-checks supervisors.
-- There is one environment, `production`. Dev and staging, promotion between them, and staged rollout are Phase 3 and 4.
+- At sprint 10 there was one environment, `production`. Dev and staging and promotion were added in Phase 3 and staged rollout in Phase 4 (both below).
 - Publishing and rolling back need the release manager or admin role; the release records the key's name (a typed name is only used in open mode), and every attempt, including those blocked by the gate, is in the audit log.
 
 
@@ -68,4 +68,4 @@ One deployment serves three environments, **dev**, **staging** and **production*
 - **Permissions.** Dev and staging releases need `versions:create` (developers and up). Production releases need `releases:publish` and production rollbacks `releases:rollback` (release managers and admins).
 - **Rollback.** Each environment rolls back within its own history and needs no new proof.
 - **Isolation.** Conversations in dev and staging are tagged with their environment, are not sent to the helpdesk inbox, and carry the environment label in exported traces. They share the deployment's database, customers' data stores and tools, so a dev agent calling a real write tool does real work: use dry-run scenarios, test accounts or separate tool credentials for non-production.
-- **Not built:** per-environment secrets and tool configuration, separate deployments sharing one database as a first-class mode, and scheduled or percentage rollouts (Q11).
+- **Not built:** per-environment secrets and tool configuration, separate deployments sharing one database as a first-class mode, and scheduled rollouts. Percentage (staged) rollout is built under Q11 (`POST /v1/agents/{id}/rollouts`; sticky assignment, comparison, promote or stop); automatic stop rules and multi-arm tests are not.

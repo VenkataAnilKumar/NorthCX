@@ -1,6 +1,6 @@
 # NorthCX Feature Catalog
 
-Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every feature with its ID and state. The complete list of NorthCX features. Priority: P0 must, P1 should, P2 could. Phase numbers follow `99-archive/NorthCX_Implementation-Phases.md` (the 1.0 phases, finished). State: Built, Planned.
+Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every feature with its ID and state. The complete list of NorthCX features. Priority: P0 must, P1 should, P2 could. Phase numbers follow `99-archive/NorthCX_Implementation-Phases.md` (the 1.0 phases, finished). State: Built, Planned, or Planned (designed) for section 12.
 
 ## 1. Agent definition and authoring
 | ID | Feature | Pri | Phase | State |
@@ -11,7 +11,7 @@ Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every fea
 | A4 | Adjustable workflow flexibility (strict steps to free-form) per skill | P1 | 3 | Built (strict is enforced, guided and free are advice) |
 | A5 | Journeys: scenario blueprints with goals, guardrails and required steps | P1 | 4 | Built (journeys inside the agent spec: goal, steps tied to tools, rules, done-when, hand-off conditions; strict ordering enforced; progress measured from tools used; test scenarios generated) |
 | A6 | Journeys described in plain language and converted to definitions | P2 | 4 | Built (model drafts a checked definition for review; never saved by itself; needs a live model) |
-| A7 | Templates for common support intents | P1 | 3 | Built (four templates with scenarios; API; gallery page planned) |
+| A7 | Templates for common support intents | P1 | 3 | Built (four templates with scenarios; API; a gallery page is early, unfinished work in the Agent Hub) |
 | A8 | Agent-assisted building: generate an agent from procedures, transcripts or call recordings | P2 | 6 | Built (reviewable draft from procedures, transcripts and, with a transcription service, recordings; masked, checked; refinement by instruction; automatic test scenarios) |
 | A9 | Per-agent model choice and settings | P0 | 1 | Built |
 | A10 | Brand voice and tone settings | P1 | 3 | Built (forbidden phrases are enforced) |
@@ -54,7 +54,7 @@ Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every fea
 | S7 | Topics the agent must never handle alone (forced handoff list) | P0 | 2 | Built |
 | S8 | Input-side checks (prompt-injection, abuse detection) | P1 | 3 | Built: customer input and tool results are screened for injection; optional abuse detection (threats, abusive language, repetition, bursts) with calm handling and hand-off |
 | S9 | PII detection and redaction | P1 | 3 | Built for customer input (masking or refusing emails, phone numbers, card and national-id numbers) and tool results (masked before the model sees them), and in conversation search, exports and drafting; a reply-side redaction policy is covered by the `no_personal_data_in_reply` and `no_card_numbers` rules |
-| S10 | Monitoring of every conversation, not a sample | P1 | 3 | Built: deterministic rules on every turn, findings API; a Monitoring page and alert delivery planned |
+| S10 | Monitoring of every conversation, not a sample | P1 | 3 | Built: deterministic rules on every turn, findings API, a Monitoring page in the Studio and alert delivery (see O9) |
 | S11 | Policy library with tests | P1 | 3 | Built: five configurable policies, each with allow and block cases run in CI; more policies to add |
 
 ## 5. Handoff and human collaboration
@@ -81,16 +81,16 @@ Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every fea
 | C7 | Embeddable SDK for mobile and web apps | P2 | 5 | Built for the web (dependency-free client with streaming, retries, token renewal, uploads, teammate replies and ratings, plus a drop-in `<northcx-chat>` widget); native iOS and Android SDKs not built (the REST calls are documented) |
 | C8 | One agent definition across channels with channel-specific style | P1 | 3 | Built (per-channel style text in the agent spec) |
 | C9 | Identity verification per channel | P1 | 3 | Built: the company's server vouches for the customer by minting the chat token with that customer's id; one-time-code verification by email or SMS gates sensitive tools through a tool scope |
-| C10 | Attachments (images, documents) | P2 | 5 | Built (pictures, PDFs and plain text; PDFs as the file or, with `pdf_text`, as text with personal data masked, enabled per agent, checked by content, size-limited, optionally scanned, kept with the conversation and erased with it; the web test console can attach files; customer-facing upload UI comes with the client SDK) |
+| C10 | Attachments (images, documents) | P2 | 5 | Built (pictures, PDFs and plain text; PDFs as the file or, with `pdf_text`, as text with personal data masked, enabled per agent, checked by content, size-limited, optionally scanned, kept with the conversation and erased with it; the web test console can attach files; customer uploads through the client SDK and widget, C7) |
 
 ## 7. Knowledge and memory
 | ID | Feature | Pri | Phase | State |
 |---|---|---|---|---|
-| K1 | Session memory | P0 | 1 | Built (in memory) |
+| K1 | Session memory | P0 | 1 | Built (in memory for development, Postgres in production; see K3) |
 | K2 | Customer facts | P0 | 1 | Built; long-term memories (free-text notes with recall) added |
 | K3 | Persistent store | P0 | 2 | Built |
 | K4 | Knowledge retrieval with source citations | P1 | 3 | Built: keyword search, numbered citations; optional meaning-based (hybrid) ranking through a configured embeddings service, with keyword fallback, an automatic approximate index for large knowledge bases and an optional model per source |
-| K5 | Knowledge source connectors and freshness | P1 | 3 | Built: document API, freshness flags, file import (PDF, Word, PowerPoint, Excel, HTML, Markdown, text) and a polite website crawler with scheduled re-crawls; connectors to document systems and Office formats not built |
+| K5 | Knowledge source connectors and freshness | P1 | 3 | Built: document API, freshness flags, file import (PDF, Word, PowerPoint, Excel, HTML, Markdown, text) and a polite website crawler with scheduled re-crawls; connectors to document systems, and Office files found by the crawler, not built |
 | K6 | History summarisation for long sessions | P1 | 3 | Built |
 | K7 | Customer context pulled from business systems at conversation start | P1 | 3 | Built (Python hook and signed HTTPS endpoint) |
 | K8 | Retention, export and deletion per customer | P1 | 3 | Built |
@@ -118,7 +118,7 @@ Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every fea
 | O2 | Trace API | P0 | 1 | Built |
 | O3 | Trace export to an external backend | P1 | 3 | Built (Langfuse and OTLP, queued and retried) |
 | O4 | Redaction before export | P1 | 3 | Built (none, masked, full; sampling) |
-| O5 | Metrics: resolution, escalation, guardrail blocks, tool errors, latency, cost | P1 | 4 | Built (resolution is reported as containment until an agreed definition exists) |
+| O5 | Metrics: resolution, escalation, guardrail blocks, tool errors, latency, cost | P1 | 4 | Built (a provisional resolution rate is reported beside containment; the definition is in the PRD and stays provisional until validated) |
 | O6 | Containment rate, satisfaction score, intent gaps | P1 | 4 | Built (ratings are posted by the company's front end) |
 | O7 | Workflow failure analysis | P1 | 4 | Built (ranked causes with example traces) |
 | O8 | Natural-language analytics questions | P2 | 6 | Built (model plans a validated query over a fixed list of figures, with filters, conversation-finding and charts; answers are computed, not generated) |
@@ -147,19 +147,19 @@ Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every fea
 | P5 | Single sign-on for Studio | P2 | 4 | Built (OpenID Connect with PKCE, group-to-role mapping, short-lived session keys; multi-factor, directory sync and per-agent scoping remain with the identity provider or later work) |
 | P6 | Data residency options | P2 | 6 | Built (residency policy file checked at start-up, strict mode, data-flow report for audits; one region per deployment) |
 | P7 | Self-hosting with containers | P0 | 2 | Built (backend and web images, compose stack) |
-| P8 | Webhooks for status events | P1 | 3 | Built (fifteen event types, signed webhook with retries, pollable feed; no message text in events) |
+| P8 | Webhooks for status events | P1 | 3 | Built (sixteen event types, signed webhook with retries, pollable feed; no message text in events) |
 | P9 | Configuration through environment and files | P0 | 1 | Built |
 | P10 | Multi-tenancy | P2 | Later | Planned |
 | P11 | Usage metering and outcome-based billing | P2 | Later | Planned |
 
 ## Counts
-106 features in sections 1 to 11 (the 1.0 set). Section 12 lists 77 further planned features for after 1.0. Built: 28. Everything else is planned. Features marked P0 and Planned define the remaining work for Phases 1 and 2.
+106 features in sections 1 to 11 (the 1.0 set): 103 built, Q3 partly built (the judge is not yet calibrated with a real model), P10 multi-tenancy and P11 metering planned (after 1.0, E2 and E10). Section 12 lists 77 further features for after 1.0, all designed and none built. Counted on 2026-11-09.
 
 ## Traceability
-Product requirements FR1-FR34 (the 1.0 set) in the PRD list the catalog IDs they cover in their "Catalog" column. Every P0 and P1 feature maps to at least one requirement.
+Product requirements FR1-FR34 (the 1.0 set) in the PRD list the catalog IDs they cover in their "Catalog" column; FR35-FR41 cover section 12. Every P0 and P1 feature maps to at least one requirement.
 
 ## 12. Staff platform (designed 2026-11-09, planned after 1.0)
-None of these is built. Requirements: `NorthCX_Workspace-Spec.md`, `NorthCX_Pilot-Spec.md`, `NorthCX_Personal-Intelligence-Spec.md`, `NorthCX_Automations-Spec.md`, `../07-design/NorthCX_Agent-Hub-Design.md`, `../04-ai-architecture/NorthCX_Hybrid-Model-Selection.md`. Product requirements FR35 to FR41 cover them.
+None of these is built (early, unfinished web code exists on `main` for parts of W and AD). First Workspace release (decision 162): W1 Home, W2 Inbox, W3 Approvals, W5 Pilot, W6 Assistants, W7 Search, W8 Library and W14; W4 Customers is second release. Requirements: `NorthCX_Workspace-Spec.md`, `NorthCX_Pilot-Spec.md`, `NorthCX_Personal-Intelligence-Spec.md`, `NorthCX_Automations-Spec.md`, `../07-design/NorthCX_Agent-Hub-Design.md`, `../04-ai-architecture/NorthCX_Hybrid-Model-Selection.md`. Product requirements FR35 to FR41 cover them.
 
 ### Workspace app
 | ID | Feature | Pri | Phase | State |
@@ -172,8 +172,8 @@ None of these is built. Requirements: `NorthCX_Workspace-Spec.md`, `NorthCX_Pilo
 | W6 | Assistants catalog | P1 | After 1.0 | Planned (designed) |
 | W7 | Search across everything the person may see | P1 | After 1.0 | Planned (designed) |
 | W8 | Library: sources, playbooks, canned answers | P1 | After 1.0 | Planned (designed) |
-| W9 | Outputs | P1 | After 1.0 | Planned (designed) |
-| W10 | Spaces | P1 | After 1.0 | Planned (designed) |
+| W9 | Outputs | P2 | After 1.0 | Planned (designed) |
+| W10 | Spaces | P2 | After 1.0 | Planned (designed) |
 | W11 | Automations tab (see AU) | P2 | After 1.0 | Planned (designed) |
 | W12 | Quality: review queue, scorecards, coaching | P2 | After 1.0 | Planned (designed) |
 | W13 | Performance: personal and team figures | P2 | After 1.0 | Planned (designed) |
@@ -185,7 +185,7 @@ None of these is built. Requirements: `NorthCX_Workspace-Spec.md`, `NorthCX_Pilo
 | PI1 | Plan before work with estimate | P1 | After 1.0 | Planned (designed) |
 | PI2 | Clarifying questions | P1 | After 1.0 | Planned (designed) |
 | PI3 | Live Steps view | P1 | After 1.0 | Planned (designed) |
-| PI4 | Pause, redirect, stop | P1 | After 1.0 | Planned (designed) |
+| PI4 | Pause and stop (first version); redirect (second version) | P1 | After 1.0 | Planned (designed) |
 | PI5 | Writes always ask first | P0 | After 1.0 | Planned (designed) |
 | PI6 | Signed-in person's permissions | P0 | After 1.0 | Planned (designed) |
 | PI7 | Citations | P1 | After 1.0 | Planned (designed) |
@@ -213,7 +213,7 @@ None of these is built. Requirements: `NorthCX_Workspace-Spec.md`, `NorthCX_Pilo
 | PN11 | Retention defaults | P1 | After 1.0 | Planned (designed) |
 | PN12 | Customer data never in memory | P0 | After 1.0 | Planned (designed) |
 
-### Automations and Builder
+### Automations
 | ID | Feature | Pri | Phase | State |
 |---|---|---|---|---|
 | AU1 | Triggers | P2 | After 1.0 | Planned (designed) |
@@ -238,7 +238,7 @@ None of these is built. Requirements: `NorthCX_Workspace-Spec.md`, `NorthCX_Pilo
 | AH4 | Updates with diff | P2 | After 1.0 | Planned (designed) |
 | AH5 | Organization templates with review | P2 | After 1.0 | Planned (designed) |
 | AH6 | Hub and Assistants screens | P1 | After 1.0 | Planned (designed) |
-| AH7 | Predefined customer agents (7) | P1 | After 1.0 | Planned (designed) |
+| AH7 | Predefined customer agents (7; first three per decision 165: billing and invoices, delivery problems, account help) | P1 | After 1.0 | Planned (designed) |
 | AH8 | Predefined staff assistants (6) | P2 | After 1.0 | Planned (designed) |
 | AH9 | Signed built-in entries and provenance | P2 | After 1.0 | Planned (designed) |
 | AH10 | Builder assistant: reviewable drafts only | P2 | After 1.0 | Planned (designed) |
@@ -258,9 +258,9 @@ None of these is built. Requirements: `NorthCX_Workspace-Spec.md`, `NorthCX_Pilo
 ### Admin app (extended Studio)
 | ID | Feature | Pri | Phase | State |
 |---|---|---|---|---|
-| AD1 | Grouped navigation: Operate, Build, Govern, Platform | P1 | After 1.0 | Planned (designed) |
+| AD1 | Six left items with sub-tabs: Overview, Operate, Build, Govern, Platform, Personal (decision 168) | P1 | After 1.0 | Planned (designed) |
 | AD2 | 25 organization pages | P1 | After 1.0 | Planned (designed) |
-| AD3 | Personal settings group | P1 | After 1.0 | Planned (designed) |
+| AD3 | Personal settings (10 pages) | P1 | After 1.0 | Planned (designed) |
 | AD4 | Policies with per-level values and locks | P1 | After 1.0 | Planned (designed) |
 | AD5 | Trust and reliability page | P2 | After 1.0 | Planned (designed) |
 | AD6 | Usage and billing | P2 | After 1.0 | Planned (designed) |

@@ -74,7 +74,7 @@ Catalog IDs are in `NorthCX_Feature-Catalog.md` section 12.
 | US46 | Jo | Get a drafted reply I can edit and send myself | Draft opens in the conversation; nothing is sent until I send | W2, PI13 |
 | US47 | Rae | Decide an approval with the exact action and customer context in front of me | Decision needs a note; a second decision is refused | W3 |
 | US48 | Jo | Ask an assistant to research a pattern and approve its plan first | Nothing runs before I approve; steps are visible | PI1, PI3 |
-| US49 | Jo | Stop or redirect a running task | Completed steps are kept; only the rest changes | PI4 |
+| US49 | Jo | Pause or stop a running task, and later redirect it (second version) | Completed steps are kept; only the rest changes | PI4 |
 | US50 | Jo | Know which sources an answer used | Every claim has a citation; "what it used" matches the prompt | PI7, PN5 |
 | US51 | Tess | See my team's handled, resolved and response figures with denominators | A figure with no data says so | W13 |
 | US52 | Tess | Review sampled conversations and attach a coaching note | Note is audited and visible to the agent owner | W12 |

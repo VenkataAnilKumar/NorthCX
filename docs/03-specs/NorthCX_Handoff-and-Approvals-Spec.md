@@ -11,6 +11,7 @@ Status: **Built**. Updated: 2026-11-09. Master for: hand-offs and approvals. Cat
 | Repeated supervisor rejection | Runtime fallback |
 | Step limit or model failure | Runtime fallback |
 | Customer sentiment or frustration threshold | Planned |
+| Abusive messages past a limit, or a threat | Built (abuse detection, S8) |
 
 ## Handoff package
 Transcript, customer profile and facts, actions taken with results, pending or failed actions, detected intent, handoff reason and trigger, short summary, trace link, and suggested next steps (Phase 5).
@@ -22,13 +23,16 @@ Transcript, customer profile and facts, actions taken with results, pending or f
 
 **The queue.** Handoffs are `open` until a person marks them `resolved` (once; a second attempt returns 409), recording who and an optional note. API: `GET /v1/handoffs?state=&sessionId=`, `GET /v1/handoffs/{id}` (with the full package), `POST /v1/handoffs/{id}/resolve`. The web console has a Handoffs page, and the chat response carries `handoffId`.
 
-**Not built yet.** Queue routing by topic, language and hours, assignment or claiming, an inbox integration, suggested replies, sentiment triggers, and return-to-agent. The package contains personal data; reading it needs the handoffs permission, resolving needs the reviewer or admin role, and resolutions are audited.
+**Built later:** queue routing by topic, trigger and hours (H8, below), the inbox integration (H5: signed webhook and Chatwoot adapter), suggested replies (H6) and return-to-agent (H7). **Still not built:** routing by language, assignment or claiming by a named person, and sentiment triggers. The package contains personal data; reading it needs the handoffs permission, resolving needs the reviewer or admin role, and resolutions are audited.
 
 ## Routing
 Queue by topic, language and hours (H8). Outside hours, the agent sets expectations and records a callback or ticket.
 
 ## Return to agent
-A human may hand a simple remainder back to the agent with notes (H7).
+A human may hand a simple remainder back to the agent with notes (H7, built: resolving with a note hands the conversation back).
+
+## After 1.0
+In the Workspace, staff work this queue in the **Inbox** tab and decide approvals in the **Approvals** tab; the Admin app keeps the **Hand-offs** and **Approvals** pages for oversight (`../07-design/NorthCX_Platform-Features-and-Tabs.md`, "Same name, two jobs"). Designed, not built.
 
 ## Approvals
 1. A tool's rule returns a reason; the run stops with `needs_approval`.
@@ -49,7 +53,7 @@ A human may hand a simple remainder back to the agent with notes (H7).
 
 **Delivery.** Each result is stored in an outbox (`GET /v1/sessions/{id}/outbox?after=`) so channels and the web console can poll, and optionally pushed to a webhook (`NORTHCX_WEBHOOK_URL` and `NORTHCX_WEBHOOK_SECRET`). Webhook bodies are signed (`X-NorthCX-Signature`: HMAC-SHA256 over `timestamp.body`, with `X-NorthCX-Timestamp`); receivers should verify the signature and reject timestamps older than five minutes. Failed pushes retry with backoff and stay in the outbox until delivered.
 
-**Limits.** A crash between executing a tool and recording its result leaves the approval in `executing`; tools must honour the idempotency key so a manual retry is safe. The follow-up runs inside the decision request. Delivery to channels other than polling and webhooks arrives with the channel adapters.
+**Limits.** A crash between executing a tool and recording its result leaves the approval in `executing`; tools must honour the idempotency key so a manual retry is safe. The follow-up runs inside the decision request. Results also reach the customer on their channel through the channel adapters (built).
 
 ## Acceptance
 - A handoff always includes the full package.

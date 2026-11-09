@@ -30,7 +30,7 @@ Risk: customer waits. Opportunity: set expectations, expire and escalate stale a
 Email thread maps to a session; replies stay in-thread; attachments are passed to the agent. Messaging follows opt-in and template rules. Handoff routes to the same inbox.
 
 ## J5. Customer: phone call
-Call connects; the agent announces it is automated and obtains consent where required; speech in, speech out with barge-in; spoken confirmation before actions; DTMF fallback; handoff to a phone queue with the summary.
+Call connects; the agent announces it is automated and obtains consent where required; speech in, speech out with barge-in; spoken confirmation before actions; DTMF fallback; handoff to a phone queue with the summary. (Built as the conversation side; speech recognition, speech synthesis and telephony come from the bridge the operator connects, and no real phone line has been tested.)
 
 ## J6. Developer: build and release an agent
 1. Start from a template; define instructions and tools.
@@ -60,29 +60,29 @@ Provision database and containers; set secrets and keys; configure roles; run he
 ## After 1.0: Workspace journeys (designed, not built)
 ## J11. Support agent: work a hand-off with an assistant
 1. Jo opens **Work > Inbox**; "Needs me" shows 3 conversations with the agent's summary.
-2. She opens one; the customer panel shows masked facts; the Library suggests the refund policy.
-3. She asks the care copilot in the side panel for a reply; the draft opens in the composer.
-4. She edits it, sends it herself, and resolves with a note. The note and her name are audited.
-5. If the copilot said "I could not find a source", the reply says so and she checks the Library.
+2. Jo opens one; the customer panel shows masked facts; the Library suggests the refund policy.
+3. Jo asks the care copilot in the side panel for a reply; the draft opens in the composer.
+4. Jo edits it, sends it, and resolves with a note. The note and the person's name are audited.
+5. If the copilot said "I could not find a source", the reply says so and Jo checks the Library.
 
 ## J12. Support agent: research a pattern in the Pilot
 1. Jo opens **Pilot**, picks the escalation analyst, a space and Research.
-2. The assistant asks which period and which channels; she answers with chips.
-3. It writes a four-step plan with time, cost and the model tier; she approves it.
-4. She works elsewhere; the run continues in the background and notifies her when done.
-5. The Result tab shows a cited summary; she saves it to Outputs, shares it with the team, and turns it into a weekly automation draft.
+2. The assistant asks which period and which channels; Jo answers with chips.
+3. It writes a four-step plan with time, cost and the model tier; Jo approves it.
+4. Jo works elsewhere; the run continues in the background and sends a notification when done.
+5. The Result tab shows a cited summary; Jo saves it to Outputs, shares it with the team, and turns it into a weekly automation draft.
 
 ## J13. Reviewer: decide an approval
 1. A badge shows 2 approvals on **Work**. Rae opens **Approvals**.
-2. She reads the exact refund, the customer context and why it needs a person.
-3. She approves with a note; the conversation resumes once; the item moves to decided.
+2. Rae reads the exact refund, the customer context and why it needs a person.
+3. Rae approves with a note; the conversation resumes once; the item moves to decided.
 
 ## J14. Team lead: weekly review
-1. Tess opens **Team > Performance** and reads her team's figures with denominators.
-2. In **Quality** she opens a low-scored sample, attaches a coaching note, and calibrates a score with another reviewer.
-3. She starts a weekly automation from last week's result; a reviewer publishes it.
+1. Tess opens **Team > Performance** and reads the team's figures with denominators.
+2. In **Quality**, Tess opens a low-scored sample, attaches a coaching note, and calibrates a score with another reviewer.
+3. Tess starts a weekly automation from last week's result; a reviewer publishes it.
 
 ## J15. Administrator: set what assistants may do
 1. Ari opens **Agent Hub**, installs the staff assistant for the billing team, fills its details, checks requirements, runs its scenarios.
 2. A draft is created in Staging; release follows the normal rules. Nothing is live from the hub.
-3. He sets who may use it and what it may see, and sets the model rule so sensitive conversations stay private.
+3. Ari sets who may use it and what it may see, and sets the model rule so sensitive conversations stay private.
