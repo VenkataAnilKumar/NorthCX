@@ -91,7 +91,7 @@ The SDK is plain `fetch` and works in React Native and web views; React Native's
 - Tokens are signed, expire (default one hour, at most a day), are limited to one conversation and one agent, and stop working when the channel key that minted them is revoked.
 - CORS only lets a listed website's browser make the call; it does not replace the token. Without `NORTHCX_CORS_ORIGINS` no other site's browser can call the API.
 - Limits that protect the service apply per conversation: message rate, upload size and count. A visitor who floods the chat only affects their own conversation.
-- Pictures and PDFs are passed to the model unmasked; enable attachments per agent only where that is acceptable.
+- Pictures, and PDFs in file mode, are passed to the model unmasked; PDFs in `pdf_text` mode are read as text with personal data masked. Enable attachments per agent only where that is acceptable.
 
 ## Building
 

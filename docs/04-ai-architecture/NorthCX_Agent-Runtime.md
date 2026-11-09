@@ -36,11 +36,15 @@ Status: **Built**. Updated: 2026-11-09. Master for: the agent run loop, skills, 
 - Customer facts are placed in the prompt as untrusted data.
 - The agent version that answered is recorded on the trace (null for an agent built from a spec file).
 
-## Known gaps
+## Notes and known gaps
+Notes:
 - Approvals are stored (in memory or Postgres) and resumed by `ApprovalFlow` (see the Handoff and Approvals spec). A run started by the platform itself (an approval outcome) uses `trusted=True`: it skips the customer input checks and is traced as a `system` event, but replies and tool calls are still supervised.
+- Streaming is supported at the API (`POST /v1/agents/{id}/chat/stream`) and in the widget: the reply is sent after the checks pass, never as unchecked tokens.
+
+Known gaps:
 - A blocked tool call is not retried with guidance beyond the error result.
 - Tool calls in one turn run one after another, not in parallel.
-- Streaming is supported at the API (`POST /v1/agents/{id}/chat/stream`) and in the widget.
+- Two simultaneous messages in the same conversation can overwrite each other's turn (see Knowledge and Memory).
 
 
 ## Skills, workflow flexibility, brand voice and tool scopes (A3, A4, A10, T6) — as built

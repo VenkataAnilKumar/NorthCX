@@ -15,7 +15,7 @@ Status: **Partly built**. Updated: 2026-11-09. Master for: connectors and integr
 The plan was in-tree, tested connectors for common categories (order lookup, shipment tracking, refunds and credits, subscription changes, account profile updates, tickets, appointment booking). What was built is a connector format (YAML files that describe a REST API and its tools) with five generic starting points; see "Connector library (T5)" below. Native connectors for named products are planned (E9).
 
 ## Permissions (T6)
-Tools are granted per agent and scoped per customer, so an agent can only touch the current customer's records.
+Tools are granted per agent (its `tools` list), and tool scopes can require an identified customer, particular customer facts or particular channels. Each call receives the current customer id in its context (`ToolContext.customer_id`); keeping a tool to that customer's records is the tool's job, so write tools to look up by it rather than by an id the model supplies.
 
 ## Idempotency (T4)
 Writes carry an idempotency key derived from session and call; retries never duplicate effects.
@@ -43,7 +43,7 @@ fetch(`${API}/v1/agents/support/chat`, { method: "POST",
   body: JSON.stringify({ sessionId, message }) })
 fetch(`${API}/v1/sessions/${sessionId}/outbox?after=${lastId}`, { headers: { authorization: `Bearer ${token}` } })
 ```
-Use the same `sessionId` to resume a conversation. The customer cannot change the conversation or customer the token names. The built-in page at `/` does this with `/#token=<token>`. Allow the page's origin to call the API through your reverse proxy (NorthCX does not set cross-origin headers).
+Use the same `sessionId` to resume a conversation. The customer cannot change the conversation or customer the token names. The built-in page at `/` does this with `/#token=<token>`. Allow the page's origin with `NORTHCX_CORS_ORIGINS` (exact https origins), or serve the page and the API from one origin. The drop-in widget and the browser SDK do this for you (`NorthCX_Client-SDK.md`).
 
 ## Declaring a tool: effect, dry run and secrets
 - **`effect`**: `"read"` for a tool with no side effects, `"write"` (the default, the safe assumption) for anything that changes a system. Mark only genuinely read-only tools as reads.
@@ -83,7 +83,7 @@ Every hand-off, with its package (summary, transcript, actions, customer facts, 
 
 **Chatwoot.** `NORTHCX_CHATWOOT_URL`, `_ACCOUNT_ID`, `_INBOX_ID`, `_TOKEN`. For each hand-off NorthCX finds or creates the contact (by the customer id, or "Website visitor"), opens a conversation in the chosen inbox, adds a private note with the summary, recent transcript, actions and facts, and closes the conversation when the hand-off is resolved in NorthCX. Only Chatwoot's public REST API is used (no code copied). The endpoint shapes are written from its API documentation as recalled, tested against a simulated server, and not yet run against a live Chatwoot.
 
-**Resolving from the helpdesk.** A person who resolves the conversation in the helpdesk can mark the hand-off resolved with `POST /v1/handoffs/{id}/resolve` using a key that holds `handoffs:resolve` (for example from the helpdesk's own webhook or automation). Receiving the helpdesk's webhooks directly, and returning a conversation to the agent (H7), are not built.
+**Resolving from the helpdesk.** A person who resolves the conversation in the helpdesk can mark the hand-off resolved with `POST /v1/handoffs/{id}/resolve` using a key that holds `handoffs:resolve` (for example from the helpdesk's own webhook or automation). Resolving this way also hands the conversation back to the agent with the person's note (H7, built). Receiving the helpdesk's own webhooks directly is not built.
 
 **Privacy.** The package contains personal data and is sent to the helpdesk on purpose; erasing a customer removes NorthCX's queued deliveries but cannot recall copies the helpdesk holds, so the helpdesk's own deletion process applies.
 
@@ -154,5 +154,7 @@ Set `NORTHCX_EVENTS_WEBHOOK_URL` and `NORTHCX_EVENTS_WEBHOOK_SECRET` and NorthCX
 **Envelope.** `{id, type, createdAt, sessionId, data}`, sent with the same headers as reply webhooks: `x-northcx-timestamp`, `x-northcx-signature` (HMAC-SHA256 of `timestamp.body` with your secret; reject calls older than five minutes) and `x-northcx-event`. `id` is stable, so a receiver can ignore a call it has already seen. Delivery is at least once: a failed call is retried with back-off (30 seconds doubling to an hour, twelve tries) and stays visible in the feed.
 
 **What events never contain.** Message text, replies, tool inputs and outputs, ratings' comments, API keys, phone numbers or email addresses: only ids, tool, queue and agent names, counts and outcomes, and only short plain values (nothing nested). Staff-action events are built from the audit record of the same action, so the feed cannot disagree with the audit log. Simulations and tests emit nothing.
+
+**Testing a receiver.** `POST /v1/events/test` with `{"type": "<event type>"}` sends one signed sample, marked as a test, and reports whether the receiver accepted it (not stored, not retried, not in the feed; audited).
 
 **Not included:** every conversation start or end (use the polling traces API or insights), and per-message events.

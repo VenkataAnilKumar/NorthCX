@@ -3,7 +3,7 @@
 Status: **Built**. Updated: 2026-11-09. Master for: channels (voice bridge detail is in NorthCX_Voice.md).
 
 ## Channel adapter contract
-An adapter translates a channel message to `POST /v1/agents/:id/chat {sessionId, message, customerId}` and posts `reply` back. Session ID is stable per conversation on that channel. When `status` is `escalated`, the adapter routes the conversation to the human inbox with the trace link.
+The built-in channels (email, SMS, WhatsApp, Telegram, voice) run inside the server and call the runtime directly with the channel name, so the same input checks, routing and hand-offs apply. An adapter you write outside the server translates a channel message to `POST /v1/agents/{id}/chat {sessionId, message, customerId}` with a `channel` key and posts `reply` back. Either way the session id is stable per conversation on that channel, and an `escalated` status means a hand-off was created and delivered to the configured inbox.
 
 ## Channels by phase
 | Channel | Phase | Notes |
@@ -74,7 +74,7 @@ Limits: fixed platform messages (the model-failure fallback, after-hours notices
 
 `POST /channels/whatsapp/meta` receives Meta Cloud API webhook calls; `GET` on the same address answers Meta's one-time verification (it echoes the challenge only when `hub.verify_token` matches `NORTHCX_WHATSAPP_VERIFY_TOKEN`, and only for a plain alphanumeric challenge). Neither uses an API key: every POST must carry a valid `X-Hub-Signature-256` (HMAC-SHA256 of the exact body with the app secret); failures are rate limited per address and audited like SMS.
 
-- It runs on the same engine as SMS, so everything below applies unchanged: one conversation per phone number (idle after 24 hours by default), duplicate deliveries ignored, STOP/START/HELP words, a per-number hourly reply limit, a person who has taken over keeps the conversation (customer messages are held for them), hand-offs, privacy export/erase, and agent `channel_styles` under the key `whatsapp`. A person who uses both SMS and WhatsApp is the same customer (`phone:+…`) and shares memory; an opt-out applies to both.
+- It runs on the same engine as SMS, so everything in the SMS section above applies unchanged: one conversation per phone number (idle after 24 hours by default), duplicate deliveries ignored, STOP/START/HELP words, a per-number hourly reply limit, a person who has taken over keeps the conversation (customer messages are held for them), hand-offs, privacy export/erase, and agent `channel_styles` under the key `whatsapp`. A person who uses both SMS and WhatsApp is the same customer (`phone:+…`) and shares memory; an opt-out applies to both.
 - Text, buttons and list replies are read; images, audio, documents and other media are not, and the agent is told an attachment arrived. Delivery receipts and reactions are ignored.
 - Replies go out through the outbox like every other channel and are split at 3,500 characters. Meta only allows free-form replies within 24 hours of the customer's last message: a refusal (any 4xx other than rate limiting) is recorded as `undeliverable` and not retried; network errors, 5xx and 429 are retried.
 - **Several numbers.** `NORTHCX_WHATSAPP_PHONE_ID` can list up to ten phone number ids; `NORTHCX_WHATSAPP_AGENTS` gives each its own agent. A conversation belongs to the number it came in on and replies leave from it. Calls for a number that is not listed are ignored.

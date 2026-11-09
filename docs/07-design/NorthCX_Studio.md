@@ -62,7 +62,7 @@ Let CX teams create and tune agents without code, producing the same agent defin
 | Settings | Keys, roles, channels, retention |
 
 ### Current state
-Built in `src/apps/studio`: Access and audit page (keys, audit log, integrity check), identity display and role-aware buttons and forms, overview, versions and releases page per agent (save a version from an editable spec, run its scenarios, gate, publish, diff, roll back, history), simulations page (release gate, run, results), handoff queue with package view and resolve, test console with live trace (U2), conversations with trace viewer (U4, without tagging), approvals queue (U5, decision only), agents (read-only view), settings. Not built: agent editor (U1), scenario editing (U3), knowledge (U6), publish (U7), role-based views (U8).
+Built in `src/apps/studio`: Access and audit page (keys, audit log, integrity check), identity display and role-aware buttons and forms, overview, versions and releases page per agent (save a version from an editable spec, run its scenarios, gate, publish, diff, roll back, history), simulations page (release gate, run, results), handoff queue with package view and resolve, test console with live trace (U2), conversations with trace viewer (U4, without tagging), approvals queue (U5, decision only), agents (read-only view), settings. At that point not built: agent editor (U1), scenario editing (U3), knowledge (U6), publish (U7), role-based views (U8). All five have been built since (U8 as an early version), along with conversation tagging and the approvals note; see the sections above and the Feature Catalog.
 
 ### Screen detail
 - **Agent editor (U1):** instructions with policy sections, tool toggles with approval rules, guardrail and forced-handoff lists, model settings, skills and journeys (Phase 4), template picker.
@@ -81,8 +81,8 @@ Built in `src/apps/studio`: Access and audit page (keys, audit log, integrity ch
 - **Single sign-on (P5, built):** a 'Sign in with single sign-on' button on Settings when configured, a landing page that stores the session, and Sign out.
 - **Staged rollout (Q11, built):** panel on the agent page to start, change the share, compare current and candidate, promote or stop.
 - **Publish (U7, built):** the versions page shows each version's checklist and disables Publish until the blocking checks pass.
-- **Publish (U7):** change summary, diff, required checks, environment, rollout percentage, rollback.
-- **Role-based views (U8):** CX, developer, reviewer, compliance, admin.
+- **Publish (U7, built):** change summary, diff, required checks, environment, staged rollout, rollback.
+- **Role-based views (U8, early version built):** navigation, buttons and forms follow the signed-in role (CX, developer, reviewer, compliance, admin).
 
 ### Principles
 Every edit is versioned and revertible; publish requires passing required simulations; traces are one click from any conversation.

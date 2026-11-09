@@ -22,7 +22,7 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 | DELETE | `/knowledge/sources/{id}/documents/{externalId}` | Delete a document and its passages at once (built) |
 | GET | `/knowledge/documents` | List documents with freshness; `source`, `stale=true`, `limit` (built) |
 | GET | `/knowledge/search` | `q`, `source`, `limit`: ranked passages with title, URL, section, `updatedAt`, `stale` (built) |
-| POST | `/knowledge/sources/{id}/import` | `filename` (and optional `externalId`, `url`): the file is the body (PDF, HTML, Markdown, text) (`knowledge:write`) (built) |
+| POST | `/knowledge/sources/{id}/import` | `filename` (and optional `externalId`, `url`): the file is the body (PDF, Word, PowerPoint, Excel, HTML, Markdown, text) (`knowledge:write`) (built) |
 | POST | `/knowledge/sources/{id}/crawl` | `url`, `maxPages`, `maxDepth`, `delaySeconds`, `includePaths`, `excludePaths`, `useSitemap`, `prune`: starts a background crawl of an operator-listed host; 202 with a job (`knowledge:write`) (built) |
 | GET | `/knowledge/crawls`, `/knowledge/crawls/{id}` | crawl progress and outcome (`knowledge:read`) (built) |
 | POST | `/events/test` | send a signed sample status event to the configured events webhook and report whether the receiver accepted it; marked as a test, not stored or retried; audited; six a minute per key (built) |
@@ -73,7 +73,10 @@ Built since this section was first written: server-sent events for streaming and
 
 `POST /v1/agents/{id}/chat/stream` returns `text/event-stream`. The agent's work and every supervisor check finish before the first `delta` is sent, so a customer never sees text a check could still reject; the pieces are the approved reply, split at word boundaries (joined they equal `reply` exactly). Progress events let a client show "Using lookup order…" during the wait. If the client disconnects, the turn still completes and is saved. Streaming of tokens straight from the model is not used because it would expose unchecked drafts.
 
+## More routes (added after the first table)
 
+| Method | Path | Purpose |
+|---|---|---|
 | POST | `/agents/{id}/releases` | Body `{version, environment?}` (default `production`). Dev needs no proof; staging and production need the release gate for that exact version. Dev and staging need `versions:create`; production also needs `releases:publish` (built) |
 | POST | `/agents/{id}/promote` | `{to: staging|production, note?}`: release what is live in the environment before it (dev, then staging), gated like any release (built) |
 | POST | `/agents/{id}/rollback` | `{environment?, toVersion?}` restores something that was live before in that environment; production needs `releases:rollback` (built) |
