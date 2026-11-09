@@ -8841,6 +8841,61 @@
         ]
       }
     },
+    "/v1/workspace/performance": {
+      "get": {
+        "summary": "Performance",
+        "description": "Your numbers and the team's. Per-person rows need the audit permission, are audited, and fold small counts into 'Others'.",
+        "operationId": "performance_v1_workspace_performance_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 7,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "individuals",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Individuals"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Performance V1 Workspace Performance Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
     "/v1/workspace/search": {
       "get": {
         "summary": "Workspace Search",

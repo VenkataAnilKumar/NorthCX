@@ -107,6 +107,7 @@
   "GET /v1/voice/calls": "/v1/voice/calls -> voice_calls",
   "GET /v1/workspace/assistants": "/v1/workspace/assistants -> assistants",
   "GET /v1/workspace/memory": "/v1/workspace/memory -> list_memory",
+  "GET /v1/workspace/performance": "/v1/workspace/performance -> performance",
   "GET /v1/workspace/search": "/v1/workspace/search -> workspace_search",
   "GET /v1/workspace/tasks": "/v1/workspace/tasks -> list_tasks",
   "GET /v1/workspace/tasks/x": "/v1/workspace/tasks/{task_id} -> get_task",
@@ -741,6 +742,11 @@
    "GET",
    "/v1/workspace/memory",
    "list_memory"
+  ],
+  [
+   "GET",
+   "/v1/workspace/performance",
+   "performance"
   ],
   [
    "GET",

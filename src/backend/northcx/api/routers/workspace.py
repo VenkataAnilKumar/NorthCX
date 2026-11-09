@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import time
 import uuid
 from typing import Any
 
@@ -120,6 +121,24 @@ def register(app: FastAPI, d: AppDeps) -> None:
                     await task  # the question is always handled and saved, even if the browser goes away
 
         return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+
+    # ---------------- performance ----------------
+    @app.get("/v1/workspace/performance")
+    async def performance(request: Request, days: int = 7, individuals: bool = False) -> Any:
+        """Your numbers and the team's. Per-person rows need the audit permission, are audited, and fold small counts into 'Others'."""
+        from northcx.performance import figures
+        who: Identity = request.state.identity
+        if (refused := staff_only(who)) is not None:
+            return refused
+        if not 1 <= days <= 90:
+            return _err(400, "bad_request", "days must be between 1 and 90")
+        if individuals and not who.can("audit:read"):
+            return _err(403, "forbidden", "Seeing individual figures needs the audit permission")
+        until = time.time()
+        out = figures(await runtime.handoffs.list(None, None, 5000), await runtime.approvals.list(None), who.name, until - days * 86400.0, until, individuals)
+        if individuals:
+            await record(request, "workspace.performance_individuals", f"{days}d")
+        return out
 
     # ---------------- assistants (installed from the Hub) ----------------
     async def live_assistants() -> list[Any]:

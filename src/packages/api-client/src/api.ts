@@ -500,3 +500,13 @@ export interface StaffAssistant { id: string; version: number | null; descriptio
 export const staffAssistants = () => api<{ assistants: StaffAssistant[] }>("/v1/workspace/assistants").then((r) => r.assistants);
 export const assistantChat = (id: string, message: string, opts: { chatId?: string; memory?: boolean; temporary?: boolean } = {}) =>
   api<{ chatId: string; assistant: string; reply: string; status: string; traceId: string | null; sources: PilotSource[]; tools: string[]; temporary: boolean }>(`/v1/workspace/assistants/${id}/chat`, { method: "POST", body: JSON.stringify({ message, ...opts }) });
+
+// ---------- Performance (Workspace) ----------
+export interface TimeStats { count: number; medianSeconds: number | null; p90Seconds: number | null }
+export interface PerfSeries { day: string; count: number }
+export interface PerformanceReport {
+  days: number; individualsShown: boolean; counts: Record<string, string>;
+  mine: { handoffsResolved: number; approvalsDecided: number; approved: number; rejected: number; handoffTime: TimeStats; approvalTime: TimeStats; series: PerfSeries[] };
+  team: { handoffsResolved: number; approvalsDecided: number; handlers: number; handoffTime: TimeStats; approvalTime: TimeStats; openNow: number; oldestOpenSeconds: number | null; afterHours: number; series: PerfSeries[]; people?: { name: string; items: number }[] };
+}
+export const performance = (days: number, individuals = false) => api<PerformanceReport>(`/v1/workspace/performance?days=${days}${individuals ? "&individuals=true" : ""}`);
