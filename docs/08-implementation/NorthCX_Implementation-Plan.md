@@ -67,13 +67,13 @@ The waves above stay the unit of release. Work is ordered in seven phases so eac
 | Phase | Delivers | Waves and epics |
 |---|---|---|
 | 0 | Finish 1.0 (owner actions in parallel: live-model pass, penetration test, tag) | Wave 0 |
-| 1 | Screens on what exists: both apps reworked to the final names and the approved design, Workspace (Home, Inbox, Approvals, Library) and Admin pages that exist today, Workspace image in Compose | none (existing APIs) |
+| 1 | Screens on what exists: both apps reworked to the final names and the approved design (glass tokens, six-item rail with sub-tabs, collapsed icon rail, full-window mode, original tab icons, themes and accessibility settings, contrast check), Workspace (Home, Inbox, Approvals, Library) and Admin pages that exist today, Workspace image in Compose | none (existing APIs) |
 | 2 | Model foundations: OpenAI-compatible provider, providers file, capability check, currency budgets, hybrid selection | E1 (WP1.3 to 1.13) |
 | 3 | Identity then multi-tenancy | E3, E2 |
 | 4 | Staff backend and the Pilot (Quick answer and Research), Assistants, Search, minimum Outputs | E5, first slice of E6 |
 | 5 | Agent Hub, Builder, policy management, People and groups, Models and budgets, Usage pages | E22, E16, E3 screens |
 | 6 | Automations, Spaces, Quality, Performance, Customers (second release), QA scoring | E8, E14, E15, E7, rest of E6 |
-Each phase ends with its gate (tests, builds, browser smoke, the epic gates in section 3); sizes only, no dates. Phase 1 needs no new backend and is the first to start; Phase 3 is the riskiest.
+Each phase ends with its gate (tests, builds, browser smoke, the epic gates in section 3); sizes only, no dates. Phase 1 needs no new backend and is the first to start; Phase 3 is the riskiest. Phase 1 slices: (1) shared tokens, rail, sub-tabs, icons and modes in `packages/ui`; (2) Workspace pages; (3) Admin pages; (4) contrast check, browser smoke tests and the Docker image.
 
 ## 4. Wave 0: finish 1.0 and prepare the ground
 
