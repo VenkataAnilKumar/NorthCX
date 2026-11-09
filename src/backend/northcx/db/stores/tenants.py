@@ -39,6 +39,10 @@ class PgTenants(_Base):
         async with self._ro() as s:
             return (await s.execute(select(ChannelBindingRow.tenant_id).where(ChannelBindingRow.kind == kind, ChannelBindingRow.address == address))).scalar_one_or_none()
 
+    async def any_bindings(self) -> bool:
+        async with self._ro() as s:
+            return (await s.execute(select(ChannelBindingRow.kind).limit(1))).first() is not None
+
     async def bindings(self, tenant_id: str) -> list[Binding]:
         async with self._ro() as s:
             rows = (await s.execute(select(ChannelBindingRow).where(ChannelBindingRow.tenant_id == tenant_id))).scalars().all()

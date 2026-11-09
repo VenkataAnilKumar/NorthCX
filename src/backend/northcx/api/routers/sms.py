@@ -10,6 +10,7 @@ from fastapi.responses import Response
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.audit import AuditEntry
+from northcx.tenancy import TENANT
 from northcx.channels.sms import parse_form
 
 log = logging.getLogger("northcx.server")
@@ -44,6 +45,11 @@ def register(app: FastAPI, d: AppDeps) -> None:
             if (await access.limiter.hit(f"smslog:{ip}", 6))[0]:
                 await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/sms/twilio", outcome="denied", detail={"client": ip}))
             return _err(403, "forbidden", "Invalid signature")
+        if access.tenants is not None:  # which tenant owns the number this was sent to (WP2.6); an unbound number is ignored
+            tenant = await access.tenants.inbound_tenant("sms", params.get("To", ""))
+            if tenant is None:
+                return Response(content="<Response></Response>", media_type="text/xml")
+            TENANT.set(tenant)
         try:
             await sms.receive(params)
         except ValueError as e:

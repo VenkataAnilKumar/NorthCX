@@ -10,6 +10,8 @@ should; if the embedding service cannot answer in time the search quietly falls 
 """
 from __future__ import annotations
 
+from northcx.tenancy import for_each_tenant
+
 import asyncio
 import logging
 import math
@@ -274,10 +276,12 @@ class EmbeddingIndexer:
         self.kick()
         return n
 
+    tenants: Any = None  # northcx.tenancy.TenantService, set by the server
+
     async def _loop(self) -> None:
         while not self._stop:
             try:
-                await self.run_once()
+                await for_each_tenant(self.tenants, self.run_once, log)  # once per tenant, as that tenant
             except Exception:
                 log.exception("embedding indexer error")
             wait = min(self.interval * 2 ** min(self._failures, 5), 600.0)

@@ -8,6 +8,7 @@ import uuid
 
 from sqlalchemy import text
 
+from northcx.db.tenant_sql import POLICY_SQL, TENANT_DEFAULT_SQL
 from northcx.db.stores._base import _Base
 from northcx.knowledge import _prepare, chunk_text, content_hash, Document, is_stale, KnowledgeError, Passage, Source, tokens, UpsertResult, valid_id
 
@@ -161,6 +162,13 @@ class PgKnowledge(_Base):
             await s.execute(text("create table if not exists knowledge_embeddings (chunk_id bigint primary key references knowledge_chunks(id) on delete cascade, "
                                  "model text not null, embedding vector not null, created_at double precision not null)"))
             await s.execute(text("create index if not exists ix_knowledge_embeddings_model on knowledge_embeddings (model)"))
+            # Tenant isolation: the table is created here, not by a migration, so it gets its tenant column and policy here too. FORCE makes the policy
+            # apply to the role that created it (the server's own role).
+            await s.execute(text(f"alter table knowledge_embeddings add column if not exists tenant_id varchar(40) not null default {TENANT_DEFAULT_SQL}"))
+            await s.execute(text("alter table knowledge_embeddings enable row level security"))
+            await s.execute(text("alter table knowledge_embeddings force row level security"))
+            await s.execute(text("drop policy if exists tenant_isolation on knowledge_embeddings"))
+            await s.execute(text(f"create policy tenant_isolation on knowledge_embeddings using ({POLICY_SQL}) with check ({POLICY_SQL})"))
 
     @staticmethod
     def _scope(include: list[str] | None, exclude: list[str] | None, params: dict[str, Any], col: str = "d.source_id") -> str:

@@ -6,6 +6,8 @@ one hour. Several server processes can share the database: a run is claimed atom
 """
 from __future__ import annotations
 
+from northcx.tenancy import for_each_tenant
+
 import asyncio
 import logging
 import time
@@ -133,10 +135,12 @@ class CrawlScheduler:
             await self.repo.record(s.id, now, job.id, "started")
         return started
 
+    tenants: Any = None  # northcx.tenancy.TenantService, set by the server
+
     async def _loop(self) -> None:
         while True:
             try:
-                await self.tick()
+                await for_each_tenant(self.tenants, self.tick, log)  # once per tenant, as that tenant
             except Exception:
                 log.exception("crawl scheduler pass failed")
             await asyncio.sleep(self.interval)

@@ -68,8 +68,10 @@ def start_background(role: str, leases: Leases | None, *, runtime: Any, traces: 
 
         tasks.append(_every(3600, "retention", retain, leases, 600.0, "retention sweep failed", tenants=tenants))
     if indexer is not None:
+        indexer.tenants = tenants
         indexer.start()
     if crawl_scheduler is not None:
+        crawl_scheduler.tenants = tenants
         crawl_scheduler.start()
 
     async def stop() -> None:

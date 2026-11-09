@@ -212,8 +212,9 @@ class OutboxRow(TenantScoped, Base):
     __table_args__ = (Index("ix_outbox_session", "session_id", "id"),)
 
 
-class EmailSessionRow(Base):
+class EmailSessionRow(TenantScoped, Base):
     __tablename__ = "email_sessions"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     sender: Mapped[str] = mapped_column(String(320), nullable=False)
     subject: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -225,18 +226,19 @@ class EmailSessionRow(Base):
     __table_args__ = (Index("ix_email_sessions_sender", "sender"),)
 
 
-class KnowledgeSourceRow(Base):
+class KnowledgeSourceRow(TenantScoped, Base):
     __tablename__ = "knowledge_sources"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     id: Mapped[str] = mapped_column(String(200), primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     stale_after_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
-class KnowledgeDocumentRow(Base):
+class KnowledgeDocumentRow(TenantScoped, Base):
     __tablename__ = "knowledge_documents"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
-    source_id: Mapped[str] = mapped_column(ForeignKey("knowledge_sources.id", ondelete="CASCADE"), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(200), nullable=False)
     external_id: Mapped[str] = mapped_column(String(200), nullable=False)
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
@@ -245,10 +247,11 @@ class KnowledgeDocumentRow(Base):
     source_updated_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     ingested_at: Mapped[float] = mapped_column(Float, nullable=False)
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
-    __table_args__ = (UniqueConstraint("source_id", "external_id", name="uq_knowledge_doc"),)
+    __table_args__ = (UniqueConstraint("tenant_id", "source_id", "external_id", name="uq_knowledge_doc"),
+                      ForeignKeyConstraint(["tenant_id", "source_id"], ["knowledge_sources.tenant_id", "knowledge_sources.id"], ondelete="CASCADE"))
 
 
-class KnowledgeChunkRow(Base):
+class KnowledgeChunkRow(TenantScoped, Base):
     __tablename__ = "knowledge_chunks"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     document_id: Mapped[str] = mapped_column(ForeignKey("knowledge_documents.id", ondelete="CASCADE"), nullable=False)
@@ -260,8 +263,9 @@ class KnowledgeChunkRow(Base):
     __table_args__ = (Index("ix_knowledge_chunks_doc", "document_id", "seq"), Index("ix_knowledge_chunks_tsv", "tsv", postgresql_using="gin"))
 
 
-class VerificationCodeRow(Base):
+class VerificationCodeRow(TenantScoped, Base):
     __tablename__ = "verification_codes"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     customer_id: Mapped[str] = mapped_column(String(200), nullable=False)
     channel: Mapped[str] = mapped_column(String(10), nullable=False)
@@ -274,10 +278,10 @@ class VerificationCodeRow(Base):
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
-class CrawlScheduleRow(Base):
+class CrawlScheduleRow(TenantScoped, Base):
     __tablename__ = "crawl_schedules"
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
-    source_id: Mapped[str] = mapped_column(String(200), ForeignKey("knowledge_sources.id", ondelete="CASCADE"), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(200), nullable=False)
     config: Mapped[Any] = mapped_column(JSONB, nullable=False)
     every_hours: Mapped[float] = mapped_column(Float, nullable=False)
     next_run: Mapped[float] = mapped_column(Float, nullable=False)
@@ -287,7 +291,8 @@ class CrawlScheduleRow(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     created_by: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
-    __table_args__ = (Index("ix_crawl_schedules_due", "enabled", "next_run"),)
+    __table_args__ = (Index("ix_crawl_schedules_due", "enabled", "next_run"),
+                      ForeignKeyConstraint(["tenant_id", "source_id"], ["knowledge_sources.tenant_id", "knowledge_sources.id"], ondelete="CASCADE"))
 
 
 class ManagedScenarioRow(Base):
@@ -304,8 +309,9 @@ class ManagedScenarioRow(Base):
     __table_args__ = (Index("ix_managed_scenarios_agent", "agent_id"),)
 
 
-class VoiceCallRow(Base):
+class VoiceCallRow(TenantScoped, Base):
     __tablename__ = "voice_calls"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     call_id: Mapped[str] = mapped_column(String(100), primary_key=True)
     session_id: Mapped[str] = mapped_column(String(200), nullable=False)
     agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -323,7 +329,7 @@ class VoiceCallRow(Base):
     __table_args__ = (Index("ix_voice_calls_started", "started_at"), Index("ix_voice_calls_session", "session_id"))
 
 
-class AttachmentRow(Base):
+class AttachmentRow(TenantScoped, Base):
     __tablename__ = "attachments"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     session_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -432,8 +438,9 @@ class InboxEventRow(TenantScoped, Base):
     __table_args__ = (Index("ix_inbox_events_handoff", "handoff_id"), Index("ix_inbox_events_pending", "delivered_at", "created_at"))
 
 
-class SmsSessionRow(Base):
+class SmsSessionRow(TenantScoped, Base):
     __tablename__ = "sms_sessions"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     phone: Mapped[str] = mapped_column(String(20), nullable=False)
     our_number: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -442,8 +449,9 @@ class SmsSessionRow(Base):
     __table_args__ = (Index("ix_sms_sessions_phone", "phone", "our_number", "last_seen"),)
 
 
-class SmsMessageRow(Base):
+class SmsMessageRow(TenantScoped, Base):
     __tablename__ = "sms_messages"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     message_id: Mapped[str] = mapped_column(String(400), primary_key=True)
     session_id: Mapped[str] = mapped_column(String(200), nullable=False)
     direction: Mapped[str] = mapped_column(String(3), nullable=False)
@@ -453,9 +461,10 @@ class SmsMessageRow(Base):
     __table_args__ = (Index("ix_sms_messages_session", "session_id"), Index("ix_sms_messages_peer", "peer", "direction", "created_at"))
 
 
-class SmsOptOutRow(Base):
+class SmsOptOutRow(TenantScoped, Base):
     """Opt-outs are kept by one-way hash of the number so a STOP is honoured even after the customer's data is erased."""
     __tablename__ = "sms_opt_outs"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     phone_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
 
@@ -604,7 +613,7 @@ class AlertEventRow(Base):
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
 
-class CrawlJobRow(Base):
+class CrawlJobRow(TenantScoped, Base):
     """A website crawl and how far it has got, visible from any server. `updated_at` is its heartbeat."""
     __tablename__ = "crawl_jobs"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
@@ -630,8 +639,9 @@ class MonitorFindingRow(Base):
     __table_args__ = (Index("ix_monitor_created", "created_at"), Index("ix_monitor_rule", "rule", "created_at"), Index("ix_monitor_session", "session_id"))
 
 
-class EmailMessageRow(Base):
+class EmailMessageRow(TenantScoped, Base):
     __tablename__ = "email_messages"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     message_id: Mapped[str] = mapped_column(String(998), primary_key=True)
     session_id: Mapped[str] = mapped_column(String(200), nullable=False)
     direction: Mapped[str] = mapped_column(String(3), nullable=False)

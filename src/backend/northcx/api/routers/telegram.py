@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.audit import AuditEntry
+from northcx.tenancy import TENANT
 
 log = logging.getLogger("northcx.server")
 
@@ -37,6 +38,11 @@ def register(app: FastAPI, d: AppDeps) -> None:
             if (await access.limiter.hit(f"smslog:{ip}", 6))[0]:
                 await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/telegram/webhook", outcome="denied", detail={"client": ip}))
             return _err(403, "forbidden", "Invalid secret")
+        if access.tenants is not None:  # the bot belongs to the tenant it is bound to (WP2.6)
+            tenant = await access.tenants.inbound_tenant("telegram", telegram.config.from_number)
+            if tenant is None:
+                return {"status": "ignored"}
+            TENANT.set(tenant)
         try:
             await telegram.receive_body(raw)
         except ValueError as e:

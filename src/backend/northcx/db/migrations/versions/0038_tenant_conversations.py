@@ -55,6 +55,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Going back to a schema with one tenant cannot keep the other tenants' rows (their ids may repeat), so they are removed.
+    for table in reversed(list(TABLES)):
+        op.execute(f"DELETE FROM {table} WHERE tenant_id <> 'default'")
     for table in TABLES:
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation ON {table}")
         op.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY")

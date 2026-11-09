@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 
 from northcx.api.common import _err
+from northcx.tenancy import TENANT
 from northcx.api.deps import AppDeps
 from northcx.channels.email import EmailParseError
 
@@ -30,6 +31,17 @@ def register(app: FastAPI, d: AppDeps) -> None:
             raw += chunk
             if len(raw) > MAX_EMAIL_BYTES:
                 return _err(413, "too_large", "Message is too large")
+        tenants = d.access.tenants
+        if tenants is not None:  # the recipient's domain belongs to a tenant; a tenant's own channel key may only deliver to its own domains (WP2.6)
+            from email import policy
+            from email.parser import BytesParser
+            from email.utils import getaddresses
+            head = BytesParser(policy=policy.default).parsebytes(raw, headersonly=True)
+            domains = {a.rpartition("@")[2].lower() for _, a in getaddresses([str(head.get("To", "")), str(head.get("Delivered-To", ""))]) if "@" in a}
+            owners = {await tenants.inbound_tenant("email_domain", dom, request.state.identity.tenant) for dom in domains} or {request.state.identity.tenant}
+            if len(owners) != 1 or None in owners:
+                return {"status": "ignored", "reason": "no tenant owns this recipient"}
+            TENANT.set(owners.pop())
         try:
             res = await email.receive(raw)
         except EmailParseError as e:

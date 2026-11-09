@@ -35,7 +35,7 @@ class PgSmsRepo(_Base):
     async def save_session(self, session: SmsSession) -> None:
         async with self._sm.begin() as s:
             await s.execute(text("insert into sms_sessions (session_id, phone, our_number, created_at, last_seen) values (:i, :p, :o, :c, :l) "
-                                 "on conflict (session_id) do update set last_seen = excluded.last_seen"),
+                                 "on conflict (tenant_id, session_id) do update set last_seen = excluded.last_seen"),
                             {"i": session.session_id, "p": session.phone, "o": session.our_number, "c": session.created_at, "l": session.last_seen})
 
     async def has_message(self, message_id: str) -> bool:
@@ -57,7 +57,7 @@ class PgSmsRepo(_Base):
     async def set_opt_out(self, phone: str, opted_out: bool) -> None:
         async with self._sm.begin() as s:
             if opted_out:
-                await s.execute(text("insert into sms_opt_outs (phone_hash, updated_at) values (:h, :t) on conflict (phone_hash) do update set updated_at = excluded.updated_at"),
+                await s.execute(text("insert into sms_opt_outs (phone_hash, updated_at) values (:h, :t) on conflict (tenant_id, phone_hash) do update set updated_at = excluded.updated_at"),
                                 {"h": phone_hash(phone), "t": time.time()})
             else:
                 await s.execute(text("delete from sms_opt_outs where phone_hash = :h"), {"h": phone_hash(phone)})
@@ -99,7 +99,7 @@ class PgEmailRepo(_Base):
                       references=session.references, created_at=session.created_at)
         async with self._sm.begin() as s:
             await s.execute(pg_insert(EmailSessionRow).values(**values).on_conflict_do_update(
-                index_elements=[EmailSessionRow.session_id], set_={k: v for k, v in values.items() if k != "session_id"}))
+                index_elements=[EmailSessionRow.tenant_id, EmailSessionRow.session_id], set_={k: v for k, v in values.items() if k != "session_id"}))
 
     async def has_message(self, message_id: str) -> bool:
         async with self._ro() as s:
@@ -109,7 +109,7 @@ class PgEmailRepo(_Base):
         async with self._sm.begin() as s:
             res = await s.execute(pg_insert(EmailMessageRow).values(
                 message_id=message_id[:998], session_id=session_id, direction=direction, outcome=outcome, peer=peer, created_at=time.time()
-            ).on_conflict_do_nothing(index_elements=[EmailMessageRow.message_id]))
+            ).on_conflict_do_nothing(index_elements=[EmailMessageRow.tenant_id, EmailMessageRow.message_id]))
             return res.rowcount == 1
 
     async def recent_count(self, peer: str, direction: str, since: float) -> int:
@@ -129,7 +129,7 @@ class PgCalls(_Base):
             await s.execute(text(
                 "insert into voice_calls (call_id, session_id, agent_id, caller_hash, started_at, ended_at, outcome, consent, recorded, turns, barge_ins, languages, handoff_id, latency_ms) "
                 "values (:id, :s, :a, :h, :st, :en, :o, :c, :r, :t, :b, cast(:l as jsonb), :ho, cast(:lat as jsonb)) "
-                "on conflict (call_id) do update set ended_at = excluded.ended_at, outcome = excluded.outcome, consent = excluded.consent, recorded = excluded.recorded, "
+                "on conflict (tenant_id, call_id) do update set ended_at = excluded.ended_at, outcome = excluded.outcome, consent = excluded.consent, recorded = excluded.recorded, "
                 "turns = excluded.turns, barge_ins = excluded.barge_ins, languages = excluded.languages, handoff_id = excluded.handoff_id, latency_ms = excluded.latency_ms"),
                 {"id": c.call_id, "s": c.session_id, "a": c.agent_id, "h": c.caller_hash, "st": c.started_at, "en": c.ended_at, "o": c.outcome, "c": c.consent, "r": c.recorded,
                  "t": c.turns, "b": c.barge_ins, "l": json.dumps(c.languages), "ho": c.handoff_id, "lat": json.dumps(c.latency_ms)})
@@ -160,7 +160,7 @@ class PgVerify(_Base):
         async with self._sm.begin() as s:
             await s.execute(text(
                 "insert into verification_codes (session_id, customer_id, channel, dest_hash, code_hash, expires_at, attempts, sends, verified_until, updated_at) "
-                "values (:s, :c, :ch, :d, :h, :e, :a, cast(:sn as jsonb), :v, :u) on conflict (session_id) do update set customer_id = excluded.customer_id, channel = excluded.channel, "
+                "values (:s, :c, :ch, :d, :h, :e, :a, cast(:sn as jsonb), :v, :u) on conflict (tenant_id, session_id) do update set customer_id = excluded.customer_id, channel = excluded.channel, "
                 "dest_hash = excluded.dest_hash, code_hash = excluded.code_hash, expires_at = excluded.expires_at, attempts = excluded.attempts, sends = excluded.sends, "
                 "verified_until = excluded.verified_until, updated_at = excluded.updated_at"),
                 {"s": r.session_id, "c": r.customer_id, "ch": r.channel, "d": r.dest_hash, "h": r.code_hash, "e": r.expires_at, "a": r.attempts, "sn": json.dumps(r.sends), "v": r.verified_until, "u": time.time()})

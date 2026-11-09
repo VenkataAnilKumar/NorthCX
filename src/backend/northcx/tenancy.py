@@ -54,6 +54,7 @@ class TenantRepo(Protocol):
     async def unbind(self, kind: str, address: str) -> bool: ...
     async def resolve(self, kind: str, address: str) -> str | None: ...
     async def bindings(self, tenant_id: str) -> list[Binding]: ...
+    async def any_bindings(self) -> bool: ...
 
 
 class InMemoryTenants:
@@ -86,6 +87,9 @@ class InMemoryTenants:
 
     async def bindings(self, tenant_id: str) -> list[Binding]:
         return [b for b in self._b.values() if b.tenant_id == tenant_id]
+
+    async def any_bindings(self) -> bool:
+        return bool(self._b)
 
 
 async def for_each_tenant(service: Any, job: Any, log: Any = None) -> None:
@@ -157,6 +161,19 @@ class TenantService:
         if not await self.repo.bind(b):
             raise TenantError(f"The {kind} address '{address}' already belongs to a tenant; an address can belong to only one")
         return b
+
+    async def inbound_tenant(self, kind: str, address: str, key_tenant: str | None = None) -> str | None:
+        """The tenant an inbound message belongs to, or None to ignore it (WP2.6). A bound address belongs to its tenant (and, when the caller
+        is a tenant's own key, must be that tenant's). An address nobody has bound is ignored once any binding exists; with no bindings at all the
+        deployment is single-tenant and the message goes to the key's tenant, or `default`."""
+        owner = await self.resolve(kind, address)
+        if owner is not None:
+            if key_tenant is not None and owner != key_tenant:
+                return None
+            return owner if await self.is_active(owner) else None
+        if await self.repo.any_bindings():
+            return None
+        return key_tenant or DEFAULT_TENANT
 
     async def resolve(self, kind: str, address: str) -> str | None:
         """The tenant an inbound message belongs to. None means unbound: the caller must ignore it (never guess a tenant)."""

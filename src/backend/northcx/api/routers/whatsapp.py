@@ -13,8 +13,9 @@ from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import TemplateSendBody
 from northcx.audit import AuditEntry
+from northcx.tenancy import TENANT
 from northcx.channels.sms import phone_hash
-from northcx.channels.whatsapp import TemplateRefused
+from northcx.channels.whatsapp import TemplateRefused, parse_webhook
 
 log = logging.getLogger("northcx.server")
 
@@ -56,6 +57,18 @@ def register(app: FastAPI, d: AppDeps) -> None:
             if (await access.limiter.hit(f"smslog:{ip}", 6))[0]:
                 await audit.append(AuditEntry(actor="unknown", role="none", action="auth.failed", target="/channels/whatsapp/meta", outcome="denied", detail={"client": ip}))
             return _err(403, "forbidden", "Invalid signature")
+        if access.tenants is not None:  # the tenant that owns the WhatsApp number each message was sent to (WP2.6)
+            try:
+                tenants = {await access.tenants.inbound_tenant("whatsapp", m["to"]) for m in parse_webhook(raw)}
+            except ValueError as e:
+                return _err(400, "bad_request", str(e))
+            if len(tenants) > 1:
+                return _err(400, "bad_request", "One webhook body must be for numbers of one tenant")
+            if tenants:
+                tenant = tenants.pop()
+                if tenant is None:
+                    return {"status": "ignored"}
+                TENANT.set(tenant)
         try:
             await whatsapp.receive_body(raw)
         except ValueError as e:
