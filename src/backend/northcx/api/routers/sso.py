@@ -10,7 +10,7 @@ from fastapi.responses import RedirectResponse
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.audit import AuditEntry
-from northcx.sso import SsoError
+from northcx.sso import PRIVILEGE, SsoError
 
 
 def register(app: FastAPI, d: AppDeps) -> None:
@@ -58,11 +58,21 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return await sso_failed(request, SsoError("The identity provider did not complete the sign-in", f"provider error: {error[:60]}"))
         try:
             login = await sso.finish(code, state, request.cookies.get(SSO_COOKIE))
-            key, token = await access.issue_session(login.email, login.role, sso.cfg.session_hours)
+            if getattr(access, "scim", None) is not None and not await access.scim.may_sign_in(login.email):
+                raise SsoError("Your account is not active here; ask an administrator", f"deactivated or not provisioned: {login.email}")
+            roles = [login.role] if login.role else []
+            group_names: list[str] = []
+            if sso.cfg.use_groups and access.groups is not None:  # the union of the single-sign-on map and every NorthCX group the person is in
+                got, group_names = await access.groups.effective_roles([login.email, login.subject], login.idp_groups)
+                roles = [r for r in PRIVILEGE if r in {*roles, *got}]
+            if not roles:
+                raise SsoError("Your account has no role here; ask an administrator to add you to a group", f"no role for {login.email}")
+            login.role = roles[0]
+            key, token = await access.issue_session(login.email, roles[0], sso.cfg.session_hours, roles[1:])
         except SsoError as e:
             return await sso_failed(request, e)
         await audit.append(AuditEntry(actor=login.email, role=login.role, action="sso.login", target=f"ncx_{key.key_id}", outcome="ok",
-                                      detail={"subject": login.subject, "client": ip, "expiresAt": key.expires_at}))
+                                      detail={"subject": login.subject, "client": ip, "expiresAt": key.expires_at, "roles": roles, "groups": group_names}))
         resp = RedirectResponse(f"{sso.cfg.landing}#token={token}", status_code=303)  # in the fragment, so it is never sent to a server or logged
         resp.delete_cookie(SSO_COOKIE, path="/")
         resp.headers["cache-control"] = "no-store"

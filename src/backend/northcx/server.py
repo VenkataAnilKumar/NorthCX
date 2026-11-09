@@ -64,6 +64,8 @@ from .api.routers import knowledge as _knowledge_router
 from .api.routers import approvals as _approvals_router
 from .api.routers import handoffs as _handoffs_router
 from .api.routers import rollouts as _rollouts_router
+from .api.routers import groups as _groups_router
+from .api.routers import scim as _scim_router
 from .api.routers import voice as _voice_router
 from .api.routers import public as _public_router
 from .api.routers import chat as _chat_router
@@ -158,6 +160,10 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/agents/[^/]+/versions/[^/]+", "versions:read"),
     ("GET", r"/v1/agents/[^/]+/versions/[^/]+/diff/[^/]+", "versions:read"),
     ("GET", r"/v1/agents/[^/]+/versions/[^/]+/checklist", "versions:read"),
+    ("GET", r"/v1/release-requests", "versions:read"),
+    ("POST", r"/v1/release-requests/[^/]+/approve", "releases:publish"),
+    ("POST", r"/v1/release-requests/[^/]+/reject", "releases:publish"),
+    ("POST", r"/v1/release-requests/[^/]+/cancel", "versions:create"),
     ("GET", r"/v1/agents/[^/]+/rollouts", "versions:read"),
     ("GET", r"/v1/agents/[^/]+/rollouts/[^/]+/comparison", "insights:read"),
     ("POST", r"/v1/agents/[^/]+/rollouts", "versions:create"),  # production also needs releases:publish, checked in the handler
@@ -187,6 +193,12 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("PUT", r"/v1/simulations/scenarios/[^/]+", "scenarios:write"),
     ("DELETE", r"/v1/simulations/scenarios/[^/]+", "scenarios:write"),
     ("GET", r"/v1/simulations/runs/[^/]+", "simulations:read"),
+    ("GET", r"/v1/groups", "keys:manage"),
+    ("POST", r"/v1/groups", "keys:manage"),
+    ("PUT", r"/v1/groups/[^/]+", "keys:manage"),
+    ("DELETE", r"/v1/groups/[^/]+", "keys:manage"),
+    ("POST", r"/v1/groups/[^/]+/members", "keys:manage"),
+    ("DELETE", r"/v1/groups/[^/]+/members/[^/]+", "keys:manage"),
     ("POST", r"/v1/simulations/runs", "simulations:run"),
     ("GET", r"/v1/agents/[^/]+/qualifications", "versions:read"),
     ("POST", r"/v1/agents/[^/]+/qualifications", "scenarios:require"),  # what may serve customers is a release decision
@@ -199,6 +211,27 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
 PUBLIC_ROUTES = {("GET", "/"), ("GET", "/health"), ("GET", "/ready")}
 _COMPILED = [(m, re.compile(p), perm) for m, p, perm in ROUTE_PERMISSIONS]
 log = logging.getLogger("northcx.server")
+
+
+_AGENT_PATH = re.compile(r"^/v1/agents/([^/]+)(?:/|$)")
+_SCOPE_OK = {("GET", "/v1/me"), ("GET", "/v1/agents"), ("POST", "/v1/me/logout")}  # a limited key may always say who it is and list what it can reach
+
+
+def scope_refusal(ident: Any, method: str, path: str, environment: str | None) -> str | None:
+    """Why a key limited to some agents or environments may not make this request (None: it may). A limited key reaches only routes
+    that name an agent in their path, and only its own agents; every other route is refused, because it could show or change another agent's data."""
+    if environment is not None and not ident.allows_env(environment):
+        return f"This key is limited to the {', '.join(ident.scope_envs)} environment(s)"
+    if ident.scope_agents is None:
+        return None
+    if (method, path) in _SCOPE_OK:
+        return None
+    m = _AGENT_PATH.match(path)
+    if m is None:
+        return f"This key is limited to agents {', '.join(ident.scope_agents)}; this endpoint is not tied to one agent"
+    if not ident.allows_agent(m.group(1)):
+        return f"This key is limited to agents {', '.join(ident.scope_agents)}"
+    return None
 
 
 def permission_for(method: str, path: str) -> str | None:
@@ -300,6 +333,10 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
             ok, retry = await access.limiter.hit(f"key:{ident.key_id or ip}", limits.channel_per_minute if ident.role == "channel" else limits.per_key_per_minute)
             if not ok:
                 return too_many(retry, "requests")
+        if ident.scope_agents is not None or ident.scope_envs is not None:
+            if (limit := scope_refusal(ident, method, path, request.query_params.get("environment"))) is not None:
+                await record(request, "auth.denied", f"{method} {path}", "denied", scope=limit)
+                return _err(403, "forbidden", limit)
         if perm != "authenticated" and not ident.can(perm):
             await record(request, "auth.denied", f"{method} {path}", "denied", permission=perm)
             return _err(403, "forbidden", f"The '{ident.role}' role cannot do this (needs {perm})")
@@ -343,6 +380,8 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _approvals_router.register(app, deps)
     _handoffs_router.register(app, deps)
     _rollouts_router.register(app, deps)
+    _groups_router.register(app, deps)
+    _scim_router.register(app, deps)
     _voice_router.register(app, deps)
     _public_router.register(app, deps)
     _chat_router.register(app, deps)

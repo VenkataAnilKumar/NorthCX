@@ -73,6 +73,9 @@ def make_guards(audit: AuditRepo, releases: ReleaseService | None):
         except ValueError as e:
             return _err(400, "bad_request", str(e))
         who: Identity = request.state.identity
+        if not who.allows_env(environment):
+            await record(request, "auth.denied", f"{request.method} {request.url.path}", "denied", environment=environment)
+            return _err(403, "forbidden", f"This key is limited to the {', '.join(who.scope_envs or ())} environment(s)")
         if environment == "production" and not who.can(perm):
             await record(request, "auth.denied", f"{request.method} {request.url.path}", "denied", permission=perm)
             return _err(403, "forbidden", f"The '{who.role}' role cannot do this (needs {perm})")

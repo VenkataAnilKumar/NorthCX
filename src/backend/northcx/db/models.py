@@ -160,6 +160,9 @@ class ApiKeyRow(Base):
     revoked_at: Mapped[float | None] = mapped_column(Float, nullable=True)
     revoked_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
     last_used_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    extra_roles: Mapped[Any] = mapped_column(JSONB, nullable=True)  # roles added by group membership at sign-in
+    agents: Mapped[Any] = mapped_column(JSONB, nullable=True)  # null: all agents
+    environments: Mapped[Any] = mapped_column(JSONB, nullable=True)  # null: all environments
 
 
 class AuditRow(Base):
@@ -494,6 +497,48 @@ class ModelQualificationRow(Base):
     model: Mapped[str] = mapped_column(String(300), nullable=False)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
     result: Mapped[Any] = mapped_column(JSONB, nullable=False)
+
+
+class GroupRow(Base):
+    """A group: roles bound to a set of people (hand-added subjects and/or an identity provider group name)."""
+    __tablename__ = "groups"
+    id: Mapped[str] = mapped_column(String(8), primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
+    external_name: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
+    description: Mapped[str] = mapped_column(String(500), nullable=False, server_default="")
+    roles: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    members: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    created_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class ScimUserRow(Base):
+    """A person provisioned by SCIM: whether they may sign in (WP3.3)."""
+    __tablename__ = "scim_users"
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    user_name: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    display_name: Mapped[str] = mapped_column(String(200), nullable=False, server_default="")
+    external_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class ReleaseRequestRow(Base):
+    """A publish or promote waiting for a second person (WP3.5)."""
+    __tablename__ = "release_requests"
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    environment: Mapped[str] = mapped_column(String(16), nullable=False)
+    version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    requested_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    decided_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    decision_note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    decided_at: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class JobLeaseRow(Base):

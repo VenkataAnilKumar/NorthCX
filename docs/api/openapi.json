@@ -304,6 +304,461 @@
         ]
       }
     },
+    "/scim/v2/Groups": {
+      "get": {
+        "summary": "List Groups",
+        "operationId": "list_groups_scim_v2_Groups_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Groups Scim V2 Groups Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      },
+      "post": {
+        "summary": "Create Group",
+        "operationId": "create_group_scim_v2_Groups_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Group Scim V2 Groups Post"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/scim/v2/Groups/{group_id}": {
+      "get": {
+        "summary": "Get Group",
+        "operationId": "get_group_scim_v2_Groups__group_id__get",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Group Scim V2 Groups  Group Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      },
+      "patch": {
+        "summary": "Patch Group",
+        "operationId": "patch_group_scim_v2_Groups__group_id__patch",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Patch Group Scim V2 Groups  Group Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      },
+      "delete": {
+        "summary": "Delete Group",
+        "operationId": "delete_group_scim_v2_Groups__group_id__delete",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete Group Scim V2 Groups  Group Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/scim/v2/ResourceTypes": {
+      "get": {
+        "summary": "Resource Types",
+        "operationId": "resource_types_scim_v2_ResourceTypes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Resource Types Scim V2 Resourcetypes Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/scim/v2/Schemas": {
+      "get": {
+        "summary": "Schemas",
+        "operationId": "schemas_scim_v2_Schemas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Schemas Scim V2 Schemas Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/scim/v2/ServiceProviderConfig": {
+      "get": {
+        "summary": "Spc",
+        "operationId": "spc_scim_v2_ServiceProviderConfig_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Spc Scim V2 Serviceproviderconfig Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/scim/v2/Users": {
+      "get": {
+        "summary": "List Users",
+        "operationId": "list_users_scim_v2_Users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Users Scim V2 Users Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      },
+      "post": {
+        "summary": "Create User",
+        "operationId": "create_user_scim_v2_Users_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create User Scim V2 Users Post"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/scim/v2/Users/{user_id}": {
+      "get": {
+        "summary": "Get User",
+        "operationId": "get_user_scim_v2_Users__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get User Scim V2 Users  User Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      },
+      "put": {
+        "summary": "Replace User",
+        "operationId": "replace_user_scim_v2_Users__user_id__put",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Replace User Scim V2 Users  User Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      },
+      "patch": {
+        "summary": "Patch User",
+        "operationId": "patch_user_scim_v2_Users__user_id__patch",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Patch User Scim V2 Users  User Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      },
+      "delete": {
+        "summary": "Delete User",
+        "operationId": "delete_user_scim_v2_Users__user_id__delete",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete User Scim V2 Users  User Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": null,
+        "x-public": true,
+        "tags": [
+          "service"
+        ]
+      }
+    },
     "/sdk/{name}": {
       "get": {
         "summary": "Sdk File",
@@ -2598,6 +3053,267 @@
         "x-required-permission": "audit:read",
         "tags": [
           "events"
+        ]
+      }
+    },
+    "/v1/groups": {
+      "get": {
+        "summary": "List Groups",
+        "operationId": "list_groups_v1_groups_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Groups V1 Groups Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "groups"
+        ]
+      },
+      "post": {
+        "summary": "Create Group",
+        "operationId": "create_group_v1_groups_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Group V1 Groups Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/v1/groups/{group_id}": {
+      "put": {
+        "summary": "Update Group",
+        "operationId": "update_group_v1_groups__group_id__put",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupUpdateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Update Group V1 Groups  Group Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "groups"
+        ]
+      },
+      "delete": {
+        "summary": "Delete Group",
+        "operationId": "delete_group_v1_groups__group_id__delete",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete Group V1 Groups  Group Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/v1/groups/{group_id}/members": {
+      "post": {
+        "summary": "Add Member",
+        "operationId": "add_member_v1_groups__group_id__members_post",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Add Member V1 Groups  Group Id  Members Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/v1/groups/{group_id}/members/{subject}": {
+      "delete": {
+        "summary": "Remove Member",
+        "operationId": "remove_member_v1_groups__group_id__members__subject__delete",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Group Id"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subject"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Remove Member V1 Groups  Group Id  Members  Subject  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "groups"
         ]
       }
     },
@@ -4900,6 +5616,231 @@
         ]
       }
     },
+    "/v1/release-requests": {
+      "get": {
+        "summary": "List Release Requests",
+        "operationId": "list_release_requests_v1_release_requests_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Release Requests V1 Release Requests Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:read",
+        "tags": [
+          "release-requests"
+        ]
+      }
+    },
+    "/v1/release-requests/{request_id}/approve": {
+      "post": {
+        "summary": "Approve Request",
+        "operationId": "approve_request_v1_release_requests__request_id__approve_post",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Approve Request V1 Release Requests  Request Id  Approve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "release-requests"
+        ]
+      }
+    },
+    "/v1/release-requests/{request_id}/cancel": {
+      "post": {
+        "summary": "Cancel Request",
+        "operationId": "cancel_request_v1_release_requests__request_id__cancel_post",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Cancel Request V1 Release Requests  Request Id  Cancel Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "release-requests"
+        ]
+      }
+    },
+    "/v1/release-requests/{request_id}/reject": {
+      "post": {
+        "summary": "Reject Request",
+        "operationId": "reject_request_v1_release_requests__request_id__reject_post",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Reject Request V1 Release Requests  Request Id  Reject Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "release-requests"
+        ]
+      }
+    },
     "/v1/residency": {
       "get": {
         "summary": "Residency Report",
@@ -6753,6 +7694,92 @@
         ],
         "title": "FeedbackBody"
       },
+      "GroupBody": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Roles"
+          },
+          "externalName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Externalname"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Description",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "GroupBody"
+      },
+      "GroupUpdateBody": {
+        "properties": {
+          "roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 6
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roles"
+          },
+          "externalName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Externalname"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "title": "GroupUpdateBody"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -6817,6 +7844,34 @@
               }
             ],
             "title": "Expiresindays"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents"
+          },
+          "environments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environments"
           }
         },
         "type": "object",
@@ -6825,6 +7880,21 @@
           "role"
         ],
         "title": "KeyBody"
+      },
+      "MemberBody": {
+        "properties": {
+          "subject": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Subject"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subject"
+        ],
+        "title": "MemberBody"
       },
       "PercentBody": {
         "properties": {
@@ -6989,6 +8059,24 @@
           "text"
         ],
         "title": "ReplyBody"
+      },
+      "RequestDecisionBody": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "RequestDecisionBody"
       },
       "ResolveBody": {
         "properties": {

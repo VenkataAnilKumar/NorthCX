@@ -24,7 +24,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
     async def me(request: Request) -> Any:
         who: Identity = request.state.identity
         return {"name": who.name, "role": who.role, "openMode": who.open_mode, "keyId": who.key_id,
-                "permissions": sorted(who.permissions), "serverVersion": __version__}
+                "permissions": sorted(who.permissions), "serverVersion": __version__, "roles": [who.role, *who.extra_roles],
+                "agents": list(who.scope_agents) if who.scope_agents is not None else None, "environments": list(who.scope_envs) if who.scope_envs is not None else None}
 
     @app.post("/v1/me/logout")
     async def logout(request: Request) -> Any:
@@ -40,7 +41,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     def key_json(k: Any) -> dict[str, Any]:
         return {"id": k.key_id, "prefix": k.prefix, "name": k.name, "role": k.role, "createdBy": k.created_by,
                 "createdAt": k.created_at, "expiresAt": k.expires_at, "revokedAt": k.revoked_at, "revokedBy": k.revoked_by,
-                "lastUsedAt": k.last_used_at, "active": k.active()}
+                "lastUsedAt": k.last_used_at, "active": k.active(), "agents": k.agents, "environments": k.environments}
 
     @app.get("/v1/keys")
     async def list_keys() -> Any:
@@ -49,10 +50,10 @@ def register(app: FastAPI, d: AppDeps) -> None:
     @app.post("/v1/keys", status_code=201)
     async def create_key(body: KeyBody, request: Request) -> Any:
         try:
-            key, secret = await access.issue(body.name, body.role, actor(request, None), body.expires_in_days)
+            key, secret = await access.issue(body.name, body.role, actor(request, None), body.expires_in_days, body.agents, body.environments)
         except ValueError as e:
             return _err(400, "bad_request", str(e))
-        await record(request, "key.create", key.prefix, name=key.name, role=key.role, expires=key.expires_at)
+        await record(request, "key.create", key.prefix, name=key.name, role=key.role, expires=key.expires_at, agents=key.agents, environments=key.environments)
         return JSONResponse({**key_json(key), "key": secret}, status_code=201)  # the only time the secret is shown
 
     @app.post("/v1/keys/{key_id}/revoke")

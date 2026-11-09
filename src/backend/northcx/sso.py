@@ -50,6 +50,7 @@ class SsoConfig:
     session_hours: float = DEFAULT_SESSION_HOURS
     landing: str = "/sso"
     scopes: str = "openid email profile"
+    use_groups: bool = False  # NORTHCX_SSO_USE_GROUPS=1: roles also come from NorthCX groups (the union of every group the person is in)
 
     def __post_init__(self) -> None:
         self.issuer = self.issuer.rstrip("/")
@@ -65,7 +66,7 @@ class SsoConfig:
             raise ValueError(f"The single sign-on session must last between 0 and {MAX_SESSION_HOURS:g} hours")
         if not self.landing.startswith("/") or self.landing.startswith("//") or "\\" in self.landing:
             raise ValueError("The single sign-on landing page must be a path on this site")
-        if not self.role_map and self.default_role is None:
+        if not self.role_map and self.default_role is None and not self.use_groups:
             raise ValueError("Set NORTHCX_SSO_ROLE_MAP or NORTHCX_SSO_DEFAULT_ROLE, otherwise nobody could sign in")
 
 
@@ -97,7 +98,8 @@ def config_from_env(env: Mapping[str, str], secret: str) -> SsoConfig | None:
         env.get("NORTHCX_SSO_DEFAULT_ROLE", "").strip() or None,
         [d.strip().lower().lstrip("@") for d in env.get("NORTHCX_SSO_ALLOWED_DOMAINS", "").split(",") if d.strip()],
         float(env.get("NORTHCX_SSO_SESSION_HOURS", "").strip() or DEFAULT_SESSION_HOURS),
-        env.get("NORTHCX_SSO_LANDING", "").strip() or "/sso")
+        env.get("NORTHCX_SSO_LANDING", "").strip() or "/sso",
+        use_groups=env.get("NORTHCX_SSO_USE_GROUPS", "").strip() == "1")
 
 
 def b64(raw: bytes) -> str:
@@ -185,7 +187,13 @@ class Login:
     subject: str
     email: str
     name: str
-    role: str
+    role: str | None  # None only when roles are to come from groups (cfg.use_groups); the sign-in route then refuses a person with none
+    idp_groups: list[str] = field(default_factory=list)
+
+
+def idp_groups(claims: Mapping[str, Any], cfg: SsoConfig) -> list[str]:
+    raw = claims.get(cfg.role_claim, [])
+    return [raw] if isinstance(raw, str) else [g for g in raw if isinstance(g, str)] if isinstance(raw, list) else []
 
 
 def login_from_claims(claims: Mapping[str, Any], cfg: SsoConfig) -> Login:
@@ -194,10 +202,10 @@ def login_from_claims(claims: Mapping[str, Any], cfg: SsoConfig) -> Login:
         if not email or claims.get("email_verified") is False or email.rpartition("@")[2] not in cfg.allowed_domains:
             raise SsoError("Your email address is not allowed to sign in here", f"domain not allowed: {email.rpartition('@')[2] or 'none'}")
     role = role_for(claims, cfg)
-    if role is None:
+    if role is None and not cfg.use_groups:
         raise SsoError("Your account has no role here; ask an administrator to add you to a group", f"no role for {email or claims['sub']}")
     name = email or str(claims.get("name") or claims["sub"])
-    return Login(str(claims["sub"]), email or str(claims["sub"]), str(claims.get("name") or name)[:80], role)
+    return Login(str(claims["sub"]), email or str(claims["sub"]), str(claims.get("name") or name)[:80], role, idp_groups(claims, cfg))
 
 
 # ---------------- the flow ----------------

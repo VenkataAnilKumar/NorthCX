@@ -31,6 +31,10 @@ def register(app: FastAPI, d: AppDeps) -> None:
 
     async def chat_environment(request: Request, body: ChatBody) -> JSONResponse | None:
         """Only people with developer access may talk to dev or staging; customers and channels always get production."""
+        who0: Identity = request.state.identity
+        if not who0.allows_env(body.environment or "production"):
+            await record(request, "auth.denied", f"{request.method} {request.url.path}", "denied", environment=body.environment or "production")
+            return _err(403, "forbidden", f"This key is limited to the {', '.join(who0.scope_envs or ())} environment(s)")
         if body.environment and body.environment != "production":
             who: Identity = request.state.identity
             if who.session_id is not None or not who.can("simulations:run"):

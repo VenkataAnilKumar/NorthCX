@@ -26,6 +26,13 @@ def register(app: FastAPI, d: AppDeps) -> None:
     def need_rollouts() -> RolloutService | JSONResponse:
         return rollouts or _err(501, "not_configured", "Staged rollouts are not configured on this server")
 
+    def held_by_two_person_rule(environment: str) -> JSONResponse | None:
+        """A staged rollout puts a candidate in front of real customers, which is a release; with the two-person rule on for this environment it cannot skip the second person."""
+        appr = getattr(d.releases, "approvals", None)
+        if appr is not None and appr.needs_approval(environment):
+            return _err(409, "conflict", f"{environment} needs a second person for every release, so staged rollouts are not available there; publish the version and have another person approve it")
+        return None
+
     def rollout_error(e: Exception) -> JSONResponse:
         if isinstance(e, ValueError) and not isinstance(e, (Conflict, GateBlocked)):
             return _err(400, "bad_request", str(e))
@@ -38,6 +45,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return svc
         if (denied := await need_env(request, body.environment, "releases:publish")) is not None:
             return denied
+        if (held := held_by_two_person_rule(body.environment)) is not None:
+            return held
         try:
             r = await svc.start(agent_id, body.version, body.percent, actor(request, body.by), body.environment, body.note)
         except GateBlocked as e:
@@ -86,6 +95,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(404, "not_found", "Unknown rollout")
         if (denied := await need_env(request, cur.environment, "releases:publish")) is not None:
             return denied
+        if (held := held_by_two_person_rule(cur.environment)) is not None:
+            return held
         try:
             r = await svc.promote(agent_id, rollout_id, actor(request, body.by if body else None), body.note if body else None)
         except GateBlocked as e:

@@ -16,13 +16,14 @@ class PgKeys(_Base):
     @staticmethod
     def _to_key(r: ApiKeyRow) -> ApiKey:
         return ApiKey(name=r.name, role=r.role, key_id=r.key_id, key_hash=r.key_hash, created_by=r.created_by, created_at=r.created_at,
-                      expires_at=r.expires_at, revoked_at=r.revoked_at, revoked_by=r.revoked_by, last_used_at=r.last_used_at)
+                      expires_at=r.expires_at, revoked_at=r.revoked_at, revoked_by=r.revoked_by, last_used_at=r.last_used_at,
+                      extra_roles=list(r.extra_roles) if r.extra_roles else None, agents=list(r.agents) if r.agents is not None else None, environments=list(r.environments) if r.environments is not None else None)
 
     async def create(self, key: ApiKey) -> ApiKey:
         async with self._sm.begin() as s:
             await s.execute(pg_insert(ApiKeyRow).values(
                 key_id=key.key_id, name=key.name, role=key.role, key_hash=key.key_hash, created_by=key.created_by,
-                created_at=key.created_at, expires_at=key.expires_at))
+                created_at=key.created_at, expires_at=key.expires_at, extra_roles=key.extra_roles, agents=key.agents, environments=key.environments))
         return key
 
     async def get(self, key_id: str) -> ApiKey | None:

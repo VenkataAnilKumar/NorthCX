@@ -199,6 +199,10 @@ class PublishBody(BaseModel):
     note: str | None = Field(default=None, max_length=1000)
 
 
+class RequestDecisionBody(BaseModel):
+    note: str | None = Field(default=None, max_length=1000)
+
+
 class RollbackBody(BaseModel):
     environment: str = "production"
     to_version: int | None = Field(default=None, alias="toVersion", ge=1)
@@ -215,10 +219,31 @@ class TokenBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class GroupBody(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    roles: list[str] = Field(default_factory=list, max_length=6)
+    external_name: str | None = Field(default=None, alias="externalName", max_length=200)  # the identity provider's name for this group
+    description: str = Field(default="", max_length=500)
+    model_config = {"populate_by_name": True}
+
+
+class GroupUpdateBody(BaseModel):
+    roles: list[str] | None = Field(default=None, max_length=6)
+    external_name: str | None = Field(default=None, alias="externalName", max_length=200)  # "" clears the mapping
+    description: str | None = Field(default=None, max_length=500)
+    model_config = {"populate_by_name": True}
+
+
+class MemberBody(BaseModel):
+    subject: str = Field(min_length=1, max_length=200)  # an email address or identity provider id
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str
     expires_in_days: float | None = Field(default=None, alias="expiresInDays")
+    agents: list[str] | None = None  # limit the key to these agents (leave out for all)
+    environments: list[str] | None = None  # limit the key to these environments (leave out for all)
     model_config = {"populate_by_name": True}
 
 

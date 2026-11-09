@@ -77,6 +77,20 @@ def build_security(c: SimpleNamespace) -> None:
     for o in cors_origins:
         if o == "*" or not re.fullmatch(r"https://[A-Za-z0-9.-]+(:\d+)?|http://(localhost|127\.0\.0\.1)(:\d+)?", o):
             sys.exit(f"NORTHCX_CORS_ORIGINS: '{o}' must be an https origin such as https://www.example.com (no wildcards, no paths)")
+    from northcx.groups import GroupService
+    from northcx.db import PgGroups
+    access.groups = GroupService(PgGroups(c.engine) if db_url else None)
+    scim_token = env_or_file("NORTHCX_SCIM_TOKEN")
+    if scim_token:
+        from northcx.access import hash_secret
+        from northcx.db import PgScimUsers
+        from northcx.scim import ScimService
+        if len(scim_token) < 32:
+            sys.exit("NORTHCX_SCIM_TOKEN must be at least 32 characters (a long random value; the identity provider sends it as a bearer token)")
+        access.scim = ScimService(PgScimUsers(c.engine) if db_url else None, access.groups, access, "/scim/v2",
+                                  require_provisioned=os.environ.get("NORTHCX_SCIM_REQUIRE_PROVISIONED", "") == "1")
+        access.scim.token_hash = hash_secret(scim_token)
+        print("SCIM provisioning is ON (/scim/v2).")
     c.access = access
     c.cors_origins = cors_origins
     c.sso = sso

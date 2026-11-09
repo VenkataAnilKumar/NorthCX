@@ -55,4 +55,6 @@ Screens and behaviour in `07-design/NorthCX_Studio.md`.
 ## 11. Platform (P1-P11)
 - **Built:** bearer key auth, environment and file configuration; seven roles with hashed, expiring keys; hash-chained audit log; rate limits; OpenID Connect single sign-on; containers and a compose stack; signed webhooks and status events; data-residency policy; self-hosting.
 - **Built since 1.0 work began:** shared rate limits and budgets across processes (Postgres backend), several processes with roles and job leases.
-- **Planned:** keys scoped to particular agents, SAML and SCIM, multi-tenancy and usage metering (see `08-implementation/NorthCX_Implementation-Plan.md`, epics E2, E3, E10).
+- **Built (Phase 3):** keys limited to particular agents and environments (a limited key reaches only routes that name one of its agents, plus `/v1/me` and its own agent list); groups with roles, whose union is a person's permissions, mapped from the identity provider's groups claim (`NORTHCX_SSO_USE_GROUPS=1`).
+- **Built (Phase 3):** SCIM 2.0 user and group provisioning with deactivation that ends sessions at once; a two-person rule for releases per environment.
+- **Planned:** SAML, multi-tenancy and usage metering (see `08-implementation/NorthCX_Implementation-Plan.md`, epics E2, E3, E10).

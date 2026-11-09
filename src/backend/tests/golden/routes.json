@@ -1,5 +1,9 @@
 {
  "dispatch": {
+  "DELETE /scim/v2/Groups/x": "/scim/v2/Groups/{group_id} -> delete_group",
+  "DELETE /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> delete_user",
+  "DELETE /v1/groups/x": "/v1/groups/{group_id} -> delete_group",
+  "DELETE /v1/groups/x/members/x": "/v1/groups/{group_id}/members/{subject} -> remove_member",
   "DELETE /v1/knowledge/schedules/x": "/v1/knowledge/schedules/{schedule_id} -> kb_schedule_delete",
   "DELETE /v1/knowledge/sources/x": "/v1/knowledge/sources/{source_id} -> kb_delete_source",
   "DELETE /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_delete_document",
@@ -16,6 +20,13 @@
   "GET /channels/whatsapp/meta": "/channels/whatsapp/meta -> whatsapp_verify",
   "GET /health": "/health -> health",
   "GET /ready": "/ready -> ready",
+  "GET /scim/v2/Groups": "/scim/v2/Groups -> list_groups",
+  "GET /scim/v2/Groups/x": "/scim/v2/Groups/{group_id} -> get_group",
+  "GET /scim/v2/ResourceTypes": "/scim/v2/ResourceTypes -> resource_types",
+  "GET /scim/v2/Schemas": "/scim/v2/Schemas -> schemas",
+  "GET /scim/v2/ServiceProviderConfig": "/scim/v2/ServiceProviderConfig -> spc",
+  "GET /scim/v2/Users": "/scim/v2/Users -> list_users",
+  "GET /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> get_user",
   "GET /sdk/x": "/sdk/{name} -> sdk_file",
   "GET /v1/agents": "/v1/agents -> list_agents",
   "GET /v1/agents/x/environments": "/v1/agents/{agent_id}/environments -> agent_environments",
@@ -37,6 +48,7 @@
   "GET /v1/conversations/search": "/v1/conversations/search -> conversation_search",
   "GET /v1/events": "/v1/events -> event_feed",
   "GET /v1/events/types": "/v1/events/types -> event_types",
+  "GET /v1/groups": "/v1/groups -> list_groups",
   "GET /v1/handoffs": "/v1/handoffs -> list_handoffs",
   "GET /v1/handoffs/x": "/v1/handoffs/{handoff_id} -> get_handoff",
   "GET /v1/handoffs/x/inbox": "/v1/handoffs/{handoff_id}/inbox -> handoff_inbox",
@@ -60,6 +72,7 @@
   "GET /v1/monitor/summary": "/v1/monitor/summary -> monitor_summary",
   "GET /v1/privacy/customers/a/b/export": "/v1/privacy/customers/{customer_id:path}/export -> privacy_export",
   "GET /v1/regression": "/v1/regression -> regression_status",
+  "GET /v1/release-requests": "/v1/release-requests -> list_release_requests",
   "GET /v1/residency": "/v1/residency -> residency_report",
   "GET /v1/reviews/queue": "/v1/reviews/queue -> review_queue",
   "GET /v1/routing": "/v1/routing -> routing_status",
@@ -81,9 +94,13 @@
   "GET /v1/traces/x": "/v1/traces/{trace_id} -> get_trace",
   "GET /v1/traces/x/exports": "/v1/traces/{trace_id}/exports -> trace_exports",
   "GET /v1/voice/calls": "/v1/voice/calls -> voice_calls",
+  "PATCH /scim/v2/Groups/x": "/scim/v2/Groups/{group_id} -> patch_group",
+  "PATCH /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> patch_user",
   "POST /channels/sms/twilio": "/channels/sms/twilio -> sms_inbound",
   "POST /channels/telegram/webhook": "/channels/telegram/webhook -> telegram_inbound",
   "POST /channels/whatsapp/meta": "/channels/whatsapp/meta -> whatsapp_inbound",
+  "POST /scim/v2/Groups": "/scim/v2/Groups -> create_group",
+  "POST /scim/v2/Users": "/scim/v2/Users -> create_user",
   "POST /v1/agents/x/chat": "/v1/agents/{agent_id}/chat -> chat",
   "POST /v1/agents/x/chat/stream": "/v1/agents/{agent_id}/chat/stream -> chat_stream",
   "POST /v1/agents/x/journeys/draft": "/v1/agents/{agent_id}/journeys/draft -> journey_draft",
@@ -108,6 +125,8 @@
   "POST /v1/channels/whatsapp/templates/send": "/v1/channels/whatsapp/templates/send -> whatsapp_template",
   "POST /v1/chat-tokens": "/v1/chat-tokens -> mint_chat_token",
   "POST /v1/events/test": "/v1/events/test -> event_test",
+  "POST /v1/groups": "/v1/groups -> create_group",
+  "POST /v1/groups/x/members": "/v1/groups/{group_id}/members -> add_member",
   "POST /v1/handoffs/x/assist": "/v1/handoffs/{handoff_id}/assist -> handoff_assist",
   "POST /v1/handoffs/x/reply": "/v1/handoffs/{handoff_id}/reply -> handoff_reply",
   "POST /v1/handoffs/x/resolve": "/v1/handoffs/{handoff_id}/resolve -> resolve_handoff",
@@ -122,13 +141,18 @@
   "POST /v1/knowledge/sources/x/schedule": "/v1/knowledge/sources/{source_id}/schedule -> kb_schedule",
   "POST /v1/me/logout": "/v1/me/logout -> logout",
   "POST /v1/privacy/retention/run": "/v1/privacy/retention/run -> privacy_retention",
+  "POST /v1/release-requests/x/approve": "/v1/release-requests/{request_id}/approve -> approve_request",
+  "POST /v1/release-requests/x/cancel": "/v1/release-requests/{request_id}/cancel -> cancel_request",
+  "POST /v1/release-requests/x/reject": "/v1/release-requests/{request_id}/reject -> reject_request",
   "POST /v1/sessions/x/feedback": "/v1/sessions/{session_id}/feedback -> post_feedback",
   "POST /v1/simulations/runs": "/v1/simulations/runs -> sim_run",
   "POST /v1/simulations/scenarios": "/v1/simulations/scenarios -> create_scenario",
   "POST /v1/simulations/scenarios/validate": "/v1/simulations/scenarios/validate -> validate_scenario",
   "POST /v1/templates/x/create-version": "/v1/templates/{template_id}/create-version -> template_version",
   "POST /v1/templates/x/render": "/v1/templates/{template_id}/render -> render_template",
+  "PUT /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> replace_user",
   "PUT /v1/agents/x/rollouts/x/percent": "/v1/agents/{agent_id}/rollouts/{rollout_id}/percent -> rollout_percent",
+  "PUT /v1/groups/x": "/v1/groups/{group_id} -> update_group",
   "PUT /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_put_document",
   "PUT /v1/sessions/x/attachments": "/v1/sessions/{session_id}/attachments -> upload_attachment",
   "PUT /v1/sessions/x/review": "/v1/sessions/{session_id}/review -> put_review",
@@ -137,6 +161,26 @@
   "WS /v1/voice/stream": "/v1/voice/stream -> voice_stream"
  },
  "routes": [
+  [
+   "DELETE",
+   "/scim/v2/Groups/{group_id}",
+   "delete_group"
+  ],
+  [
+   "DELETE",
+   "/scim/v2/Users/{user_id}",
+   "delete_user"
+  ],
+  [
+   "DELETE",
+   "/v1/groups/{group_id}",
+   "delete_group"
+  ],
+  [
+   "DELETE",
+   "/v1/groups/{group_id}/members/{subject}",
+   "remove_member"
+  ],
   [
    "DELETE",
    "/v1/knowledge/schedules/{schedule_id}",
@@ -216,6 +260,41 @@
    "GET",
    "/ready",
    "ready"
+  ],
+  [
+   "GET",
+   "/scim/v2/Groups",
+   "list_groups"
+  ],
+  [
+   "GET",
+   "/scim/v2/Groups/{group_id}",
+   "get_group"
+  ],
+  [
+   "GET",
+   "/scim/v2/ResourceTypes",
+   "resource_types"
+  ],
+  [
+   "GET",
+   "/scim/v2/Schemas",
+   "schemas"
+  ],
+  [
+   "GET",
+   "/scim/v2/ServiceProviderConfig",
+   "spc"
+  ],
+  [
+   "GET",
+   "/scim/v2/Users",
+   "list_users"
+  ],
+  [
+   "GET",
+   "/scim/v2/Users/{user_id}",
+   "get_user"
   ],
   [
    "GET",
@@ -321,6 +400,11 @@
    "GET",
    "/v1/events/types",
    "event_types"
+  ],
+  [
+   "GET",
+   "/v1/groups",
+   "list_groups"
   ],
   [
    "GET",
@@ -439,6 +523,11 @@
   ],
   [
    "GET",
+   "/v1/release-requests",
+   "list_release_requests"
+  ],
+  [
+   "GET",
    "/v1/residency",
    "residency_report"
   ],
@@ -543,6 +632,16 @@
    "voice_calls"
   ],
   [
+   "PATCH",
+   "/scim/v2/Groups/{group_id}",
+   "patch_group"
+  ],
+  [
+   "PATCH",
+   "/scim/v2/Users/{user_id}",
+   "patch_user"
+  ],
+  [
    "POST",
    "/channels/sms/twilio",
    "sms_inbound"
@@ -556,6 +655,16 @@
    "POST",
    "/channels/whatsapp/meta",
    "whatsapp_inbound"
+  ],
+  [
+   "POST",
+   "/scim/v2/Groups",
+   "create_group"
+  ],
+  [
+   "POST",
+   "/scim/v2/Users",
+   "create_user"
   ],
   [
    "POST",
@@ -679,6 +788,16 @@
   ],
   [
    "POST",
+   "/v1/groups",
+   "create_group"
+  ],
+  [
+   "POST",
+   "/v1/groups/{group_id}/members",
+   "add_member"
+  ],
+  [
+   "POST",
    "/v1/handoffs/{handoff_id}/assist",
    "handoff_assist"
   ],
@@ -749,6 +868,21 @@
   ],
   [
    "POST",
+   "/v1/release-requests/{request_id}/approve",
+   "approve_request"
+  ],
+  [
+   "POST",
+   "/v1/release-requests/{request_id}/cancel",
+   "cancel_request"
+  ],
+  [
+   "POST",
+   "/v1/release-requests/{request_id}/reject",
+   "reject_request"
+  ],
+  [
+   "POST",
    "/v1/sessions/{session_id}/feedback",
    "post_feedback"
   ],
@@ -779,8 +913,18 @@
   ],
   [
    "PUT",
+   "/scim/v2/Users/{user_id}",
+   "replace_user"
+  ],
+  [
+   "PUT",
    "/v1/agents/{agent_id}/rollouts/{rollout_id}/percent",
    "rollout_percent"
+  ],
+  [
+   "PUT",
+   "/v1/groups/{group_id}",
+   "update_group"
   ],
   [
    "PUT",

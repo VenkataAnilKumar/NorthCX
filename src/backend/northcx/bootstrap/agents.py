@@ -68,6 +68,14 @@ def build_agents(c: SimpleNamespace) -> None:
                                     live_llm=None if demo else llm, judge_llm=None if demo else llm,
                                     spec_builder=lambda spec, sim_llm: reg.build(spec, BuildContext(llm=sim_llm)), managed=scenario_repo)
     release_service = ReleaseService(versions_repo, releases_repo, reg, specs, simulations, strict_promotion=os.environ.get("NORTHCX_STRICT_PROMOTION") == "1")
+    held = {e.strip() for e in os.environ.get("NORTHCX_RELEASE_APPROVALS", "").split(",") if e.strip()}
+    if held - {"dev", "staging", "production"}:
+        sys.exit("NORTHCX_RELEASE_APPROVALS must list environments from: dev, staging, production")
+    if held:
+        from northcx.db import PgReleaseRequests
+        from northcx.release_requests import ReleaseApprovals
+        release_service.approvals = ReleaseApprovals(held, PgReleaseRequests(c.engine) if c.db_url else None)
+        print(f"Releases to {', '.join(sorted(held))} need a second person's approval.")
 
     def build_live(spec):
         agent = reg.build(spec, BuildContext(llm=llm))

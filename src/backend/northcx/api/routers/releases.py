@@ -10,7 +10,8 @@ from fastapi.responses import JSONResponse
 from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
-from northcx.api.models import PromoteBody, PublishBody, RollbackBody, VersionBody
+from northcx.api.models import PromoteBody, PublishBody, RequestDecisionBody, RollbackBody, VersionBody
+from northcx.release_requests import ApprovalError, principal
 from northcx.catalog import AgentUnavailable
 from northcx.spec import AgentSpec, parse_spec, SpecError
 from northcx.versions import check_environment, Conflict, diff_specs, GateBlocked, InvalidSpec, NotFound, spec_yaml
@@ -27,7 +28,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     version_json = d.version_json
 
     @app.get("/v1/agents")
-    async def list_agents() -> Any:
+    async def list_agents(request: Request) -> Any:
         try:
             live = await provider.all()
         except AgentUnavailable as e:
@@ -38,7 +39,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                             "guardrails": [g.name for g in a.guardrails],
                             "inputGuardrails": [g.name for g in a.input_guardrails],
                             "outputGuardrails": [g.name for g in a.output_guardrails],
-                            "forcedTopics": [t.name for t in a.forced_handoffs]} for a in live]}
+                            "forcedTopics": [t.name for t in a.forced_handoffs]} for a in live if request.state.identity.allows_agent(a.id)]}
 
     def release_json(r: Any) -> dict[str, Any]:
         return {"id": r.id, "agentId": r.agent_id, "environment": r.environment, "action": r.action, "version": r.number,
@@ -130,6 +131,84 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(404, "not_found", f"Agent '{agent_id}' needs both versions {a} and {b}")
         return {"from": a, "to": b, **diff_specs(va.spec, vb.spec)}
 
+    async def hold_for_second_person(svc: Any, request: Request, kind: str, agent_id: str, environment: str, version: int | None, note: str | None, target: str) -> Any:
+        """In an environment that needs a second person, a publish or promote becomes a request (202) instead of a release."""
+        appr = getattr(svc, "approvals", None)
+        if appr is None or not appr.needs_approval(environment):
+            return None
+        who: Identity = request.state.identity
+        if kind == "publish" and await svc.versions.get_number(agent_id, version) is None:
+            return _err(404, "not_found", f"Agent '{agent_id}' has no version {version}")  # a request for nothing is refused now, not at approval
+        try:
+            r = await appr.request(agent_id, kind, environment, version, principal(who), note)
+        except ApprovalError as e:
+            return _err(e.status, "conflict", str(e))
+        await record(request, "release.request", target, environment=environment, requestId=r.id, kind=kind)
+        return JSONResponse({**r.to_dict(), "message": f"{environment} needs a second person: ask someone else with the release permission to approve request {r.id}"}, status_code=202)
+
+    @app.get("/v1/release-requests")
+    async def list_release_requests(status: str | None = None, agent: str | None = None, limit: int = 100) -> Any:
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        appr = getattr(svc, "approvals", None)
+        return {"required": sorted(appr.required) if appr else [], "requests": [r.to_dict() for r in await appr.repo.list(status, agent, max(1, min(limit, 500)))] if appr else []}
+
+    async def decide_request(request_id: str, request: Request, approve: bool, note: str | None) -> Any:
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        appr = getattr(svc, "approvals", None)
+        if appr is None:
+            return _err(501, "not_configured", "The two-person release rule is not configured (NORTHCX_RELEASE_APPROVALS)")
+        who: Identity = request.state.identity
+        try:
+            r = await appr.claim(request_id, principal(who), approve, note)
+        except ApprovalError as e:
+            await record(request, "release.approve" if approve else "release.reject", request_id, "denied", reason=str(e))
+            return _err(e.status, "conflict" if e.status == 409 else "forbidden" if e.status == 403 else "not_found", str(e))
+        if not approve:
+            await record(request, "release.reject", f"{r.agent_id} ({r.environment})", requestId=r.id, requestedBy=r.requested_by)
+            return r.to_dict()
+        by = actor(request, None)
+        try:
+            if r.kind == "publish":
+                rel = await svc.publish(r.agent_id, r.version, by, f"requested by {r.requested_by}" + (f": {r.note}" if r.note else ""), r.environment)
+            else:
+                rel = await svc.promote(r.agent_id, r.environment, by, f"requested by {r.requested_by}" + (f": {r.note}" if r.note else ""))
+        except GateBlocked as e:
+            await appr.fail(r.id, "; ".join(e.reasons[:5]))
+            await record(request, "release.approve", f"{r.agent_id} ({r.environment})", "blocked", requestId=r.id, reasons=e.reasons[:10])
+            return rel_error(e)
+        except (NotFound, Conflict) as e:
+            await appr.fail(r.id, str(e))
+            return rel_error(e)
+        await record(request, "release.approve", f"{r.agent_id}@{rel.number} ({r.environment})", requestId=r.id, requestedBy=r.requested_by, gate=rel.gate)
+        return {**r.to_dict(), "release": release_json(rel)}
+
+    @app.post("/v1/release-requests/{request_id}/approve")
+    async def approve_request(request_id: str, body: RequestDecisionBody, request: Request) -> Any:
+        return await decide_request(request_id, request, True, body.note)
+
+    @app.post("/v1/release-requests/{request_id}/reject")
+    async def reject_request(request_id: str, body: RequestDecisionBody, request: Request) -> Any:
+        return await decide_request(request_id, request, False, body.note)
+
+    @app.post("/v1/release-requests/{request_id}/cancel")
+    async def cancel_request(request_id: str, request: Request) -> Any:
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        appr = getattr(svc, "approvals", None)
+        if appr is None:
+            return _err(501, "not_configured", "The two-person release rule is not configured (NORTHCX_RELEASE_APPROVALS)")
+        try:
+            r = await appr.cancel(request_id, principal(request.state.identity))
+        except ApprovalError as e:
+            return _err(e.status, "conflict" if e.status == 409 else "forbidden" if e.status == 403 else "not_found", str(e))
+        await record(request, "release.cancel", f"{r.agent_id} ({r.environment})", requestId=r.id)
+        return r.to_dict()
+
     @app.post("/v1/agents/{agent_id}/releases")
     async def publish(agent_id: str, body: PublishBody, request: Request) -> Any:
         svc = need_rel()
@@ -138,6 +217,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if (denied := await need_env(request, body.environment, "releases:publish")) is not None:
             return denied
         target = f"{agent_id}@{body.version}" + ("" if body.environment == "production" else f" ({body.environment})")
+        held = await hold_for_second_person(svc, request, "publish", agent_id, body.environment, body.version, body.note, target)
+        if held is not None:
+            return held
         try:
             rel = await svc.publish(agent_id, body.version, actor(request, body.by), body.note, body.environment)
         except GateBlocked as e:  # an attempt to release something unproven is itself worth recording
@@ -155,6 +237,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return svc
         if (denied := await need_env(request, body.to, "releases:publish")) is not None:
             return denied
+        held = await hold_for_second_person(svc, request, "promote", agent_id, body.to, None, body.note, f"{agent_id} -> {body.to}")
+        if held is not None:
+            return held
         try:
             rel = await svc.promote(agent_id, body.to, actor(request, body.by), body.note)
         except GateBlocked as e:

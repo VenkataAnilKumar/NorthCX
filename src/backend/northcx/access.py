@@ -31,6 +31,19 @@ INTERNAL_ROLES: dict[str, frozenset[str]] = {
     "customer_session": frozenset({"chat:send", "outbox:read", "feedback:send"}),  # a chat token: limited further to its own conversation
 }
 SSO_CREATOR = "sso"
+ENVIRONMENTS = ("dev", "staging", "production")
+AGENT_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,100}$")
+
+
+def _scope(values: list[str] | None, what: str, rx: Any) -> list[str] | None:
+    """A scope list: None means unlimited. An empty list is refused (it would mean access to nothing, which is a mistake, not a key)."""
+    if values is None:
+        return None
+    if not values or len(values) > 50 or len(set(values)) != len(values):
+        raise ValueError(f"{what} must be a list of 1 to 50 different names (leave it out for no limit)")
+    if rx is not None and not all(isinstance(v, str) and rx.fullmatch(v) for v in values):
+        raise ValueError(f"{what} must be agent ids: letters, digits, . _ -")
+    return list(values)
 NAME_RE = re.compile(r"^[A-Za-z0-9 _.@-]{1,80}$")
 
 
@@ -44,10 +57,23 @@ class Identity:
     session_id: str | None = None
     customer_id: str | None = None
     agent: str | None = None
+    # Set for a key limited to some agents and/or environments (WP3.1); None means no limit on that axis.
+    scope_agents: tuple[str, ...] | None = None
+    scope_envs: tuple[str, ...] | None = None
+    extra_roles: tuple[str, ...] = ()  # more roles from group membership (WP3.2); the permissions are the union with `role`
+
+    def allows_agent(self, agent_id: str) -> bool:
+        return self.scope_agents is None or agent_id in self.scope_agents
+
+    def allows_env(self, environment: str) -> bool:
+        return self.scope_envs is None or environment in self.scope_envs
 
     @property
     def permissions(self) -> frozenset[str]:
-        return ROLES[self.role] if self.role in ROLES else INTERNAL_ROLES[self.role]
+        base = ROLES[self.role] if self.role in ROLES else INTERNAL_ROLES[self.role]
+        if not self.extra_roles:
+            return base
+        return frozenset(base.union(*(ROLES[r] for r in self.extra_roles if r in ROLES)))
 
     def can(self, permission: str) -> bool:
         return permission in self.permissions
@@ -69,6 +95,9 @@ class ApiKey:
     revoked_at: float | None = None
     revoked_by: str | None = None
     last_used_at: float | None = None
+    extra_roles: list[str] | None = None  # roles added by group membership at sign-in (the permissions are the union with `role`)
+    agents: list[str] | None = None  # limited to these agents (None: all)
+    environments: list[str] | None = None  # limited to these environments (None: all)
 
     @property
     def prefix(self) -> str:
@@ -191,6 +220,8 @@ class AccessControl:
         self.limits, self.limiter = limits, limiter or RateLimiter()
         self.touch_interval = touch_interval
         self._touched: dict[str, float] = {}
+        self.scim: Any = None  # northcx.scim.ScimService, set by the server when NORTHCX_SCIM_TOKEN is set (WP3.3)
+        self.groups: Any = None  # northcx.groups.GroupService, set by the server (WP3.2)
         self.configured_keys = bootstrap_key is not None
         self._has_keys = False  # once any key exists, authentication stays on
 
@@ -245,10 +276,12 @@ class AccessControl:
         if now - self._touched.get(key_id, 0) >= self.touch_interval:  # record use at most once a minute
             self._touched[key_id] = now
             await self.keys.touch(key_id, now)
-        return Identity(k.name, k.role, k.key_id)
+        return Identity(k.name, k.role, k.key_id, extra_roles=tuple(k.extra_roles or ()), scope_agents=tuple(k.agents) if k.agents is not None else None,
+                        scope_envs=tuple(k.environments) if k.environments is not None else None)
 
-    async def issue(self, name: str, role: str, created_by: str, expires_in_days: float | None = None) -> tuple[ApiKey, str]:
-        """Create a key. The secret is returned once and never stored."""
+    async def issue(self, name: str, role: str, created_by: str, expires_in_days: float | None = None,
+                    agents: list[str] | None = None, environments: list[str] | None = None) -> tuple[ApiKey, str]:
+        """Create a key. The secret is returned once and never stored. `agents` and `environments` limit what it can reach."""
         if role not in ROLES:
             raise ValueError(f"Unknown role '{role}' (roles: {', '.join(sorted(ROLES))})")
         if not NAME_RE.fullmatch(name) or name != name.strip():
@@ -257,23 +290,39 @@ class AccessControl:
             raise ValueError("expiresInDays must be between 0 and 3650")
         if any(k.name.lower() == name.lower() and k.active() for k in await self.keys.list()):
             raise ValueError(f"An active key named '{name}' already exists")
+        agents, environments = _scope(agents, "agents", AGENT_ID_RE), _scope(environments, "environments", None)
+        if environments and any(e not in ENVIRONMENTS for e in environments):
+            raise ValueError(f"environments must be from: {', '.join(ENVIRONMENTS)}")
+        if (agents is not None or environments is not None) and role in ("channel", "admin"):
+            raise ValueError(f"The '{role}' role cannot be limited to agents or environments: it manages keys and platform settings (use release_manager, developer, reviewer, auditor or viewer)")
         secret = secrets.token_urlsafe(32)
         key = ApiKey(name, role, secrets.token_hex(4), hash_secret(secret), created_by,
-                     expires_at=time.time() + expires_in_days * 86400 if expires_in_days else None)
+                     expires_at=time.time() + expires_in_days * 86400 if expires_in_days else None, agents=agents, environments=environments)
         await self.keys.create(key)
         self._has_keys = True
         return key, f"{key.prefix}_{secret}"
 
-    async def issue_session(self, display: str, role: str, hours: float) -> tuple[ApiKey, str]:
+    async def issue_session(self, display: str, role: str, hours: float, extra_roles: list[str] | None = None) -> tuple[ApiKey, str]:
         """A short-lived key for a person who signed in through the identity provider. It is an ordinary key in every other way
         (role, audit, revocation, expiry), recorded as created by 'sso'."""
-        if role not in ROLES or role == "channel":
+        if role not in ROLES or role == "channel" or any(r not in ROLES or r == "channel" for r in extra_roles or []):
             raise ValueError(f"Cannot sign in with the '{role}' role")
         secret = secrets.token_urlsafe(32)
-        key = ApiKey(("sso: " + display)[:80], role, secrets.token_hex(4), hash_secret(secret), SSO_CREATOR, expires_at=time.time() + hours * 3600)
+        key = ApiKey(("sso: " + display)[:80], role, secrets.token_hex(4), hash_secret(secret), SSO_CREATOR, expires_at=time.time() + hours * 3600,
+                     extra_roles=[r for r in (extra_roles or []) if r != role] or None)
         await self.keys.create(key)
         self._has_keys = True
         return key, f"{key.prefix}_{secret}"
+
+    async def revoke_sessions_for(self, email: str, by: str) -> int:
+        """End every active sign-in session of one person (their keys are named `sso: <email>`). Returns how many were revoked."""
+        name = ("sso: " + email)[:80]
+        n = 0
+        for k in await self.keys.list():
+            if k.created_by == SSO_CREATOR and k.name == name and k.active():
+                await self.keys.revoke(k.key_id, by)
+                n += 1
+        return n
 
     async def revoke(self, key_id: str, by: str) -> ApiKey:
         keys = await self.keys.list()

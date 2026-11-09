@@ -10,6 +10,9 @@ from .privacy import PgPrivacy
 from .platform import PgIdempotency
 from .leases import PgLeases
 from .qualifications import PgQualifications
+from .groups import PgGroups
+from .scim import PgScimUsers
+from .release_requests import PgReleaseRequests
 from .shared_state import PgAlertState, PgCrawlJobs
 from .limits import PgLimiter, PgUsageLedger
 
