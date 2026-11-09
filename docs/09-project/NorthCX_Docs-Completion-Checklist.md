@@ -1,0 +1,39 @@
+# NorthCX documentation completion checklist
+
+Status: **2026-11-09.** Tracks whether the product documents cover the full designed platform before implementation starts. "Done" means the document describes the Workspace, Pilot, Agent Hub, Builder, Automations, personal intelligence, hybrid models and the Admin regrouping, with states marked designed or built honestly.
+
+| Area | Document | State |
+|---|---|---|
+| Vision, scope, pillars | `01-product/NorthCX_Product-Definition.md` | Done (section 3a) |
+| Requirements | `01-product/NorthCX_PRD.md` (FR35 to FR41) | Done |
+| Overview | `01-product/NorthCX_Product-Overview.md`, `README.md` | Done |
+| Personas | `01-product/NorthCX_Personas.md` (Tess added) | Done |
+| Success metrics | `01-product/NorthCX_Success-Metrics.md` (staff platform proposals) | Done; baselines need a pilot |
+| Pricing | `01-product/NorthCX_Pricing-Model.md` | **Blocked on D1** (open versus commercial); not changed |
+| Market | `02-market/NorthCX_Competitive-Analysis.md`, `00-reference/` | Existing; refresh after D1 |
+| Catalog | `03-specs/NorthCX_Feature-Catalog.md` section 12 (76 features) | Done |
+| Specifications | Workspace, Pilot, Personal-Intelligence, Automations specs; Agent Hub design | Done (drafts) |
+| Stories and journeys | `03-specs/NorthCX_User-Stories.md` (US45 to US61), `NorthCX_User-Journey.md` (J11 to J15) | Done |
+| Non-functional | `03-specs/NorthCX_Non-Functional-Requirements.md` | Done (proposals) |
+| AI architecture | `04-ai-architecture/` Hybrid-Model-Selection, Model-Providers | Done; Knowledge-and-Memory and Guardrails need a staff-memory section when E5.5 is scheduled |
+| Technical architecture | `05-technical/NorthCX_Staff-Platform-Architecture.md` | Done (proposed) |
+| Database and API | `NorthCX_Database-Schema.md`, `NorthCX_API-Design.md` | Proposed tables and routes are in the architecture document; these two are updated when each migration or route lands (the sync tests require it) |
+| Security | Threat model and Security-and-Compliance (staff platform sections) | Done |
+| Design | Platform-Features-and-Tabs, Admin-Platform-Design, Agent-Hub-Design, Design-System, Studio-UI-Spec note, 58 mockups | Done |
+| Plan | Implementation-Plan, Gap-Closure-Plan, Roadmap, Project-Status | Done; plan epics already cover E1 to E22 |
+| Testing | `08-implementation/NorthCX_Testing-Strategy.md` | Done |
+| Glossary and decisions | Glossary; Decision-Log to #161 | Done |
+
+## Owner decisions still open (they do not block implementation of the first slice)
+1. Confirm Approvals, Library, Quality and Performance as tabs, and the first-release set (recommended: Inbox, Approvals, Pilot, Assistants, Search, Library).
+2. Pilot: which task styles ship first; plan on every task or on request; pause and redirect in the first version; per-space file limits.
+3. Profile: personal-context sources first; read-only personal assistants without a reviewer; default retention for personal chats.
+4. Models: what marks a conversation sensitive; qualification threshold; where unqualified models may run; whether sensitive data may ever go to the public cloud.
+5. Agent Hub: organization-only or later a marketplace (D1); who may install; first customer agents; names.
+6. Builder: name, first-release scope, proactive suggestions default.
+7. Automations: who may publish; whether workflows may call customer-facing agents.
+8. Organization settings page list (25 pages).
+9. Platform: open versus commercial (D1); staff product naming (D2); plan decisions D3 to D9.
+
+## Not documented because it is not yet known
+Real customer evidence, pricing, a pilot baseline for any metric, an independent security test, a live-model quality pass.

@@ -12,6 +12,7 @@ Status: Draft. Personas are hypotheses to validate with interviews, not research
 | Rae | Reviewer / approver | Decides held actions | Approval queue |
 | Ari | Administrator | Operates the platform | Settings, keys, deployment |
 | Cam | End customer | Gets help | Chat, email, messaging, voice |
+| Tess | Team lead (after 1.0) | Supervises a team and its assistants | Workspace: Team, Customers, Automations |
 
 ## Maya, CX / Support Lead
 - **Jobs to be done:** raise resolution and satisfaction; lower cost per contact; change policy fast without an engineering ticket.
@@ -67,3 +68,16 @@ Status: Draft. Personas are hypotheses to validate with interviews, not research
 | Auditability | Sam, Rae |
 | Smooth handoff | Jo, Cam |
 | Operability | Ari |
+
+## After 1.0: the Workspace changes who uses what
+The Workspace (see `../03-specs/NorthCX_Workspace-Spec.md`) becomes the daily surface for three existing personas, and adds one.
+| Persona | In the Workspace | Goal |
+|---|---|---|
+| Jo (support agent) | Inbox, Pilot with a care copilot, Search, Library, Outputs | Resolve hand-offs faster with the right context and a drafted reply, and never send something unchecked |
+| Rae (reviewer) | Approvals, Quality, Inbox | Decide held actions quickly with the exact action and customer context in view; review samples |
+| **Tess (team lead, new)** | Team (Quality, Performance), Customers, Automations, Spaces | See how the team and the agents are doing, coach, and set up shared spaces and routines |
+| Ari (administrator) | Admin app, not the Workspace | Control what assistants can see and do, models, budgets and retention |
+Maya (CX lead) and Dev (platform engineer) keep the Admin app; Maya also uses Performance and Quality. Personas remain hypotheses to validate.
+
+### Tess, Team lead (new, hypothesis)
+Runs a support team of 8 to 30. Wants a clear view of waiting work, quality and response times, a way to coach with real examples, and shared assistants and automations for routine reports, without engineering help. Worries about assistants seeing customer data they should not, and about numbers she cannot trace. Success: weekly report built in minutes from team figures; a coaching note attached to a real conversation.

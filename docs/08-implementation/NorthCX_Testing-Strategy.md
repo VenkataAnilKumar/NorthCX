@@ -66,3 +66,16 @@ Before a judge gates CI, compare its verdicts to human labels on a sample set, r
 Prototype tests (`src/prototype/tests/runtime.test.ts`), to be ported to pytest for the Python backend: tool execution, invalid input, approvals, handoff, history validity, guardrail rewrite and escalation, supervisor and model failure, untrusted facts.
 
 **Hardening pass (after Phase 3).** The real Docker images were built and the whole Compose stack started and exercised: a browser run through the console (overview, streamed chat, an environment switch, a forced-topic hand-off, the hand-offs page, the versions page with environments, simulations, access) with no page errors, and API calls to every feature added in Phase 3 against Postgres (migrations at 0017, 28 tables). This found one real defect that unit tests had not: Docker Compose passes every listed setting through as an empty string when the operator leaves it blank, and the server treated `NORTHCX_RERUN_ON_KNOWLEDGE=""` as an invalid value and refused to start. Blank `NORTHCX_*` settings now count as not set, and a test starts the real server with every Compose setting present and blank (it fails if the fix is removed). A second test fails if a setting documented in the Deployment Guide is not passed through by Compose, which found seven that were missing. A route sweep checks every route the app has: nothing under `/v1` answers without credentials, a customer's chat token reaches only chat, streamed chat, the outbox and `/v1/me`, and each role reaches exactly the routes its permissions allow. A static scan (Bandit) found no high or medium issues apart from the intended bind to all interfaces inside the container; three silent `except: pass` blocks that hid failures now log. The CI stack job also calls the Phase 3 endpoints.
+
+## After 1.0: Workspace and Admin app tests (planned)
+| Layer | What it proves |
+|---|---|
+| Component tests (vitest) | Navigation shows only permitted items; sub-tab badges; every list has empty, loading, error and no-permission states |
+| Contract tests | The typed client matches the generated API reference; a changed route fails the build |
+| Browser end-to-end (Playwright) | Resolve a hand-off with a note; decide an approval; start, approve, pause, redirect and stop a Pilot task; erase memory |
+| Accessibility checks | Automated axe-style scan per page in light, dark and high-contrast, plus keyboard-only walkthroughs |
+| Visual checks | Screenshots of key screens per theme, reviewed on change, not a pass/fail gate at first |
+| Permission matrix | Roles by tools and routes: an assistant never reaches more than its user (E5 tests) |
+| Safety tests | Hostile conversations and files cannot instruct a staff assistant; memory rejects customer personal data; a personal instruction cannot weaken an organization rule; sensitive data never reaches a public model, including on fallback |
+| Task and automation tests | Plan before work; writes always ask; limits stop runs; kill switch; restart resumes; one worker at a time |
+| Isolation sweep | Generated from the route table across two tenants |

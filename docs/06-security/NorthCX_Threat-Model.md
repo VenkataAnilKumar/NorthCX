@@ -125,3 +125,20 @@ Disposition: **M** mitigated, **A** accepted with the residual noted, **T** tran
 6. **Behind a reverse proxy**, set uvicorn's `FORWARDED_ALLOW_IPS` to the proxy address, otherwise every client appears to have the proxy's address and per-address limits apply to everyone at once.
 7. **Not independently tested**: no external penetration test has been done; the review was done by the authors with automated scans and tests. Commission one before exposing the service to the public internet.
 8. **Telephony fraud and denial of service** are limited by the bridge, not NorthCX.
+
+## Staff platform (proposed threats for the Workspace, designed 2026-11-09; none built)
+These extend the sections above. Each row becomes a test when the feature is built.
+| Threat | Why it matters | Planned handling |
+|---|---|---|
+| Customer text instructs the staff assistant (indirect injection) | Conversations, files and sources are read by assistants with the person's permissions | All such text is labelled as data; staff tools never take instructions from it; tests with hostile conversations |
+| An assistant reaches more than its user | The assistant could become a way around access rules | Permissions travel with the person and are checked inside each tool; a search provider that cannot prove access returns nothing |
+| Writes without a person | A plan or an automation could change systems unseen | Writes always ask first; approval rules gate automation writes; kill switch; limits |
+| Leakage of customer data through outputs, memory or sharing | Saved results outlive the conversation | Masking by default; memory rejects customer personal details; outputs inherit the strictest source classification; shares are masked |
+| Sensitive data reaches a public model on fallback | A cheaper or available model could be chosen under failure | Constraints are applied before ranking and to the fallback chain; recorded in the trace |
+| Memory poisoning | A remembered item could steer later answers | Memory is untrusted data, never an instruction with authority; items show their origin and can be deleted; precedence keeps memory below every instruction layer |
+| Personal instructions weaken company rules | A person could tell an assistant to skip a check | Fixed precedence with organization rules locked; conflicts shown as ignored |
+| Web search (later) leaks queries or injects instructions | Public services and pages are outside the trust boundary | Off by default and per assistant; never in sensitive conversations or with customer data in the query; page text is data; every search audited; blocked on private deployments |
+| Customers view used for browsing | A cross-channel record is a privacy risk | Leads and reviewers only by default; search by reference only; every open, reveal and edit audited; deletion removes it |
+| Hub entry or skill widens access | A shared template could carry hidden powers | Placeholder filling only; requirements checked against the deployment; skills are instructions only; entries signed or reviewed |
+| Cross-tenant access in the new tables | New tables multiply isolation paths | Tenant predicate in the store base class plus row-level security; isolation sweep generated from the route table |
+| Runaway cost or loops | Background runs can spend unattended | Step, cost and time limits per task and per tenant; stop and ask on overrun |

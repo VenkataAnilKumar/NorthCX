@@ -26,3 +26,15 @@
 | Containment | Share of conversations that end without handoff |
 | Required scenario | A simulation that must pass before promotion |
 | Staged rollout | Serving a new version to a share of traffic |
+| Workspace | The staff web app: Home, Pilot, Work, Assist, Create, Team (planned after 1.0) |
+| Pilot | The Workspace window where a person gives an assistant a task, approves its plan and keeps the result |
+| Assistant | A staff-facing helper; acts with the signed-in person's permissions. Not the same as an agent |
+| Inbox | The Workspace tab for conversations that need a person (called Hand-offs in Admin) |
+| Space | Where instructions, sources, files, chats and outputs for one piece of work live together |
+| Output | Something an assistant made and the person saved |
+| Result | The Pilot inner tab showing what the current chat is making |
+| Automation | Multi-step work that runs by itself, with limits and a kill switch |
+| Agent Hub | Gallery of predefined agents and assistants; installing never makes one live |
+| Builder | Assistant that drafts agents and automations for review; never goes live by itself |
+| Personal intelligence | A person's instructions, persona, memory, skills and personal context, layered under organization rules |
+| Hybrid model selection | Choosing local, private or public models by data limits, qualification, rules and cost |

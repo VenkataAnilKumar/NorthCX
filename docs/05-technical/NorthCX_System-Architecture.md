@@ -59,3 +59,6 @@ Docker Compose for development; containers for the server and workers; Postgres 
 1. Runtime language (see Tech-Stack-Decisions).
 2. Persistence: Postgres schema in `05-technical/NorthCX_Database-Schema.md` (planned).
 3. Whether one inbox integration is enough for v1 channels and handoff.
+
+## After 1.0: staff platform
+The Workspace, the extended Admin app, the Pilot task engine, personal memory and automations are described in `NorthCX_Staff-Platform-Architecture.md` (proposed, not built).

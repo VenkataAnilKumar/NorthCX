@@ -19,3 +19,16 @@ Status: Draft. Numbers are proposals to validate.
 | Compliance support | Controls to support privacy and security frameworks; certification is the deployer's responsibility |
 | Cost | Per-conversation budgets; cost visible per run |
 | Licensing | Permissive dependencies in the core |
+
+## After 1.0: Workspace and Admin apps (proposals to validate)
+| Area | Requirement |
+|---|---|
+| Accessibility | Both web apps meet WCAG 2.1 AA in every theme: keyboard operation, visible focus, labelled controls, no colour-only meaning, text size and density options, high contrast, reduced motion, and solid surfaces when transparency is unwanted |
+| Responsiveness | Usable from a 1280 px laptop to a large monitor; the Workspace is readable on a tablet; a phone view is not a first-release goal |
+| Performance | Time to a first streamed token and page-load budgets are set after the first slice is measured (Performance gate approach as in the implementation plan); lists page and filter on the server |
+| Latency of steering | Pause, redirect and stop take effect at the next step boundary and are acknowledged within 2 seconds |
+| Durability | A closed browser never stops a background task or automation; a worker restart resumes from the last finished step |
+| Privacy | Customer personal data is masked outside the live conversation; erasing a person's memory and history completes within a stated time and is audited |
+| Isolation | One tenant's tasks, spaces, outputs and memory are invisible to another, proved by the generated isolation sweep |
+| Browser support | The two latest versions of Chrome, Edge, Firefox and Safari |
+| Internationalisation | Interface text is externalised from the start; the first release ships English; date, number and time zone follow the person's settings |

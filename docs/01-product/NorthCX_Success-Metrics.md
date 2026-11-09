@@ -26,6 +26,19 @@ Status: Draft. Targets are initial proposals; baselines come from pilots.
 | Regression catch rate | Regressions caught by CI / regressions found anywhere | >= 80% |
 | Judge agreement | Judge verdicts matching human labels on the calibration set | >= 90% |
 
+## Staff platform metrics (after 1.0; proposals, no baseline yet)
+| Metric | Definition | Target |
+|---|---|---|
+| Time to first useful result | Pilot task start to a saved output, median | Set after a pilot |
+| Plan approval rate | Plans approved without edit / plans shown | Track; low means plans miss the intent |
+| Hand-off handling time | Hand-off shown to resolved, median | Falling trend |
+| Draft acceptance | Drafted replies sent with small or no edits / drafts shown (sampled) | Track |
+| Unchecked-send escape | Messages sent to customers without a person's action | 0 |
+| Approval turnaround | Approval requested to decided, p90 | Falling trend |
+| Assistant citation coverage | Answers with a source / answers that need one | >= 95% (to validate) |
+| Cost per task | Model cost and tools per finished task | Falling trend |
+| Weekly active staff | Staff who open the Workspace weekly / licensed staff | Track |
+
 ## Adoption metrics
 Active agents, conversations per month, tools per agent, Studio weekly active editors, contributors and external adapters.
 

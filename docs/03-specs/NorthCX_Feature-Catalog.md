@@ -153,7 +153,114 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | P11 | Usage metering and outcome-based billing | P2 | Later | Planned |
 
 ## Counts
-106 features. Built: 28. Everything else is planned. Features marked P0 and Planned define the remaining work for Phases 1 and 2.
+106 features in sections 1 to 11 (the 1.0 set). Section 12 lists 76 further planned features for after 1.0. Built: 28. Everything else is planned. Features marked P0 and Planned define the remaining work for Phases 1 and 2.
 
 ## Traceability
 Product requirements FR1-FR34 (the 1.0 set) in the PRD list the catalog IDs they cover in their "Catalog" column. Every P0 and P1 feature maps to at least one requirement.
+
+## 12. Staff platform (designed 2026-11-09, planned after 1.0)
+None of these is built. Requirements: `NorthCX_Workspace-Spec.md`, `NorthCX_Pilot-Spec.md`, `NorthCX_Personal-Intelligence-Spec.md`, `NorthCX_Automations-Spec.md`, `../07-design/NorthCX_Agent-Hub-Design.md`, `../04-ai-architecture/NorthCX_Hybrid-Model-Selection.md`. Product requirements FR35 to FR41 cover them.
+
+### Workspace app
+| ID | Feature | Pri | Phase | State |
+|---|---|---|---|---|
+| W1 | Home: what needs me, what is ready, recent work | P1 | After 1.0 | Planned (designed) |
+| W2 | Inbox: hand-offs grouped, suggested reply, resolve with note | P1 | After 1.0 | Planned (designed) |
+| W3 | Approvals tab in the Workspace | P1 | After 1.0 | Planned (designed) |
+| W4 | Customers: cross-channel timeline, audited (second release) | P2 | After 1.0 | Planned (designed) |
+| W5 | Pilot window (see PI) | P1 | After 1.0 | Planned (designed) |
+| W6 | Assistants catalog | P1 | After 1.0 | Planned (designed) |
+| W7 | Search across everything the person may see | P1 | After 1.0 | Planned (designed) |
+| W8 | Library: sources, playbooks, canned answers | P1 | After 1.0 | Planned (designed) |
+| W9 | Outputs | P1 | After 1.0 | Planned (designed) |
+| W10 | Spaces | P1 | After 1.0 | Planned (designed) |
+| W11 | Automations tab (see AU) | P2 | After 1.0 | Planned (designed) |
+| W12 | Quality: review queue, scorecards, coaching | P2 | After 1.0 | Planned (designed) |
+| W13 | Performance: personal and team figures | P2 | After 1.0 | Planned (designed) |
+| W14 | Notifications, availability, app switcher, command bar | P1 | After 1.0 | Planned (designed) |
+
+### Pilot
+| ID | Feature | Pri | Phase | State |
+|---|---|---|---|---|
+| PI1 | Plan before work with estimate | P1 | After 1.0 | Planned (designed) |
+| PI2 | Clarifying questions | P1 | After 1.0 | Planned (designed) |
+| PI3 | Live Steps view | P1 | After 1.0 | Planned (designed) |
+| PI4 | Pause, redirect, stop | P1 | After 1.0 | Planned (designed) |
+| PI5 | Writes always ask first | P0 | After 1.0 | Planned (designed) |
+| PI6 | Signed-in person's permissions | P0 | After 1.0 | Planned (designed) |
+| PI7 | Citations | P1 | After 1.0 | Planned (designed) |
+| PI8 | Files, sources, spaces, masked conversation context | P1 | After 1.0 | Planned (designed) |
+| PI9 | Result tab with versions and sharing | P1 | After 1.0 | Planned (designed) |
+| PI10 | Background runs | P1 | After 1.0 | Planned (designed) |
+| PI11 | Side chat | P2 | After 1.0 | Planned (designed) |
+| PI12 | Chat history and temporary chat | P1 | After 1.0 | Planned (designed) |
+| PI13 | Drafts open in Inbox, never auto-sent | P0 | After 1.0 | Planned (designed) |
+| PI14 | Cost and step limits per task | P1 | After 1.0 | Planned (designed) |
+
+### Personal intelligence
+| ID | Feature | Pri | Phase | State |
+|---|---|---|---|---|
+| PN1 | Layered instructions with fixed precedence | P0 | After 1.0 | Planned (designed) |
+| PN2 | Persona and style | P2 | After 1.0 | Planned (designed) |
+| PN3 | Memory with scopes and sources | P1 | After 1.0 | Planned (designed) |
+| PN4 | Per-chat switches | P1 | After 1.0 | Planned (designed) |
+| PN5 | What it used | P1 | After 1.0 | Planned (designed) |
+| PN6 | Personal context with consent | P2 | After 1.0 | Planned (designed) |
+| PN7 | Skills as instructions only | P2 | After 1.0 | Planned (designed) |
+| PN8 | Personal assistants within own access | P2 | After 1.0 | Planned (designed) |
+| PN9 | Temporary chat | P1 | After 1.0 | Planned (designed) |
+| PN10 | Export and erase | P1 | After 1.0 | Planned (designed) |
+| PN11 | Retention defaults | P1 | After 1.0 | Planned (designed) |
+| PN12 | Customer data never in memory | P0 | After 1.0 | Planned (designed) |
+
+### Automations and Builder
+| ID | Feature | Pri | Phase | State |
+|---|---|---|---|---|
+| AU1 | Triggers | P2 | After 1.0 | Planned (designed) |
+| AU2 | Durable runs | P2 | After 1.0 | Planned (designed) |
+| AU3 | Person steps with deadlines | P2 | After 1.0 | Planned (designed) |
+| AU4 | Gated write steps | P0 | After 1.0 | Planned (designed) |
+| AU5 | Limits and kill switch | P1 | After 1.0 | Planned (designed) |
+| AU6 | Run history | P2 | After 1.0 | Planned (designed) |
+| AU7 | Versions, review, rollback | P2 | After 1.0 | Planned (designed) |
+| AU8 | Pilot result to automation | P2 | After 1.0 | Planned (designed) |
+| AU9 | Test runs with simulated writes | P2 | After 1.0 | Planned (designed) |
+| AU10 | Visual editor | P2 | After 1.0 | Planned (designed) |
+| AU11 | Failure alerts | P2 | After 1.0 | Planned (designed) |
+| AU12 | Several-process safety | P1 | After 1.0 | Planned (designed) |
+
+### Agent Hub and Builder
+| ID | Feature | Pri | Phase | State |
+|---|---|---|---|---|
+| AH1 | Extended template schema | P1 | After 1.0 | Planned (designed) |
+| AH2 | Requirements check | P1 | After 1.0 | Planned (designed) |
+| AH3 | Install flow that never goes live | P0 | After 1.0 | Planned (designed) |
+| AH4 | Updates with diff | P2 | After 1.0 | Planned (designed) |
+| AH5 | Organization templates with review | P2 | After 1.0 | Planned (designed) |
+| AH6 | Hub and Assistants screens | P1 | After 1.0 | Planned (designed) |
+| AH7 | Predefined customer agents (7) | P1 | After 1.0 | Planned (designed) |
+| AH8 | Predefined staff assistants (6) | P2 | After 1.0 | Planned (designed) |
+| AH9 | Signed built-in entries and provenance | P2 | After 1.0 | Planned (designed) |
+| AH10 | Builder assistant: reviewable drafts only | P2 | After 1.0 | Planned (designed) |
+
+### Hybrid model selection
+| ID | Feature | Pri | Phase | State |
+|---|---|---|---|---|
+| HM1 | Data-policy constraints first | P0 | After 1.0 | Planned (designed) |
+| HM2 | Per-agent qualification | P1 | After 1.0 | Planned (designed) |
+| HM3 | Operator rules | P1 | After 1.0 | Planned (designed) |
+| HM4 | Cost ordering | P2 | After 1.0 | Planned (designed) |
+| HM5 | Fallback never crosses a forbidden tier | P0 | After 1.0 | Planned (designed) |
+| HM6 | Every choice recorded in the trace | P1 | After 1.0 | Planned (designed) |
+| HM7 | Staff model modes | P1 | After 1.0 | Planned (designed) |
+| HM8 | Local models earn trust by passing scenarios | P2 | After 1.0 | Planned (designed) |
+
+### Admin app (extended Studio)
+| ID | Feature | Pri | Phase | State |
+|---|---|---|---|---|
+| AD1 | Grouped navigation: Operate, Build, Govern, Platform | P1 | After 1.0 | Planned (designed) |
+| AD2 | 25 organization pages | P1 | After 1.0 | Planned (designed) |
+| AD3 | Personal settings group | P1 | After 1.0 | Planned (designed) |
+| AD4 | Policies with per-level values and locks | P1 | After 1.0 | Planned (designed) |
+| AD5 | Trust and reliability page | P2 | After 1.0 | Planned (designed) |
+| AD6 | Usage and cost, billing and plan | P2 | After 1.0 | Planned (designed) |

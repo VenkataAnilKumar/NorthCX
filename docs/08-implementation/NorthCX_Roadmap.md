@@ -22,3 +22,6 @@ Studio build vs adopt, initial vertical focus, connector scope.
 The step-by-step work packages, gates and owner actions are in `NorthCX_Implementation-Plan.md`.
 
 The detailed plan for the work that follows 1.0 (model providers, multi-tenancy, identity, the staff workspace, automations, connectors, metering and deployment) is `NorthCX_Gap-Closure-Plan.md`. It reorders the stages proposed in `00-reference/NorthCX_North-Gap-Analysis.md` so that tenancy comes before anything that stores per-customer credentials or workspace data.
+
+## After 1.0: the staff platform (designed 2026-11-09)
+The order is: providers and cost governance (E1), tenancy (E2), identity (E3), the staff backend (E5) with libraries and outputs (E6), the Agent Hub (E22), then automations (E8, E14), connectors (E9), QA scoring (E7) and metering (E10). First Workspace release (recommended): Inbox, Approvals, Pilot, Assistants, Search and Library. Customers is a second-release tab; web search for assistants is later and off by default. Details: `NorthCX_Implementation-Plan.md`; screens and rules: `../07-design/NorthCX_Platform-Features-and-Tabs.md`.

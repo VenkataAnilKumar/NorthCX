@@ -65,3 +65,25 @@ Status: Draft. Each story maps to catalog IDs.
 | US42 | Dev | Re-run tests when knowledge changes | Simulations triggered automatically | Q7 |
 | US43 | Ari | Deploy in containers on our infrastructure | Documented deployment runs | P7 |
 | US44 | Dev | Receive webhooks on status changes | Event delivered with signature | P8 |
+
+## Workspace and Pilot (after 1.0, designed 2026-11-09)
+Catalog IDs are in `NorthCX_Feature-Catalog.md` section 12.
+| ID | Persona | Story | Acceptance | Catalog |
+|---|---|---|---|---|
+| US45 | Jo | See the conversations that need me in one list with the agent's summary | Needs-me, agent-handling and resolved are separate; the summary shows | W2 |
+| US46 | Jo | Get a drafted reply I can edit and send myself | Draft opens in the conversation; nothing is sent until I send | W2, PI13 |
+| US47 | Rae | Decide an approval with the exact action and customer context in front of me | Decision needs a note; a second decision is refused | W3 |
+| US48 | Jo | Ask an assistant to research a pattern and approve its plan first | Nothing runs before I approve; steps are visible | PI1, PI3 |
+| US49 | Jo | Stop or redirect a running task | Completed steps are kept; only the rest changes | PI4 |
+| US50 | Jo | Know which sources an answer used | Every claim has a citation; "what it used" matches the prompt | PI7, PN5 |
+| US51 | Tess | See my team's handled, resolved and response figures with denominators | A figure with no data says so | W13 |
+| US52 | Tess | Review sampled conversations and attach a coaching note | Note is audited and visible to the agent owner | W12 |
+| US53 | Tess | Turn a good Pilot result into a weekly automation | Draft is created; it is not live until reviewed | AU8 |
+| US54 | Jo | Keep my own instructions and style without weakening company rules | A personal instruction that conflicts is shown as ignored with a reason | PN1 |
+| US55 | Jo | Turn memory off for one chat or use a temporary chat | Nothing saved, no memory read | PN4, PN9 |
+| US56 | Jo | Erase my personal memory and history | Erased within the stated time and audited | PN10 |
+| US57 | Ari | Decide which assistants exist, who may use them and what they may see | An uninstalled or unreleased assistant never appears in the Workspace | AH3, W6 |
+| US58 | Ari | Keep sensitive conversations off public models | A sensitive conversation never reaches a public model, including on fallback | HM1, HM5 |
+| US59 | Ari | Switch off an automation at once | All running runs stop and the stop is audited | AU5 |
+| US60 | Tess | Open a customer's cross-channel timeline with a logged reason | Open, reveal and edit are audited (second release) | W4 |
+| US61 | Dev | Draft an agent with the Builder and review it like any other | The draft is never live or saved by itself | AH10 |
