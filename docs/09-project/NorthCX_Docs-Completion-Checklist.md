@@ -11,7 +11,7 @@ Status: **2026-11-09.** Tracks whether the product documents cover the full desi
 | Success metrics | `01-product/NorthCX_Success-Metrics.md` (staff platform proposals) | Done; baselines need a pilot |
 | Pricing | `01-product/NorthCX_Pricing-Model.md` | **Blocked on D1** (open versus commercial); not changed |
 | Market | `02-market/NorthCX_Competitive-Analysis.md`, `00-reference/` | Existing; refresh after D1 |
-| Catalog | `03-specs/NorthCX_Feature-Catalog.md` section 12 (76 features) | Done |
+| Catalog | `03-specs/NorthCX_Feature-Catalog.md` section 12 (77 features) | Done |
 | Specifications | Workspace, Pilot, Personal-Intelligence, Automations specs; Agent Hub design | Done (drafts) |
 | Stories and journeys | `03-specs/NorthCX_User-Stories.md` (US45 to US61), `NorthCX_User-Journey.md` (J11 to J15) | Done |
 | Non-functional | `03-specs/NorthCX_Non-Functional-Requirements.md` | Done (proposals) |
@@ -32,7 +32,7 @@ Status: **2026-11-09.** Tracks whether the product documents cover the full desi
 5. ~~Agent Hub~~ Decided (decision 165).
 6. ~~Builder~~ Decided (decision 165).
 7. ~~Automations~~ Decided (decision 165).
-8. Organization settings page list (25 pages).
+8. ~~Organization page list (25 pages)~~ Decided (decision 167).
 9. Platform: open versus commercial (D1); staff product naming (D2); plan decisions D3 to D9.
 
 ## Not documented because it is not yet known

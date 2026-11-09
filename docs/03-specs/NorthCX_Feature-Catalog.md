@@ -153,7 +153,7 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 | P11 | Usage metering and outcome-based billing | P2 | Later | Planned |
 
 ## Counts
-106 features in sections 1 to 11 (the 1.0 set). Section 12 lists 76 further planned features for after 1.0. Built: 28. Everything else is planned. Features marked P0 and Planned define the remaining work for Phases 1 and 2.
+106 features in sections 1 to 11 (the 1.0 set). Section 12 lists 77 further planned features for after 1.0. Built: 28. Everything else is planned. Features marked P0 and Planned define the remaining work for Phases 1 and 2.
 
 ## Traceability
 Product requirements FR1-FR34 (the 1.0 set) in the PRD list the catalog IDs they cover in their "Catalog" column. Every P0 and P1 feature maps to at least one requirement.
@@ -263,4 +263,5 @@ None of these is built. Requirements: `NorthCX_Workspace-Spec.md`, `NorthCX_Pilo
 | AD3 | Personal settings group | P1 | After 1.0 | Planned (designed) |
 | AD4 | Policies with per-level values and locks | P1 | After 1.0 | Planned (designed) |
 | AD5 | Trust and reliability page | P2 | After 1.0 | Planned (designed) |
-| AD6 | Usage and cost, billing and plan | P2 | After 1.0 | Planned (designed) |
+| AD6 | Usage and billing | P2 | After 1.0 | Planned (designed) |
+| AD7 | Automations admin page: all workflows, publish review, kill switch | P2 | After 1.0 | Planned (designed) |

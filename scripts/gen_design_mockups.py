@@ -43,9 +43,9 @@ td{padding:9px 10px;border-bottom:1px solid var(--border)}tr:last-child td{borde
 """
 
 NAV = [("Operate", [("Overview", 0), ("Conversations", 0), ("Handoffs", 3), ("Approvals", 2), ("Review and QA", 0)]),
-       ("Build", [("Agents", 0), ("Library", 0), ("Simulations", 0), ("Models and budgets", 0)]),
-       ("Govern", [("People and groups", 0), ("Access keys", 0), ("Policies", 0), ("Audit and activity", 0)]),
-       ("Platform", [("Channels", 0), ("Systems", 0), ("Usage and cost", 0), ("Data residency", 0), ("Trust and reliability", 0)]),
+       ("Build", [("Agents", 0), ("Library", 0), ("Automations", 0), ("Simulations", 0), ("Models and budgets", 0)]),
+       ("Govern", [("People and groups", 0), ("Access keys", 0), ("Policies", 0), ("Audit and activity", 0), ("Trust and reliability", 0), ("Data residency", 0)]),
+       ("Platform", [("Channels", 0), ("Systems", 0), ("Usage and billing", 0)]),
        ("Personal", [("Profile and memory", 0), ("Settings", 0)])]
 
 
@@ -331,8 +331,12 @@ SCREENS["20-workspace-threads"] = wsapp("Threads", head("Inbox", "Customer conve
 
 def settings_shell(active: str, title: str, sub: str, body: str) -> str:
     personal = ["Profile", "Preferences", "Memory", "Connectors", "MCP servers", "Notifications", "Privacy and data", "Usage and limits", "API keys", "Security and sessions"]
-    org = ["Overview", "Agents", "Agent Hub", "Library", "Channels", "Analytics", "Review and QA", "Simulations", "Models and budgets", "People and groups", "Policies", "Access keys", "Audit and activity", "Trust and reliability", "Systems", "Data residency", "Billing and plan", "Organization settings"]
-    nav = '<div class="grp">Personal</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in personal) + '<div class="grp">Organization (administrators)</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in org)
+    org_groups = [("Operate", ["Overview", "Conversations", "Hand-offs", "Approvals", "Review and QA", "Monitoring", "Analytics"]),
+                  ("Build", ["Agents", "Agent Hub", "Builder", "Library", "Automations", "Simulations", "Models and budgets", "Test console"]),
+                  ("Govern", ["People and groups", "Access keys", "Policies", "Audit and activity", "Trust and reliability", "Data residency"]),
+                  ("Platform", ["Channels", "Systems", "Usage and billing", "Organization settings"])]
+    org = [n for _g, ns in org_groups for n in ns]
+    nav = '<div class="grp">Personal</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in personal) + '<div class="grp">Organization (administrators)</div>' + "".join(f'<div class="grp" style="padding:6px 0 0;font-size:10px">{gn}</div>' + "".join(f'<a class="{"on" if n == active else ""}">{n}</a>' for n in ns) for gn, ns in org_groups)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{E(title)} (mockup)</title><style>{WS_CSS}</style></head><body>
 <div class="top"><div class="brand" style="padding:0">NorthCX <span class="note">Settings and admin</span></div><div class="sp"></div><span class="pill">Tenant <b>Acme Support (sample)</b></span><span class="btn">Open Workspace</span><div class="av">PN</div></div>
 <div style="display:grid;grid-template-columns:260px 1fr;min-height:844px"><div style="background:var(--surface);border-right:1px solid var(--border);padding:12px" class="setnav">{nav}</div>
@@ -695,7 +699,7 @@ SCREENS["11-information-architecture"] = f"""<!doctype html><html lang="en"><hea
 body{{padding:28px;min-height:900px}}h1{{margin-bottom:4px}}</style></head><body><h1>NorthCX surfaces and navigation</h1><p class="sub">Who uses what. One sign-in, one design system, separate apps where the audience, policy or deployment differs. Built = in Studio today; New = this design.</p>
 <div class="g3">{_col("Customer surfaces","Customers",["Chat widget and SDK (built)","Email, SMS, WhatsApp, Telegram, voice (built)","Identity code check (built)"],"ok")}
 {_col("Staff workspace  (new)","Support staff, team leads",["Queue and conversation with agent summary","Approvals inline","Draft replies, suggested knowledge","Search across knowledge, conversations, hand-offs","Saved searches, team playbooks"])}
-{_col("Admin platform  (Studio, extended)","Admins, release managers, developers, reviewers, auditors",["<b>Operate</b>: Overview, Conversations, Handoffs, Approvals, Review and QA","<b>Build</b>: Agents (catalog), Knowledge, Simulations, Models and budgets","<b>Govern</b>: People and groups, Access keys, Policies, Audit and activity","<b>Platform</b>: Connectors and MCP, Usage and cost, Data residency, Settings"])}</div>
+{_col("Admin platform  (Studio, extended)","Admins, release managers, developers, reviewers, auditors",["<b>Operate</b>: Overview, Conversations, Hand-offs, Approvals, Review and QA, Monitoring, Analytics","<b>Build</b>: Agents, Agent Hub, Builder, Library, Automations, Simulations, Models and budgets, Test console","<b>Govern</b>: People and groups, Access keys, Policies, Audit and activity, Trust and reliability, Data residency","<b>Platform</b>: Channels, Systems, Usage and billing, Organization settings"])}</div>
 <div class="g3" style="margin-top:12px">{_col("Developer portal  (new, static)","Developers",["API reference (generated, built)","SDK guides, webhooks and test events (built)","MCP and sandbox recipe"])}
 {_col("Ops console  (new, private deployments)","Operators",["Health, versions, upgrade","Replicas, workers, queues","Backups and restore tests"],"warn")}
 {_col("Back office  (vendor only)","The company running the platform",["Tenants, plans, licences","Feature flags, support access","Billing export"],"bad")}</div>
