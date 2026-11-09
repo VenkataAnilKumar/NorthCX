@@ -166,7 +166,7 @@ SCREENS["09-staff-workspace"] = f"""<!doctype html><html lang="en"><head><meta c
 <div class="l"><div class="brand">NorthCX <span class="note">Workspace</span></div><div class="in" style="display:block;margin-bottom:10px">Search everything&hellip;</div><div class="grp">Queue (Billing)</div>
 <div class="item on"><b>c-4f21</b> {badge("waiting 6 min","warn")}<br><span class="note">Refund for a delayed order</span></div><div class="item"><b>c-4f1c</b><br><span class="note">Wrong plan charged</span></div><div class="item"><b>c-4e90</b> {badge("approved","ok")}<br><span class="note">Invoice copy</span></div>
 <div class="grp">My tools</div><div class="item">Drafts</div><div class="item">Saved searches</div><div class="item">Team playbooks</div></div>
-<div style="background:var(--bg)"><div class="row" style="align-items:center;margin-bottom:10px"><b style="font-size:16px">Refund for a delayed order</b>{badge("handed off by billing-help","info")}<div class="sp" style="flex:1"></div><span class="btn">Resolve</span></div>
+<div style="background:var(--bg)"><div class="tabs" style="margin-bottom:10px"><a class="on">c-4f21 <span class="b warn">approval</span></a><a>c-4f1c <span class="b info">replying</span></a><a>c-4e90 <span class="b ok">resolved</span></a><a class="note">+ open from queue</a></div><div class="row" style="align-items:center;margin-bottom:10px"><b style="font-size:16px">Refund for a delayed order</b>{badge("handed off by billing-help","info")}<div class="sp" style="flex:1"></div><span class="btn">Resolve</span></div>
 <div class="chat"><div class="msg u">My parcel is 9 days late and I want my money back.</div><div class="msg a">I can see order 1019 is delayed. A refund of $180 is above what I can approve, so I'm asking a colleague to review it.</div>
 <div class="card" style="background:var(--warn-bg);border-color:#e9c46a"><b>Approval needed:</b> issue_refund $180 for order 1019<div class="row" style="margin-top:8px"><span class="btn p">Approve</span><span class="btn d">Reject</span><span class="btn">Ask for more</span></div></div>
 <div class="msg a" style="align-self:flex-start"><span class="note">Draft reply (you can edit)</span><br>Thanks for waiting. We've refunded $180 to your original payment method; it can take 3 to 5 days to appear.<div class="row" style="margin-top:8px"><span class="btn p">Use draft</span><span class="btn">Regenerate</span></div></div></div></div>
@@ -189,6 +189,20 @@ SCREENS["12-components"] = shell("Overview", "Component library", "The parts eve
 <div class="card"><h3>Error state</h3><p>{badge("Could not load","bad")}</p><p class="note">The server did not answer. Your data is safe.</p><span class="btn">Try again</span></div><div class="card"><h3>Confirm dialog</h3><p><b>Revoke key ci-pipeline?</b></p><p class="note">Anything using it stops working immediately. This is recorded in the audit log.</p><div class="row"><span class="btn d">Revoke</span><span class="btn">Cancel</span></div></div></div>
 <div class="g3" style="margin-top:12px"><div class="card"><h3>Table row actions</h3>{table(["Name","Status",""],[["support-agent",badge("Live","ok"),"&hellip;"],["onboarding",badge("Draft","gr"),"&hellip;"]])}</div><div class="card"><h3>Tabs and filters</h3><div class="tabs"><a class="on">People</a><a>Groups</a></div><div class="row"><span class="in">Search&hellip;</span><span class="in">Status: Active</span></div></div>
 <div class="card"><h3>Trace timeline row</h3><p class="mono">user &rarr; llm &rarr; tool_call lookup_invoice &rarr; tool_result &rarr; reply</p><p class="note">Step times, tokens and the approval reference shown inline.</p></div></div>""")
+
+SCREENS["13-policies"] = shell("Policies", "Policies", "Rules for what agents may do. Each setting shows where it comes from and whether it can be changed here.", f"""
+<div class="tabs"><a class="on">Agents</a><a>Data</a><a>Sign-in</a><a>Release</a></div>
+<div class="card" style="padding:4px 6px">{table(["Setting","Value here","Comes from","Lock","Applies to"],[
+ ["<b>Agents may call write tools</b><br><span class=note>Only tools marked as write and covered by an approval rule</span>","On",badge("Platform default","gr"),"&mdash;","All agents"],
+ ["<b>Refunds without approval up to</b>","$50",badge("Tenant","info"),"&mdash;","billing-help"],
+ ["<b>Third-party MCP servers</b>","Off",badge("Platform default","gr"),"&#128274; locked by platform","All agents"],
+ ["<b>Message content in exported traces</b>","Masked",badge("Tenant","info"),"&#128274; locked by tenant policy","All teams"],
+ ["<b>Two-person rule for Production releases</b>","On",badge("Tenant","info"),"&mdash;","All agents"],
+ ["<b>Daily model budget</b>","$200",badge("Team Support","warn"),"&mdash;","Team Support"],
+ ["<b>Data may be sent to</b>","us, eu",badge("Tenant","info"),"&#128274; locked by tenant policy","All agents"]])}</div>
+<div class="g2" style="margin-top:12px"><div class="card"><h3>How to read this</h3><p class="note"><b>Comes from</b> says which level set the value: platform, tenant, team or agent. A lower level can make a setting stricter but never looser than the level above it. A locked setting shows who locked it and cannot be edited here.</p></div>
+<div class="card"><h3>Change history</h3>{table(["Who","What","When"],[["Priya N.","Daily budget for Team Support: $150 &rarr; $200","today"],["Marco L.","Two-person rule: on","3 days ago"]])}</div></div>""")
+
 
 def _col(title, who, items, cls="info"):
     return f'<div class="card" style="padding:14px"><span class="b {cls}">{title}</span><p class="note" style="margin:6px 0 8px">{who}</p>' + "".join(f"<div style='padding:4px 0;border-top:1px solid var(--border)'>{i}</div>" for i in items) + "</div>"
