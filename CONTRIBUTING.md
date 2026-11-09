@@ -6,10 +6,10 @@ Thank you for helping. This page is the short version; the long one is [`docs/09
 ```bash
 cd src/backend && python -m venv .venv && . .venv/bin/activate && pip install --require-hashes -r requirements-dev.lock && pip install --no-deps -e .
 NORTHCX_REQUIRE_DB=1 python -m pytest        # needs Postgres 16 (docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres)
-cd ../web && npm ci && npm test && npx tsc --noEmit
-cd ../sdk && npm ci && npm test              # then `npm run build` if you changed src/sdk/src: the built bundle is committed and a test checks it
+cd .. && npm ci && npm run typecheck && npm test   # the web workspace in src/: Studio, Workspace and the shared packages
+cd sdk && npm ci && npm test              # then `npm run build` if you changed src/sdk/src: the built bundle is committed and a test checks it
 ```
-Browser checks: `src/apps/studio/e2e/smoke.mjs` and `src/sdk/e2e/smoke.mjs` (see the deployment guide).
+Browser checks: `src/apps/studio/e2e/smoke.mjs`, `src/apps/workspace/e2e/smoke.mjs` (early work; not yet passing in full) and `src/sdk/e2e/smoke.mjs` (see the deployment guide).
 
 ## What a good change looks like
 1. **Tests first-class.** Behaviour changes come with tests; a bug fix comes with a test that failed before. A change to what an agent does comes with a scenario in `src/backend/examples/scenarios`. No network in unit tests.
