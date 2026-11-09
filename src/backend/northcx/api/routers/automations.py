@@ -10,8 +10,8 @@ from fastapi.responses import JSONResponse
 from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
-from northcx.api.models import AutomationBody, AutomationDecisionBody, AutomationRunBody, AutomationSettingsBody, OrgPolicyDecisionBody
-from northcx.automations import AutomationError, AutomationService, Hooks, InMemoryAutomations
+from northcx.api.models import AutomationBody, AutomationDecisionBody, AutomationDraftBody, AutomationRunBody, AutomationSettingsBody, OrgPolicyDecisionBody
+from northcx.automations import AutomationError, AutomationService, Hooks, InMemoryAutomations, validate_definition
 from northcx.release_requests import principal
 
 
@@ -250,6 +250,48 @@ def register(app: FastAPI, d: AppDeps) -> None:
             await record(request, "automation.hook", automation_id, "denied", reason="bad signature")
             return _err(401, "bad_signature", "The signature does not match")
         return await start(automation_id, request, "webhook", raw.decode("utf-8", "replace"))
+
+    @app.get("/v1/automations-catalog")
+    async def catalog() -> Any:
+        """What a routine may name: the choices the editor offers."""
+        h = svc.hooks
+        return {"reports": sorted(h.reports) if h else [], "events": sorted(h.event_types) if h else [], "destinations": sorted(h.destinations) if h else [],
+                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "person", "tag", "notify", "output"], "triggers": ["manual", "schedule", "webhook", "event"]}
+
+    @app.post("/v1/automations/convert")
+    async def convert(body: AutomationBody) -> Any:
+        """Between YAML and JSON for the editor, with every problem the checks find. Saves nothing."""
+        try:
+            raw = definition(body)
+        except AutomationError as e:
+            return fail(e)
+        problems: list[str] = []
+        try:
+            clean = validate_definition(raw, svc._reports(), svc._events(), svc._destinations())
+            if svc.hooks is not None:
+                for s in clean["steps"]:
+                    if s["kind"] == "assistant" and not await exists(s["assistant"]):
+                        problems.append(f"Step '{s['id']}': '{s['assistant']}' is not a live staff assistant")
+        except AutomationError as e:
+            problems.append(str(e))
+        return {"definition": raw, "yaml": yaml.safe_dump(raw, sort_keys=False, allow_unicode=True, width=100), "valid": not problems, "problems": problems}
+
+    @app.post("/v1/automations/draft")
+    async def draft_routine(body: AutomationDraftBody, request: Request) -> Any:
+        """Describe a routine in words and get a checked draft with a dry run. Nothing is saved. Costs a model call, so it respects the daily budget."""
+        from northcx.automation_builder import draft
+        if await over_budget():
+            return _err(402, "budget", "The daily budget is used up")
+        try:
+            out = await draft(svc, runtime.llm, body.description)
+        except AutomationError as e:
+            return fail(e)
+        except Exception:
+            return _err(502, "model_unavailable", "The model could not be reached; try again")
+        if out["definition"] is not None:
+            out["yaml"] = yaml.safe_dump(out["definition"], sort_keys=False, allow_unicode=True, width=100)
+        await record(request, "automation.draft", "builder", chars=len(body.description), valid=out["definition"] is not None)
+        return out
 
     @app.get("/v1/automation-runs")
     async def list_runs(status: str | None = None, limit: int = 50) -> Any:

@@ -114,6 +114,15 @@ check((await page.getByRole("navigation", { name: "Main" }).count()) === 0, "ful
 await page.keyboard.press("Escape");
 check((await page.getByRole("navigation", { name: "Main" }).count()) === 1, "full window: Esc brings the rail back");
 
+// automations: switch the editor to the canvas and see the routine as cards
+await page.goto(`${WEB}/automations`);
+await page.getByRole("button", { name: "Canvas" }).click();
+await page.getByRole("list", { name: "Routine steps" }).waitFor();
+check((await page.getByRole("list", { name: "Routine steps" }).locator("li").count()) >= 2, "automations: the canvas draws the trigger and its steps");
+await page.getByRole("button", { name: "Describe it" }).click();
+await page.getByRole("button", { name: "Draft it" }).waitFor();
+check(true, "automations: the describe-it box shows");
+
 // outputs and spaces: keep a result, see it, make a space
 await post("/v1/workspace/outputs", { title: `Smoke output ${stamp}`, body: "Three hand-offs were about delivery.", kind: "report" });
 await page.goto(`${WEB}/outputs`);

@@ -351,6 +351,10 @@ class AutomationRunBody(BaseModel):
     input: str = Field(default="", max_length=2000)
 
 
+class AutomationDraftBody(BaseModel):
+    description: str = Field(min_length=10, max_length=1500)
+
+
 class AutomationDecisionBody(BaseModel):
     approve: bool
     note: str | None = Field(default=None, max_length=300)

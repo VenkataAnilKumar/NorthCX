@@ -56,6 +56,7 @@
   "GET /v1/automation-runs/x": "/v1/automation-runs/{run_id} -> get_run",
   "GET /v1/automation-settings": "/v1/automation-settings -> get_settings",
   "GET /v1/automations": "/v1/automations -> list_automations",
+  "GET /v1/automations-catalog": "/v1/automations-catalog -> catalog",
   "GET /v1/automations/x": "/v1/automations/{automation_id} -> get_automation",
   "GET /v1/automations/x/runs": "/v1/automations/{automation_id}/runs -> runs",
   "GET /v1/catalog": "/v1/catalog -> catalog",
@@ -157,6 +158,8 @@
   "POST /v1/approvals/x/decision": "/v1/approvals/{approval_id}/decision -> decide",
   "POST /v1/automation-runs/x/decision": "/v1/automation-runs/{run_id}/decision -> decide_run",
   "POST /v1/automations": "/v1/automations -> create",
+  "POST /v1/automations/convert": "/v1/automations/convert -> convert",
+  "POST /v1/automations/draft": "/v1/automations/draft -> draft_routine",
   "POST /v1/automations/x/approve": "/v1/automations/{automation_id}/approve -> approve",
   "POST /v1/automations/x/hook": "/v1/automations/{automation_id}/hook -> hook",
   "POST /v1/automations/x/pause": "/v1/automations/{automation_id}/pause -> pause_one",
@@ -535,6 +538,11 @@
    "GET",
    "/v1/automations",
    "list_automations"
+  ],
+  [
+   "GET",
+   "/v1/automations-catalog",
+   "catalog"
   ],
   [
    "GET",
@@ -1040,6 +1048,16 @@
    "POST",
    "/v1/automations",
    "create"
+  ],
+  [
+   "POST",
+   "/v1/automations/convert",
+   "convert"
+  ],
+  [
+   "POST",
+   "/v1/automations/draft",
+   "draft_routine"
   ],
   [
    "POST",

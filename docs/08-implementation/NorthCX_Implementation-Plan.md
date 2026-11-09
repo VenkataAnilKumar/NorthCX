@@ -379,7 +379,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [x] Product documents complete for the designed platform and reviewed end to end (2026-11-09, decision 172)
 
 **Wave 3 (1.3)**
-- [ ] E8 automations (WP8.1 to WP8.6): first release built in Phase 6c (manual, schedule and webhook triggers, read-only steps, review, kill switches); the event trigger and a save-to-Outputs step are built too; the describe-it builder (8.5) and write steps with approvals are not built
+- [x] E8 automations (WP8.1 to WP8.6): built in Phases 6c, 7c and 9 (manual, schedule, webhook and event triggers; assistant, report, person, tag, notify and output steps; review, kill switches, the describe-it builder and a canvas editor). Not built: email delivery (webhook destinations only) and a person step that names who must answer
 - [ ] E14 visual workflow editor
 - [ ] E15 workspace analytics: personal and team figures built in Phase 6a; adoption, cost per team and views by group are not built
 - [ ] E9 connector SDK, OAuth flow, packs (WP9.1 to WP9.5)

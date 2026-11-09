@@ -2730,6 +2730,115 @@
         ]
       }
     },
+    "/v1/automations-catalog": {
+      "get": {
+        "summary": "Catalog",
+        "description": "What a routine may name: the choices the editor offers.",
+        "operationId": "catalog_v1_automations_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Catalog V1 Automations Catalog Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "automations-catalog"
+        ]
+      }
+    },
+    "/v1/automations/convert": {
+      "post": {
+        "summary": "Convert",
+        "description": "Between YAML and JSON for the editor, with every problem the checks find. Saves nothing.",
+        "operationId": "convert_v1_automations_convert_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Convert V1 Automations Convert Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/draft": {
+      "post": {
+        "summary": "Draft Routine",
+        "description": "Describe a routine in words and get a checked draft with a dry run. Nothing is saved. Costs a model call, so it respects the daily budget.",
+        "operationId": "draft_routine_v1_automations_draft_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationDraftBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Draft Routine V1 Automations Draft Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
     "/v1/automations/{automation_id}": {
       "get": {
         "summary": "Get Automation",
@@ -11563,6 +11672,21 @@
           "approve"
         ],
         "title": "AutomationDecisionBody"
+      },
+      "AutomationDraftBody": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 1500,
+            "minLength": 10,
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description"
+        ],
+        "title": "AutomationDraftBody"
       },
       "AutomationRunBody": {
         "properties": {

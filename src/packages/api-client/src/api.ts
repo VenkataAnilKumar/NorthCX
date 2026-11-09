@@ -558,8 +558,9 @@ export interface Automation { id: string; version: number; name: string; status:
   createdBy: string; proposedBy: string | null; decidedBy: string | null; paused: boolean; nextRun: number | null; lastRun: AutoRun | null; yaml?: string; versions?: { version: number; status: string }[] }
 export const automations = () => api<{ enabled: boolean; automations: Automation[] }>("/v1/automations");
 export const automation = (id: string) => api<Automation>(`/v1/automations/${id}`);
-export const createAutomation = (yaml: string) => api<Automation & { webhookSecret?: string }>("/v1/automations", { method: "POST", body: JSON.stringify({ yaml }) });
-export const reviseAutomation = (id: string, yaml: string) => api<Automation>(`/v1/automations/${id}`, { method: "PUT", body: JSON.stringify({ yaml }) });
+const body = (x: string | object) => JSON.stringify(typeof x === "string" ? { yaml: x } : { definition: x });
+export const createAutomation = (x: string | object) => api<Automation & { webhookSecret?: string }>("/v1/automations", { method: "POST", body: body(x) });
+export const reviseAutomation = (id: string, x: string | object) => api<Automation>(`/v1/automations/${id}`, { method: "PUT", body: body(x) });
 export const automationAction = (id: string, action: "propose" | "approve" | "reject" | "retire" | "pause" | "resume" | "run", body: object = {}) => api<unknown>(`/v1/automations/${id}/${action}`, { method: "POST", body: JSON.stringify(body) });
 export const automationRuns = (id: string) => api<{ runs: AutoRun[] }>(`/v1/automations/${id}/runs`).then((r) => r.runs);
 export const setAutomationsEnabled = (enabled: boolean) => api<{ enabled: boolean }>("/v1/automation-settings", { method: "PUT", body: JSON.stringify({ enabled }) });
@@ -590,3 +591,9 @@ export const deleteSpace = (id: string) => api<{ deleted: boolean }>(`/v1/worksp
 export const judgeConversation = (sessionId: string) => api<{ sessionId: string; verdict: "good" | "poor"; reason: string; by: string }>("/v1/quality/judge", { method: "POST", body: JSON.stringify({ sessionId }) });
 export const waitingRuns = () => api<{ runs: AutoRun[] }>("/v1/automation-runs?status=waiting").then((r) => r.runs);
 export const decideRun = (id: string, approve: boolean, note?: string) => api<AutoRun>(`/v1/automation-runs/${id}/decision`, { method: "POST", body: JSON.stringify({ approve, note }) });
+export interface AutomationCatalog { reports: string[]; events: string[]; destinations: string[]; assistants: string[]; kinds: string[]; triggers: string[] }
+export const automationCatalog = () => api<AutomationCatalog>("/v1/automations-catalog");
+export const convertAutomation = (x: string | object) => api<{ definition: Record<string, unknown>; yaml: string; valid: boolean; problems: string[] }>("/v1/automations/convert", { method: "POST", body: body(x) });
+export interface AutomationDraft { definition: Record<string, unknown> | null; yaml?: string; problems: string[]; saved: false; note: string;
+  dryRun: { startsWhen: string; steps: { id: string; kind: string; does: string; problem: string | null }[]; canRun: boolean; needsApproval: boolean; sendsOut: boolean; note: string } | null }
+export const draftAutomation = (description: string) => api<AutomationDraft>("/v1/automations/draft", { method: "POST", body: JSON.stringify({ description }) });
