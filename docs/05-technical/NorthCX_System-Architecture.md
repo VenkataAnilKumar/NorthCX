@@ -1,10 +1,10 @@
 # NorthCX System Architecture
 
-Status: Draft. Backend is Python and the web platform is TypeScript (Decision Log #3). Component status below describes the TypeScript prototype, which is the reference implementation. Component selections are in the Reference (section 8).
+Status: Built (1.0 release candidate); the staff platform is designed, not built. Backend is Python and the web apps are TypeScript (Decision Log #3). Component selections are in the Reference (section 8).
 
 ## Layers
 ```
-Channels         web chat | email | SMS | WhatsApp | voice
+Channels         web chat | email | SMS | WhatsApp | Telegram | voice
                      |            |
                  Channel adapters (HTTP API, inbox webhooks, voice adapter)
                      |
@@ -18,27 +18,30 @@ Platform         Studio | Simulation & evals | Observability | Auth/RBAC
 ```
 
 ## Components
-| Component | Responsibility | Status |
-|---|---|---|
-| Runtime (prototype: `src/prototype/src/core/runtime.ts`; product: Python backend) | Step loop, tool execution, guardrail checks, handoff, approvals | Scaffolded |
-| Guardrails (`guardrails.ts`) | Rule and LLM-based supervisors; fail closed | Scaffolded |
-| Tools (`agent.ts`) | Zod-validated tools with optional approval rule | Scaffolded |
-| Memory (`store.ts`) | Session history and customer facts; pluggable | In-memory only |
-| Traces (`trace.ts`) | Event log per run | In-memory / JSONL |
-| Server (`src/prototype/src/server`) | HTTP API, auth, widget | Built |
-| Approvals | Pending approvals and decisions | Built (in memory); resume Phase 2 |
-| Simulation | Scenario runner, simulated customers, judge, CI gate | Phase 2 |
-| Release service | Versions, environments, rollback, rollout | Phases 2-4 |
-| Audit and access control | Roles, scoped keys, audit log, rate limits | Phase 2 |
-| Handoff service | Handoff package, routing, return-to-agent | Phases 2-5 |
-| Knowledge service adapter | Retrieval with citations | Phase 3 |
-| Channel adapters | Email, messaging, voice, SDK | Phases 3-5 |
-| Safety extensions | Input checks, PII redaction, monitoring | Phase 3 |
-| Observability export | Redaction and OpenTelemetry export | Phase 3 |
-| Studio and Insights | Low-code builder, dashboards | Phase 4 |
+Python backend modules are under `src/backend/northcx/`; web apps under `src/apps/`. The TypeScript prototype in `src/prototype` is a reference implementation kept in CI, not part of the product. Status as of 2026-11-09.
+| Component | Responsibility | Where | Status |
+|---|---|---|---|
+| Runtime | Step loop, tool execution, guardrail checks, hand-off, approvals, streaming | `runtime.py`, `agent.py`, `spec.py` | Built |
+| Guardrails and safety | Rule and model supervisors (fail closed), input checks, tool-output checks, abuse | `guardrails.py`, `safety/` | Built |
+| Tools and connectors | Typed tools, approval rules, scopes, idempotent writes, connectors defined as data | `agent.py`, `connectors.py`, `idempotency.py` | Built |
+| Memory and facts | Session history, customer facts, long-term memories, summaries | `store.py`, `memory.py`, `summarize.py`, `db/` | Built (Postgres) |
+| Knowledge | Sources, ingestion, crawls and schedules, embeddings, retrieval with citations | `knowledge.py`, `ingest.py`, `crawler.py`, `embeddings.py` | Built |
+| Traces and observability | Event log per run, export with redaction, monitoring and alerts | `trace.py`, `trace_export.py`, `monitor.py`, `alerts.py` | Built |
+| Approvals and hand-offs | Pending approvals and resume, hand-off package, inbox delivery, transfers | `approvals.py`, `approval_flow.py`, `handoffs.py`, `inbox.py`, `transfers.py` | Built |
+| Simulation | Scenario runner, simulated customers, judge, CI gate, regression from traces | `simulation/`, `regression.py`, `scenario_draft.py` | Built |
+| Release service | Versions, environments, rollback, staged rollout | `versions.py`, `rollout.py` | Built |
+| Access and audit | Roles, keys, SSO, audit chain, rate limits, residency | `access.py`, `keys.py`, `sso.py`, `audit.py`, `residency.py` | Built |
+| Channels | Web widget and SDK, email, SMS, WhatsApp, Telegram, voice bridge | `channels/`, `widget.py`, `voice.py`, `src/sdk` | Built |
+| Model providers | `LLM` interface, provider registry, Claude (SDK or HTTPS), reliability wrapper, budgets | `providers/`, `llm.py`, `reliability.py`, `cost.py` | Partly built (E1) |
+| Insights and analytics | Figures with denominators, resolution rate, plain-language questions | `insights.py`, `analytics_qa.py` | Built |
+| Events | Signed status-event webhooks with retries, pollable feed, test sender | `events.py`, `outbox.py` | Built |
+| Several processes | Roles (`all`, `api`, `worker`), job leases, shared limits and alert state | `leases.py`, `bootstrap/`, `db/stores/` | Built |
+| Studio | Operator console | `src/apps/studio` | Built (flat navigation); regrouped Admin designed |
+| Workspace | Staff app | `src/apps/workspace` | Early work in progress; designed (see `NorthCX_Staff-Platform-Architecture.md`) |
+| Tenancy, staff backend, automations, Agent Hub | Staff platform | | Planned (E2, E5, E6, E8, E22) |
 
 ## Request flow (chat)
-1. Channel adapter receives a message and calls `Runtime.run(agent, {sessionId, message, customerId})`.
+1. A channel adapter receives a message and calls `Runtime.run(agent, session_id, message, customer_id)` after input checks (`northcx/runtime.py`).
 2. Runtime loads history and customer facts, builds the system prompt, calls the model with tool specs.
 3. Tool calls are validated, checked by guardrails, held for approval if flagged, then executed.
 4. The draft reply passes through reply guardrails; rejected drafts are rewritten up to twice, then escalated.
@@ -52,13 +55,11 @@ Agent definition, then version, then required simulations, then promotion to an 
 - **Observability:** one trace per run, exportable to an OpenTelemetry backend.
 - **Model access:** behind an `LLM` interface (Claude by default; scripted model for tests).
 
-## Deployment (target)
-Docker Compose for development; containers for the server and workers; Postgres for state; optional Redis for queues. Details in the Deployment Guide (planned).
+## Deployment
+Container images and a Docker Compose stack (built and tested); Postgres 16 with pgvector for state; several processes with roles `api` and `worker` share state through the database (no Redis needed). Details in `../08-implementation/NorthCX_Deployment-Guide.md`.
 
-## Open decisions
-1. Runtime language (see Tech-Stack-Decisions).
-2. Persistence: Postgres schema in `05-technical/NorthCX_Database-Schema.md` (planned).
-3. Whether one inbox integration is enough for v1 channels and handoff.
+## Decisions already made
+Runtime language: Python (Tech-Stack-Decisions). Persistence: Postgres, schema in `NorthCX_Database-Schema.md`. Hand-off inbox: a signed webhook plus a Chatwoot adapter for 1.0. Tenancy model for after 1.0: shared schema with row-level security (D3, decision 170).
 
 ## After 1.0: staff platform
 The Workspace, the extended Admin app, the Pilot task engine, personal memory and automations are described in `NorthCX_Staff-Platform-Architecture.md` (proposed, not built).

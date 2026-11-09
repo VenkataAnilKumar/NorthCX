@@ -1,13 +1,13 @@
 # NorthCX Agent Runtime
 
-Status: Draft. Describes the runtime semantics, implemented and tested in the TypeScript prototype (`src/prototype/src/core/runtime.ts`, `src/prototype/tests/runtime.test.ts`). The Python backend must reproduce these semantics and tests.
+Status: Built. Describes the runtime as implemented in the Python backend (`src/backend/northcx/runtime.py`, `agent.py`, `guardrails.py`; tests in `src/backend/tests/test_runtime.py` and related files). The TypeScript prototype in `src/prototype` was the first reference implementation of the same semantics; it is kept and tested in CI as a reference, not as the product.
 
 ## Concepts
 | Concept | Definition |
 |---|---|
-| Agent | `defineAgent({id, instructions, tools, guardrails, model, maxSteps})` |
-| Tool | Schema-validated function with optional `requiresApproval` |
-| Guardrail | Supervisor with `checkToolCall` and/or `checkReply` |
+| Agent | An `Agent` built from a YAML spec or in code: id, instructions, tools, guardrails, model, `max_steps` (`northcx/agent.py`, `spec.py`) |
+| Tool | A function with a Pydantic input model, an optional approval rule, a read or write effect and optional scopes |
+| Guardrail | Supervisor that checks tool calls and/or replies (`guardrails.py`); input and output checks in `safety/` |
 | Session | Message history identified by `sessionId` |
 | Run | One user message processed to a final reply |
 | Trace | Ordered event log for a run |
@@ -19,7 +19,7 @@ Status: Draft. Describes the runtime semantics, implemented and tested in the Ty
 3a. If the model call fails, the run is escalated and the error is traced.
 4. If the model returns text only: run reply guardrails. Allowed, return it and drop any rejected drafts and supervisor feedback from saved history. Rejected, append a supervisor message and retry (max 2 rewrites), then escalate.
 5. If the model returns tool calls, for each call in order: record it; handoff ends the run as `escalated` (every `tool_use` in the turn still gets a `tool_result`, so saved history stays valid); unknown tool or invalid input returns an error result; tool guardrails may block; `requiresApproval` stores a pending approval and stops the run as `needs_approval`; otherwise execute and return the result (errors are returned, not thrown).
-6. Append tool results and loop. After `maxSteps`, escalate.
+6. Append tool results and loop. After `max_steps`, escalate.
 7. Save history and trace; return `{reply, status, traceId, pendingApprovals}`.
 
 ## Statuses
@@ -37,8 +37,8 @@ Status: Draft. Describes the runtime semantics, implemented and tested in the Ty
 ## Known gaps
 - Approvals are stored (in memory or Postgres) and resumed by `ApprovalFlow` (see the Handoff and Approvals spec). A run started by the platform itself (an approval outcome) uses `trusted=True`: it skips the customer input checks and is traced as a `system` event, but replies and tool calls are still supervised.
 - A blocked tool call is not retried with guidance beyond the error result.
-- Parallel tool execution is sequential.
-- Streaming responses are not supported.
+- Tool calls in one turn run one after another, not in parallel.
+- Streaming is supported at the API (`POST /v1/agents/{id}/chat/stream`) and in the widget.
 
 
 ## Skills, workflow flexibility, brand voice and tool scopes (A3, A4, A10, T6) — as built

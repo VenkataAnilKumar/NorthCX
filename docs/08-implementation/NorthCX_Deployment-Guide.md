@@ -88,7 +88,7 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 ## Environments
 | Env | Setup |
 |---|---|
-| Local | Target: one compose file starts Postgres, the backend and the web platform; model API key from the environment. The TypeScript prototype (in `src/prototype`) still runs with `npm install && ANTHROPIC_API_KEY=... npm run dev` (in-memory, state lost on restart) |
+| Local | One compose file starts Postgres, the backend and the Studio; model API key from the environment. The TypeScript prototype (in `src/prototype`, a reference implementation, not the product) still runs with `npm install && ANTHROPIC_API_KEY=... npm run dev` (in-memory, state lost on restart) |
 | Staging/production | Container image for the server, Postgres, optional queue |
 
 ## Storage

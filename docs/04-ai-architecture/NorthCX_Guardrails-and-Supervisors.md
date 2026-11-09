@@ -1,15 +1,19 @@
 # NorthCX Guardrails and Supervisors
 
-Status: Draft. Describes behaviour implemented in the TypeScript prototype (`src/prototype/src/core/guardrails.ts`); the Python backend must match it.
+Status: Built. Describes the guardrails in the Python backend (`src/backend/northcx/guardrails.py` and `northcx/safety/`). The TypeScript prototype has the same two original guardrails as a reference.
 
 ## Interface
-`Guardrail { name, checkToolCall?(call, ctx), checkReply?(reply, ctx) }` returning `{allow: true}` or `{allow: false, reason}`.
+`Guardrail` (`guardrails.py`) checks a tool call and/or a draft reply and returns a `Verdict` (allowed, or denied with a reason). `InputGuardrail` checks the customer's message before the model sees it; `OutputGuardrail` checks what a tool returned before the model sees it.
 
 ## Built-in guardrails
 | Guardrail | Type | Behaviour |
 |---|---|---|
-| `noCardNumbers` | Rule | Denies replies containing a 13-19 digit sequence that passes the Luhn check, so order and tracking numbers are not blocked |
-| `llmPolicy` | Model | A supervisor model judges the draft against written policies and returns JSON; unparseable output denies |
+| `NoCardNumbers` | Rule | Denies replies containing a 13-19 digit sequence that passes the Luhn check, so order and tracking numbers are not blocked |
+| `LLMPolicy` | Model | A supervisor model judges the draft against written policies and returns JSON; unparseable output denies |
+| `PromptInjection` | Input (`safety/prompt_injection.py`) | A deliberately blunt first-line screen for messages that try to take over the agent; approvals, tool policies, scopes and supervisors are the real controls |
+| `PIIDetection` | Input (`safety/pii.py`) | Detects personal data in customer input and in exported traces |
+| `AbuseDetection` | Input (`safety/abuse.py`) | Abusive language, threats, repeated messages and bursts; a threat goes to a person at once |
+| `ToolOutputInjection`, `ToolOutputPII` | Output (`safety/tool_output.py`) | Treat what a tool returned as untrusted: flag injected instructions and mask personal data |
 
 ## Principles
 1. **Fail closed.** Uncertain or malformed supervisor output blocks, and so does a supervisor that throws.

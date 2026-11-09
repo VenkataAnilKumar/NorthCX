@@ -1,6 +1,6 @@
 # NorthCX Database Schema
 
-Status: Draft. The tables marked **built** exist in the migrations (`0001` to `0028`) and match `northcx/db/models.py` (a test checks that the migrations and the models agree); rows without that marker are early proposals that were not built as written (agents and releases became `agent_versions` and `releases`, scenarios became `managed_scenarios`, experiments became `rollouts`).
+Status: Draft. The tables marked **built** exist in the migrations (`0001` to `0030`) and match `northcx/db/models.py` (a test checks that the migrations and the models agree); rows without that marker are early proposals that were not built as written (agents and releases became `agent_versions` and `releases`, scenarios became `managed_scenarios`, experiments became `rollouts`).
 
 | Table | Columns | Notes |
 |---|---|---|
