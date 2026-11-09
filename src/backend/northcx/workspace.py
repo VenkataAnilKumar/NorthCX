@@ -80,6 +80,19 @@ class DraftInput(BaseModel):
     instruction: str = Field(default="", max_length=500, description="Anything the person wants the reply to cover or avoid")
 
 
+STAFF_KNOWLEDGE_ALIAS = "search_company_knowledge"   # the registry already holds a customer tool called search_knowledge; staff assistants use the staff one under this name
+
+
+def register_staff_tools(registry: Any, ws: "WorkspaceService") -> None:
+    """Make the staff tools known to the agent registry so a staff assistant (a Hub template with audience: staff) can name them. A customer agent still cannot use them."""
+    from dataclasses import replace
+    have = set(registry.tool_names())
+    for tool in ws.tools():
+        name = STAFF_KNOWLEDGE_ALIAS if tool.name == "search_knowledge" else tool.name
+        if name not in have:
+            registry.tool(replace(tool, name=name))
+
+
 class WorkspaceService:
     def __init__(self, runtime: Any, traces: Any, kb: Any, insight: Any, tags: Any, audit: Any, review_repo: Any = None, model: str | None = None, policy: Any = None):
         self.runtime, self.traces, self.kb, self.insight, self.tags, self.audit, self.reviews, self.model = runtime, traces, kb, insight, tags, audit, review_repo, model
@@ -197,6 +210,16 @@ class WorkspaceService:
                 return res
             out.append(Tool("search_knowledge", kt.description, SearchInput, search_knowledge, effect="read", audience="staff", permission="knowledge:read"))
         return out
+
+    # ---------------- assistants (Hub entries for staff) ----------------
+    def usable_tools(self, agent: Agent, actor: Any) -> list[Tool]:
+        """The tools of an installed staff assistant that this person may actually use: their role's permissions and the staff policy, never more than the assistant lists."""
+        return [t for t in agent.tools if actor.can(t.permission) and (self.policy is None or self.policy.allows(actor.role, "search_knowledge" if t.name == STAFF_KNOWLEDGE_ALIAS else t.name))]
+
+    def scoped(self, agent: Agent, actor: Any) -> Agent:
+        """A copy of an installed assistant limited to the person's own tools, so the model is never offered one they would be refused."""
+        from dataclasses import replace
+        return replace(agent, tools=self.usable_tools(agent, actor), instructions=agent.instructions + f"\nYou are working for {actor.name}.\n", sensitive=True)
 
     # ---------------- agent ----------------
     def agent(self, actor: Any, style: str = "quick") -> Agent:

@@ -21,6 +21,11 @@
       "signature": "7thrtl9vJPJeNv3cJ7UbqKAYemDK2g+wyauvw2acmPtWXITWlJPcmo24bKbvPDJJEyrzwy5fgsn7CN5NzgxJAA==",
       "version": "1"
     },
+    "conversation-analyst": {
+      "hash": "3cdbebdf1f80afd2914841d515d3c6d22d26710feccee9e314f5530e6e7d11c5",
+      "signature": "j1gmZqQdEdjgSxMEb5UMijL76WNQoM9l2pcHK9hc4w+n0Kw5JSM5gMhgM3auUf9AsXQiEbl8aizx0ZaSiVc7DA==",
+      "version": "1"
+    },
     "delivery-problems": {
       "hash": "795a44a382040e7fcc7023a42ccb0dc6658852437b69c1ca539370818bde405e",
       "signature": "rrFhqmggp9RmLWf29NsBixog+l57ayb5xr8UTk/BDbBse6oXdGXOPSaOP0t1cEmpqT7KtISDLS1hNC9Pas7VAA==",
@@ -29,6 +34,11 @@
     "front-door": {
       "hash": "3665993cd443f85997c9cd5204a68fe87b083fa222874c297514db3368a8d6b0",
       "signature": "pmj5G03KgJVDO8RmAKH4zi95Fqi3cMWNbE4wta7akNkMz/1Gp75eUmI7iGNWB6BqB2Cay5aQENCRPZn7mQieCQ==",
+      "version": "1"
+    },
+    "handoff-assistant": {
+      "hash": "e98a4d2ed1ca40da4002839c7fa0440fead33821bf08323b5d8784d15e427be1",
+      "signature": "jjn2Y96H+vFPxSsmojFBkYmanXpvrGW4u2LAexGpbyKMgiJjIlEQGPGujWSrIZaKJGeN1zraSHDf7kCwzxIdAA==",
       "version": "1"
     },
     "human-triage": {
@@ -51,9 +61,19 @@
       "signature": "rfFMD5MNUrm/ica1XPvlXhhmNGzDuQUO1hl8JFwpQszYuy4qaUlalYijQHjtoptBKm1VV1k2MuDn5hbxruL6Ag==",
       "version": "1"
     },
+    "policy-guide": {
+      "hash": "4bf72bddec7a24e071ce0f2189f647baf72997fa57d8c0acfebd3a0ee4309ce9",
+      "signature": "8cyUU47G7iBIYwS/+pOyOfQE38C7HxoO+Jm7TdWv3tSAKJhbn9kH9+eUzbCAKOLMCnrEk6KLsGexLM+OxmZgBA==",
+      "version": "1"
+    },
     "returns-and-refunds": {
       "hash": "81aa9ef7e4889edff6811b9bd9a19f496e26e23ffd0e704ea91ccca1900e38f7",
       "signature": "Y4JuyFlRqlvqzDh+vDri/DZEbS+BvXJGOGh3jGVz+VzE1e+9tv2RXvzx5vpRI2Ftc/PVjHpfTfaWxAI8JxFjAg==",
+      "version": "1"
+    },
+    "shift-briefing": {
+      "hash": "531831370c05b6bf53c8977c577e5ebdf56a1a41aba936a0764cb7fd86e604d2",
+      "signature": "c/rGNrpkJTdZKPh0BZvyLycVB41gs0BzchJzJatBg7//CcTtEz7OlAI2JYvxF8gYgCx/lhRDEDa0hUql/+4uBw==",
       "version": "1"
     }
   }

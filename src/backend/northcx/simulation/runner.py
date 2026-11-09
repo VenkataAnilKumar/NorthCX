@@ -26,6 +26,14 @@ from .scenario import Converse, Decide, ExpireApprovals, FinalExpect, Say, Scena
 AgentFactory = Callable[[str, LLM], Agent]
 
 
+def _test_actor(agent: Any) -> Any:
+    """A staff agent works for a signed-in person; a test stands in a read-only one so its scenarios can run. A customer agent needs no one."""
+    if getattr(agent, "audience", "customer") != "staff":
+        return None
+    from northcx.access import Identity
+    return Identity("simulation", "viewer", "simulation")
+
+
 @dataclass
 class SimConfig:
     mode: str = "scripted"  # scripted | demo | live
@@ -208,7 +216,7 @@ class SimulationRunner:
             d = StepData()
             if isinstance(step, Say):
                 where = f"step {n} (say {step.say[:40]!r})"
-                r = await rt.run(await rt.active_agent(agent, sid), sid, step.say, sc.customer_id)
+                r = await rt.run(await rt.active_agent(agent, sid), sid, step.say, sc.customer_id, actor=_test_actor(agent))
                 d.status, d.reply = r.status, r.reply
                 d.tools = r.trace.tools_called()
                 d.guardrails = [e.data.get("guardrail", "") for e in r.trace.events if e.type == "guardrail"]
@@ -231,7 +239,7 @@ class SimulationRunner:
                     msg = await customer.next_message(reply) if customer else (lines[i] if i < len(lines) else None)
                     if msg is None:
                         break
-                    r = await rt.run(await rt.active_agent(agent, sid), sid, msg, sc.customer_id)
+                    r = await rt.run(await rt.active_agent(agent, sid), sid, msg, sc.customer_id, actor=_test_actor(agent))
                     said += 1
                     reply = r.reply
                     d.status, d.reply = r.status, r.reply

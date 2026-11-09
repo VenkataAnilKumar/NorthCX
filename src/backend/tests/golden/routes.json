@@ -105,6 +105,7 @@
   "GET /v1/traces/x/exports": "/v1/traces/{trace_id}/exports -> trace_exports",
   "GET /v1/usage": "/v1/usage -> usage",
   "GET /v1/voice/calls": "/v1/voice/calls -> voice_calls",
+  "GET /v1/workspace/assistants": "/v1/workspace/assistants -> assistants",
   "GET /v1/workspace/memory": "/v1/workspace/memory -> list_memory",
   "GET /v1/workspace/search": "/v1/workspace/search -> workspace_search",
   "GET /v1/workspace/tasks": "/v1/workspace/tasks -> list_tasks",
@@ -181,6 +182,7 @@
   "POST /v1/templates/x/requirements": "/v1/templates/{template_id}/requirements -> requirements",
   "POST /v1/templates/x/update": "/v1/templates/{template_id}/update -> update",
   "POST /v1/templates/x/update-preview": "/v1/templates/{template_id}/update-preview -> update_preview",
+  "POST /v1/workspace/assistants/x/chat": "/v1/workspace/assistants/{agent_id}/chat -> assistant_chat",
   "POST /v1/workspace/chat": "/v1/workspace/chat -> workspace_chat",
   "POST /v1/workspace/chat/stream": "/v1/workspace/chat/stream -> workspace_chat_stream",
   "POST /v1/workspace/memory": "/v1/workspace/memory -> add_memory",
@@ -732,6 +734,11 @@
   ],
   [
    "GET",
+   "/v1/workspace/assistants",
+   "assistants"
+  ],
+  [
+   "GET",
    "/v1/workspace/memory",
    "list_memory"
   ],
@@ -1109,6 +1116,11 @@
    "POST",
    "/v1/templates/{template_id}/update-preview",
    "update_preview"
+  ],
+  [
+   "POST",
+   "/v1/workspace/assistants/{agent_id}/chat",
+   "assistant_chat"
   ],
   [
    "POST",

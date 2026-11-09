@@ -35,11 +35,17 @@ def reg():
     r.tool(Tool("lookup_appointments", "Look up appointments", Ref, lambda i, c: {"next": "Tuesday 10:00"}, effect="read"))
     r.tool(Tool("lookup_plan", "Look up an account's plan", Ref, lambda i, c: {"plan": "Standard"}, effect="read"))
     r.tool(Tool("lookup_account", "Look up an account's status", Ref, lambda i, c: {"status": "active"}, effect="read"))
+    from northcx.workspace import WorkspaceService, register_staff_tools     # the staff tools, for the staff assistants
+    from northcx.llm import ScriptedLLM
+    from northcx.runtime import Runtime
+    from northcx.store import InMemoryStore
+    from northcx.trace import TraceStore
+    register_staff_tools(r, WorkspaceService(Runtime(ScriptedLLM([]), InMemoryStore(), TraceStore()), None, InMemoryKnowledge(), None, None, None))
     return r
 
 
-def test_the_library_ships_eleven_templates_with_clear_parameters():
-    assert sorted(TEMPLATES) == ["account-help", "appointments", "billing-and-invoices", "complaints", "delivery-problems", "front-door", "human-triage", "knowledge-faq", "order-status", "plan-changes", "returns-and-refunds"]
+def test_the_library_ships_fifteen_templates_with_clear_parameters():
+    assert sorted(TEMPLATES) == ["account-help", "appointments", "billing-and-invoices", "complaints", "conversation-analyst", "delivery-problems", "front-door", "handoff-assistant", "human-triage", "knowledge-faq", "order-status", "plan-changes", "policy-guide", "returns-and-refunds", "shift-briefing"]
     for t in TEMPLATES.values():
         info = t.info()
         assert info["title"] and info["intent"] and info["description"] and info["scenarios"] >= 1
@@ -105,7 +111,7 @@ def test_directories_can_add_or_replace_templates(tmp_path):
     (tmp_path / "mine.yaml").write_text(yaml.safe_dump({"id": "order-status", "title": "My order status", "spec": {"instructions": "custom"}}))
     (tmp_path / "other.yaml").write_text(yaml.safe_dump({"id": "my-new-one", "spec": {"instructions": "x"}}))
     merged = load_templates(LIBRARY, tmp_path)
-    assert merged["order-status"].title == "My order status" and "my-new-one" in merged and len(merged) == 12
+    assert merged["order-status"].title == "My order status" and "my-new-one" in merged and len(merged) == 16
     (tmp_path / "bad.yaml").write_text(": : :\n\t")
     with pytest.raises(TemplateError, match="not valid"):
         load_templates(tmp_path)

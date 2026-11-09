@@ -17,13 +17,15 @@ from northcx.api.models import AnswersBody, NoteBody, PlanBody, TaskBody, Worksp
 from northcx.release_requests import principal
 from northcx.staff_search import ConversationProvider, HandoffProvider, KnowledgeProvider, SearchService
 from northcx.tasks import TaskError, TaskService
-from northcx.workspace import WorkspaceService
+from northcx.workspace import WorkspaceService, register_staff_tools
 
 
 def register(app: FastAPI, d: AppDeps) -> None:
     access, limits, record, runtime, too_many = d.access, d.limits, d.record, d.runtime, d.too_many
     ws = WorkspaceService(runtime, d.traces, d.kb, d.insight, d.tag_repo, d.audit, d.review_repo, policy=getattr(runtime, "workspace_policy", None))
     app.state.workspace = ws
+    if d.releases is not None:  # a staff assistant installed from the Hub can now name the staff tools (a customer agent still cannot)
+        register_staff_tools(d.releases.registry, ws)
     tasks = TaskService(getattr(runtime, "task_repo", None), ws)
     search = SearchService(([KnowledgeProvider(d.kb)] if d.kb is not None else []) + [ConversationProvider(d.insight, d.tag_repo), HandoffProvider(runtime.handoffs)])
     app.state.staff_search = search
@@ -57,7 +59,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     def sources_of(trace: Any) -> list[dict[str, Any]]:
         out: list[dict[str, Any]] = []
         for e in trace.events:
-            if e.type == "tool_result" and e.data.get("name") == "search_knowledge":
+            if e.type == "tool_result" and e.data.get("name") in ("search_knowledge", "search_company_knowledge"):
                 for r in (e.data.get("output") or {}).get("results", []):
                     out.append({"title": r.get("title"), "url": r.get("url"), "section": r.get("section"), "updated": r.get("updated"), "stale": bool(r.get("stale"))})
         return out
@@ -118,6 +120,52 @@ def register(app: FastAPI, d: AppDeps) -> None:
                     await task  # the question is always handled and saved, even if the browser goes away
 
         return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+
+    # ---------------- assistants (installed from the Hub) ----------------
+    async def live_assistants() -> list[Any]:
+        return [a for a in await d.provider.all() if a.audience == "staff" and a.id != "pilot"]
+
+    @app.get("/v1/workspace/assistants")
+    async def assistants(request: Request) -> Any:
+        """The staff assistants that are live, with what each can do for this person. An assistant none of whose tools they may use is left out."""
+        who: Identity = request.state.identity
+        if (refused := staff_only(who)) is not None:
+            return refused
+        out = []
+        for a in await live_assistants():
+            mine = ws.usable_tools(a, who)
+            if not mine:
+                continue
+            first = next((ln.strip() for ln in a.instructions.splitlines() if ln.strip()), "")
+            out.append({"id": a.id, "version": a.version, "description": first[:240], "tools": [{"name": t.name, "description": t.description} for t in mine],
+                        "unavailableTools": [t.name for t in a.tools if t not in mine]})
+        return {"assistants": out}
+
+    @app.post("/v1/workspace/assistants/{agent_id}/chat")
+    async def assistant_chat(agent_id: str, body: WorkspaceChatBody, request: Request) -> Any:
+        who: Identity = request.state.identity
+        if (refused := staff_only(who)) is not None:
+            return refused
+        who_id, h = person(who)
+        if limits:
+            ok, retry = await access.limiter.hit(f"workspace:{h}", limits.chat_per_session_per_minute)
+            if not ok:
+                return too_many(retry, "messages")
+        found = next((a for a in await live_assistants() if a.id == agent_id), None)
+        if found is None:
+            return _err(404, "not_found", "No live staff assistant with that id")
+        agent = ws.scoped(found, who)
+        if not agent.tools:
+            return _err(403, "forbidden", "Your role cannot use any of this assistant's tools")
+        chat_id = body.chat_id or uuid.uuid4().hex[:16]
+        session_id = f"{who_id}:{agent_id}:{chat_id}"
+        use_memory = body.memory and not body.temporary
+        r = await runtime.run(agent, session_id, body.message, who_id if use_memory else None, channel="workspace", environment="workspace", actor=who)
+        if body.temporary:
+            await runtime.privacy.erase_session(session_id)
+        await record(request, "workspace.assistant_chat", agent_id, chat=chat_id, status=r.status, temporary=body.temporary)
+        return {"chatId": chat_id, "assistant": agent_id, "reply": r.reply, "status": r.status, "traceId": None if body.temporary else r.trace_id, "sources": sources_of(r.trace),
+                "tools": [t.name for t in agent.tools], "temporary": body.temporary}
 
     # ---------------- tasks (Research) ----------------
     async def mine(request: Request, task_id: str | None = None) -> tuple[Identity, str, Any] | JSONResponse:

@@ -8505,6 +8505,82 @@
         ]
       }
     },
+    "/v1/workspace/assistants": {
+      "get": {
+        "summary": "Assistants",
+        "description": "The staff assistants that are live, with what each can do for this person. An assistant none of whose tools they may use is left out.",
+        "operationId": "assistants_v1_workspace_assistants_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Assistants V1 Workspace Assistants Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/assistants/{agent_id}/chat": {
+      "post": {
+        "summary": "Assistant Chat",
+        "operationId": "assistant_chat_v1_workspace_assistants__agent_id__chat_post",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceChatBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Assistant Chat V1 Workspace Assistants  Agent Id  Chat Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
     "/v1/workspace/chat": {
       "post": {
         "summary": "Workspace Chat",

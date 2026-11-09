@@ -494,3 +494,9 @@ export const createOrgTemplate = (yaml: string) => api<OrgTemplate>("/v1/org-tem
 export const reviseOrgTemplate = (id: string, yaml: string) => api<OrgTemplate>(`/v1/org-templates/${id}`, { method: "PUT", body: JSON.stringify({ yaml }) });
 export const proposeOrgTemplate = (id: string) => api<OrgTemplate>(`/v1/org-templates/${id}/propose`, { method: "POST" });
 export const decideOrgTemplate = (id: string, action: "approve" | "reject" | "withdraw", note?: string) => api<OrgTemplate>(`/v1/org-templates/${id}/${action}`, { method: "POST", body: JSON.stringify({ note }) });
+
+// ---------- Staff assistants (the Workspace catalog) ----------
+export interface StaffAssistant { id: string; version: number | null; description: string; tools: { name: string; description: string }[]; unavailableTools: string[] }
+export const staffAssistants = () => api<{ assistants: StaffAssistant[] }>("/v1/workspace/assistants").then((r) => r.assistants);
+export const assistantChat = (id: string, message: string, opts: { chatId?: string; memory?: boolean; temporary?: boolean } = {}) =>
+  api<{ chatId: string; assistant: string; reply: string; status: string; traceId: string | null; sources: PilotSource[]; tools: string[]; temporary: boolean }>(`/v1/workspace/assistants/${id}/chat`, { method: "POST", body: JSON.stringify({ message, ...opts }) });
