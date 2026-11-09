@@ -389,7 +389,8 @@ export async function importKnowledgeFile(source: string, file: File): Promise<{
 }
 
 // ---- agent hub (templates) ----
-export interface TemplateInfo { id: string; title: string; description: string; intent: string; parameters: { name: string; description: string; default: string | null; required: boolean }[]; requiresTools: string[]; scenarios: number; audience?: string; category?: string; channels?: string[]; version?: string; notes?: string; sees?: string[]; does?: string[]; needs?: { tools: string[]; knowledge: boolean; channels: string[] } }
+export interface TemplateInfo { id: string; title: string; description: string; intent: string; parameters: { name: string; description: string; default: string | null; required: boolean }[]; requiresTools: string[]; scenarios: number; audience?: string; category?: string; channels?: string[]; version?: string; notes?: string; sees?: string[]; does?: string[]; needs?: { tools: string[]; knowledge: boolean; channels: string[] }; provenance?: TemplateProvenance }
+export interface TemplateProvenance { source: "built-in" | "organization" | "file"; signed: boolean; verified: boolean; status: string; keyFingerprint?: string | null; proposedBy?: string | null; approvedBy?: string | null }
 export interface TemplateRender { specYaml: string; scenariosYaml: string; scenarios: number; missingTools: string[]; warnings: string[] }
 export const listTemplates = () => api<{ templates: TemplateInfo[] }>("/v1/templates").then((r) => r.templates);
 export const renderTemplate = (id: string, agentId: string, params: Record<string, string>) =>
@@ -481,3 +482,15 @@ export const createOrgPolicy = (b: { name: string; policy: string; config: Recor
 export const editOrgPolicy = (id: string, b: { config?: Record<string, unknown>; cases?: OrgPolicyCase[]; appliesTo?: string[] }) => api<OrgPolicy>(`/v1/org-policies/${id}`, { method: "PUT", body: JSON.stringify(b) });
 export const proposeOrgPolicy = (id: string) => api<OrgPolicy>(`/v1/org-policies/${id}/propose`, { method: "POST" });
 export const decideOrgPolicy = (id: string, action: "approve" | "reject" | "retire", note?: string) => api<OrgPolicy>(`/v1/org-policies/${id}/${action}`, { method: "POST", body: JSON.stringify({ note }) });
+
+// ---------- Organization templates (WP22.5) ----------
+export interface OrgTemplate { id: string; version: number; title: string; status: "draft" | "proposed" | "published" | "rejected" | "superseded" | "withdrawn"; audience: string; scenarios: number;
+  check: { ok: boolean; problems: string[]; scenarios?: number }; createdBy: string; proposedBy: string | null; decidedBy: string | null; decisionNote: string | null; data?: Record<string, unknown>; yaml?: string;
+  versions?: { version: number; status: string; createdBy: string; decidedBy: string | null }[] }
+export const orgTemplates = () => api<{ templates: OrgTemplate[] }>("/v1/org-templates").then((r) => r.templates);
+export const orgTemplate = (id: string) => api<OrgTemplate>(`/v1/org-templates/${id}`);
+export const checkOrgTemplate = (yaml: string) => api<{ ok: boolean; problems: string[]; scenarios: number; id: string; title: string }>("/v1/org-templates/check", { method: "POST", body: JSON.stringify({ yaml }) });
+export const createOrgTemplate = (yaml: string) => api<OrgTemplate>("/v1/org-templates", { method: "POST", body: JSON.stringify({ yaml }) });
+export const reviseOrgTemplate = (id: string, yaml: string) => api<OrgTemplate>(`/v1/org-templates/${id}`, { method: "PUT", body: JSON.stringify({ yaml }) });
+export const proposeOrgTemplate = (id: string) => api<OrgTemplate>(`/v1/org-templates/${id}/propose`, { method: "POST" });
+export const decideOrgTemplate = (id: string, action: "approve" | "reject" | "withdraw", note?: string) => api<OrgTemplate>(`/v1/org-templates/${id}/${action}`, { method: "POST", body: JSON.stringify({ note }) });

@@ -69,6 +69,7 @@ from .api.routers import scim as _scim_router
 from .api.routers import workspace as _workspace_router
 from .api.routers import hub as _hub_router
 from .api.routers import org_policies as _org_policies_router
+from .api.routers import org_templates as _org_templates_router
 from .api.routers import admin_overview as _admin_overview_router
 from .tenancy import TENANT
 from .api.routers import voice as _voice_router
@@ -160,6 +161,13 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("PUT", r"/v1/budgets", "keys:manage"),
     ("DELETE", r"/v1/budgets", "keys:manage"),
     ("GET", r"/v1/policies", "agents:read"),
+    ("GET", r"/v1/org-templates", "agents:read"),
+    ("GET", r"/v1/org-templates/[^/]+", "agents:read"),
+    ("POST", r"/v1/org-templates", "versions:create"),
+    ("POST", r"/v1/org-templates/check", "versions:create"),
+    ("PUT", r"/v1/org-templates/[^/]+", "versions:create"),
+    ("POST", r"/v1/org-templates/[^/]+/propose", "versions:create"),
+    ("POST", r"/v1/org-templates/[^/]+/(approve|reject|withdraw)", "releases:publish"),
     ("GET", r"/v1/org-policies", "agents:read"),
     ("POST", r"/v1/org-policies", "versions:create"),
     ("POST", r"/v1/org-policies/prove", "versions:create"),
@@ -421,6 +429,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _workspace_router.register(app, deps)
     _hub_router.register(app, deps)
     _org_policies_router.register(app, deps)
+    _org_templates_router.register(app, deps)
     _admin_overview_router.register(app, deps)
     _voice_router.register(app, deps)
     _public_router.register(app, deps)

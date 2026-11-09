@@ -30,7 +30,7 @@ build-backend = "setuptools.build_meta"
 include = ["northcx*"]
 
 [tool.setuptools.package-data]
-northcx = ["db/migrations/*.mako", "db/migrations/versions/*.py", "template_library/*.yaml", "static/*.js"]
+northcx = ["db/migrations/*.mako", "db/migrations/versions/*.py", "template_library/*.yaml", "template_library/*.json", "template_library/*.pub", "static/*.js"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

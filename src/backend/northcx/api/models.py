@@ -295,6 +295,11 @@ class OrgPolicyDecisionBody(BaseModel):
     note: str | None = Field(default=None, max_length=1000)
 
 
+class OrgTemplateBody(BaseModel):
+    yaml: str | None = Field(default=None, max_length=60000)
+    template: dict[str, Any] | None = None             # the same document as a JSON object
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

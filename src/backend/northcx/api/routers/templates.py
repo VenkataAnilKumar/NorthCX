@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import TemplateBody
+from northcx.api.template_lookup import all_templates, lookup, tampered
 from northcx.simulation.managed import parse_definition
 from northcx.templates import render, Template, TemplateError
 from northcx.versions import Conflict, InvalidSpec
@@ -26,25 +27,25 @@ def register(app: FastAPI, d: AppDeps) -> None:
     version_json = d.version_json
 
     # ---- templates ----
-    def find_template(template_id: str) -> Template | JSONResponse:
-        return (templates or {}).get(template_id) or _err(404, "not_found", "Unknown template")
+    async def find_template(template_id: str) -> Template | JSONResponse:
+        return await lookup(d, template_id) or _err(404, "not_found", "Unknown template")
 
     def rendered_json(r: Any) -> dict[str, Any]:
         return {"specYaml": r.spec_yaml, "scenariosYaml": r.scenarios_yaml, "scenarios": len(r.scenarios), "missingTools": r.missing_tools, "warnings": r.warnings}
 
     @app.get("/v1/templates")
     async def list_templates() -> Any:
-        return {"templates": [t.info() for t in (templates or {}).values()]}
+        return {"templates": [t.info() for t in (await all_templates(d)).values()]}
 
     @app.get("/v1/templates/{template_id}")
     async def get_template(template_id: str) -> Any:
-        t = find_template(template_id)
+        t = await find_template(template_id)
         return t if isinstance(t, JSONResponse) else t.info()
 
     @app.post("/v1/templates/{template_id}/render")
     async def render_template(template_id: str, body: TemplateBody) -> Any:
         """Fill in a template without saving anything: the agent spec, its scenarios, and what this deployment is missing."""
-        t = find_template(template_id)
+        t = await find_template(template_id)
         if isinstance(t, JSONResponse):
             return t
         try:
@@ -55,9 +56,11 @@ def register(app: FastAPI, d: AppDeps) -> None:
     @app.post("/v1/templates/{template_id}/create-version", status_code=201)
     async def template_version(template_id: str, body: TemplateBody, request: Request) -> Any:
         """Save the rendered agent as a version (it still needs its scenarios and the release gate before it can go live)."""
-        t = find_template(template_id)
+        t = await find_template(template_id)
         if isinstance(t, JSONResponse):
             return t
+        if (why := tampered(t)):
+            return _err(400, "template_not_trusted", why)
         svc = need_rel()
         if isinstance(svc, JSONResponse):
             return svc

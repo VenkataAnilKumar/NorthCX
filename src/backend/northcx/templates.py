@@ -13,6 +13,8 @@ from typing import Any
 
 import yaml
 
+from .template_signing import Verifier, content_hash
+
 from .simulation.scenario import ScenarioError, parse_scenario
 from .spec import AgentSpec, Registry
 
@@ -54,13 +56,15 @@ class Template:
     does: list[str] = field(default_factory=list)           # what it can do
     requires_knowledge: bool = False
     requires_channels: list[str] = field(default_factory=list)
+    content_hash: str = ""                                  # of the template as written (see template_signing)
+    provenance: dict[str, Any] = field(default_factory=lambda: {"source": "file", "signed": False, "verified": False, "status": "local file"})
 
     def info(self) -> dict[str, Any]:
         return {"id": self.id, "title": self.title, "description": self.description, "intent": self.intent,
                 "parameters": [{"name": p.name, "description": p.description, "default": p.default, "required": p.required and p.default is None} for p in self.params],
                 "requiresTools": _fill(self.requires_tools, {p.name: p.default or "" for p in self.params}), "scenarios": len(self.scenarios),
                 "audience": self.audience, "category": self.category, "channels": self.channels, "version": self.version, "notes": self.notes, "sees": self.sees, "does": self.does,
-                "needs": {"tools": _fill(self.requires_tools, {p.name: p.default or "" for p in self.params}), "knowledge": self.requires_knowledge, "channels": self.requires_channels}}
+                "provenance": self.provenance, "needs": {"tools": _fill(self.requires_tools, {p.name: p.default or "" for p in self.params}), "knowledge": self.requires_knowledge, "channels": self.requires_channels}}
 
 
 @dataclass
@@ -104,7 +108,17 @@ def parse_template(data: Any, source: str = "") -> Template:
                     list(data.get("scenarios") or []), [str(t) for t in req.get("tools") or []],
                     audience=str(data.get("audience", "customer")), category=str(data.get("category", "General"))[:60], channels=lists["channels"], version=str(data.get("version", "1")),
                     notes=str(data.get("notes", ""))[:500], sees=lists["sees"], does=lists["does"], requires_knowledge=bool(req.get("knowledge", False)),
-                    requires_channels=[str(c) for c in req.get("channels") or []])
+                    requires_channels=[str(c) for c in req.get("channels") or []], content_hash=content_hash(data))
+
+
+_VERIFIER: Verifier | None = None
+
+
+def _verifier() -> Verifier:
+    global _VERIFIER
+    if _VERIFIER is None:
+        _VERIFIER = Verifier(LIBRARY)
+    return _VERIFIER
 
 
 def load_templates(*paths: str | Path) -> dict[str, Template]:
@@ -119,6 +133,8 @@ def load_templates(*paths: str | Path) -> dict[str, Template]:
                 raise TemplateError(f"{f}: not valid YAML: {e}") from e
             for d in docs:
                 t = parse_template(d, str(f))
+                if p.resolve() == LIBRARY.resolve() or f.parent.resolve() == LIBRARY.resolve():
+                    t.provenance = _verifier().check(t.id, t.version, t.content_hash)
                 out[t.id] = t  # a later directory can replace a built-in template by reusing its id
     return out
 

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { hubInstall, hubInstalls, hubRequirements, hubUpdate, hubUpdatePreview, listAgents, listTemplates, useLoad, useMe, type HubInstall, type HubRequirements, type HubUpdatePreview, type TemplateInfo } from "@northcx/api-client";
+import { checkOrgTemplate, createOrgTemplate, decideOrgTemplate, hubInstall, hubInstalls, hubRequirements, hubUpdate, hubUpdatePreview, listAgents, listTemplates, orgTemplate, orgTemplates, proposeOrgTemplate, reviseOrgTemplate, useLoad, useMe, type HubInstall, type HubRequirements, type HubUpdatePreview, type OrgTemplate, type TemplateInfo } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader } from "@northcx/ui";
 
 function Checks({ req }: { req: HubRequirements }) {
@@ -55,6 +55,68 @@ function Install({ t, installed, onClose, onDone }: { t: TemplateInfo; installed
   );
 }
 
+const STARTER = `id: my-agent
+title: My agent
+description: What it does, in one sentence.
+category: General
+version: "1"
+parameters:
+  company_name: {description: Your company name, default: our company}
+spec:
+  instructions: |
+    You help customers of {{company_name}}. Be brief and polite.
+  tools: []
+  guardrails: [no_card_numbers]
+scenarios:
+  - name: "{{agent_id}}-greets"
+    model:
+      - text: Hello, how can I help?
+    turns:
+      - say: hi
+        expect: {status: completed, reply_includes: [help]}
+`;
+
+function Mine({ reload }: { reload: () => void }) {
+  const { can } = useMe();
+  const { data, error, loading, reload: again } = useLoad(() => orgTemplates());
+  const [text, setText] = useState(STARTER);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const go = async (f: () => Promise<unknown>, ok?: string) => { setErr(null); setNote(null); try { await f(); if (ok) setNote(ok); again(); reload(); } catch (e) { setErr((e as Error).message); } };
+  if (loading && !data) return <Loading />;
+  if (error) return <ErrorBox message={error} onRetry={again} />;
+  const pill = (s: OrgTemplate["status"]) => ({ draft: "Draft", proposed: "Waiting for a second person", published: "Published to your Hub", rejected: "Rejected", superseded: "Replaced", withdrawn: "Withdrawn" })[s];
+  const load = async (o: OrgTemplate) => { const full = await orgTemplate(o.id); setText(full.yaml ?? ""); setEditing(o.id); };
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted">Write your own agents as templates. A template is checked, proposed, and published to this Hub only after a second person approves it. It then appears for your organization with who approved it.</p>
+      {(data ?? []).map((o) => (
+        <GlassCard key={o.id} title={`${o.title} (version ${o.version})`} action={<span className="pill">{pill(o.status)}</span>}>
+          <p className="text-xs text-muted">{o.id} · {o.audience === "staff" ? "for staff" : "customer-facing"} · {o.scenarios} test scenario{o.scenarios === 1 ? "" : "s"}{o.proposedBy ? ` · proposed by ${o.proposedBy}` : ""}{o.decidedBy ? ` · decided by ${o.decidedBy}` : ""}</p>
+          {!o.check.ok && <p className="mt-1 text-sm text-[var(--bad)]">Not ready: {o.check.problems.join("; ")}</p>}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button className="btn" onClick={() => void go(() => load(o))}>Open in the editor</button>
+            {o.status === "draft" && <button className="btn" disabled={!o.check.ok || !can("versions:create")} onClick={() => void go(() => proposeOrgTemplate(o.id), "Proposed. A second person must approve it.")}>Propose</button>}
+            {o.status === "proposed" && <><button className="btn btn-primary" disabled={!can("releases:publish")} onClick={() => void go(() => decideOrgTemplate(o.id, "approve"), "Published.")}>Approve (not the proposer)</button><button className="btn" disabled={!can("releases:publish")} onClick={() => void go(() => decideOrgTemplate(o.id, "reject"))}>Reject</button></>}
+            {o.status === "published" && <button className="btn" disabled={!can("releases:publish")} onClick={() => { if (confirm("Remove this template from your Hub? Agents already installed keep working.")) void go(() => decideOrgTemplate(o.id, "withdraw", "withdrawn from the Admin app")); }}>Withdraw</button>}
+          </div>
+        </GlassCard>
+      ))}
+      <GlassCard title={editing ? `Editor: ${editing}` : "New template"}>
+        <label className="text-sm">Template (YAML). The same format as the built-in ones.<textarea className="field mt-1 h-72 w-full font-mono text-xs" value={text} onChange={(e) => setText(e.target.value)} /></label>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button className="btn" onClick={() => void go(async () => { const r = await checkOrgTemplate(text); setNote(r.ok ? `Looks good: ${r.scenarios} scenario(s).` : "Not ready: " + r.problems.join("; ")); })}>Check</button>
+          <button className="btn btn-primary" disabled={!can("versions:create")} onClick={() => void go(async () => { if (editing) await reviseOrgTemplate(editing, text); else await createOrgTemplate(text); }, "Saved as a draft.")}>{editing ? "Save changes" : "Save as draft"}</button>
+          {editing && <button className="btn" onClick={() => { setEditing(null); setText(STARTER); }}>Start a new one</button>}
+        </div>
+        {note && <p className="mt-2 text-sm" role="status">{note}</p>}
+        {err && <div className="mt-2"><ErrorBox message={err} /></div>}
+      </GlassCard>
+    </div>
+  );
+}
+
 function Diff({ title, d }: { title: string; d: HubUpdatePreview["templateChanges"] }) {
   const other = Object.keys(d.other);
   if (d.identical) return <p className="text-sm text-muted">{title}: no changes.</p>;
@@ -97,7 +159,7 @@ function Updates({ installs, reload }: { installs: HubInstall[]; reload: () => v
 
 export default function Hub() {
   const { data, error, loading, reload } = useLoad(async () => ({ templates: await listTemplates(), agents: await listAgents(), installs: await hubInstalls() }));
-  const [tab, setTab] = useState<"browse" | "installed">("browse");
+  const [tab, setTab] = useState<"browse" | "installed" | "mine">("browse");
   const [category, setCategory] = useState("All");
   const [open, setOpen] = useState<string | null>(null);
   if (loading && !data) return <Loading />;
@@ -114,8 +176,9 @@ export default function Hub() {
       <div className="seg mb-4" role="tablist" aria-label="Hub">
         <a role="tab" aria-selected={tab === "browse"} aria-current={tab === "browse" ? "page" : undefined} href="#" onClick={(e) => { e.preventDefault(); setTab("browse"); }}>Browse</a>
         <a role="tab" aria-selected={tab === "installed"} aria-current={tab === "installed" ? "page" : undefined} href="#" onClick={(e) => { e.preventDefault(); setTab("installed"); }}>Installed{updates ? <span className="seg-badge" aria-label={`${updates} updates`}>{updates}</span> : null}</a>
+        <a role="tab" aria-selected={tab === "mine"} aria-current={tab === "mine" ? "page" : undefined} href="#" onClick={(e) => { e.preventDefault(); setTab("mine"); }}>My organization</a>
       </div>
-      {tab === "installed" ? <Updates installs={installs} reload={reload} /> : (
+      {tab === "mine" ? <Mine reload={reload} /> : tab === "installed" ? <Updates installs={installs} reload={reload} /> : (
         <>
           <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Category">{categories.map((c) => <button key={c} className={`pill ${category === c ? "font-semibold text-primary" : ""}`} aria-pressed={category === c} onClick={() => setCategory(c)}>{c}</button>)}</div>
           {shown.length === 0 ? <Empty>No templates in this category.</Empty> : (
@@ -123,7 +186,8 @@ export default function Hub() {
               {shown.map((t) => (
                 <li key={t.id} className="glass flex flex-col p-4">
                   <div className="flex items-start justify-between gap-2"><h2 className="font-semibold">{t.title}</h2>{ids.has(t.id) && <span className="pill">Agent exists</span>}</div>
-                  <p className="mt-1 text-xs text-muted">{t.audience === "staff" ? "For staff" : "Customer-facing"} · {t.category ?? "General"} · built in · version {t.version ?? "1"}</p>
+                  <p className="mt-1 text-xs text-muted">{t.audience === "staff" ? "For staff" : "Customer-facing"} · {t.category ?? "General"} · version {t.version ?? "1"}</p>
+                  {t.provenance && <p className="mt-1 text-xs" title={t.provenance.keyFingerprint ? `Signing key ${t.provenance.keyFingerprint}` : undefined}>{t.provenance.source === "built-in" ? (t.provenance.verified ? "✓ Built in, signed and verified" : `! Built in, ${t.provenance.status}`) : t.provenance.source === "organization" ? `Your organization, approved by ${t.provenance.approvedBy ?? "a reviewer"}` : "Local file, not signed"}</p>}
                   <p className="mt-2 text-sm">{t.description}</p>
                   {t.notes && <p className="mt-1 text-xs text-muted">{t.notes}</p>}
                   {t.sees && t.sees.length > 0 && <p className="mt-2 text-xs"><strong>Can see:</strong> {t.sees.join("; ")}</p>}
@@ -137,7 +201,7 @@ export default function Hub() {
           {selected && <Install key={selected.id} t={selected} installed={ids.has(selected.id)} onClose={() => setOpen(null)} onDone={reload} />}
         </>
       )}
-      <p className="mt-4 text-xs text-muted">Built-in templates only for now. Publishing your own agents as templates, review of hub entries and signed entries are planned.</p>
+      <p className="mt-4 text-xs text-muted">Built-in templates are signed; a changed one is shown and cannot be installed. Your own templates need a second person to approve them.</p>
     </>
   );
 }

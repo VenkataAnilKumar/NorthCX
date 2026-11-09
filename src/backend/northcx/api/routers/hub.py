@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import HubBody
+from northcx.api.template_lookup import lookup, tampered
 from northcx.hub import CHANNEL_NAMES, InMemoryInstalls, Install, check_requirements, scenario_diff
 from northcx.simulation.managed import parse_definition
 from northcx.templates import TemplateError, _fill, render
@@ -21,8 +22,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
     installs = getattr(runtime, "install_repo", None) or InMemoryInstalls()
     app.state.installs = installs
 
-    def find(template_id: str) -> Any:
-        return (templates or {}).get(template_id) or _err(404, "not_found", "Unknown template")
+    async def find(template_id: str) -> Any:
+        return await lookup(d, template_id) or _err(404, "not_found", "Unknown template")
 
     async def deployment() -> tuple[set[str], dict[str, bool], int]:
         tools = set(releases.registry.tool_names()) if releases else set()
@@ -45,7 +46,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     @app.post("/v1/templates/{template_id}/requirements")
     async def requirements(template_id: str, body: HubBody) -> Any:
         """Check a template against this deployment: tools, knowledge, channels, tests, model rules. Saves nothing."""
-        t = find(template_id)
+        t = await find(template_id)
         if isinstance(t, JSONResponse):
             return t
         r = await rendered(t, body)
@@ -54,9 +55,11 @@ def register(app: FastAPI, d: AppDeps) -> None:
     @app.post("/v1/templates/{template_id}/install", status_code=201)
     async def install(template_id: str, body: HubBody, request: Request) -> Any:
         """Create a draft from a template, save its scenarios and run them, and record where the agent came from. The agent is not live."""
-        t = find(template_id)
+        t = await find(template_id)
         if isinstance(t, JSONResponse):
             return t
+        if (why := tampered(t)):
+            return _err(400, "template_not_trusted", why)
         svc = need_rel()
         if isinstance(svc, JSONResponse):
             return svc
@@ -98,13 +101,13 @@ def register(app: FastAPI, d: AppDeps) -> None:
     async def list_installs() -> Any:
         out = []
         for i in await installs.list():
-            t = (templates or {}).get(i.template_id)
+            t = await lookup(d, i.template_id)
             out.append({**i.to_dict(), "title": t.title if t else i.template_id, "currentTemplateVersion": t.version if t else None, "updateAvailable": bool(t and t.version != i.template_version),
                         "templateAvailable": t is not None})
         return {"installs": out}
 
     async def update_plan(template_id: str, agent_id: str) -> Any:
-        t = find(template_id)
+        t = await find(template_id)
         if isinstance(t, JSONResponse):
             return t
         svc = need_rel()

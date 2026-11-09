@@ -77,6 +77,8 @@
   "GET /v1/monitor/findings": "/v1/monitor/findings -> monitor_findings",
   "GET /v1/monitor/summary": "/v1/monitor/summary -> monitor_summary",
   "GET /v1/org-policies": "/v1/org-policies -> list_policies",
+  "GET /v1/org-templates": "/v1/org-templates -> list_org_templates",
+  "GET /v1/org-templates/x": "/v1/org-templates/{template_id} -> get_org_template",
   "GET /v1/policies": "/v1/policies -> policies",
   "GET /v1/privacy/customers/a/b/export": "/v1/privacy/customers/{customer_id:path}/export -> privacy_export",
   "GET /v1/regression": "/v1/regression -> regression_status",
@@ -159,6 +161,12 @@
   "POST /v1/org-policies/x/propose": "/v1/org-policies/{policy_id}/propose -> propose_policy",
   "POST /v1/org-policies/x/reject": "/v1/org-policies/{policy_id}/reject -> reject_policy",
   "POST /v1/org-policies/x/retire": "/v1/org-policies/{policy_id}/retire -> retire_policy",
+  "POST /v1/org-templates": "/v1/org-templates -> create",
+  "POST /v1/org-templates/check": "/v1/org-templates/check -> check",
+  "POST /v1/org-templates/x/approve": "/v1/org-templates/{template_id}/approve -> approve",
+  "POST /v1/org-templates/x/propose": "/v1/org-templates/{template_id}/propose -> propose",
+  "POST /v1/org-templates/x/reject": "/v1/org-templates/{template_id}/reject -> reject",
+  "POST /v1/org-templates/x/withdraw": "/v1/org-templates/{template_id}/withdraw -> withdraw",
   "POST /v1/privacy/retention/run": "/v1/privacy/retention/run -> privacy_retention",
   "POST /v1/release-requests/x/approve": "/v1/release-requests/{request_id}/approve -> approve_request",
   "POST /v1/release-requests/x/cancel": "/v1/release-requests/{request_id}/cancel -> cancel_request",
@@ -187,6 +195,7 @@
   "PUT /v1/groups/x": "/v1/groups/{group_id} -> update_group",
   "PUT /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_put_document",
   "PUT /v1/org-policies/x": "/v1/org-policies/{policy_id} -> edit_policy",
+  "PUT /v1/org-templates/x": "/v1/org-templates/{template_id} -> revise",
   "PUT /v1/sessions/x/attachments": "/v1/sessions/{session_id}/attachments -> upload_attachment",
   "PUT /v1/sessions/x/review": "/v1/sessions/{session_id}/review -> put_review",
   "PUT /v1/sessions/x/tags/x": "/v1/sessions/{session_id}/tags/{tag} -> add_tag",
@@ -580,6 +589,16 @@
    "GET",
    "/v1/org-policies",
    "list_policies"
+  ],
+  [
+   "GET",
+   "/v1/org-templates",
+   "list_org_templates"
+  ],
+  [
+   "GET",
+   "/v1/org-templates/{template_id}",
+   "get_org_template"
   ],
   [
    "GET",
@@ -993,6 +1012,36 @@
   ],
   [
    "POST",
+   "/v1/org-templates",
+   "create"
+  ],
+  [
+   "POST",
+   "/v1/org-templates/check",
+   "check"
+  ],
+  [
+   "POST",
+   "/v1/org-templates/{template_id}/approve",
+   "approve"
+  ],
+  [
+   "POST",
+   "/v1/org-templates/{template_id}/propose",
+   "propose"
+  ],
+  [
+   "POST",
+   "/v1/org-templates/{template_id}/reject",
+   "reject"
+  ],
+  [
+   "POST",
+   "/v1/org-templates/{template_id}/withdraw",
+   "withdraw"
+  ],
+  [
+   "POST",
    "/v1/privacy/retention/run",
    "privacy_retention"
   ],
@@ -1130,6 +1179,11 @@
    "PUT",
    "/v1/org-policies/{policy_id}",
    "edit_policy"
+  ],
+  [
+   "PUT",
+   "/v1/org-templates/{template_id}",
+   "revise"
   ],
   [
    "PUT",

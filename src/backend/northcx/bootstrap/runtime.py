@@ -105,6 +105,9 @@ def build_runtime(c: SimpleNamespace) -> None:
     from northcx.db import PgOrgPolicies
     from northcx.org_policies import OrgPolicyService
     runtime.org_policies = OrgPolicyService(PgOrgPolicies(c.engine) if c.db_url else None)
+    from northcx.org_templates import OrgTemplateService
+    from northcx.templates import LIBRARY, load_templates
+    runtime.org_templates = OrgTemplateService(PgOrgTemplates(c.engine) if c.db_url else None, set(load_templates(LIBRARY)))
     from northcx.budget_settings import BudgetSettings
     from northcx.db import PgSettings
     runtime.budget_settings = runtime.ledger.settings = BudgetSettings(PgSettings(c.engine) if c.db_url else None)

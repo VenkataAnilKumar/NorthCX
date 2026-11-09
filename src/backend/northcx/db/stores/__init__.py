@@ -17,6 +17,7 @@ from .tasks import PgTasks
 from .hub import PgInstalls
 from .settings import PgSettings
 from .org_policies import PgOrgPolicies
+from .org_templates import PgOrgTemplates
 from .release_requests import PgReleaseRequests
 from .shared_state import PgAlertState, PgCrawlJobs
 from .limits import PgLimiter, PgUsageLedger

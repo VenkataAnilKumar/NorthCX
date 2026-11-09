@@ -1,0 +1,60 @@
+{
+  "algorithm": "ed25519",
+  "templates": {
+    "account-help": {
+      "hash": "b2b40b2cbd5741e3f78a3e023c85dfff18aae16a2960e927a04f923880802e29",
+      "signature": "2Js99NciOFUrX8edm5Pc78Qq6vf+tGSyywLPOAfDGb/YTBe/6kUMFi44U/RnhNzcHWYPofY5T30djkmY9KC0Dw==",
+      "version": "1"
+    },
+    "appointments": {
+      "hash": "55913eadf2a2a95c6c537715fc52a0f302cdca7147b55f1f94d37648236e8602",
+      "signature": "6sw5vkFgh0H9g+HC21rHtGOgUVkZVV7kRVWUlP0rCR8FzClpvzIlxBI2KF2aKLgPa22cNR7IBr6An0oUULb3Cw==",
+      "version": "1"
+    },
+    "billing-and-invoices": {
+      "hash": "63d1a1645a90d34969a593cbb60443e0106a7423d65f04c1e00602be8147b786",
+      "signature": "ljN8iFV7y5lgWqmazQiboKmFcn3CC8ODUhcUqghaCW/cm8fzgTdgHcrPUojLa3bA3DbIZmnCJ+1XCXH1yt/4Cw==",
+      "version": "1"
+    },
+    "complaints": {
+      "hash": "5950fa0e401f27e320117da905e5bfd4e6ddba8b86a300d14615759423042426",
+      "signature": "7thrtl9vJPJeNv3cJ7UbqKAYemDK2g+wyauvw2acmPtWXITWlJPcmo24bKbvPDJJEyrzwy5fgsn7CN5NzgxJAA==",
+      "version": "1"
+    },
+    "delivery-problems": {
+      "hash": "795a44a382040e7fcc7023a42ccb0dc6658852437b69c1ca539370818bde405e",
+      "signature": "rrFhqmggp9RmLWf29NsBixog+l57ayb5xr8UTk/BDbBse6oXdGXOPSaOP0t1cEmpqT7KtISDLS1hNC9Pas7VAA==",
+      "version": "1"
+    },
+    "front-door": {
+      "hash": "3665993cd443f85997c9cd5204a68fe87b083fa222874c297514db3368a8d6b0",
+      "signature": "pmj5G03KgJVDO8RmAKH4zi95Fqi3cMWNbE4wta7akNkMz/1Gp75eUmI7iGNWB6BqB2Cay5aQENCRPZn7mQieCQ==",
+      "version": "1"
+    },
+    "human-triage": {
+      "hash": "94c558bfe5572e4c580d3006def30978ca936fcddc870e3824c997f79363600d",
+      "signature": "ABJJIabLTo7sCSXmALfzwMbaw5h1JDRvgWCmBGNvT/baEqp+a2CBVVvLZHknDW5wYoc/n8Nx3l28KJPFh2JOCw==",
+      "version": "1"
+    },
+    "knowledge-faq": {
+      "hash": "ce134a3b55bb6a640bd0e7f5426e8b44be1656674ef0e51e2ac281bc50f44276",
+      "signature": "zGXHaX8/O6PtjCnIn7net2ESDJ3H0LpO63w/NBtcXRRye10Hgx+u0gJISNxs+TLirqUnk2z4yxN4pgCMB6ksBw==",
+      "version": "1"
+    },
+    "order-status": {
+      "hash": "b4e13db96421c3c4ae8056c6f1c4fc28b1642444038b36edc5750f687d6b92a7",
+      "signature": "ibQgTlFJXN8lh7SOuJEMrE+FbauTGQogvfvcTwcecsGsv1IZQTVT5WJSTun9x04Z/24D2jwWcxTyVUZ6z9EqDQ==",
+      "version": "1"
+    },
+    "plan-changes": {
+      "hash": "a825b455b0f17d674d805bdd7866391353830dc640a87b30b61f9832c50e4812",
+      "signature": "rfFMD5MNUrm/ica1XPvlXhhmNGzDuQUO1hl8JFwpQszYuy4qaUlalYijQHjtoptBKm1VV1k2MuDn5hbxruL6Ag==",
+      "version": "1"
+    },
+    "returns-and-refunds": {
+      "hash": "81aa9ef7e4889edff6811b9bd9a19f496e26e23ffd0e704ea91ccca1900e38f7",
+      "signature": "Y4JuyFlRqlvqzDh+vDri/DZEbS+BvXJGOGh3jGVz+VzE1e+9tv2RXvzx5vpRI2Ftc/PVjHpfTfaWxAI8JxFjAg==",
+      "version": "1"
+    }
+  }
+}

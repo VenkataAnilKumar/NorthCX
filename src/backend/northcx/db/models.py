@@ -652,6 +652,19 @@ class OrgPolicyRow(TenantScoped, Base):
     data: Mapped[Any] = mapped_column(JSONB, nullable=False)
 
 
+class OrgTemplateRow(TenantScoped, Base):
+    """One version of an organization's own Hub template (WP22.5): draft, proposed, published, rejected, superseded or withdrawn."""
+    __tablename__ = "org_templates"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"
