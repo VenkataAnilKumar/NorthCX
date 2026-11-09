@@ -33,7 +33,7 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_TOKEN_SECRET` (`_FILE`) | Signing secret for customer chat tokens | derived from `NORTHCX_API_KEY`; random (tokens lost at restart) if neither is set |
 | `NORTHCX_APPROVAL_TTL_SECONDS` | Expire approvals left undecided | never |
 | `NORTHCX_WEBHOOK_URL`, `NORTHCX_WEBHOOK_SECRET` (`_FILE`) | Push approval results (signed) | none |
-| `NORTHCX_MODEL_FALLBACKS`, `NORTHCX_MODEL_RETRIES`, `NORTHCX_MODEL_TIMEOUT`, `NORTHCX_DAILY_TOKEN_BUDGET` | Model reliability: fallback models in order, retries per model, seconds per call, and a per-server daily token cap | no fallbacks; 2 retries; 60 s; no cap |
+| `NORTHCX_MODEL_FALLBACKS`, `NORTHCX_MODEL_RETRIES`, `NORTHCX_MODEL_TIMEOUT`, `NORTHCX_DAILY_TOKEN_BUDGET` | Model reliability: fallback models in order, retries per model, seconds per call, and a daily token cap (per process, or shared by all processes with `NORTHCX_LIMITS_BACKEND=postgres`) | no fallbacks; 2 retries; 60 s; no cap |
 | `NORTHCX_SSO_ISSUER`, `NORTHCX_SSO_CLIENT_ID`, `NORTHCX_SSO_CLIENT_SECRET` (`_FILE`), `NORTHCX_SSO_REDIRECT_URI` | Single sign-on for the Studio through any OpenID Connect provider. The redirect URI is `https://<studio host>/api/northcx/auth/sso/callback` and must be registered with the provider. All four are needed; needs `NORTHCX_API_KEY` or a database | off |
 | `NORTHCX_SSO_ROLE_MAP`, `NORTHCX_SSO_DEFAULT_ROLE`, `NORTHCX_SSO_ROLE_CLAIM`, `NORTHCX_SSO_ALLOWED_DOMAINS` | Who gets which role: `group=role` pairs (the strongest matching role wins), a fallback role, the token claim holding groups, and an email-domain allow-list. Set a role map or a default role, otherwise nobody can sign in. Roles: admin, release_manager, developer, reviewer, auditor, viewer | claim `groups`; no default role; any domain |
 | `NORTHCX_SSO_SESSION_HOURS`, `NORTHCX_SSO_LANDING` | Length of a sign-in (at most 24) and the Studio path that receives it | 8; `/sso` |
@@ -66,13 +66,13 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_SKILLS_DIR` | Directory of skill files (YAML) added to the registry at start-up | none |
 | `NORTHCX_CONNECTORS_DIR`, `NORTHCX_CONNECTOR_HOSTS` | Directory of connector files (tools defined as data) and the comma-separated hosts they may call; a connector whose host is not listed is refused at start-up | none |
 | `NORTHCX_TEMPLATES_DIR` | Directory of extra agent templates (YAML); a template with the id of a built-in one replaces it | built-in four |
-| `NORTHCX_ALERTS` (`on`/`off`), `NORTHCX_ALERT_RULES` (YAML file), `NORTHCX_ALERT_WEBHOOK_URL`, `NORTHCX_ALERT_WEBHOOK_SECRET` (`_FILE`) | Alerts on error rate, escalation spikes, guardrail blocks, tool failures, fallback-model use and slow replies; findings always, signed webhook optionally. A webhook delivery is tried up to three times (immediately, after 1 s, after 5 s) and the outcome is shown on the Monitoring page; "Send a test alert" there (admins) checks the webhook end to end. Alert history and active alerts are kept in memory per process (findings are stored), so after a restart they start empty, and with several processes each one evaluates and sends on its own | on, six default rules |
+| `NORTHCX_ALERTS` (`on`/`off`), `NORTHCX_ALERT_RULES` (YAML file), `NORTHCX_ALERT_WEBHOOK_URL`, `NORTHCX_ALERT_WEBHOOK_SECRET` (`_FILE`) | Alerts on error rate, escalation spikes, guardrail blocks, tool failures, fallback-model use and slow replies; findings always, signed webhook optionally. A webhook delivery is tried up to three times (immediately, after 1 s, after 5 s) and the outcome is shown on the Monitoring page; "Send a test alert" there (admins) checks the webhook end to end. With a database, active alerts and the last 200 alert events are stored (`alert_state`, `alert_events`), so any process continues where another left off and an alert fires once; without a database they are kept in memory per process and start empty after a restart | on, six default rules |
 | `NORTHCX_PRICE_PER_MILLION_TOKENS` | A blended price used to show an estimated model cost in Insights | no cost shown |
 | `NORTHCX_LANGFUSE_URL`, `NORTHCX_LANGFUSE_PUBLIC_KEY`, `NORTHCX_LANGFUSE_SECRET_KEY` (`_FILE`) | Export traces to Langfuse | off |
 | `NORTHCX_OTLP_ENDPOINT`, `NORTHCX_OTLP_HEADERS` (`_FILE`; `name=value,name=value`) | Export traces over OpenTelemetry OTLP/HTTP to any compatible backend | off |
 | `NORTHCX_TRACE_EXPORT_CONTENT` (`none`, `masked`, `full`), `NORTHCX_TRACE_EXPORT_SAMPLE` (0 to 1), `NORTHCX_ENVIRONMENT` | What exported traces contain (default `masked`), the fraction exported (default 1), and the environment label (default `production`) | masked; all; production |
 | `NORTHCX_CHATWOOT_URL`, `NORTHCX_CHATWOOT_ACCOUNT_ID`, `NORTHCX_CHATWOOT_INBOX_ID`, `NORTHCX_CHATWOOT_TOKEN` (`_FILE`) | Create a Chatwoot conversation with a private note for each hand-off and close it when resolved | off |
-| `NORTHCX_RATE_LIMITS` (`off`), `NORTHCX_RATE_LIMIT_PER_MINUTE`, `NORTHCX_CHAT_PER_SESSION_PER_MINUTE`, `NORTHCX_AUTH_FAILURES_PER_MINUTE`, `NORTHCX_CHANNEL_RATE_LIMIT_PER_MINUTE` | Per-process limits; the last applies to keys with the `channel` role (your server minting chat tokens, telephony bridges), which serve many customers at once | 600 / 30 / 20 / 6000 |
+| `NORTHCX_RATE_LIMITS` (`off`), `NORTHCX_RATE_LIMIT_PER_MINUTE`, `NORTHCX_CHAT_PER_SESSION_PER_MINUTE`, `NORTHCX_AUTH_FAILURES_PER_MINUTE`, `NORTHCX_CHANNEL_RATE_LIMIT_PER_MINUTE` | Limits per process, or shared with `NORTHCX_LIMITS_BACKEND=postgres`; the last applies to keys with the `channel` role (your server minting chat tokens, telephony bridges), which serve many customers at once | 600 / 30 / 20 / 6000 |
 | `NORTHCX_DB_POOL_SIZE` | Database connections each server process keeps (plus 10 extra under load). Keep processes x (size + 10) below Postgres `max_connections` | 20 |
 | `NORTHCX_TRACE_DIR` | Also write traces to JSON lines (in-memory mode) | none |
 | `PORT` | Backend port inside the container | 3000 |
@@ -112,10 +112,10 @@ The server loads agent specs from `NORTHCX_AGENTS_DIR` and scenarios from `NORTH
 Rate limits are on by default (`NORTHCX_RATE_LIMIT_PER_MINUTE`, `NORTHCX_CHAT_PER_SESSION_PER_MINUTE`, `NORTHCX_AUTH_FAILURES_PER_MINUTE`; `NORTHCX_RATE_LIMITS=off` disables them) and are per process unless you set `NORTHCX_LIMITS_BACKEND=postgres` (then all server processes share them). Put the server behind TLS; keys and customer messages travel in clear text otherwise. Copy the `head` value from the audit integrity check to an external place regularly.
 
 ## Configuration
-Environment variables: model API key, server port, API keys for clients, database URL, trace export endpoint, retention settings. Secrets via a secrets manager.
+Everything is set through the environment variables in the reference above (secrets also as `_FILE`, the form Docker and Kubernetes secrets use) and a few operator files (agents, scenarios, skills, connectors, routing, residency). Keep secrets in a secrets manager.
 
-## Environments
-dev, staging and production are separate deployments or namespaces with separate secrets, databases and API keys. Promotion of agent versions follows the Release Management spec.
+## Agent environments
+One deployment serves three agent environments, dev, staging and production, each with its own releases (built; see Release Management). They share the database, tools and secrets, so use dry-run scenarios, test accounts or separate tool credentials for non-production. Running separate deployments per environment, with their own secrets and databases, is also possible but is not a first-class mode.
 
 ## Release steps
 1. Typecheck and unit tests pass.

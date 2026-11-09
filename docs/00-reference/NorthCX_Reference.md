@@ -68,6 +68,8 @@ Sierra (founded 2023 by Bret Taylor and Clay Bavor) sells enterprise customer-ex
 
 ## 3. Feature-to-component map
 
+Statuses and paths as of 2026-11-02 (the `src/core` TypeScript scaffold is now `src/prototype`). Today every row except outcome-based billing is built in-house in the Python backend (`../05-technical/NorthCX_System-Architecture.md`).
+
 | Sierra capability | Chosen / proposed component | Status |
 |---|---|---|
 | Agent runtime, tools, goals + guardrails | `src/core` (TypeScript) or Agno (Python) | `src/core` scaffolded |
@@ -203,7 +205,7 @@ Not yet checked: LiveKit Agents, Letta, Graphiti, Arize Phoenix, Guardrails AI.
 
 Strategy decision (2026-11-02): do not write everything from scratch. Fetch the reference repositories, copy or adapt the code that implements our features, and keep provenance. Policy is in `05-technical/NorthCX_Code-Reuse-Policy.md`.
 
-Paths verified from the repository trees; fitness of each module is **not yet assessed** (no code read beyond directory names).
+Paths verified from the repository trees; fitness of each module is **not yet assessed** (no code read beyond directory names). **Outcome:** none of these was copied; the modules that were assessed and the reasons are in `THIRD_PARTY.md`.
 
 | NorthCX capability (catalog IDs) | Source | Candidate paths | Language | Licence |
 |---|---|---|---|---|
