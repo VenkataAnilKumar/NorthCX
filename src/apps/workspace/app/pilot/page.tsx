@@ -1,13 +1,13 @@
 "use client";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
-  addNote, answerTask, listSpaces, saveOutput, approveTask, controlTask, createTask, deleteNote, deleteTask, editTaskPlan, eraseNotes, getTask, listNotes, listTasks, pilotChat, useLoad,
-  type PilotSource, type PilotTask,
+  addNote, answerTask, cancelPilotAction, confirmPilotAction, listSpaces, saveOutput, approveTask, controlTask, createTask, deleteNote, deleteTask, editTaskPlan, eraseNotes, getTask, listNotes, listTasks, pilotChat, useLoad,
+  type PilotAction, type PilotSource, type PilotTask,
 } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader, Toggle } from "@northcx/ui";
 
 type Mode = "quick" | "research";
-interface Turn { from: "you" | "assistant"; text: string; sources?: PilotSource[] }
+interface Turn { from: "you" | "assistant"; text: string; sources?: PilotSource[]; actions?: PilotAction[] }
 
 const LIVE: PilotTask["status"][] = ["approved", "running"];
 
@@ -20,6 +20,21 @@ function Sources({ items }: { items: { title: string | null; section?: string | 
   );
 }
 
+function Proposals({ items }: { items: PilotAction[] }) {
+  const [state, setState] = useState<Record<string, string>>({});
+  const act = async (a: PilotAction, ok: boolean) => {
+    try { const r = await (ok ? confirmPilotAction(a.id) : cancelPilotAction(a.id)); setState((s) => ({ ...s, [a.id]: ok ? `Done: ${r.result}` : "Cancelled" })); } catch (e) { setState((s) => ({ ...s, [a.id]: (e as Error).message })); }
+  };
+  return (
+    <div className="mt-2 rounded-xl border border-border p-2" role="group" aria-label="Proposed actions">
+      <p className="text-xs text-muted">Proposed. Nothing has happened yet; confirming does it as you.</p>
+      <ul className="mt-1 space-y-2">{items.map((a) => (
+        <li key={a.id} className="text-sm">{a.summary}
+          {state[a.id] ? <span className="ml-2 text-xs">{state[a.id]}</span> : <span className="ml-2"><button className="btn btn-primary" onClick={() => void act(a, true)}>Confirm</button> <button className="btn" onClick={() => void act(a, false)}>Cancel</button></span>}</li>))}</ul>
+    </div>
+  );
+}
+
 function Quick() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [text, setText] = useState("");
@@ -28,6 +43,7 @@ function Quick() {
   const [memory, setMemory] = useState(true);
   const [temporary, setTemporary] = useState(false);
   const [space, setSpace] = useState("");
+  const [style, setStyle] = useState<"quick" | "think" | "do">("quick");
   const [saved, setSaved] = useState<string | null>(null);
   const spaces = useLoad(() => listSpaces().catch(() => []));
   const chat = useRef<string | undefined>(undefined);
@@ -39,9 +55,9 @@ function Quick() {
     setText(""); setError(null); setBusy(true);
     setTurns((t) => [...t, { from: "you", text: message }]);
     try {
-      const r = await pilotChat(message, { chatId: chat.current, style: "quick", memory, temporary, ...(space ? { spaceId: space } : {}) });
+      const r = await pilotChat(message, { chatId: chat.current, style, memory, temporary, ...(space ? { spaceId: space } : {}) });
       chat.current = r.chatId;
-      setTurns((t) => [...t, { from: "assistant", text: r.reply, sources: r.sources }]);
+      setTurns((t) => [...t, { from: "assistant", text: r.reply, sources: r.sources, actions: r.actions }]);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   return (
@@ -49,6 +65,7 @@ function Quick() {
       <div className="mb-3 flex flex-wrap items-center gap-4 text-sm">
         <span className="flex items-center gap-2"><Toggle label="Use my saved notes" checked={memory && !temporary} onChange={setMemory} /><span>Use my saved notes</span></span>
         <span className="flex items-center gap-2"><Toggle label="Temporary chat: nothing is kept" checked={temporary} onChange={setTemporary} /><span>Temporary chat (nothing is kept)</span></span>
+        <label className="flex items-center gap-2">Style <select className="field" value={style} onChange={(e) => setStyle(e.target.value as "quick" | "think" | "do")}><option value="quick">Quick answer</option><option value="think">Think (slower, checks its sources)</option><option value="do">Do (proposes actions for you to confirm)</option></select></label>
         <label className="flex items-center gap-2">Space <select className="field" value={space} onChange={(e) => { setSpace(e.target.value); chat.current = undefined; setTurns([]); }}><option value="">None</option>{(spaces.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
         <button className="btn" onClick={() => { setTurns([]); chat.current = undefined; }}>New chat</button>
       </div>
@@ -58,6 +75,7 @@ function Quick() {
           <div key={i} className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${t.from === "you" ? "ml-auto bg-[var(--info-bg)]" : "glass-strong border border-border"}`}>
             <p className="whitespace-pre-wrap">{t.text}</p>
             {t.from === "assistant" && !temporary && <button className="btn mt-2" onClick={() => void saveOutput({ title: `Pilot answer ${new Date().toLocaleString()}`, body: t.text, kind: "answer", source: "pilot", ...(space ? { spaceId: space } : {}) }).then(() => setSaved(t.text)).catch((e) => setError((e as Error).message))}>{saved === t.text ? "Saved to Outputs" : "Save to Outputs"}</button>}
+            {t.actions && t.actions.length > 0 && <Proposals items={t.actions} />}
             {t.sources && t.sources.length > 0 && <details className="mt-2 text-xs text-muted"><summary className="cursor-pointer">Sources ({t.sources.length})</summary><div className="mt-1"><Sources items={t.sources} /></div></details>}
           </div>
         ))}

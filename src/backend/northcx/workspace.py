@@ -97,6 +97,7 @@ class WorkspaceService:
     def __init__(self, runtime: Any, traces: Any, kb: Any, insight: Any, tags: Any, audit: Any, review_repo: Any = None, model: str | None = None, policy: Any = None):
         self.runtime, self.traces, self.kb, self.insight, self.tags, self.audit, self.reviews, self.model = runtime, traces, kb, insight, tags, audit, review_repo, model
         self.policy = policy  # a workspace_policy.StaffPolicy, or None for no extra limits
+        self.actions: Any = None  # pilot_actions.PilotActionService, for the Do style
 
     def cap(self, n: int) -> int:
         """The most rows one tool call may return (the policy's volume limit)."""
@@ -222,10 +223,20 @@ class WorkspaceService:
         return replace(agent, tools=self.usable_tools(agent, actor), instructions=agent.instructions + f"\nYou are working for {actor.name}.\n", sensitive=True)
 
     # ---------------- agent ----------------
-    def agent(self, actor: Any, style: str = "quick") -> Agent:
+    def agent(self, actor: Any, style: str = "quick", chat_id: str = "") -> Agent:
         """The Pilot agent for one person: only the staff tools that person may use, so the model is never offered a tool it would be refused."""
         tools = [t for t in self.tools() if actor.can(t.permission) and (self.policy is None or self.policy.allows(actor.role, t.name))]
-        extra = "" if style == "quick" else ("\nThis is a Research task: first say briefly what you will look up, search the company's own sources and conversations, "
-                                              "and give a result with numbered sources. Do not use anything but tool results.\n")
+        extra = ""
+        if style == "research":
+            extra = ("\nThis is a Research task: first say briefly what you will look up, search the company's own sources and conversations, "
+                     "and give a result with numbered sources. Do not use anything but tool results.\n")
+        elif style == "think":
+            extra = ("\nThis is a Think request: work through it carefully. Break the question into parts, look up what each part needs, check every claim against what the tools returned, "
+                     "and finish with a short list headed 'What I could not verify'. Prefer fewer statements you can source over many you cannot.\n")
+        elif style == "do" and self.actions is not None:
+            tools += [t for t in self.actions.tools(chat_id) if actor.can(t.permission) and (self.policy is None or self.policy.allows(actor.role, t.name))]
+            extra = ("\nThis is a Do request. In this mode you may propose actions with the propose_ tools (tag a conversation, add a staff note about a customer, save an output), "
+                     "and only what the person asked for. A proposal changes nothing: the person confirms it in the Pilot, or it lapses. After proposing, say plainly what you proposed. "
+                     "You still cannot send anything to a customer or approve anything; the earlier rule about not changing records applies to everything except these proposals.\n")
         return Agent(id="pilot", instructions=STAFF_RULES.format(name=actor.name) + extra, tools=tools, audience="staff", sensitive=True,
-                     max_steps=6 if style == "quick" else 12, model=self.policy.model if self.policy else None)
+                     max_steps={"quick": 6, "think": 10, "do": 8}.get(style, 12), model=self.policy.model if self.policy else None)

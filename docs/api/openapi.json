@@ -10215,6 +10215,143 @@
         ]
       }
     },
+    "/v1/workspace/actions": {
+      "get": {
+        "summary": "List Actions",
+        "operationId": "list_actions_v1_workspace_actions_get",
+        "parameters": [
+          {
+            "name": "chat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Chat"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Actions V1 Workspace Actions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/actions/{action_id}/cancel": {
+      "post": {
+        "summary": "Cancel Action",
+        "operationId": "cancel_action_v1_workspace_actions__action_id__cancel_post",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Cancel Action V1 Workspace Actions  Action Id  Cancel Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/actions/{action_id}/confirm": {
+      "post": {
+        "summary": "Confirm Action",
+        "description": "Do what the Pilot proposed, as you, with your permissions checked now.",
+        "operationId": "confirm_action_v1_workspace_actions__action_id__confirm_post",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Confirm Action V1 Workspace Actions  Action Id  Confirm Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
     "/v1/workspace/assistants": {
       "get": {
         "summary": "Assistants",
@@ -14471,7 +14608,7 @@
           },
           "style": {
             "type": "string",
-            "pattern": "^(quick|research)$",
+            "pattern": "^(quick|research|think|do)$",
             "title": "Style",
             "default": "quick"
           },

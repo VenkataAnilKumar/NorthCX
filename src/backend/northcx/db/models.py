@@ -804,6 +804,20 @@ class SpaceFileRow(TenantScoped, Base):
     __table_args__ = (Index("ix_space_files_space", "space_id"),)
 
 
+class PilotActionRow(TenantScoped, Base):
+    """An action the Pilot proposed and the person has yet to confirm (or has confirmed, cancelled or let lapse)."""
+    __tablename__ = "pilot_actions"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    owner: Mapped[str] = mapped_column(String(200), nullable=False)
+    chat_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    tool: Mapped[str] = mapped_column(String(40), nullable=False)
+    state: Mapped[str] = mapped_column(String(12), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    __table_args__ = (Index("ix_pilot_actions_owner", "owner", "chat_id"),)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

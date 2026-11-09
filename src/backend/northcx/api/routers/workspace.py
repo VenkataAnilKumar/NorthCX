@@ -25,6 +25,10 @@ def register(app: FastAPI, d: AppDeps) -> None:
     access, limits, record, runtime, too_many = d.access, d.limits, d.record, d.runtime, d.too_many
     ws = WorkspaceService(runtime, d.traces, d.kb, d.insight, d.tag_repo, d.audit, d.review_repo, policy=getattr(runtime, "workspace_policy", None))
     app.state.workspace = ws
+    from northcx.pilot_actions import ActionError, PilotActionService
+    pilot_actions = getattr(runtime, "pilot_actions", None) or PilotActionService()
+    runtime.pilot_actions = ws.actions = pilot_actions
+    pilot_actions.ws = ws
     if d.releases is not None:  # a staff assistant installed from the Hub can now name the staff tools (a customer agent still cannot)
         register_staff_tools(d.releases.registry, ws)
     tasks = TaskService(getattr(runtime, "task_repo", None), ws)
@@ -52,7 +56,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             if not ok:
                 return too_many(retry, "messages")
         chat_id = body.chat_id or uuid.uuid4().hex[:16]
-        agent = ws.agent(who, body.style)
+        agent = ws.agent(who, body.style, chat_id)
         if not agent.tools:
             return _err(403, "forbidden", "Your role has no tools to give the assistant")
         if body.space_id:
@@ -91,8 +95,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if body.temporary:  # a temporary chat keeps nothing: history, traces and anything attached to them are erased now
             await runtime.privacy.erase_session(session_id)
         await record(request, "workspace.chat", chat_id, style=body.style, status=r.status, temporary=body.temporary, memory=use_memory)
+        pending = [a.to_dict() for a in await pilot_actions.repo.list(who.name, chat_id, "proposed")] if body.style == "do" else []
         return {"chatId": chat_id, "reply": r.reply, "status": r.status, "traceId": None if body.temporary else r.trace_id, "sources": sources,
-                "tools": [t.name for t in agent.tools], "temporary": body.temporary, "memory": use_memory}
+                "tools": [t.name for t in agent.tools], "temporary": body.temporary, "memory": use_memory, "actions": pending}
 
     @app.post("/v1/workspace/chat/stream")
     async def workspace_chat_stream(body: WorkspaceChatBody, request: Request) -> Any:
@@ -127,7 +132,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
                         yield sse("error", payload)
                         return
                     else:
-                        yield sse("done", {"chatId": chat_id, "reply": payload.reply, "status": payload.status, "traceId": payload.trace_id, "sources": sources_of(payload.trace)})
+                        yield sse("done", {"chatId": chat_id, "reply": payload.reply, "status": payload.status, "traceId": payload.trace_id, "sources": sources_of(payload.trace),
+                                       "actions": [x.to_dict() for x in await pilot_actions.repo.list(who.name, chat_id, "proposed")] if body.style == "do" else []})
                         await record(request, "workspace.chat", chat_id, style=body.style, status=payload.status)
                         return
             finally:
@@ -168,6 +174,37 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if individuals:
             await record(request, "workspace.performance_individuals", f"{days}d")
         return out
+
+    # ---------------- the Pilot's proposed actions (Do) ----------------
+    @app.get("/v1/workspace/actions")
+    async def list_actions(request: Request, chat: str | None = None) -> Any:
+        who: Identity = request.state.identity
+        if (refused := staff_only(who)) is not None:
+            return refused
+        rows = [a for a in await pilot_actions.repo.list(who.name, chat, "proposed") if a.created_at > time.time() - 1800]
+        return {"actions": [a.to_dict() for a in rows]}
+
+    async def act(action_id: str, request: Request, do: str) -> Any:
+        who: Identity = request.state.identity
+        if (refused := staff_only(who)) is not None:
+            return refused
+        try:
+            a = await (pilot_actions.confirm if do == "confirm" else pilot_actions.cancel)(action_id, who)
+        except ActionError as e:
+            await record(request, f"workspace.pilot_action_{do}", action_id, "denied", reason=str(e))
+            return _err(e.status, {400: "bad_request", 403: "forbidden", 404: "not_found", 409: "conflict", 429: "limit", 501: "not_configured"}.get(e.status, "error"), str(e))
+        if do == "cancel":
+            await record(request, "workspace.pilot_action_cancel", action_id)
+        return a.to_dict()
+
+    @app.post("/v1/workspace/actions/{action_id}/confirm")
+    async def confirm_action(action_id: str, request: Request) -> Any:
+        """Do what the Pilot proposed, as you, with your permissions checked now."""
+        return await act(action_id, request, "confirm")
+
+    @app.post("/v1/workspace/actions/{action_id}/cancel")
+    async def cancel_action(action_id: str, request: Request) -> Any:
+        return await act(action_id, request, "cancel")
 
     # ---------------- assistants (installed from the Hub) ----------------
     async def live_assistants() -> list[Any]:

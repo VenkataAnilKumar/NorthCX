@@ -234,6 +234,8 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/groups/[^/]+/members", "keys:manage"),
     ("DELETE", r"/v1/groups/[^/]+/members/[^/]+", "keys:manage"),
     ("POST", r"/v1/workspace/chat", "workspace:use"),
+    ("GET", r"/v1/workspace/actions", "workspace:use"),
+    ("POST", r"/v1/workspace/actions/[^/]+/(confirm|cancel)", "workspace:use"),
     ("GET", r"/v1/workspace/library-items", "workspace:use"),
     ("POST", r"/v1/workspace/library-items", "workspace:use"),
     ("POST", r"/v1/workspace/library-items/suggest", "workspace:use"),

@@ -25,6 +25,7 @@ from .outputs import PgContent
 from .judgements import PgJudgements
 from .library import PgLibrary
 from .teams import PgTeams
+from .pilot_actions import PgPilotActions
 from .release_requests import PgReleaseRequests
 from .shared_state import PgAlertState, PgCrawlJobs
 from .limits import PgLimiter, PgUsageLedger

@@ -402,8 +402,9 @@ export const createFromTemplate = (id: string, agentId: string, params: Record<s
 
 // ---------- Workspace (staff Pilot, tasks, search, memory) ----------
 export interface PilotSource { title: string | null; url: string | null; section: string | null; updated: string | null; stale: boolean }
-export interface PilotReply { chatId: string; reply: string; status: Status; traceId: string | null; sources: PilotSource[]; tools: string[]; temporary: boolean; memory: boolean }
-export const pilotChat = (message: string, opts: { chatId?: string; style?: "quick" | "research"; memory?: boolean; temporary?: boolean; spaceId?: string } = {}) =>
+export interface PilotAction { id: string; tool: string; summary: string; state: string; result: string; expiresAt: number }
+export interface PilotReply { actions?: PilotAction[]; chatId: string; reply: string; status: Status; traceId: string | null; sources: PilotSource[]; tools: string[]; temporary: boolean; memory: boolean }
+export const pilotChat = (message: string, opts: { chatId?: string; style?: "quick" | "research" | "think" | "do"; memory?: boolean; temporary?: boolean; spaceId?: string } = {}) =>
   api<PilotReply>("/v1/workspace/chat", { method: "POST", body: JSON.stringify({ message, ...opts }) });
 
 export type TaskStatus = "draft" | "needs_answers" | "planned" | "approved" | "running" | "paused" | "done" | "stopped" | "failed";
@@ -612,3 +613,5 @@ export interface SpaceFileItem { id: string; spaceId: string; name: string; size
 export const listSpaceFiles = (spaceId: string) => api<{ files: SpaceFileItem[] }>(`/v1/workspace/spaces/${spaceId}/files`).then((r) => r.files);
 export const addSpaceFile = (spaceId: string, name: string, text: string) => api<SpaceFileItem>(`/v1/workspace/spaces/${spaceId}/files`, { method: "POST", body: JSON.stringify({ name, text }) });
 export const deleteSpaceFile = (spaceId: string, fileId: string) => api<{ deleted: boolean }>(`/v1/workspace/spaces/${spaceId}/files/${fileId}`, { method: "DELETE" });
+export const confirmPilotAction = (id: string) => api<PilotAction>(`/v1/workspace/actions/${id}/confirm`, { method: "POST" });
+export const cancelPilotAction = (id: string) => api<PilotAction>(`/v1/workspace/actions/${id}/cancel`, { method: "POST" });

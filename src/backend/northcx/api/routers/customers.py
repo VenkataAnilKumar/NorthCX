@@ -21,6 +21,7 @@ from northcx.privacy import customer_ref
 def register(app: FastAPI, d: AppDeps) -> None:
     record, runtime, insight, review_repo, privacy = d.record, d.runtime, d.insight, d.review_repo, d.privacy
     svc: CustomerService = getattr(runtime, "customers", None) or CustomerService(InMemoryNotes())
+    runtime.customers = svc
     app.state.customers = svc
     privacy.notes = svc.notes                      # an export includes the notes and an erasure removes them
 

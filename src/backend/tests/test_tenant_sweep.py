@@ -46,7 +46,7 @@ def sweep_app(engine, db_url, app_engine, monkeypatch):
             except Exception:  # noqa: BLE001 - left over from an earlier test in the same database: the tables were emptied, the tenant list is not
                 pass
         admin = lambda tenant: {"authorization": "Bearer " + call(lambda: c.access.issue(f"{tenant}-admin", "admin", "t", tenant_id=tenant))[1]}  # noqa: E731
-        yield SimpleNamespace(web=web, client=client, A=admin("acme"), B=admin("globex"), c=c)
+        yield SimpleNamespace(web=web, client=client, A=admin("acme"), B=admin("globex"), c=c, call=call)
 
 
 def seed(w) -> dict[str, str]:
@@ -68,6 +68,20 @@ def seed(w) -> dict[str, str]:
     ok(c.post(f"/v1/workspace/spaces/{ids['space_id']}/files", headers=A, json={"name": "acme-notes.txt", "text": MARK + " file text"}), "space file")
     ids["output_id"] = ok(c.post("/v1/workspace/outputs", headers=A, json={"title": f"{MARK} output", "body": MARK + " body", "visibility": "shared", "spaceId": ids["space_id"]}), "output")["id"]
     ids["item_id"] = ok(c.post("/v1/workspace/library-items", headers=A, json={"title": f"{MARK} macro", "body": MARK + " reply text", "kind": "macro", "visibility": "shared"}), "library item")["id"]
+    # the Pilot's proposals
+    pa = c.post("/v1/workspace/chat", headers=A, json={"message": "hello", "style": "do"})
+    assert pa.status_code == 200, pa.text
+    from northcx.pilot_actions import PilotAction
+    from northcx.tenancy import TENANT
+
+    async def propose_for_acme() -> None:
+        token = TENANT.set("acme")
+        try:
+            await w.c.runtime.pilot_actions.repo.put(PilotAction("acme-admin", "c1", "save_output", {"title": MARK, "body": MARK}, MARK + " proposal", id="act-acme-1"))
+        finally:
+            TENANT.reset(token)
+    w.call(propose_for_acme)
+    ids["action_id"] = "act-acme-1"
     # customers
     ok(c.post("/v1/customers/notes", headers=A, json={"customerId": CUSTOMER, "note": f"{MARK} staff note about the customer"}), "customer note")
     # policies, templates, automations, quality
@@ -105,14 +119,14 @@ def fill(path: str, ids: dict[str, str]) -> str:
         if name.endswith("customer_id"):
             return CUSTOMER
         return {"agent_id": "support", "policy_id": ids["policy_id"], "template_id": ids["template_id"], "automation_id": ids["automation_id"], "space_id": ids["space_id"],
-                "output_id": ids["output_id"], "item_id": ids["item_id"], "session_id": ids["session_id"], "note_id": ids["note_id"], "run_id": "run-x"}.get(name, "x")
+                "output_id": ids["output_id"], "item_id": ids["item_id"], "action_id": ids["action_id"], "session_id": ids["session_id"], "note_id": ids["note_id"], "run_id": "run-x"}.get(name, "x")
     return re.sub(r"\{([^}]+)\}", one, path)
 
 
 def snapshot_a(w, ids) -> dict[str, str]:
     """What A sees, route by route, for the reads that matter."""
     c, A = w.client, w.A
-    paths = ["/v1/workspace/outputs", f"/v1/workspace/outputs/{ids['output_id']}", "/v1/workspace/library-items", f"/v1/workspace/library-items/{ids['item_id']}", "/v1/workspace/spaces", f"/v1/workspace/spaces/{ids['space_id']}", "/v1/org-policies", "/v1/org-templates",
+    paths = ["/v1/workspace/outputs", f"/v1/workspace/outputs/{ids['output_id']}", "/v1/workspace/library-items", f"/v1/workspace/library-items/{ids['item_id']}", "/v1/workspace/actions", "/v1/workspace/spaces", f"/v1/workspace/spaces/{ids['space_id']}", "/v1/org-policies", "/v1/org-templates",
              "/v1/automations", f"/v1/automations/{ids['automation_id']}", "/v1/quality/coaching", "/v1/quality/rubric", f"/v1/traces/{ids['trace_id']}", "/v1/sessions/web-a/transcript",
              f"/v1/privacy/customers/{MARK}@example.com/export"]
     out = {}
@@ -134,7 +148,7 @@ def test_tenant_b_cannot_reach_tenant_a_through_any_route(sweep_app):
     ids = seed(w)
     before = {k: volatile(v) for k, v in snapshot_a(w, ids).items()}
     leaks, crashes, count = [], [], 0
-    needles = [MARK.lower(), ids["item_id"], ids["output_id"], ids["space_id"], ids["policy_id"], ids["trace_id"], ids["automation_id"]]
+    needles = [MARK.lower(), ids["action_id"], ids["item_id"], ids["output_id"], ids["space_id"], ids["policy_id"], ids["trace_id"], ids["automation_id"]]
     for method, path in routes(w.web):
         url = fill(path, ids)
         count += 1
@@ -182,7 +196,7 @@ OPEN_BY_DESIGN: set[tuple[str, str]] = set()
 def test_every_route_the_server_has_is_in_the_permission_table(sweep_app):
     """A route missing from the table is refused with 404 for everyone, so the sweep above could pass without ever reaching its code. This keeps that from hiding a route."""
     from northcx.server import permission_for
-    ids = {k: "x" for k in ("session_id", "trace_id", "handoff_id", "space_id", "output_id", "policy_id", "template_id", "automation_id", "note_id", "key_id", "item_id")}
+    ids = {k: "x" for k in ("session_id", "trace_id", "handoff_id", "space_id", "output_id", "policy_id", "template_id", "automation_id", "note_id", "key_id", "item_id", "action_id")}
     missing = [(m, p) for m, p in routes(sweep_app.web) if permission_for(m, fill(p, ids)) is None]
     assert not missing, missing
 
