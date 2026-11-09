@@ -28,7 +28,7 @@ The left side shows only **five items**, not twelve tabs. Each group opens its o
 | **Create** | Outputs, Spaces, Automations |
 | **Team** (leads and reviewers only; hidden for everyone else) | Quality, Performance |
 
-Settings and the profile stay in the corner. Rules: a count badge on a sub-tab (for example Approvals) also shows on its group item, so nothing waiting is hidden; the group remembers the last sub-tab you used; Pilot opens full width and hides the sub-tab row while a task is running; a group with one visible sub-tab shows no sub-tab row; search and the command bar (jump to any tab by typing its name) reach every tab in one step. The Admin app uses the same idea: its four groups (Operate, Build, Govern, Platform) already work this way. Open for the owner: whether Pilot should be its own left item instead of living under Assist, because it is the page people open most.
+Settings and the profile stay in the corner. Rules: a count badge on a sub-tab (for example Approvals) also shows on its group item, so nothing waiting is hidden; the group remembers the last sub-tab you used; Pilot opens full width and hides the sub-tab row while a task is running; a group with one visible sub-tab shows no sub-tab row; search and the command bar (jump to any tab by typing its name) reach every tab in one step. The Admin app uses the same idea: its four groups (Operate, Build, Govern, Platform) already work this way. Mockups: `docs/assets/design/53-workspace-subtabs.png` (Work with its sub-tabs) and `54-workspace-subtabs-assist.png` (Assist). Open for the owner: whether Pilot should be its own left item instead of living under Assist, because it is the page people open most.
 
 ### Work
 | Tab | Purpose | Features | State |
