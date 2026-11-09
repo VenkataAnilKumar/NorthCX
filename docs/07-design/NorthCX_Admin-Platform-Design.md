@@ -185,10 +185,10 @@ Vertical slices, each ending with backend, screens, tests and refreshed screensh
 | H | Staff workspace app (`apps/workspace`) | E5 and tenancy decisions |
 
 ## 7. Decisions (status 2026-11-09)
-All decisions from this document are made except open versus commercial, the Explorer privacy question and formal acceptance of E22. See the decision log (153 to 176) and `NorthCX_Platform-Features-and-Tabs.md`.
+All decisions from this document are made. Open versus commercial (D1) is deferred on purpose (decision 176). See the decision log (153 to 176) and `NorthCX_Platform-Features-and-Tabs.md`.
 1. **One app or two:** two separate apps, Workspace and Admin (decided; section 4a).
 2. **Naming of the staff product (D2):** working name NorthCX Workspace (decision 170).
 3. **Tabs and navigation:** six left items with sub-tabs in each app (decisions 157, 168); the first Workspace release is Inbox, Approvals, Pilot, Assistants, Search and Library (decision 162).
 4. **Build order:** slice A first is the starting point once implementation begins; the order follows the implementation plan (E1, E2, E3, E5, E6, E22, E8).
 5. **Figma:** the mockups are HTML and PNG; a Figma file has not been made.
-6. **Still open:** D1, open versus commercial (blocks pricing).
+6. **Deferred on purpose:** D1, open versus commercial (blocks pricing; decision 176).
