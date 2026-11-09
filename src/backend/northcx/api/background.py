@@ -40,7 +40,7 @@ def _every(seconds: float, name: str, job: Callable[[], Awaitable[Any]], leases:
 
 def start_background(role: str, leases: Leases | None, *, runtime: Any, traces: Any, flow: Any, agents: Any, approval_ttl_seconds: float | None,
                      alerts: Any, privacy: Any, audit: Any, retention_days: float | None, kb: Any, crawl_scheduler: Any,
-                     tenants: Any = None) -> Callable[[], Awaitable[None]]:
+                     tenants: Any = None, automations: Any = None) -> Callable[[], Awaitable[None]]:
     """Start the jobs this role runs. Returns a coroutine function that stops them."""
     tasks: list[asyncio.Task] = []
     indexer = getattr(kb, "indexer", None)
@@ -73,6 +73,8 @@ def start_background(role: str, leases: Leases | None, *, runtime: Any, traces: 
     if crawl_scheduler is not None:
         crawl_scheduler.tenants = tenants
         crawl_scheduler.start()
+    if automations is not None:
+        tasks.append(_every(30, "automations", automations.tick, leases, lease_seconds=60, tenants=tenants))
 
     async def stop() -> None:
         if indexer is not None:

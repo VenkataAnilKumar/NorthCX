@@ -72,6 +72,7 @@ from .api.routers import org_policies as _org_policies_router
 from .api.routers import org_templates as _org_templates_router
 from .api.routers import quality as _quality_router
 from .api.routers import customers as _customers_router
+from .api.routers import automations as _automations_router
 from .api.routers import admin_overview as _admin_overview_router
 from .tenancy import TENANT
 from .api.routers import voice as _voice_router
@@ -231,6 +232,17 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/groups/[^/]+/members", "keys:manage"),
     ("DELETE", r"/v1/groups/[^/]+/members/[^/]+", "keys:manage"),
     ("POST", r"/v1/workspace/chat", "workspace:use"),
+    ("GET", r"/v1/automations", "agents:read"),
+    ("POST", r"/v1/automations", "versions:create"),
+    ("GET", r"/v1/automations/[^/]+", "agents:read"),
+    ("PUT", r"/v1/automations/[^/]+", "versions:create"),
+    ("POST", r"/v1/automations/[^/]+/propose", "versions:create"),
+    ("POST", r"/v1/automations/[^/]+/(approve|reject|retire|pause|resume|secret)", "releases:publish"),
+    ("POST", r"/v1/automations/[^/]+/(run|hook)", "automations:run"),
+    ("GET", r"/v1/automations/[^/]+/runs", "agents:read"),
+    ("GET", r"/v1/automation-runs/[^/]+", "agents:read"),
+    ("GET", r"/v1/automation-settings", "agents:read"),
+    ("PUT", r"/v1/automation-settings", "keys:manage"),
     ("GET", r"/v1/customers/settings", "customers:read"),
     ("PUT", r"/v1/customers/settings", "keys:manage"),
     ("POST", r"/v1/customers/lookup", "customers:read"),
@@ -358,7 +370,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         stop = start_background(role, leases, tenants=access.tenants, runtime=runtime, traces=traces, flow=flow, agents=agents, approval_ttl_seconds=approval_ttl_seconds,
-                                alerts=alerts, privacy=privacy, audit=audit, retention_days=retention_days, kb=kb, crawl_scheduler=crawl_scheduler)
+                                alerts=alerts, privacy=privacy, audit=audit, retention_days=retention_days, kb=kb, crawl_scheduler=crawl_scheduler, automations=getattr(runtime, "automations", None))
         yield
         await stop()
 
@@ -452,6 +464,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _org_templates_router.register(app, deps)
     _quality_router.register(app, deps)
     _customers_router.register(app, deps)
+    _automations_router.register(app, deps)
     _admin_overview_router.register(app, deps)
     _voice_router.register(app, deps)
     _public_router.register(app, deps)

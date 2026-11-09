@@ -43,6 +43,13 @@ def register(app: FastAPI, d: AppDeps) -> None:
         reviews = await review_repo.for_sessions(list(results))
         return rubric, results, {sid: r.verdict for sid, r in reviews.items()}, {"truncated": len(by) > MAX_SESSIONS}
 
+    async def quality_report(days: int) -> dict[str, Any]:
+        rubric, results, verdicts, _ = await scored(days, None)
+        scores = [r["score"] for r in results.values() if r["score"] is not None]
+        return {"report": "quality", "days": days, "conversations": len(results), "scored": len(scores), "averageScore": round(sum(scores) / len(scores), 1) if scores else None,
+                "passRate": ratio(sum(s >= rubric["passMark"] for s in scores), len(scores)), "passMark": rubric["passMark"]}
+    app.state.report_quality = quality_report
+
     @app.get("/v1/quality/rubric")
     async def get_rubric() -> Any:
         return {**await rubrics.get(), "checks": {"kinds": list(__import__("northcx.qa", fromlist=["CHECKS"]).CHECKS)}}

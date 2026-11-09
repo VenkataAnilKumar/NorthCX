@@ -2447,6 +2447,750 @@
         ]
       }
     },
+    "/v1/automation-runs/{run_id}": {
+      "get": {
+        "summary": "Get Run",
+        "operationId": "get_run_v1_automation_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Run V1 Automation Runs  Run Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "automation-runs"
+        ]
+      }
+    },
+    "/v1/automation-settings": {
+      "get": {
+        "summary": "Get Settings",
+        "operationId": "get_settings_v1_automation_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Settings V1 Automation Settings Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "automation-settings"
+        ]
+      },
+      "put": {
+        "summary": "Put Settings",
+        "description": "The switch for every routine in the organization. Off: nothing starts and running ones stop at their next step.",
+        "operationId": "put_settings_v1_automation_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationSettingsBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Put Settings V1 Automation Settings Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "automation-settings"
+        ]
+      }
+    },
+    "/v1/automations": {
+      "get": {
+        "summary": "List Automations",
+        "operationId": "list_automations_v1_automations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Automations V1 Automations Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "automations"
+        ]
+      },
+      "post": {
+        "summary": "Create",
+        "operationId": "create_v1_automations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create V1 Automations Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}": {
+      "get": {
+        "summary": "Get Automation",
+        "operationId": "get_automation_v1_automations__automation_id__get",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Automation V1 Automations  Automation Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "automations"
+        ]
+      },
+      "put": {
+        "summary": "Revise",
+        "operationId": "revise_v1_automations__automation_id__put",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Revise V1 Automations  Automation Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/approve": {
+      "post": {
+        "summary": "Approve",
+        "operationId": "approve_v1_automations__automation_id__approve_post",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicyDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Approve V1 Automations  Automation Id  Approve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/hook": {
+      "post": {
+        "summary": "Hook",
+        "description": "A webhook trigger: needs a key that may run routines and a valid signature, `X-Northcx-Signature: sha256=<hmac of the body with the routine's secret>`.",
+        "operationId": "hook_v1_automations__automation_id__hook_post",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Hook V1 Automations  Automation Id  Hook Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "automations:run",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/pause": {
+      "post": {
+        "summary": "Pause One",
+        "operationId": "pause_one_v1_automations__automation_id__pause_post",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Pause One V1 Automations  Automation Id  Pause Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/propose": {
+      "post": {
+        "summary": "Propose",
+        "operationId": "propose_v1_automations__automation_id__propose_post",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Propose V1 Automations  Automation Id  Propose Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/reject": {
+      "post": {
+        "summary": "Reject",
+        "operationId": "reject_v1_automations__automation_id__reject_post",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicyDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Reject V1 Automations  Automation Id  Reject Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/resume": {
+      "post": {
+        "summary": "Resume One",
+        "operationId": "resume_one_v1_automations__automation_id__resume_post",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Resume One V1 Automations  Automation Id  Resume Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/retire": {
+      "post": {
+        "summary": "Retire",
+        "operationId": "retire_v1_automations__automation_id__retire_post",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicyDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Retire V1 Automations  Automation Id  Retire Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/run": {
+      "post": {
+        "summary": "Run Now",
+        "operationId": "run_now_v1_automations__automation_id__run_post",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationRunBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Run Now V1 Automations  Automation Id  Run Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "automations:run",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/runs": {
+      "get": {
+        "summary": "Runs",
+        "operationId": "runs_v1_automations__automation_id__runs_get",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Runs V1 Automations  Automation Id  Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
+    "/v1/automations/{automation_id}/secret": {
+      "post": {
+        "summary": "Rotate Secret",
+        "description": "Make a new webhook secret. The old one stops working at once; the new one is shown only here.",
+        "operationId": "rotate_secret_v1_automations__automation_id__secret_post",
+        "parameters": [
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Rotate Secret V1 Automations  Automation Id  Secret Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "releases:publish",
+        "tags": [
+          "automations"
+        ]
+      }
+    },
     "/v1/budgets": {
       "put": {
         "summary": "Set Budgets",
@@ -10022,6 +10766,61 @@
           "question"
         ],
         "title": "AskBody"
+      },
+      "AutomationBody": {
+        "properties": {
+          "yaml": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yaml"
+          },
+          "definition": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Definition"
+          }
+        },
+        "type": "object",
+        "title": "AutomationBody"
+      },
+      "AutomationRunBody": {
+        "properties": {
+          "input": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Input",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "AutomationRunBody"
+      },
+      "AutomationSettingsBody": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "AutomationSettingsBody"
       },
       "BuilderBody": {
         "properties": {

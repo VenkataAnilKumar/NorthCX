@@ -123,6 +123,16 @@ def register(app: FastAPI, d: AppDeps) -> None:
         return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
     # ---------------- performance ----------------
+    async def performance_data(days: int, me: str, individuals: bool) -> dict[str, Any]:
+        from northcx.performance import figures
+        until = time.time()
+        return figures(await runtime.handoffs.list(None, None, 5000), await runtime.approvals.list(None), me, until - days * 86400.0, until, individuals)
+
+    async def team_report(days: int) -> dict[str, Any]:
+        out = await performance_data(days, "", False)
+        return {"report": "performance", "days": days, "team": {k: v for k, v in out["team"].items() if k != "series"}, "counts": out["counts"]}
+    app.state.report_performance = team_report
+
     @app.get("/v1/workspace/performance")
     async def performance(request: Request, days: int = 7, individuals: bool = False) -> Any:
         """Your numbers and the team's. Per-person rows need the audit permission, are audited, and fold small counts into 'Others'."""
@@ -134,8 +144,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(400, "bad_request", "days must be between 1 and 90")
         if individuals and not who.can("audit:read"):
             return _err(403, "forbidden", "Seeing individual figures needs the audit permission")
-        until = time.time()
-        out = figures(await runtime.handoffs.list(None, None, 5000), await runtime.approvals.list(None), who.name, until - days * 86400.0, until, individuals)
+        out = await performance_data(days, who.name, individuals)
         if individuals:
             await record(request, "workspace.performance_individuals", f"{days}d")
         return out

@@ -50,6 +50,11 @@
   "GET /v1/attachments/x": "/v1/attachments/{attachment_id} -> download_attachment",
   "GET /v1/audit": "/v1/audit -> audit_log",
   "GET /v1/audit/verify": "/v1/audit/verify -> audit_verify",
+  "GET /v1/automation-runs/x": "/v1/automation-runs/{run_id} -> get_run",
+  "GET /v1/automation-settings": "/v1/automation-settings -> get_settings",
+  "GET /v1/automations": "/v1/automations -> list_automations",
+  "GET /v1/automations/x": "/v1/automations/{automation_id} -> get_automation",
+  "GET /v1/automations/x/runs": "/v1/automations/{automation_id}/runs -> runs",
   "GET /v1/catalog": "/v1/catalog -> catalog",
   "GET /v1/conversations/search": "/v1/conversations/search -> conversation_search",
   "GET /v1/customers/settings": "/v1/customers/settings -> get_settings",
@@ -141,6 +146,16 @@
   "POST /v1/alerts/test": "/v1/alerts/test -> alert_test",
   "POST /v1/approvals/expire": "/v1/approvals/expire -> expire",
   "POST /v1/approvals/x/decision": "/v1/approvals/{approval_id}/decision -> decide",
+  "POST /v1/automations": "/v1/automations -> create",
+  "POST /v1/automations/x/approve": "/v1/automations/{automation_id}/approve -> approve",
+  "POST /v1/automations/x/hook": "/v1/automations/{automation_id}/hook -> hook",
+  "POST /v1/automations/x/pause": "/v1/automations/{automation_id}/pause -> pause_one",
+  "POST /v1/automations/x/propose": "/v1/automations/{automation_id}/propose -> propose",
+  "POST /v1/automations/x/reject": "/v1/automations/{automation_id}/reject -> reject",
+  "POST /v1/automations/x/resume": "/v1/automations/{automation_id}/resume -> resume_one",
+  "POST /v1/automations/x/retire": "/v1/automations/{automation_id}/retire -> retire",
+  "POST /v1/automations/x/run": "/v1/automations/{automation_id}/run -> run_now",
+  "POST /v1/automations/x/secret": "/v1/automations/{automation_id}/secret -> rotate_secret",
   "POST /v1/builder/draft": "/v1/builder/draft -> builder_draft",
   "POST /v1/builder/refine": "/v1/builder/refine -> builder_refine",
   "POST /v1/builder/scenarios": "/v1/builder/scenarios -> builder_scenarios",
@@ -207,6 +222,8 @@
   "POST /v1/workspace/tasks/x/stop": "/v1/workspace/tasks/{task_id}/stop -> stop_task",
   "PUT /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> replace_user",
   "PUT /v1/agents/x/rollouts/x/percent": "/v1/agents/{agent_id}/rollouts/{rollout_id}/percent -> rollout_percent",
+  "PUT /v1/automation-settings": "/v1/automation-settings -> put_settings",
+  "PUT /v1/automations/x": "/v1/automations/{automation_id} -> revise",
   "PUT /v1/budgets": "/v1/budgets -> set_budgets",
   "PUT /v1/customers/settings": "/v1/customers/settings -> put_settings",
   "PUT /v1/groups/x": "/v1/groups/{group_id} -> update_group",
@@ -472,6 +489,31 @@
    "GET",
    "/v1/audit/verify",
    "audit_verify"
+  ],
+  [
+   "GET",
+   "/v1/automation-runs/{run_id}",
+   "get_run"
+  ],
+  [
+   "GET",
+   "/v1/automation-settings",
+   "get_settings"
+  ],
+  [
+   "GET",
+   "/v1/automations",
+   "list_automations"
+  ],
+  [
+   "GET",
+   "/v1/automations/{automation_id}",
+   "get_automation"
+  ],
+  [
+   "GET",
+   "/v1/automations/{automation_id}/runs",
+   "runs"
   ],
   [
    "GET",
@@ -930,6 +972,56 @@
   ],
   [
    "POST",
+   "/v1/automations",
+   "create"
+  ],
+  [
+   "POST",
+   "/v1/automations/{automation_id}/approve",
+   "approve"
+  ],
+  [
+   "POST",
+   "/v1/automations/{automation_id}/hook",
+   "hook"
+  ],
+  [
+   "POST",
+   "/v1/automations/{automation_id}/pause",
+   "pause_one"
+  ],
+  [
+   "POST",
+   "/v1/automations/{automation_id}/propose",
+   "propose"
+  ],
+  [
+   "POST",
+   "/v1/automations/{automation_id}/reject",
+   "reject"
+  ],
+  [
+   "POST",
+   "/v1/automations/{automation_id}/resume",
+   "resume_one"
+  ],
+  [
+   "POST",
+   "/v1/automations/{automation_id}/retire",
+   "retire"
+  ],
+  [
+   "POST",
+   "/v1/automations/{automation_id}/run",
+   "run_now"
+  ],
+  [
+   "POST",
+   "/v1/automations/{automation_id}/secret",
+   "rotate_secret"
+  ],
+  [
+   "POST",
    "/v1/builder/draft",
    "builder_draft"
   ],
@@ -1257,6 +1349,16 @@
    "PUT",
    "/v1/agents/{agent_id}/rollouts/{rollout_id}/percent",
    "rollout_percent"
+  ],
+  [
+   "PUT",
+   "/v1/automation-settings",
+   "put_settings"
+  ],
+  [
+   "PUT",
+   "/v1/automations/{automation_id}",
+   "revise"
   ],
   [
    "PUT",

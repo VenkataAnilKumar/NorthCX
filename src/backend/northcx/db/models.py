@@ -688,6 +688,40 @@ class CustomerNoteRow(TenantScoped, Base):
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+class AutomationRow(TenantScoped, Base):
+    """One version of a routine (E8): draft, proposed, published, rejected, superseded or retired."""
+    __tablename__ = "automations"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+
+
+class AutomationRunRow(TenantScoped, Base):
+    """One run of a routine, with each step's result."""
+    __tablename__ = "automation_runs"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    automation_id: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    started_at: Mapped[float] = mapped_column(Float, nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    __table_args__ = (Index("ix_automation_runs_auto", "automation_id", "started_at"),)
+
+
+class AutomationStateRow(TenantScoped, Base):
+    """When a scheduled routine runs next, and whether it is paused."""
+    __tablename__ = "automation_state"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    automation_id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    next_run: Mapped[float | None] = mapped_column(Float, nullable=True)
+    paused: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

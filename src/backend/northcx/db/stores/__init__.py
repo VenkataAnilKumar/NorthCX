@@ -20,6 +20,7 @@ from .org_policies import PgOrgPolicies
 from .org_templates import PgOrgTemplates
 from .coaching import PgCoaching
 from .customers import PgCustomerNotes
+from .automations import PgAutomations
 from .release_requests import PgReleaseRequests
 from .shared_state import PgAlertState, PgCrawlJobs
 from .limits import PgLimiter, PgUsageLedger

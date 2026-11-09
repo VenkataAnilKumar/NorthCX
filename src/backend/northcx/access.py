@@ -16,15 +16,16 @@ from .tokens import PREFIX as TOKEN_PREFIX, TokenError, TokenSigner
 
 # ---------------- roles and permissions ----------------
 VIEW = {"workspace:use", "agents:read", "traces:read", "handoffs:read", "approvals:read", "simulations:read", "versions:read", "monitor:read", "knowledge:read", "insights:read"}
-DEVELOP = VIEW | {"reviews:write", "scenarios:write", "conversations:tag", "feedback:send", "knowledge:write", "versions:create", "simulations:run", "chat:send", "outbox:read"}
+DEVELOP = VIEW | {"automations:run", "reviews:write", "scenarios:write", "conversations:tag", "feedback:send", "knowledge:write", "versions:create", "simulations:run", "chat:send", "outbox:read"}
 ROLES: dict[str, frozenset[str]] = {
     "admin": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "approvals:decide", "handoffs:resolve",
                                   "keys:manage", "audit:read", "chat:mint", "channel:inbound", "privacy:manage", "memory:read", "memory:manage", "scenarios:require", "customers:read", "customers:write"}),
     "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "memory:read", "scenarios:require", "customers:read", "customers:write"}),
     "developer": frozenset(DEVELOP | {"memory:read"}),
-    "reviewer": frozenset(VIEW | {"approvals:decide", "handoffs:resolve", "memory:read", "conversations:tag", "reviews:write", "customers:read", "customers:write"}),
+    "reviewer": frozenset(VIEW | {"automations:run", "approvals:decide", "handoffs:resolve", "memory:read", "conversations:tag", "reviews:write", "customers:read", "customers:write"}),
     "auditor": frozenset(VIEW | {"audit:read"}),
     "viewer": frozenset(VIEW),
+    "trigger": frozenset({"automations:run"}),  # for a company system that starts a routine through its signed webhook, and nothing else
     "channel": frozenset({"chat:send", "outbox:read", "chat:mint", "channel:inbound", "feedback:send"}),  # for the company's servers and channel adapters
 }
 # Roles that exist only inside the platform; a key can never be given one.

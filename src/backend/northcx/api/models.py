@@ -335,6 +335,19 @@ class CustomerSettingsBody(BaseModel):
     enabled: bool
 
 
+class AutomationBody(BaseModel):
+    yaml: str | None = Field(default=None, max_length=30000)
+    definition: dict[str, Any] | None = None
+
+
+class AutomationRunBody(BaseModel):
+    input: str = Field(default="", max_length=2000)
+
+
+class AutomationSettingsBody(BaseModel):
+    enabled: bool
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

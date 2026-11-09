@@ -546,3 +546,16 @@ export const customerDeleteNote = (customerId: string, noteId: string) => api<{ 
 export const customerRemoveFact = (customerId: string, factId: string, reason: string) => api<{ removed: boolean }>(`/v1/customers/facts/${factId}/remove`, { method: "POST", body: JSON.stringify({ customerId, reason }) });
 export const customersEnabled = () => api<{ enabled: boolean }>("/v1/customers/settings");
 export const setCustomersEnabled = (enabled: boolean) => api<{ enabled: boolean }>("/v1/customers/settings", { method: "PUT", body: JSON.stringify({ enabled }) });
+
+// ---------- Automations (Workspace) ----------
+export interface AutoRun { id: string; automationId: string; version: number; trigger: string; by: string; status: "running" | "succeeded" | "failed" | "stopped" | "timed_out"; startedAt: number; endedAt: number | null;
+  steps: { id: string; kind: string; status: string; output?: string; error?: string; traceId?: string }[]; outcome: string; error: string | null }
+export interface Automation { id: string; version: number; name: string; status: "draft" | "proposed" | "published" | "rejected" | "superseded" | "retired"; trigger: { type: string; everyHours?: number }; steps: number;
+  createdBy: string; proposedBy: string | null; decidedBy: string | null; paused: boolean; nextRun: number | null; lastRun: AutoRun | null; yaml?: string; versions?: { version: number; status: string }[] }
+export const automations = () => api<{ enabled: boolean; automations: Automation[] }>("/v1/automations");
+export const automation = (id: string) => api<Automation>(`/v1/automations/${id}`);
+export const createAutomation = (yaml: string) => api<Automation & { webhookSecret?: string }>("/v1/automations", { method: "POST", body: JSON.stringify({ yaml }) });
+export const reviseAutomation = (id: string, yaml: string) => api<Automation>(`/v1/automations/${id}`, { method: "PUT", body: JSON.stringify({ yaml }) });
+export const automationAction = (id: string, action: "propose" | "approve" | "reject" | "retire" | "pause" | "resume" | "run", body: object = {}) => api<unknown>(`/v1/automations/${id}/${action}`, { method: "POST", body: JSON.stringify(body) });
+export const automationRuns = (id: string) => api<{ runs: AutoRun[] }>(`/v1/automations/${id}/runs`).then((r) => r.runs);
+export const setAutomationsEnabled = (enabled: boolean) => api<{ enabled: boolean }>("/v1/automation-settings", { method: "PUT", body: JSON.stringify({ enabled }) });
