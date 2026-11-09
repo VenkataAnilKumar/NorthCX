@@ -13,6 +13,7 @@ from .qualifications import PgQualifications
 from .groups import PgGroups
 from .scim import PgScimUsers
 from .tenants import PgTenants
+from .tasks import PgTasks
 from .release_requests import PgReleaseRequests
 from .shared_state import PgAlertState, PgCrawlJobs
 from .limits import PgLimiter, PgUsageLedger

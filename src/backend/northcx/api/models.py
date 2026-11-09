@@ -242,7 +242,26 @@ class WorkspaceChatBody(BaseModel):
     message: str = Field(min_length=1, max_length=8000)
     chat_id: str | None = Field(default=None, alias="chatId", pattern=r"^[A-Za-z0-9_-]{1,64}$")  # leave out to start a new chat
     style: str = Field(default="quick", pattern="^(quick|research)$")
+    memory: bool = True        # false: this chat neither reads nor writes the person's memory
+    temporary: bool = False    # true: nothing is kept (history, traces) and no memory is used
     model_config = {"populate_by_name": True}
+
+
+class TaskBody(BaseModel):
+    prompt: str = Field(min_length=1, max_length=4000)
+    style: str = Field(default="research", pattern="^(research)$")
+
+
+class AnswersBody(BaseModel):
+    answers: list[str] = Field(default_factory=list, max_length=3)
+
+
+class PlanBody(BaseModel):
+    steps: list[dict[str, Any]] = Field(min_length=1, max_length=8)
+
+
+class NoteBody(BaseModel):
+    note: str = Field(min_length=5, max_length=300)
 
 
 class KeyBody(BaseModel):

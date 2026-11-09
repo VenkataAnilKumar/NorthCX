@@ -595,6 +595,18 @@ class ChannelBindingRow(Base):
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+class WorkspaceTaskRow(TenantScoped, Base):
+    """A Pilot task: questions, plan, steps and versioned results (E6)."""
+    __tablename__ = "workspace_tasks"
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    owner: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    __table_args__ = (Index("ix_workspace_tasks_owner", "tenant_id", "owner", "created_at"),)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

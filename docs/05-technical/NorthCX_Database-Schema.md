@@ -66,3 +66,5 @@ Status: **Built**. Updated: 2026-11-09. Master for: database tables (checked by 
 **After 1.0.** The staff platform adds tables (provisional names in `NorthCX_Staff-Platform-Architecture.md`, section 4); each is added here when its migration lands, and multi-tenancy adds `tenant_id` to every table (E2).
 
 **Tenant columns (migration 0038):** `sessions`, `messages`, `customer_facts`, `traces`, `trace_events`, `approvals`, `handoffs`, `outbox`, `inbox_events`, `session_routes`, `session_index`, `customer_memories`, `conversation_feedback`, `conversation_tags` and `conversation_reviews` have a `tenant_id` (default from the session's tenant; existing rows are `default`), a row-level security policy, and keys that include it where ids are chosen by clients (sessions, facts, routes, the customer index, feedback, tags and reviews, and the per-session message order). See `NorthCX_Tenancy-ADR.md`.
+
+**Pilot tasks (migration 0042):** `workspace_tasks` (`id` pk, `tenant_id`, `owner`, `status`, `created_at`, `updated_at`, `data` JSON holding the questions, answers, plan, steps and result versions) with a row-level security policy like every other tenant table.

@@ -83,6 +83,20 @@ def build_runtime(c: SimpleNamespace) -> None:
                                  money_limit, currency])))
     from northcx.providers.qualification import Qualifications
     from northcx.db import PgQualifications
+    policy_file = os.environ.get("NORTHCX_WORKSPACE_POLICY_FILE", "").strip()
+    if policy_file:  # limits on what staff assistants may use: tools per role, the model, and rows per call
+        from pathlib import Path
+
+        from northcx.secrets import ConfigError
+        from northcx.workspace import WorkspaceService
+        from northcx.workspace_policy import parse_policy
+        try:
+            known = {t.name for t in WorkspaceService(runtime, None, None, None, None, None).tools()}
+            runtime.workspace_policy = parse_policy(Path(policy_file).read_text(), known | {"search_knowledge"})
+        except (OSError, ConfigError) as e:
+            sys.exit(f"Configuration error: NORTHCX_WORKSPACE_POLICY_FILE: {e}")
+    from northcx.db import PgTasks
+    runtime.task_repo = PgTasks(c.engine) if c.db_url else None
     runtime.qualifications = Qualifications(PgQualifications(c.engine) if c.db_url else None)
     if getattr(llm, "selector", None) is not None:
         llm.selector.qualifier = runtime.qualifications

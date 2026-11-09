@@ -13,6 +13,9 @@
   "DELETE /v1/privacy/sessions/a/b": "/v1/privacy/sessions/{session_id:path} -> privacy_erase_session",
   "DELETE /v1/sessions/x/tags/x": "/v1/sessions/{session_id}/tags/{tag} -> remove_tag",
   "DELETE /v1/simulations/scenarios/x": "/v1/simulations/scenarios/{name} -> delete_scenario",
+  "DELETE /v1/workspace/memory": "/v1/workspace/memory -> erase_memory",
+  "DELETE /v1/workspace/memory/x": "/v1/workspace/memory/{note_id} -> forget_memory",
+  "DELETE /v1/workspace/tasks/x": "/v1/workspace/tasks/{task_id} -> delete_task",
   "GET /": "/ -> widget",
   "GET /auth/sso/callback": "/auth/sso/callback -> sso_callback",
   "GET /auth/sso/config": "/auth/sso/config -> sso_config",
@@ -94,6 +97,10 @@
   "GET /v1/traces/x": "/v1/traces/{trace_id} -> get_trace",
   "GET /v1/traces/x/exports": "/v1/traces/{trace_id}/exports -> trace_exports",
   "GET /v1/voice/calls": "/v1/voice/calls -> voice_calls",
+  "GET /v1/workspace/memory": "/v1/workspace/memory -> list_memory",
+  "GET /v1/workspace/search": "/v1/workspace/search -> workspace_search",
+  "GET /v1/workspace/tasks": "/v1/workspace/tasks -> list_tasks",
+  "GET /v1/workspace/tasks/x": "/v1/workspace/tasks/{task_id} -> get_task",
   "PATCH /scim/v2/Groups/x": "/scim/v2/Groups/{group_id} -> patch_group",
   "PATCH /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> patch_user",
   "POST /channels/sms/twilio": "/channels/sms/twilio -> sms_inbound",
@@ -150,6 +157,14 @@
   "POST /v1/simulations/scenarios/validate": "/v1/simulations/scenarios/validate -> validate_scenario",
   "POST /v1/templates/x/create-version": "/v1/templates/{template_id}/create-version -> template_version",
   "POST /v1/templates/x/render": "/v1/templates/{template_id}/render -> render_template",
+  "POST /v1/workspace/chat": "/v1/workspace/chat -> workspace_chat",
+  "POST /v1/workspace/chat/stream": "/v1/workspace/chat/stream -> workspace_chat_stream",
+  "POST /v1/workspace/memory": "/v1/workspace/memory -> add_memory",
+  "POST /v1/workspace/tasks": "/v1/workspace/tasks -> create_task",
+  "POST /v1/workspace/tasks/x/answers": "/v1/workspace/tasks/{task_id}/answers -> answer_task",
+  "POST /v1/workspace/tasks/x/approve": "/v1/workspace/tasks/{task_id}/approve -> approve_task",
+  "POST /v1/workspace/tasks/x/pause": "/v1/workspace/tasks/{task_id}/pause -> pause_task",
+  "POST /v1/workspace/tasks/x/stop": "/v1/workspace/tasks/{task_id}/stop -> stop_task",
   "PUT /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> replace_user",
   "PUT /v1/agents/x/rollouts/x/percent": "/v1/agents/{agent_id}/rollouts/{rollout_id}/percent -> rollout_percent",
   "PUT /v1/groups/x": "/v1/groups/{group_id} -> update_group",
@@ -158,6 +173,8 @@
   "PUT /v1/sessions/x/review": "/v1/sessions/{session_id}/review -> put_review",
   "PUT /v1/sessions/x/tags/x": "/v1/sessions/{session_id}/tags/{tag} -> add_tag",
   "PUT /v1/simulations/scenarios/x": "/v1/simulations/scenarios/{name} -> update_scenario",
+  "PUT /v1/workspace/memory/x": "/v1/workspace/memory/{note_id} -> edit_memory",
+  "PUT /v1/workspace/tasks/x/plan": "/v1/workspace/tasks/{task_id}/plan -> edit_plan",
   "WS /v1/voice/stream": "/v1/voice/stream -> voice_stream"
  },
  "routes": [
@@ -225,6 +242,21 @@
    "DELETE",
    "/v1/simulations/scenarios/{name}",
    "delete_scenario"
+  ],
+  [
+   "DELETE",
+   "/v1/workspace/memory",
+   "erase_memory"
+  ],
+  [
+   "DELETE",
+   "/v1/workspace/memory/{note_id}",
+   "forget_memory"
+  ],
+  [
+   "DELETE",
+   "/v1/workspace/tasks/{task_id}",
+   "delete_task"
   ],
   [
    "GET",
@@ -632,6 +664,26 @@
    "voice_calls"
   ],
   [
+   "GET",
+   "/v1/workspace/memory",
+   "list_memory"
+  ],
+  [
+   "GET",
+   "/v1/workspace/search",
+   "workspace_search"
+  ],
+  [
+   "GET",
+   "/v1/workspace/tasks",
+   "list_tasks"
+  ],
+  [
+   "GET",
+   "/v1/workspace/tasks/{task_id}",
+   "get_task"
+  ],
+  [
    "PATCH",
    "/scim/v2/Groups/{group_id}",
    "patch_group"
@@ -912,6 +964,46 @@
    "render_template"
   ],
   [
+   "POST",
+   "/v1/workspace/chat",
+   "workspace_chat"
+  ],
+  [
+   "POST",
+   "/v1/workspace/chat/stream",
+   "workspace_chat_stream"
+  ],
+  [
+   "POST",
+   "/v1/workspace/memory",
+   "add_memory"
+  ],
+  [
+   "POST",
+   "/v1/workspace/tasks",
+   "create_task"
+  ],
+  [
+   "POST",
+   "/v1/workspace/tasks/{task_id}/answers",
+   "answer_task"
+  ],
+  [
+   "POST",
+   "/v1/workspace/tasks/{task_id}/approve",
+   "approve_task"
+  ],
+  [
+   "POST",
+   "/v1/workspace/tasks/{task_id}/pause",
+   "pause_task"
+  ],
+  [
+   "POST",
+   "/v1/workspace/tasks/{task_id}/stop",
+   "stop_task"
+  ],
+  [
    "PUT",
    "/scim/v2/Users/{user_id}",
    "replace_user"
@@ -950,6 +1042,16 @@
    "PUT",
    "/v1/simulations/scenarios/{name}",
    "update_scenario"
+  ],
+  [
+   "PUT",
+   "/v1/workspace/memory/{note_id}",
+   "edit_memory"
+  ],
+  [
+   "PUT",
+   "/v1/workspace/tasks/{task_id}/plan",
+   "edit_plan"
   ],
   [
    "WS",

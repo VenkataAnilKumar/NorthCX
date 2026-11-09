@@ -159,8 +159,9 @@ class Runtime:
         memory_block = ""
         if self.memories is not None and customer_id and not self.dry_run and not trusted:
             try:
-                recalled = await self.memories.recall(customer_id, message, 5)
-                memory_block = render_block(recalled)
+                # a customer's notes are recalled by relevance to the message; a staff member's working preferences always apply, so the newest ones are all used
+                recalled = await (self.memories.list(customer_id, 10) if agent.audience == "staff" else self.memories.recall(customer_id, message, 5))
+                memory_block = render_block(recalled, staff=agent.audience == "staff")
                 if recalled:
                     trace.add("memory", recalled=len(recalled))  # how many, never the text
             except Exception:  # memory is a convenience; the conversation goes on without it

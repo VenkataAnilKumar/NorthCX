@@ -200,3 +200,29 @@ def test_the_streaming_pilot_sends_progress_and_a_done_event():
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/event-stream")
     events = [line.split(": ", 1)[1] for line in r.text.splitlines() if line.startswith("event: ")]
     assert events[0] == "started" and events[-1] == "done" and "progress" in events
+
+
+# ---------- staff guardrails (WP5.7) ----------
+def test_the_policy_narrows_tools_per_role_sets_the_model_and_caps_rows():
+    from northcx.secrets import ConfigError
+    from northcx.workspace_policy import parse_policy
+    names = set(TOOLS)
+    pol = parse_policy("model: local:small\nmaxItemsPerCall: 5\nroles:\n  viewer: [search_knowledge, list_handoffs]\n", names)
+    assert pol.model == "local:small" and pol.max_items == 5 and pol.allows("viewer", "list_handoffs") and not pol.allows("viewer", "get_conversation") and pol.allows("admin", "get_conversation")
+    for bad, why in [("roles: {chef: []}", "unknown role"), ("roles: {viewer: [fly_to_moon]}", "unknown tool"), ("maxItemsPerCall: 0", "from 1 to 200"), ("colour: red", "takes only"),
+                     ("roles: {viewer: nope}", "list of tool names"), ("model: ''", "model name")]:
+        with pytest.raises(ConfigError, match=why):
+            parse_policy(bad, names)
+
+
+async def test_a_roles_assistant_is_offered_only_what_the_policy_and_the_permissions_allow_and_runs_on_the_set_model():
+    from northcx.workspace_policy import parse_policy
+    rt, ws, _ = await world([])
+    ws.policy = parse_policy("model: local:small\nmaxItemsPerCall: 2\nroles:\n  viewer: [search_knowledge, list_handoffs]\n", set(TOOLS))
+    viewer = ws.agent(who("viewer"))
+    assert {t.name for t in viewer.tools} == {"search_knowledge", "list_handoffs"} and viewer.model == "local:small"
+    assert "get_conversation" in {t.name for t in ws.agent(who("admin")).tools}          # a role not listed keeps everything its permissions allow
+    assert ws.cap(50) == 2 and ws.cap(1) == 1
+    # the policy never adds: a role without the permission still gets nothing, even if listed
+    ws.policy = parse_policy("roles:\n  auditor: [list_handoffs, search_conversations]\n", set(TOOLS))
+    assert {t.name for t in ws.agent(who("auditor")).tools} == {"list_handoffs", "search_conversations"}
