@@ -119,7 +119,7 @@ class HandoffRow(TenantScoped, Base):
     __table_args__ = (Index("ix_handoffs_state", "state", "created_at"), Index("ix_handoffs_session", "session_id"), Index("ix_handoffs_queue", "queue", "state"))
 
 
-class SimRunRow(Base):
+class SimRunRow(TenantScoped, Base):
     __tablename__ = "simulation_runs"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
@@ -134,7 +134,7 @@ class SimRunRow(Base):
     __table_args__ = (Index("ix_simulation_runs_created", "created_at"),)
 
 
-class AgentVersionRow(Base):
+class AgentVersionRow(TenantScoped, Base):
     __tablename__ = "agent_versions"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -144,10 +144,10 @@ class AgentVersionRow(Base):
     author: Mapped[str] = mapped_column(String(200), nullable=False)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
-    __table_args__ = (UniqueConstraint("agent_id", "number", name="uq_agent_versions_number"),)
+    __table_args__ = (UniqueConstraint("tenant_id", "agent_id", "number", name="uq_agent_versions_number"),)
 
 
-class ReleaseRow(Base):
+class ReleaseRow(TenantScoped, Base):
     __tablename__ = "releases"
     seq: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
@@ -295,8 +295,9 @@ class CrawlScheduleRow(TenantScoped, Base):
                       ForeignKeyConstraint(["tenant_id", "source_id"], ["knowledge_sources.tenant_id", "knowledge_sources.id"], ondelete="CASCADE"))
 
 
-class ManagedScenarioRow(Base):
+class ManagedScenarioRow(TenantScoped, Base):
     __tablename__ = "managed_scenarios"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     name: Mapped[str] = mapped_column(String(100), primary_key=True)
     agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
     required: Mapped[bool] = mapped_column(nullable=False)
@@ -352,7 +353,7 @@ class SessionRouteRow(TenantScoped, Base):
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
-class RolloutRow(Base):
+class RolloutRow(TenantScoped, Base):
     __tablename__ = "rollouts"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -366,10 +367,10 @@ class RolloutRow(Base):
     ended_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
     started_at: Mapped[float] = mapped_column(Float, nullable=False)
     ended_at: Mapped[float | None] = mapped_column(Float, nullable=True)
-    __table_args__ = (Index("uq_rollouts_active", "agent_id", "environment", unique=True, postgresql_where=text("state = 'active'")),)
+    __table_args__ = (Index("uq_rollouts_active", "tenant_id", "agent_id", "environment", unique=True, postgresql_where=text("state = 'active'")),)
 
 
-class RolloutAssignmentRow(Base):
+class RolloutAssignmentRow(TenantScoped, Base):
     __tablename__ = "rollout_assignments"
     rollout_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
@@ -410,7 +411,7 @@ class FeedbackRow(TenantScoped, Base):
     __table_args__ = (Index("ix_feedback_created", "created_at"),)
 
 
-class TraceExportRow(Base):
+class TraceExportRow(TenantScoped, Base):
     __tablename__ = "trace_exports"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     trace_id: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -494,8 +495,9 @@ class SessionIndexRow(TenantScoped, Base):
     __table_args__ = (Index("ix_session_index_customer", "customer_id"), Index("ix_session_index_seen", "last_seen"))
 
 
-class IdempotencyRow(Base):
+class IdempotencyRow(TenantScoped, Base):
     __tablename__ = "idempotency_keys"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     scope: Mapped[str] = mapped_column(String(64), primary_key=True)
     req_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     response: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
@@ -512,16 +514,17 @@ class RateCounterRow(Base):
     count: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
-class UsageLedgerRow(Base):
+class UsageLedgerRow(TenantScoped, Base):
     """Model tokens used per agent per UTC day, shared by every server process."""
     __tablename__ = "usage_ledger"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     agent_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     day: Mapped[str] = mapped_column(String(10), primary_key=True)
     tokens: Mapped[int] = mapped_column(BigInteger, nullable=False)
     cost_micros: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0")  # money in millionths of the budget currency
 
 
-class ModelQualificationRow(Base):
+class ModelQualificationRow(TenantScoped, Base):
     """The result of qualifying one model for one agent definition, from a stored live simulation run."""
     __tablename__ = "model_qualifications"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -531,32 +534,34 @@ class ModelQualificationRow(Base):
     result: Mapped[Any] = mapped_column(JSONB, nullable=False)
 
 
-class GroupRow(Base):
+class GroupRow(TenantScoped, Base):
     """A group: roles bound to a set of people (hand-added subjects and/or an identity provider group name)."""
     __tablename__ = "groups"
     id: Mapped[str] = mapped_column(String(8), primary_key=True)
-    name: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
-    external_name: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    external_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     description: Mapped[str] = mapped_column(String(500), nullable=False, server_default="")
     roles: Mapped[Any] = mapped_column(JSONB, nullable=False)
     members: Mapped[Any] = mapped_column(JSONB, nullable=False)
     created_by: Mapped[str] = mapped_column(String(200), nullable=False)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (UniqueConstraint("tenant_id", "name", name="groups_name_key"), UniqueConstraint("tenant_id", "external_name", name="groups_external_name_key"))
 
 
-class ScimUserRow(Base):
+class ScimUserRow(TenantScoped, Base):
     """A person provisioned by SCIM: whether they may sign in (WP3.3)."""
     __tablename__ = "scim_users"
     id: Mapped[str] = mapped_column(String(16), primary_key=True)
-    user_name: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    user_name: Mapped[str] = mapped_column(String(200), nullable=False)
     display_name: Mapped[str] = mapped_column(String(200), nullable=False, server_default="")
     external_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    __table_args__ = (UniqueConstraint("tenant_id", "user_name", name="scim_users_user_name_key"),)
 
 
-class ReleaseRequestRow(Base):
+class ReleaseRequestRow(TenantScoped, Base):
     """A publish or promote waiting for a second person (WP3.5)."""
     __tablename__ = "release_requests"
     id: Mapped[str] = mapped_column(String(16), primary_key=True)
@@ -598,14 +603,15 @@ class JobLeaseRow(Base):
     expires_at: Mapped[float] = mapped_column(Float, nullable=False)  # epoch seconds on the database clock
 
 
-class AlertStateRow(Base):
+class AlertStateRow(TenantScoped, Base):
     """An alert that is firing right now, so whichever server evaluates the rules next knows not to fire it again."""
     __tablename__ = "alert_state"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
     rule: Mapped[str] = mapped_column(String(100), primary_key=True)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
 
-class AlertEventRow(Base):
+class AlertEventRow(TenantScoped, Base):
     """Recent alert events (fired, cleared, test) with their delivery status, visible from any server."""
     __tablename__ = "alert_events"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -625,7 +631,7 @@ class CrawlJobRow(TenantScoped, Base):
     __table_args__ = (Index("ix_crawl_jobs_source_state", "source_id", "state"), Index("ix_crawl_jobs_started", "started_at"))
 
 
-class MonitorFindingRow(Base):
+class MonitorFindingRow(TenantScoped, Base):
     __tablename__ = "monitor_findings"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     rule: Mapped[str] = mapped_column(String(64), nullable=False)

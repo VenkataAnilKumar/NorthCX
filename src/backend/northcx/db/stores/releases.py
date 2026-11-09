@@ -184,7 +184,7 @@ class PgScenarios(_Base):
         async with self._sm.begin() as s:
             r = (await s.execute(text(
                 "insert into managed_scenarios (name, agent_id, required, definition, created_by, updated_by, created_at, updated_at, revision) "
-                "values (:n, :a, :r, cast(:d as jsonb), :b, :b, :t, :t, 1) on conflict (name) do update set agent_id = excluded.agent_id, required = excluded.required, "
+                "values (:n, :a, :r, cast(:d as jsonb), :b, :b, :t, :t, 1) on conflict (tenant_id, name) do update set agent_id = excluded.agent_id, required = excluded.required, "
                 "definition = excluded.definition, updated_by = excluded.updated_by, updated_at = excluded.updated_at, revision = managed_scenarios.revision + 1 "
                 "returning *, (xmax = 0) as inserted"),
                 {"n": scenario.name, "a": scenario.agent, "r": scenario.required, "d": json.dumps(_jsonable(definition)), "b": by, "t": now})).one()

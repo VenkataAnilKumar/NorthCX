@@ -332,3 +332,257 @@ def test_the_email_route_delivers_only_to_the_tenant_that_owns_the_recipient_dom
     assert c.post("/v1/channels/email/inbound", headers=acme, content=msg).json()["status"] == "replied" and seen == ["acme"]
     assert c.post("/v1/channels/email/inbound", headers=globex, content=msg).json()["status"] == "ignored"   # globex's key cannot deliver to acme's domain
     assert c.post("/v1/channels/email/inbound", headers=acme, content=b"From: x@y.com\r\nTo: help@other.com\r\nSubject: hi\r\n\r\nbody").json()["status"] == "ignored"  # unbound
+
+
+# ---------- batches e and f: versions, releases, rollouts, scenarios, usage, groups, SCIM, idempotency ----------
+async def test_versions_releases_and_rollouts_are_per_tenant_and_agent_ids_may_repeat(app_engine):
+    from northcx.db import PgReleases, PgRollouts, PgVersions
+    from northcx.rollout import Rollout
+    from northcx.versions import Release
+    versions, releases, rollouts = PgVersions(app_engine), PgReleases(app_engine), PgRollouts(app_engine)
+    for tenant in ("acme", "globex"):
+        with as_tenant(tenant):
+            v = await versions.create("support", {"instructions": tenant}, f"digest-{tenant}", tenant, None)   # both tenants have a "support" agent, each at version 1
+            assert v.number == 1
+            await releases.add(Release("support", "publish", "rae", v.id, v.number))
+            await rollouts.add(Rollout("support", "production", 1, None, 10, "rae"))       # one active rollout per agent and environment, per tenant
+    with as_tenant("acme"):
+        assert (await versions.get_number("support", 1)).author == "acme" and len(await versions.list("support")) == 1
+        assert (await rollouts.active("support", "production")) is not None
+    with as_tenant("nobody"):
+        assert await versions.get_number("support", 1) is None and await versions.list("support") == [] and await rollouts.active("support", "production") is None
+
+
+async def test_scenarios_runs_usage_and_idempotency_are_per_tenant(app_engine):
+    from northcx.db import PgIdempotency, PgScenarios, PgSimRuns, PgUsageLedger
+    from northcx.simulation.store import SimRun
+    scen, runs, ledger, idem = PgScenarios(app_engine), PgSimRuns(app_engine), PgUsageLedger(app_engine, 100), PgIdempotency(app_engine)
+    from types import SimpleNamespace
+    sc = SimpleNamespace(name="refund", agent="support", required=True)
+    for tenant in ("acme", "globex"):
+        with as_tenant(tenant):
+            await scen.put(sc, {"name": "refund"}, tenant)                      # the same scenario name in both tenants
+            run = await runs.add(SimRun("scripted", True, {}, {}, [], meta={"t": tenant}))
+            await ledger.charge("support", 60 if tenant == "acme" else 10)
+            await idem.begin("scope-1", "hash-1")
+    with as_tenant("acme"):
+        assert len(await scen.list()) == 1 and (await scen.get("refund")).created_by == "acme" and len(await runs.list()) == 1
+        assert await ledger.spent() == 60 and not await ledger.over_budget()
+        await ledger.charge("support", 50)
+        ledger._cache.clear()
+        assert await ledger.over_budget()                                      # acme used up its own budget...
+    with as_tenant("globex"):
+        assert await ledger.spent() == 10 and not await ledger.over_budget()   # ...and globex's is untouched, even in the same process
+        assert [r.meta for r in await runs.list()] == [{"t": "globex"}]
+        assert await scen.delete("refund") is True
+    with as_tenant("acme"):
+        assert await scen.get("refund") is not None
+
+
+async def test_groups_and_scim_people_are_per_tenant(app_engine):
+    from northcx.db import PgGroups, PgScimUsers
+    from northcx.groups import GroupService
+    from northcx.scim import ScimService
+    for tenant in ("acme", "globex"):
+        with as_tenant(tenant):
+            g = GroupService(PgGroups(app_engine))
+            grp = await g.create("Support", ["reviewer"], "t", external_name="idp-support")        # the same group name and provider name in each tenant
+            await g.add_member(grp.id, "rae@corp.com")
+            sc = ScimService(PgScimUsers(app_engine), g, None)
+            await sc.create_user({"userName": "rae@corp.com"}, "scim")                           # the same person in two tenants
+    with as_tenant("acme"):
+        g = GroupService(PgGroups(app_engine))
+        assert len(await g.repo.list()) == 1 and (await g.effective_roles(["rae@corp.com"], []))[0] == ["reviewer"]
+        sc = ScimService(PgScimUsers(app_engine), g, None)
+        u = await sc.users.by_name("rae@corp.com")
+        await sc.patch_user(u.id, {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"], "Operations": [{"op": "replace", "path": "active", "value": False}]})
+        assert not await sc.may_sign_in("rae@corp.com")
+    with as_tenant("globex"):
+        sc = ScimService(PgScimUsers(app_engine), GroupService(PgGroups(app_engine)), None)
+        assert await sc.may_sign_in("rae@corp.com")                              # deactivating her in acme does not touch globex
+
+
+async def test_qualifications_release_requests_and_alert_state_are_per_tenant(app_engine):
+    from northcx.db import PgAlertState, PgQualifications, PgReleaseRequests
+    from northcx.providers.qualification import Qualification
+    from northcx.release_requests import ApprovalError, ReleaseApprovals
+    qual, appr, alerts = PgQualifications(app_engine), ReleaseApprovals({"production"}, PgReleaseRequests(app_engine)), PgAlertState(app_engine)
+    ids = {}
+    for tenant in ("acme", "globex"):
+        with as_tenant(tenant):
+            await qual.save(Qualification("support", "m:x", "d", tenant == "acme", 1, 1, 0, 0, "r"))
+            ids[tenant] = (await appr.request("support", "publish", "production", 1, "key:1", None)).id   # the same request in both tenants is not a duplicate
+            await alerts.set_active("high-handoffs", {"n": 1 if tenant == "acme" else 2})
+    with as_tenant("acme"):
+        assert (await qual.latest("support", "m:x")).qualified and [r.id for r in await appr.repo.list(None, None, 10)] == [ids["acme"]]
+        with pytest.raises(ApprovalError, match="Unknown"):
+            await appr.claim(ids["globex"], "key:2", True, None)           # another tenant's request does not exist here
+        active, _ = await alerts.load()
+        assert active["high-handoffs"]["n"] == 1
+    with as_tenant("globex"):
+        assert not (await qual.latest("support", "m:x")).qualified
+        assert (await appr.claim(ids["globex"], "key:2", True, None)).status == "approved"
+        await alerts.clear_active("high-handoffs")
+    with as_tenant("acme"):
+        assert "high-handoffs" in (await alerts.load())[0]                 # clearing globex's alert did not clear acme's
+        assert (await appr.repo.get(ids["acme"])).status == "pending"
+
+
+# ---------- gates (WP2.9) ----------
+PLATFORM_TABLES = {"api_keys", "audit_log", "tenants", "channel_bindings", "job_leases", "rate_counters", "alembic_version"}
+
+
+async def test_every_table_is_isolated_unless_it_is_platform_data(engine):
+    """A table added later without a tenant column and a policy fails here, so a new table cannot quietly skip isolation."""
+    rows = await raw(engine, "select c.relname, c.relrowsecurity, "
+                             "exists (select 1 from information_schema.columns k where k.table_name = c.relname and k.column_name = 'tenant_id' and k.table_schema = 'public') as has_col, "
+                             "exists (select 1 from pg_policies p where p.tablename = c.relname and p.policyname = 'tenant_isolation') as has_policy "
+                             "from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' order by 1")
+    problems = [r.relname for r in rows if r.relname not in PLATFORM_TABLES and not (r.relrowsecurity and r.has_col and r.has_policy)]
+    assert problems == [], f"tables without a tenant column, row-level security and a policy: {problems}"
+    assert {r.relname for r in rows} >= {"messages", "knowledge_chunks", "groups", "usage_ledger"}
+    for name in ("api_keys", "audit_log"):  # these carry a tenant but are read before the tenant is known, or across tenants; the API filters them
+        assert any(r.relname == name for r in rows)
+
+
+async def test_random_interleavings_of_two_tenants_never_mix_their_data(app_engine):
+    """Isolation fuzz: many concurrent operations from two tenants against the same session and customer ids; each tenant ends with exactly its own."""
+    import asyncio
+    import random
+    store, mem = PgMemoryStore(app_engine), PgMemories(app_engine)
+    rnd = random.Random(7)
+    expected = {"acme": {}, "globex": {}}
+
+    async def work(tenant, i):
+        with as_tenant(tenant):
+            sid = f"s{rnd.randrange(4)}"                    # few ids, so the two tenants keep colliding on them
+            msgs = [{"role": "user", "content": f"{tenant}-{i}-{k}"} for k in range(rnd.randrange(1, 4))]
+            await asyncio.sleep(rnd.random() * 0.01)
+            await store.save_messages(sid, msgs)
+            await store.set_fact(f"c{sid}", "last", f"{tenant}-{i}")
+            await mem.remember(f"c{sid}", f"{tenant} note {i % 3}", sid)
+            return sid, msgs
+    jobs = [(rnd.choice(("acme", "globex")), i) for i in range(60)]
+    # operations on one (tenant, session) are applied one after another, as the server serialises a conversation; the two tenants run in parallel
+    by_key: dict = {}
+    for tenant, i in jobs:
+        by_key.setdefault(tenant, []).append(i)
+
+    async def run_tenant(tenant):
+        for i in by_key.get(tenant, []):
+            sid, msgs = await work(tenant, i)
+            expected[tenant][sid] = ([m["content"] for m in msgs], f"{tenant}-{i}")
+    await asyncio.gather(run_tenant("acme"), run_tenant("globex"))
+    for tenant in ("acme", "globex"):
+        with as_tenant(tenant):
+            for sid, (contents, fact) in expected[tenant].items():
+                assert [m["content"] for m in await store.load_messages(sid)] == contents, (tenant, sid)
+                assert (await store.get_facts(f"c{sid}"))["last"] == fact
+                assert all(m.text.startswith(tenant) for m in await mem.list(f"c{sid}"))
+    with as_tenant("acme"):
+        for sid in expected["acme"]:
+            assert not any(m["content"].startswith("globex") for m in await store.load_messages(sid))
+
+
+def test_going_back_and_forward_through_the_tenant_migrations_keeps_the_default_tenants_data(db_url):
+    """Backfill and downgrade gate: default-tenant rows survive both directions; the other tenants' rows are removed on the way back."""
+    import asyncio
+
+    from sqlalchemy import text as sql
+    from sqlalchemy.pool import NullPool
+
+    from northcx.db import create_engine, migrate
+    from northcx.db.engine import downgrade
+
+    async def run(statement, **p):
+        eng = create_engine(db_url, poolclass=NullPool)
+        try:
+            async with eng.begin() as c:
+                res = await c.execute(sql(statement), p)
+                return res.all() if res.returns_rows else []
+        finally:
+            await eng.dispose()
+    asyncio.run(run("insert into sessions (tenant_id, id) values ('default', 'keep'), ('acme', 'drop'), ('acme', 'keep')"))
+    asyncio.run(run("insert into knowledge_sources (tenant_id, id, name, created_at) values ('default', 'faq', 'n', 1), ('acme', 'faq', 'n', 1)"))
+    downgrade(db_url, "0036")
+    assert [r[0] for r in asyncio.run(run("select id from sessions order by id"))] == ["keep"]          # only the default tenant's row is left, with the old key
+    assert [r[0] for r in asyncio.run(run("select id from knowledge_sources"))] == ["faq"]
+    migrate(db_url)
+    rows = asyncio.run(run("select tenant_id, id from sessions"))
+    assert [tuple(r) for r in rows] == [("default", "keep")]                                          # backfilled as the default tenant
+    asyncio.run(run("insert into sessions (id) values ('new')"))
+    assert {tuple(r) for r in asyncio.run(run("select tenant_id, id from sessions"))} == {("default", "keep"), ("default", "new")}
+
+
+def test_api_sweep_one_tenants_key_cannot_reach_anothers_conversations(app_engine):
+    """The route-level gate: tenant B's administrator against tenant A's real ids on every route that takes one. Nothing is returned, changed or erased."""
+    import asyncio
+
+    from fastapi.testclient import TestClient
+
+    from examples.support_agent import support_agent
+    from northcx.access import AccessControl
+    from northcx.db import PgAudit, PgKeys
+    from northcx.llm import ScriptedLLM
+    from northcx.outbox import Outbox
+    from northcx.runtime import Runtime
+    from northcx.server import create_app
+    from northcx.tenancy import TenantService
+    eng = app_engine
+    store, traces, appr, handoffs, outbox = PgMemoryStore(eng), PgTraceStore(eng), PgApprovalStore(eng), PgHandoffs(eng), PgOutbox(eng)
+    rt = Runtime(ScriptedLLM([]), store, traces, appr, Outbox(outbox), handoffs, privacy=PgPrivacy(eng))
+    ac = AccessControl(keys=PgKeys(eng), bootstrap_key="boot" * 10)
+    ac.tenants = TenantService(preview=True)
+    app = create_app(rt, traces, {"support": support_agent()}, access=ac, audit=PgAudit(eng))
+    c = TestClient(app)
+    loop = asyncio.new_event_loop()
+    run = loop.run_until_complete
+
+    async def seed():
+        await ac.tenants.create("acme", "Acme")
+        await ac.tenants.create("globex", "Globex")
+        out = {}
+        for tenant in ("acme", "globex"):
+            with as_tenant(tenant):
+                await store.save_messages("s1", [{"role": "user", "content": f"{tenant} private"}])
+                await store.set_fact("c1", "k", tenant)
+                await PgPrivacy(eng).link("s1", "c1")
+                t = Trace("support", "s1")
+                t.add("llm", tokens=1)
+                await traces.save(t)
+                a = await appr.add(trace_id=t.id, session_id="s1", tool="refund", input={}, reason="r", agent_id="support", customer_id="c1")
+                h = await handoffs.add(Handoff("s1", t.id, "support", "customer_asked", "why", {}, customer_id="c1"))
+                out[tenant] = (t.id, a.id, h.id)
+        return out
+    ids = run(seed())
+    _, acme_h = None, None
+    admin = lambda tenant: {"authorization": "Bearer " + run(ac.issue(f"{tenant}-admin", "admin", "t", tenant_id=tenant))[1]}  # noqa: E731
+    A, B = admin("acme"), admin("globex")
+    t_a, ap_a, h_a = ids["acme"]
+    # B asks about A's ids: not found, or an empty list
+    assert c.get(f"/v1/traces/{t_a}", headers=B).status_code == 404
+    assert c.get(f"/v1/handoffs/{h_a}", headers=B).status_code == 404
+    assert c.post(f"/v1/handoffs/{h_a}/resolve", headers=B, json={"note": "mine now"}).status_code == 404
+    assert c.post(f"/v1/approvals/{ap_a}/decision", headers=B, json={"approved": True}).status_code == 404
+    seen = c.get("/v1/approvals", headers=B).json()["approvals"]
+    assert [x["id"] for x in seen] == [ids["globex"][1]]                                  # B sees only its own
+    assert [x["id"] for x in c.get("/v1/handoffs", headers=B).json()["handoffs"]] == [ids["globex"][2]]
+    tr = c.get("/v1/traces", headers=B).json()
+    assert t_a not in str(tr)
+    transcript = c.get("/v1/sessions/s1/transcript", headers=B)
+    assert "acme private" not in transcript.text and "globex private" in transcript.text   # the same session id shows B's own conversation
+    assert "acme" not in c.get("/v1/privacy/customers/c1/export", headers=B).text
+    # B erasing "its" session s1 or customer c1 leaves A's untouched
+    c.delete("/v1/privacy/sessions/s1", headers=B)
+    c.delete("/v1/privacy/customers/c1", headers=B)
+    with as_tenant("acme"):
+        assert [m["content"] for m in run(store.load_messages("s1"))] == ["acme private"] and run(store.get_facts("c1")) == {"k": "acme"}
+        assert run(appr.get(ap_a)).state == "pending" and run(handoffs.get(h_a)).state == "open" and run(traces.get(t_a)) is not None
+    with as_tenant("globex"):
+        assert run(store.load_messages("s1")) == [] and run(store.get_facts("c1")) == {}
+    # A's own administrator still sees everything, and the audit log of each tenant holds only that tenant's entries
+    assert c.get(f"/v1/handoffs/{h_a}", headers=A).status_code == 200
+    assert c.post("/v1/keys", headers=A, json={"name": "ci", "role": "developer"}).status_code == 201   # an audited action of A's own
+    a_audit = c.get("/v1/audit?limit=100", headers=A).json()["entries"]
+    b_audit = c.get("/v1/audit?limit=100", headers=B).json()["entries"]
+    assert a_audit and b_audit and not {e["id"] for e in a_audit} & {e["id"] for e in b_audit}

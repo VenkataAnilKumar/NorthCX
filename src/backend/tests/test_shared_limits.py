@@ -80,7 +80,7 @@ async def test_the_daily_token_budget_is_one_number_across_processes(engine, sec
     assert await a.spent() == 95 and await a.spent("support") == 90 and await a.spent("other") == 5
     assert not await a.over_budget()
     await b.charge("support", 10)
-    a._read_at = -1e9  # a looks again (it re-reads every few seconds)
+    a._cache.clear()  # a looks again (it re-reads every few seconds)
     assert await a.over_budget()
     assert not await PgUsageLedger(engine, None).over_budget()  # no budget set
 
@@ -93,7 +93,7 @@ async def test_the_daily_money_budget_is_one_number_across_processes(engine, sec
     assert abs(await a.money_spent() - 0.80) < 1e-9 and abs(await a.money_spent("support") - 0.75) < 1e-9
     assert not await a.over_budget()
     await b.charge("support", 10, 0.25)
-    a._read_at = -1e9
+    a._cache.clear()
     assert await a.over_budget()  # tokens have no limit here: the money limit alone stopped it
 
 
@@ -108,7 +108,7 @@ async def test_the_budget_falls_back_to_this_process_when_the_database_is_down(e
         await led.charge("support", 30)
         assert not await led.over_budget()
         await led.charge("support", 30)
-        led._read_at = -1e9
+        led._cache.clear()
         assert await led.over_budget()  # this process's own count (60) is over the 50 budget: degraded, not unlimited
     assert any("database unreachable" in r.message for r in caplog.records)
 

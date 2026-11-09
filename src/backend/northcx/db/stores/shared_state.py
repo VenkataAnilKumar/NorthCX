@@ -21,7 +21,7 @@ class PgAlertState(_Base):
     async def set_active(self, rule: str, payload: dict[str, Any]) -> None:
         stmt = pg_insert(AlertStateRow).values(rule=rule, payload=_jsonable(payload))
         async with self._sm.begin() as s:
-            await s.execute(stmt.on_conflict_do_update(index_elements=[AlertStateRow.rule], set_={"payload": stmt.excluded.payload}))
+            await s.execute(stmt.on_conflict_do_update(index_elements=[AlertStateRow.tenant_id, AlertStateRow.rule], set_={"payload": stmt.excluded.payload}))
 
     async def clear_active(self, rule: str) -> None:
         async with self._sm.begin() as s:

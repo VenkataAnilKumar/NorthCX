@@ -65,9 +65,13 @@ def install_session_hooks() -> None:
 
     @event.listens_for(Session, "after_begin")
     def _set_tenant(session: Any, transaction: Any, connection: Any) -> None:
-        # Session-level (not local) so it also holds on the autocommit connections the read path uses; every session sets it before its first statement.
-        connection.execute(text("select set_config('app.tenant', :t, false), set_config('app.system', :s, false)"),
-                           {"t": current_tenant(), "s": "on" if SYSTEM.get() else "off"})
+        # Session-level (not local) so it also holds on the autocommit connections the read path uses, and it is remembered on the pooled connection so
+        # only a change of tenant costs a statement. Behind a transaction-mode connection pooler (PgBouncer) session settings do not hold: use session pooling.
+        want = (current_tenant(), "on" if SYSTEM.get() else "off")
+        if connection.info.get("northcx_tenant") == want:  # this pooled connection already carries these settings: no round trip (the common case)
+            return
+        connection.execute(text("select set_config('app.tenant', :t, false), set_config('app.system', :s, false)"), {"t": want[0], "s": want[1]})
+        connection.info["northcx_tenant"] = want
 
     @event.listens_for(Session, "do_orm_execute")
     def _scope_orm(state: Any) -> None:

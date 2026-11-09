@@ -15,6 +15,7 @@ from northcx.access import RateLimiter
 from northcx.db.models import RateCounterRow, UsageLedgerRow
 from northcx.db.stores._base import _Base
 from northcx.reliability import UsageLedger
+from northcx.tenancy import current_tenant
 
 log = logging.getLogger("northcx.limits")
 KEEP_SECONDS = 7200  # windows older than this are deleted (the longest window is 10 minutes)
@@ -82,7 +83,8 @@ class PgUsageLedger(_Base):
         super().__init__(engine)
         self.daily_limit, self.money_limit, self.currency = daily_limit, money_limit, currency
         self.local = UsageLedger(daily_limit, money_limit, currency)  # used while the database is unreachable
-        self._total, self._total_micros, self._read_at, self._warn = 0, 0, -1e9, _Warn()
+        self._cache: dict[str, list[float]] = {}  # per tenant: [tokens, micros, time read]; one tenant's total is never another's
+        self._warn = _Warn()
 
     @staticmethod
     def _today():
@@ -94,12 +96,13 @@ class PgUsageLedger(_Base):
         self.local.add(agent_id, tokens)
         if micros:
             self.local.add_money(agent_id, cost)
-        self._total += tokens
-        self._total_micros += micros
+        c = self._cache.setdefault(current_tenant(), [0, 0, -1e9])
+        c[0] += tokens
+        c[1] += micros
         if not tokens and not micros:
             return
         stmt = pg_insert(UsageLedgerRow).values(agent_id=agent_id, day=self._today(), tokens=tokens, cost_micros=micros)
-        stmt = stmt.on_conflict_do_update(index_elements=[UsageLedgerRow.agent_id, UsageLedgerRow.day],
+        stmt = stmt.on_conflict_do_update(index_elements=[UsageLedgerRow.tenant_id, UsageLedgerRow.agent_id, UsageLedgerRow.day],
                                           set_={"tokens": UsageLedgerRow.tokens + tokens, "cost_micros": UsageLedgerRow.cost_micros + micros})
         try:
             async with self._sm.begin() as s:
@@ -132,8 +135,9 @@ class PgUsageLedger(_Base):
     async def over_budget(self) -> bool:
         if self.daily_limit is None and self.money_limit is None:
             return False
-        if time.monotonic() - self._read_at >= LEDGER_REFRESH:  # one shared read every few seconds, plus this process's own additions in between
-            self._total, self._read_at = await self.spent(None), time.monotonic()
-            self._total_micros = round(await self.money_spent(None) * 1_000_000)
-        return (self.daily_limit is not None and self._total >= self.daily_limit) or \
-               (self.money_limit is not None and self._total_micros >= round(self.money_limit * 1_000_000))
+        c = self._cache.setdefault(current_tenant(), [0, 0, -1e9])
+        if time.monotonic() - c[2] >= LEDGER_REFRESH:  # one shared read every few seconds, plus this process's own additions in between
+            c[0], c[2] = await self.spent(None), time.monotonic()
+            c[1] = round(await self.money_spent(None) * 1_000_000)
+        return (self.daily_limit is not None and c[0] >= self.daily_limit) or \
+               (self.money_limit is not None and c[1] >= round(self.money_limit * 1_000_000))
