@@ -148,3 +148,28 @@ async def test_a_lookup_reads_only_the_customers_own_conversations(app_engine):
     t, h, f = await svc.for_sessions(_t.time() - 86400, _t.time(), ["web-1"])
     assert t == [] and h == [] and f == []
     assert await svc.for_sessions(0, 1, []) == ([], [], [])
+
+
+def test_a_customer_can_be_found_by_order_number_and_opened_without_the_identifier():
+    c, rt, key, loop = world()
+    rev = key("rev", "reviewer")
+    token = c.post("/v1/chat-tokens", json={"sessionId": "web-9", "customerId": "sam@example.com"}, headers=ADM).json()["token"]
+    c.post("/v1/agents/support/chat", json={"sessionId": "web-9", "message": "Where is order ORD-10442?"}, headers={"authorization": f"Bearer {token}"})
+    found = c.post("/v1/customers/find", headers=rev, json={"orderNumber": "ord-10442"})
+    assert found.status_code == 200 and found.headers["cache-control"] == "no-store"
+    m = found.json()["matches"]
+    assert [x["sessionId"] for x in m] == ["web-9"] and m[0]["customerRef"] == customer_ref("sam@example.com") and "sam@" not in found.text
+    assert c.post("/v1/customers/find", headers=rev, json={"orderNumber": "ORD-1044"}).json()["matches"] == []        # a prefix is not a match
+    assert c.post("/v1/customers/find", headers=rev, json={"orderNumber": "ORD-104422"}).json()["matches"] == []
+    opened = c.post("/v1/customers/lookup", headers=rev, json={"sessionId": "web-9"}).json()
+    assert opened["ref"] == customer_ref("sam@example.com") and opened["sessions"] == 1
+    n = c.post("/v1/customers/notes", headers=rev, json={"sessionId": "web-9", "note": "Found by order number; asked for a callback."})
+    assert n.status_code == 201
+    assert c.post("/v1/customers/lookup", headers=rev, json={"sessionId": "web-9", "customerId": "sam@example.com"}).status_code == 400      # one or the other
+    assert c.post("/v1/customers/lookup", headers=rev, json={}).status_code == 400
+    assert c.post("/v1/customers/lookup", headers=rev, json={"sessionId": "nope"}).status_code == 404
+    assert c.post("/v1/customers/find", headers=rev, json={"orderNumber": "x"}).status_code == 400
+    assert c.post("/v1/customers/find", headers=key("v", "viewer"), json={"orderNumber": "ORD-10442"}).status_code == 403
+    entries = c.get("/v1/audit?limit=40", headers=ADM).json()["entries"]
+    find = next(e for e in entries if e["action"] == "customers.find")
+    assert "10442" not in json.dumps(find) and "sam@" not in json.dumps(entries)

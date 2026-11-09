@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { customerAddNote, customerDeleteNote, customerLookup, customerRemoveFact, customerReveal, customersEnabled, setCustomersEnabled, useLoad, useMe, type CustomerRecord } from "@northcx/api-client";
+import { customerFind, customerAddNote, customerDeleteNote, customerLookup, customerRemoveFact, customerReveal, customersEnabled, setCustomersEnabled, useLoad, useMe, type CustomerRecord, type CustomerTarget, type OrderMatch } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader } from "@northcx/ui";
 
 const when = (t: number) => new Date(t * 1000).toLocaleString();
@@ -9,14 +9,16 @@ export default function Page() {
   const { can } = useMe();
   const enabled = useLoad(() => customersEnabled());
   const [q, setQ] = useState("");
-  const [id, setId] = useState<string | null>(null);
+  const [id, setId] = useState<CustomerTarget | null>(null);
+  const [order, setOrder] = useState("");
+  const [matches, setMatches] = useState<OrderMatch[] | null>(null);
   const [rec, setRec] = useState<CustomerRecord | null>(null);
   const [revealed, setRevealed] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const run = async (f: () => Promise<unknown>) => { setErr(null); setBusy(true); try { await f(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); } };
-  const open = (cid: string) => run(async () => { setRec(await customerLookup(cid)); setId(cid); setRevealed(null); });
+  const open = (target: CustomerTarget) => run(async () => { setRec(await customerLookup(target)); setId(target); setRevealed(null); });
   if (!can("customers:read")) return (<><PageHeader title="Customers" subtitle="Your role cannot open this view." /><Empty>Ask an administrator if you need it.</Empty></>);
   if (enabled.loading && !enabled.data) return <Loading />;
   if (enabled.data && !enabled.data.enabled) return (
@@ -32,6 +34,12 @@ export default function Page() {
         <input className="field flex-1" aria-label="Customer identifier" placeholder="Customer identifier" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
         <button className="btn btn-primary" disabled={busy || !q.trim()}>Open</button>
       </form>
+      <form className="mb-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (order.trim()) void run(async () => setMatches((await customerFind(order.trim())).matches)); }}>
+        <input className="field flex-1" aria-label="Order number" placeholder="Or find by order number (exact)" autoComplete="off" value={order} onChange={(e) => setOrder(e.target.value)} />
+        <button className="btn" disabled={busy || order.trim().length < 3}>Find</button>
+      </form>
+      {matches && (matches.length === 0 ? <p className="mb-3 text-sm text-muted">No conversation in the last 180 days mentions that order number.</p> : (
+        <ul className="mb-4 space-y-2 text-sm">{matches.map((m) => <li key={m.sessionId} className="rounded-xl border border-border p-2">{new Date(m.startedAt * 1000).toLocaleString()} · {m.agentId} · customer {m.customerRef ?? "unknown"}<br /><span className="text-muted">{m.firstMessage}</span><br /><button className="btn mt-1" disabled={!m.customerRef} onClick={() => void open({ sessionId: m.sessionId })}>Open the customer</button></li>)}</ul>))}
       {can("keys:manage") && <p className="mb-3 text-xs"><button className="underline" onClick={() => { if (confirm("Turn the Customers view off for everyone?")) void setCustomersEnabled(false).then(enabled.reload); }}>Turn this view off</button></p>}
       {err && <div className="mb-3"><ErrorBox message={err} /></div>}
       {!rec ? <Empty>Nothing opened. There is no browsing here on purpose: you need the identifier.</Empty> : (

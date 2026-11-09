@@ -316,7 +316,13 @@ class CoachingBody(BaseModel):
 
 
 class CustomerLookupBody(BaseModel):
-    customer_id: str = Field(alias="customerId", min_length=1, max_length=200)
+    customer_id: str | None = Field(default=None, alias="customerId", min_length=1, max_length=200)
+    session_id: str | None = Field(default=None, alias="sessionId", min_length=1, max_length=200)    # "the customer of this conversation", for results found without the identifier
+    model_config = {"populate_by_name": True}
+
+
+class CustomerFindBody(BaseModel):
+    order_number: str = Field(alias="orderNumber", min_length=3, max_length=40, pattern=r"^[A-Za-z0-9#][A-Za-z0-9#_\-./]{1,38}[A-Za-z0-9]$")
     model_config = {"populate_by_name": True}
 
 

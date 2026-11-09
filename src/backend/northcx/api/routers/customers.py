@@ -1,6 +1,8 @@
 """Routes for the Customers tab: look up one customer by the company's own identifier, with personal data masked and every open audited."""
 from __future__ import annotations
 
+import hashlib
+import re
 import time
 from typing import Any
 
@@ -9,7 +11,8 @@ from fastapi.responses import JSONResponse
 
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
-from northcx.api.models import CustomerLookupBody, CustomerNoteBody, CustomerRemoveBody, CustomerRevealBody, CustomerSettingsBody
+from northcx.api.models import CustomerFindBody, CustomerLookupBody, CustomerNoteBody, CustomerRemoveBody, CustomerRevealBody, CustomerSettingsBody
+from northcx.insights import mask
 from northcx.customers import WINDOW_DAYS, CustomerNote, CustomerService, InMemoryNotes
 from northcx.memory import MemoryRejected, check_note
 from northcx.privacy import customer_ref
@@ -33,6 +36,15 @@ def register(app: FastAPI, d: AppDeps) -> None:
         facts = await runtime.memories.list(customer_id) if runtime.memories is not None else []
         return sessions, facts
 
+    async def who_is(body: Any) -> str | JSONResponse:
+        """The customer a request is about: the identifier given, or the customer of the conversation named."""
+        if body.customer_id and body.session_id or not (body.customer_id or body.session_id):
+            return _err(400, "bad_request", "Give either customerId or sessionId")
+        if body.customer_id:
+            return body.customer_id.strip()
+        cid = await privacy.backend.customer_for_session(body.session_id)
+        return cid if cid else _err(404, "not_found", "No customer is linked to that conversation")
+
     @app.get("/v1/customers/settings")
     async def get_settings() -> Any:
         return {"enabled": await svc.enabled()}
@@ -48,7 +60,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """The id goes in the body, never in a URL, so it does not end up in logs."""
         if (g := await gate()) is not None:
             return g
-        cid = body.customer_id.strip()
+        cid = await who_is(body)
+        if isinstance(cid, JSONResponse):
+            return cid
         sessions, facts = await known(cid)
         if not sessions and not facts and not await svc.notes.list(cid):
             await record(request, "customers.lookup", customer_ref(cid), "not_found")
@@ -60,12 +74,34 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "customers.open", out["ref"], sessions=len(sessions), facts=len(facts))
         return JSONResponse(out, headers=PRIVATE)
 
+    @app.post("/v1/customers/find")
+    async def find(body: CustomerFindBody, request: Request) -> Any:
+        """Find conversations that mention an order number, exactly, and say which customer each belongs to (by reference only). Open one with its sessionId."""
+        if (g := await gate()) is not None:
+            return g
+        pattern = re.compile(r"(?<![A-Za-z0-9])" + re.escape(body.order_number.lower()) + r"(?![A-Za-z0-9])")
+        now = time.time()
+        turns, _, _ = await insight._load(now - WINDOW_DAYS * 86400.0, now, None, "production")
+        seen: dict[str, Any] = {}
+        for t in sorted(turns, key=lambda t: -t.started_at):
+            if t.session_id not in seen and pattern.search(t.text):
+                seen[t.session_id] = t
+        matches = []
+        for sid, t in list(seen.items())[:10]:
+            cid = await privacy.backend.customer_for_session(sid)
+            matches.append({"sessionId": sid, "customerRef": customer_ref(cid) if cid else None, "agentId": t.agent_id, "startedAt": t.started_at, "firstMessage": mask(t.first_message, 160)})
+        await record(request, "customers.find", "order:" + hashlib.sha256(body.order_number.lower().encode()).hexdigest()[:12], matches=len(matches))
+        return JSONResponse({"matches": matches, "windowDays": WINDOW_DAYS, "truncated": len(turns) >= 20000, "note": "Exact matches in conversations from the last %d days. The customer identifier is not shown; open a match to see the masked record." % WINDOW_DAYS},
+                            headers=PRIVATE)
+
     @app.post("/v1/customers/reveal")
     async def reveal(body: CustomerRevealBody, request: Request) -> Any:
         """Show the identifier unmasked. A reason is required and kept in the audit log."""
         if (g := await gate()) is not None:
             return g
-        cid = body.customer_id.strip()
+        cid = await who_is(body)
+        if isinstance(cid, JSONResponse):
+            return cid
         sessions, facts = await known(cid)
         if not sessions and not facts:
             return _err(404, "not_found", "No customer with that identifier")
@@ -76,7 +112,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
     async def add_note(body: CustomerNoteBody, request: Request) -> Any:
         if (g := await gate()) is not None:
             return g
-        cid = body.customer_id.strip()
+        cid = await who_is(body)
+        if isinstance(cid, JSONResponse):
+            return cid
         sessions, facts = await known(cid)
         if not sessions and not facts and not await svc.notes.list(cid):
             return _err(404, "not_found", "No customer with that identifier")
@@ -93,7 +131,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
     async def delete_note(note_id: str, body: CustomerLookupBody, request: Request) -> Any:
         if (g := await gate()) is not None:
             return g
-        cid = body.customer_id.strip()
+        cid = await who_is(body)
+        if isinstance(cid, JSONResponse):
+            return cid
         mine = next((n for n in await svc.notes.list(cid) if n.id == note_id), None)
         if mine is None:
             return _err(404, "not_found", "Unknown note")
@@ -111,7 +151,9 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return g
         if runtime.memories is None:
             return _err(501, "not_configured", "Memory is not enabled on this server")
-        cid = body.customer_id.strip()
+        cid = await who_is(body)
+        if isinstance(cid, JSONResponse):
+            return cid
         if not await runtime.memories.forget(cid, fact_id):
             return _err(404, "not_found", "Unknown fact")
         await record(request, "customers.fact_remove", customer_ref(cid), fact=fact_id, reason=body.reason.strip())

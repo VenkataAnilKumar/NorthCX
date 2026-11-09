@@ -171,6 +171,7 @@
   "POST /v1/channels/whatsapp/templates/send": "/v1/channels/whatsapp/templates/send -> whatsapp_template",
   "POST /v1/chat-tokens": "/v1/chat-tokens -> mint_chat_token",
   "POST /v1/customers/facts/x/remove": "/v1/customers/facts/{fact_id}/remove -> remove_fact",
+  "POST /v1/customers/find": "/v1/customers/find -> find",
   "POST /v1/customers/lookup": "/v1/customers/lookup -> lookup",
   "POST /v1/customers/notes": "/v1/customers/notes -> add_note",
   "POST /v1/customers/notes/x/delete": "/v1/customers/notes/{note_id}/delete -> delete_note",
@@ -1105,6 +1106,11 @@
    "POST",
    "/v1/customers/facts/{fact_id}/remove",
    "remove_fact"
+  ],
+  [
+   "POST",
+   "/v1/customers/find",
+   "find"
   ],
   [
    "POST",

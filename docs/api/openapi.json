@@ -3800,6 +3800,49 @@
         ]
       }
     },
+    "/v1/customers/find": {
+      "post": {
+        "summary": "Find",
+        "description": "Find conversations that mention an order number, exactly, and say which customer each belongs to (by reference only). Open one with its sessionId.",
+        "operationId": "find_v1_customers_find_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerFindBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Find V1 Customers Find Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "customers:read",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
     "/v1/customers/lookup": {
       "post": {
         "summary": "Lookup",
@@ -11548,28 +11591,81 @@
         ],
         "title": "CrawlBody"
       },
-      "CustomerLookupBody": {
+      "CustomerFindBody": {
         "properties": {
-          "customerId": {
+          "orderNumber": {
             "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Customerid"
+            "maxLength": 40,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9#][A-Za-z0-9#_\\-./]{1,38}[A-Za-z0-9]$",
+            "title": "Ordernumber"
           }
         },
         "type": "object",
         "required": [
-          "customerId"
+          "orderNumber"
         ],
+        "title": "CustomerFindBody"
+      },
+      "CustomerLookupBody": {
+        "properties": {
+          "customerId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customerid"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
+          }
+        },
+        "type": "object",
         "title": "CustomerLookupBody"
       },
       "CustomerNoteBody": {
         "properties": {
           "customerId": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Customerid"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
           },
           "note": {
             "type": "string",
@@ -11580,7 +11676,6 @@
         },
         "type": "object",
         "required": [
-          "customerId",
           "note"
         ],
         "title": "CustomerNoteBody"
@@ -11588,10 +11683,30 @@
       "CustomerRemoveBody": {
         "properties": {
           "customerId": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Customerid"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
           },
           "reason": {
             "type": "string",
@@ -11602,7 +11717,6 @@
         },
         "type": "object",
         "required": [
-          "customerId",
           "reason"
         ],
         "title": "CustomerRemoveBody"
@@ -11610,10 +11724,30 @@
       "CustomerRevealBody": {
         "properties": {
           "customerId": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Customerid"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
           },
           "reason": {
             "type": "string",
@@ -11624,7 +11758,6 @@
         },
         "type": "object",
         "required": [
-          "customerId",
           "reason"
         ],
         "title": "CustomerRevealBody"

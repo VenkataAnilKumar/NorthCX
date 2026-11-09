@@ -539,11 +539,15 @@ export interface CustomerRecord {
   facts: { id: string; text: string; sourceSession: string | null; createdAt: number; addedBy: string }[];
   notes: CustomerNoteItem[];
 }
-export const customerLookup = (customerId: string) => api<CustomerRecord>("/v1/customers/lookup", { method: "POST", body: JSON.stringify({ customerId }) });
-export const customerReveal = (customerId: string, reason: string) => api<{ ref: string; id: string }>("/v1/customers/reveal", { method: "POST", body: JSON.stringify({ customerId, reason }) });
-export const customerAddNote = (customerId: string, note: string) => api<CustomerNoteItem>("/v1/customers/notes", { method: "POST", body: JSON.stringify({ customerId, note }) });
-export const customerDeleteNote = (customerId: string, noteId: string) => api<{ deleted: boolean }>(`/v1/customers/notes/${noteId}/delete`, { method: "POST", body: JSON.stringify({ customerId }) });
-export const customerRemoveFact = (customerId: string, factId: string, reason: string) => api<{ removed: boolean }>(`/v1/customers/facts/${factId}/remove`, { method: "POST", body: JSON.stringify({ customerId, reason }) });
+export type CustomerTarget = string | { sessionId: string };      // the identifier, or the customer of a conversation found without it
+const target = (t: CustomerTarget) => (typeof t === "string" ? { customerId: t } : t);
+export interface OrderMatch { sessionId: string; customerRef: string | null; agentId: string; startedAt: number; firstMessage: string }
+export const customerFind = (orderNumber: string) => api<{ matches: OrderMatch[]; note: string; truncated: boolean }>("/v1/customers/find", { method: "POST", body: JSON.stringify({ orderNumber }) });
+export const customerLookup = (t: CustomerTarget) => api<CustomerRecord>("/v1/customers/lookup", { method: "POST", body: JSON.stringify(target(t)) });
+export const customerReveal = (t: CustomerTarget, reason: string) => api<{ ref: string; id: string }>("/v1/customers/reveal", { method: "POST", body: JSON.stringify({ ...target(t), reason }) });
+export const customerAddNote = (t: CustomerTarget, note: string) => api<CustomerNoteItem>("/v1/customers/notes", { method: "POST", body: JSON.stringify({ ...target(t), note }) });
+export const customerDeleteNote = (t: CustomerTarget, noteId: string) => api<{ deleted: boolean }>(`/v1/customers/notes/${noteId}/delete`, { method: "POST", body: JSON.stringify(target(t)) });
+export const customerRemoveFact = (t: CustomerTarget, factId: string, reason: string) => api<{ removed: boolean }>(`/v1/customers/facts/${factId}/remove`, { method: "POST", body: JSON.stringify({ ...target(t), reason }) });
 export const customersEnabled = () => api<{ enabled: boolean }>("/v1/customers/settings");
 export const setCustomersEnabled = (enabled: boolean) => api<{ enabled: boolean }>("/v1/customers/settings", { method: "PUT", body: JSON.stringify({ enabled }) });
 

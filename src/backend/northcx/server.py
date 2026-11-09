@@ -258,6 +258,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/customers/settings", "customers:read"),
     ("PUT", r"/v1/customers/settings", "keys:manage"),
     ("POST", r"/v1/customers/lookup", "customers:read"),
+    ("POST", r"/v1/customers/find", "customers:read"),
     ("POST", r"/v1/customers/reveal", "customers:read"),
     ("POST", r"/v1/customers/notes", "customers:write"),
     ("POST", r"/v1/customers/notes/[^/]+/delete", "customers:write"),
