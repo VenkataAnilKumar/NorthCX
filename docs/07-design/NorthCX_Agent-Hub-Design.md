@@ -6,7 +6,7 @@ Status: **proposed** (2026-11-09). What exists today is named under section 2; t
 The **Agent Hub** is a gallery of predefined agents. A person installs one, fills in its details, checks what it needs, runs its tests, and releases it the same way as any agent. It exists for two audiences:
 
 - **Admin** (Agent Hub in Settings and admin): browse, install, update, publish the organization's own agents, retire.
-- **Workspace** (Assistants): staff browse and start a chat with the assistants their organization has made available.
+- **Workspace** (**Assistants**, a tab in the left navigation, second after Chat): staff browse and start a chat with the assistants their organization has made available.
 
 ![Admin Agent Hub](../assets/design/35-admin-agent-hub.png)
 ![Install flow](../assets/design/36-admin-hub-install.png)

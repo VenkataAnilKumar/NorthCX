@@ -238,7 +238,7 @@ WS_CSS = CSS + """
 .setnav a{display:block;padding:8px 12px;border-radius:8px;color:var(--muted)}.setnav a.on{background:var(--info-bg);color:var(--info);font-weight:700}.setnav .grp{padding-top:14px}
 """
 
-WS_NAV = [("Chat", "&#128172;"), ("Search", "&#128269;"), ("Artifacts", "&#128196;"), ("Projects", "&#128193;"), ("Scheduled", "&#9201;"), ("Threads", "&#129525;")]
+WS_NAV = [("Chat", "&#128172;"), ("Assistants", "&#129302;"), ("Search", "&#128269;"), ("Artifacts", "&#128196;"), ("Projects", "&#128193;"), ("Scheduled", "&#9201;"), ("Threads", "&#129525;")]
 RECENT = ["Summarise yesterday's refund escalations", "Draft: apology for delayed parcels", "Why did billing-help hand off?", "Weekly QA digest (draft)"]
 
 
@@ -478,7 +478,7 @@ SCREENS["36-admin-hub-install"] = settings_shell("Agent Hub", "Install: Returns 
 <div><div class="card"><h3>Tests that come with it</h3>{table(["Scenario","Result"],[["Asks for a return inside the window",badge("passes","ok")],["Asks for a refund above the limit",badge("hands off for approval","ok")],["Return outside the window",badge("explains the policy","ok")],["Tries to talk the agent past the limit",badge("refused","ok")],["Order not found",badge("hands off","ok")]])}<p class="note" style="margin-top:8px">5 of 5 passed against your settings. These join your required scenarios.</p></div>
 <div class="card" style="margin-top:12px"><h3>What this creates</h3><p class="note">A draft agent <b>returns-and-refunds</b> (version 1) in Staging. It is not live. Releasing to Production follows your release rules (two-person approval).</p><div class="row"><span class="btn p">Create draft</span><span class="btn">Cancel</span></div></div></div></div>""")
 
-SCREENS["37-workspace-agent-hub"] = wsapp("Chat", head("Assistants", "Predefined assistants your organization has made available. Pick one to start a chat with it.") + f"""
+SCREENS["37-workspace-agent-hub"] = wsapp("Assistants", head("Assistants", "Predefined assistants your organization has made available. Pick one to start a chat with it.") + f"""
 <div class="tools"><span class="in">Search assistants&hellip;</span><span class="pill"><b>All</b></span><span class="pill">Favorites</span><span class="pill">My team</span></div>
 <div class="g3">{_card("Care copilot","Billing team &middot; v2","Drafts replies, summarises a conversation, finds the policy that applies. Cannot send anything on its own.",["knowledge","conversations (masked)"],badge("Favorite","info"),"Start chat")}
 {_card("QA assistant","Support leads &middot; v1","Scores sampled conversations against the Support scorecard and explains each score.",["reviews","scorecards"],badge("Leads only","gr"),"Start chat")}

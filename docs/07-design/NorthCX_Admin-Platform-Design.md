@@ -7,11 +7,12 @@ Source files: `07-design/mockups/*.html` (regenerate with `python scripts/gen_de
 ## 0. Layout decided on 2026-11-09 (supersedes the earlier arrangement where they differ)
 The owner described the layout; the two windows are:
 
-**Window 1, Workspace (the agent platform for staff).** Left side: a navigation list (**Chat, Search, Artifacts, Projects, Scheduled, Threads**), a "New chat" button, recent chats and the signed-in person. Right side: the **working space**, which shows the selected area. In Chat it is the conversation next to an artifact panel (the thing being produced, with copy, edit, share and schedule). Threads is where customer conversations that need a person are handled (the queue, the approval card, the draft reply).
+**Window 1, Workspace (the agent platform for staff).** Left side: a navigation list (**Chat, Assistants, Search, Artifacts, Projects, Scheduled, Threads**), a "New chat" button, recent chats and the signed-in person. Right side: the **working space**, which shows the selected area. In Chat it is the conversation next to an artifact panel (the thing being produced, with copy, edit, share and schedule). Threads is where customer conversations that need a person are handled (the queue, the approval card, the draft reply).
 
 | Left item | What it is | Mockup |
 |---|---|---|
 | Chat | Talk to a staff assistant (search, summarise, draft, report); answers cite sources; outputs open as artifacts | ![Chat](../assets/design/16-workspace-chat.png) |
+| Assistants | The predefined assistants this person may use (Agent Hub entries made available to them): search, favorites, what each can see and do, start a chat | ![Assistants](../assets/design/37-workspace-agent-hub.png) |
 | Search | One search across knowledge, conversations, hand-offs and artifacts, with the access reason on each result | ![Search](../assets/design/17-workspace-search.png) |
 | Artifacts | Library of everything produced (summaries, drafts, reports, digests): versions, share to team, schedule, export. **Not drawn yet**; the artifact panel in Chat shows one | (see Chat) |
 | Projects | Instructions, sources, chats and artifacts kept together for one piece of work (team or private) | ![Projects](../assets/design/18-workspace-projects.png) |
