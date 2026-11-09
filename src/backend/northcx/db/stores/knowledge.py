@@ -20,6 +20,10 @@ def _hnsw_ddl(dim: int) -> str:
         raise ValueError("unsupported vector size")
     return "create index if not exists ix_ke_hnsw_%d on knowledge_embeddings using hnsw ((embedding::vector(%d)) vector_cosine_ops) where vector_dims(embedding) = %d" % (dim, dim, dim)
 
+# constants, not formatted at run time: nothing here comes from a request
+EMBEDDINGS_TENANT_COLUMN_SQL = "alter table knowledge_embeddings add column if not exists tenant_id varchar(40) not null default " + TENANT_DEFAULT_SQL
+EMBEDDINGS_POLICY_SQL = "create policy tenant_isolation on knowledge_embeddings using (" + POLICY_SQL + ") with check (" + POLICY_SQL + ")"
+
 
 class PgKnowledge(_Base):
     async def create_source(self, source: Source) -> Source:
@@ -164,11 +168,11 @@ class PgKnowledge(_Base):
             await s.execute(text("create index if not exists ix_knowledge_embeddings_model on knowledge_embeddings (model)"))
             # Tenant isolation: the table is created here, not by a migration, so it gets its tenant column and policy here too. FORCE makes the policy
             # apply to the role that created it (the server's own role).
-            await s.execute(text(f"alter table knowledge_embeddings add column if not exists tenant_id varchar(40) not null default {TENANT_DEFAULT_SQL}"))
+            await s.execute(text(EMBEDDINGS_TENANT_COLUMN_SQL))
             await s.execute(text("alter table knowledge_embeddings enable row level security"))
             await s.execute(text("alter table knowledge_embeddings force row level security"))
             await s.execute(text("drop policy if exists tenant_isolation on knowledge_embeddings"))
-            await s.execute(text(f"create policy tenant_isolation on knowledge_embeddings using ({POLICY_SQL}) with check ({POLICY_SQL})"))
+            await s.execute(text(EMBEDDINGS_POLICY_SQL))
 
     @staticmethod
     def _scope(include: list[str] | None, exclude: list[str] | None, params: dict[str, Any], col: str = "d.source_id") -> str:
