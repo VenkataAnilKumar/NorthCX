@@ -11,18 +11,9 @@ Source files: `07-design/mockups/*.html` (regenerate with `python scripts/gen_de
 One sign-in and one design system. **Admin platform** (today's Studio, extended) is for administrators, release managers, developers, reviewers and auditors. The **staff workspace** is a separate app for support staff and team leads, because its audience, speed needs and permissions differ. Developer portal, ops console and back office come later and are only drawn here as boxes.
 
 ## 1a. Together or separate: what other platforms do
-Evidence is thin (product pages and third-party write-ups, no screenshots of the interfaces), so this is a pattern, not a measurement. Details and sources are in `00-reference/NorthCX_Feature-Research-2026-11.md` section 7.
+Per the project rule, other companies' products are named only in `00-reference/NorthCX_Feature-Research-2026-11.md` (sections 7 to 9, with sources). Evidence is thin (product pages and third-party write-ups, no interface captures), so this is a pattern, not a measurement.
 
-| Platform | How it splits the surfaces |
-|---|---|
-| Cohere North | An employee-facing workspace for chat, search and agents, and a separate management console (North Admin) for spending controls, security guardrails per agent and instance settings |
-| Sierra | Agent Studio (build), Insights (analytics) and Live Assist (copilot for human reps) are presented as separate products under one platform |
-| Intercom | One app, two areas: the Inbox where people work conversations (with a Fin folder and resolution-state views) and a Fin section for analysing, training, testing and deploying, with workspace-wide settings elsewhere |
-| ChatGPT Enterprise, Microsoft 365 Copilot | A chat workspace for everyone and a separate admin console (users, SSO, usage, compliance) for administrators |
-
-The pattern: **people who do the work and people who govern the system get different surfaces**, tied together by one identity and shared look. Where a vendor keeps both in one app (Intercom), it is a CX helpdesk whose staff are the same people who configure the agent.
-
-Coding and general agent workbenches (Codex, the Claude Code desktop app, MiniMax's desktop app) share one working layout: threads on the left, the conversation in the middle, the work product on the right, several threads running in parallel; their administration (GitHub Copilot's policies pages, for example) is separate, default-off for risky capabilities, and inherited from a higher level. Two ideas carry into the design: parallel threads with visible status in the workspace queue, and every admin setting showing where it comes from and whether it is locked from above.
+The pattern across employee AI workspaces, customer-service agent platforms, enterprise chat products and coding-agent workbenches: **people who do the work and people who govern the system get different surfaces**, tied together by one identity and a shared look. One customer-service helpdesk keeps both in a single app because its staff are the same people who configure the agent; the rest separate them. Working surfaces share one layout: threads on the left with status, the conversation in the middle, the work product on the right, several threads open at once. Administration is separate, off by default for risky capabilities, switched on per scope, and inherited from a higher level that lower levels cannot override. Two ideas carry into the design: parallel threads with visible status in the workspace queue, and every admin setting showing where it comes from and whether it is locked from above.
 
 **Recommendation for NorthCX:** separate windows (separate addresses and navigation) with one sign-in, one design system and deep links between them. The staff workspace is its own app because its audience works all day in one queue, needs speed and a narrow permission set, and should never show configuration. The admin platform (Studio, extended) holds operate, build, govern and platform items for the people who configure and oversee agents. Small cross-links keep them feeling like one product: "Open in workspace" from a hand-off, "Open in admin" from an agent. A person with both roles gets an app switcher in the top bar.
 
@@ -81,6 +72,10 @@ A queue built from hand-offs, low ratings, guardrail blocks, outliers and random
 ### Policies (where each setting comes from)
 ![Policies](../assets/design/13-policies.png)
 Each setting shows its value, which level set it (platform, tenant, team, agent), whether it is locked from above and what it applies to. A lower level may be stricter, never looser. Backend: the existing settings are environment variables today; per-tenant and per-team settings come with E2 (WP2.5).
+
+### Staff workspace, session-style variant
+![Session-style workspace](../assets/design/15-workspace-session-style.png)
+An alternative arrangement of the same window, taking the session-list idea from coding-agent workbenches: a thread list grouped by who needs to act (needs me, agent is handling, resolved today) with status and team filters; a title bar with buttons that open Conversation, Customer, Knowledge, Trace and a side chat; a details column (where it is, what the agent did, what is running, context use); and under the reply box a row with queue, **reply mode** (draft only, review before send, send), copilot and budget. Reply mode is the staff counterpart of the approval modes agents already have. This is a layout idea, not a copy of any product.
 
 ### Staff workspace
 ![Staff workspace](../assets/design/09-staff-workspace.png)

@@ -204,6 +204,28 @@ SCREENS["13-policies"] = shell("Policies", "Policies", "Rules for what agents ma
 <div class="card"><h3>Change history</h3>{table(["Who","What","When"],[["Priya N.","Daily budget for Team Support: $150 &rarr; $200","today"],["Marco L.","Two-person rule: on","3 days ago"]])}</div></div>""")
 
 
+SCREENS["15-workspace-session-style"] = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Workspace, session-style layout (mockup)</title><style>{CSS}
+.ws{{display:grid;grid-template-columns:270px 1fr 300px;height:900px}}.ws>div{{padding:14px;overflow:hidden}}.ws .l{{background:var(--surface);border-right:1px solid var(--border)}}.ws .r{{background:var(--surface);border-left:1px solid var(--border)}}
+.item{{padding:8px 10px;border-radius:8px;margin-bottom:3px}}.item.on{{background:var(--info-bg)}}.titlebar{{display:flex;gap:8px;align-items:center;margin-bottom:12px}}
+.pb{{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600}}.pb.on{{background:var(--primary);color:#fff;border-color:var(--primary)}}
+.prompt{{position:absolute;left:14px;right:14px;bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px}}
+.prompt .row{{margin-top:10px;gap:8px}}.ring{{width:18px;height:18px;border-radius:50%;border:3px solid var(--primary);border-right-color:var(--border);display:inline-block;vertical-align:middle}}</style></head><body><div class="ws">
+<div class="l"><div class="brand">NorthCX <span class="note">Workspace</span></div><div class="row" style="margin-bottom:8px"><span class="btn p" style="flex:1;text-align:center">+ New note</span></div>
+<div class="row" style="margin-bottom:8px"><span class="in">Status: Open &#9662;</span><span class="in">Team &#9662;</span></div><div class="grp">Needs me</div>
+<div class="item on"><b>c-4f21</b> {badge("approval","warn")}<br><span class="note">Refund for a delayed order</span></div><div class="item"><b>c-4f1c</b> {badge("replying","info")}<br><span class="note">Wrong plan charged</span></div>
+<div class="grp">Agent is handling</div><div class="item"><b>c-4f30</b> {badge("agent","gr")}<br><span class="note">Where is my parcel</span></div><div class="item"><b>c-4f2e</b> {badge("agent","gr")}<br><span class="note">Password reset</span></div>
+<div class="grp">Resolved today</div><div class="item"><b>c-4e90</b> {badge("resolved","ok")}<br><span class="note">Invoice copy</span></div><div class="note" style="margin-top:8px">Option-click a thread to open it beside this one</div></div>
+<div style="background:var(--bg);position:relative"><div class="titlebar"><b style="font-size:16px">Refund for a delayed order</b>{badge("handed off by billing-help","info")}<div style="flex:1"></div><span class="pb on">Conversation</span><span class="pb">Customer</span><span class="pb">Knowledge</span><span class="pb">Trace</span><span class="pb">Side chat</span><span class="pb">&hellip;</span></div>
+<div class="chat"><div class="msg u">My parcel is 9 days late and I want my money back.</div><div class="msg a">I can see order 1019 is delayed. A refund of $180 is above what I can approve, so I'm asking a colleague to review it.</div>
+<div class="card" style="background:var(--warn-bg);border-color:#e9c46a"><b>Approval needed:</b> issue_refund $180 for order 1019<div class="row" style="margin-top:8px"><span class="btn p">Approve</span><span class="btn d">Reject</span><span class="btn">Ask for more</span></div></div>
+<div class="msg a" style="align-self:flex-start"><span class="note">Draft reply</span><br>Thanks for waiting. We've refunded $180 to your original payment method; it can take 3 to 5 days to appear.</div></div>
+<div class="prompt"><span class="mut">Write a reply, or ask the copilot to search, summarise or draft&hellip;</span><div class="row"><span class="pill">+</span><span class="pill">Queue <b>Billing</b></span><span class="pill">Reply mode <b>Review before send</b></span><span class="pill">Copilot <b>care-copilot</b></span><div style="flex:1"></div><span class="ring"></span><span class="note">budget 18%</span></div></div></div>
+<div class="r"><div class="card" style="margin-bottom:10px"><h3>Where it is</h3><p class="note">Queue Billing &middot; waiting 6 min &middot; handed off by billing-help v7 &middot; Production</p></div>
+<div class="card" style="margin-bottom:10px"><h3>What the agent did</h3><p class="note">1 lookup, 1 refund request (not executed), hand-off after 4 steps</p></div><div class="card" style="margin-bottom:10px"><h3>Running</h3><p class="note">Copilot is drafting a reply&hellip;</p></div>
+<div class="card"><h3>Context</h3><div class="bar"><i style="width:18%"></i></div><p class="note">Conversation and sources: 18% of the copilot's context</p></div></div></div>
+<div class="mock">Design mockup &middot; sample data &middot; layout idea only</div></body></html>"""
+
+
 def _col(title, who, items, cls="info"):
     return f'<div class="card" style="padding:14px"><span class="b {cls}">{title}</span><p class="note" style="margin:6px 0 8px">{who}</p>' + "".join(f"<div style='padding:4px 0;border-top:1px solid var(--border)'>{i}</div>" for i in items) + "</div>"
 
