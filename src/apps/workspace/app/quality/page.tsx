@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { addCoachingNote, coachingNotes, deleteCoachingNote, getRubric, putRubric, qaCalibration, resetRubric, scorecards, useLoad, useMe, type Rubric } from "@northcx/api-client";
+import { judgeConversation, addCoachingNote, coachingNotes, deleteCoachingNote, getRubric, putRubric, qaCalibration, resetRubric, scorecards, useLoad, useMe, type Rubric } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader } from "@northcx/ui";
 
 const pct = (v: number | null) => (v === null ? "no data" : `${Math.round(v * 100)}%`);
@@ -44,6 +44,13 @@ function Coaching() {
   );
 }
 
+function Judge({ id }: { id: string }) {
+  const { can } = useMe();
+  const [out, setOut] = useState<string | null>(null);
+  if (!can("reviews:write")) return null;
+  return (<span className="ml-2"><button className="btn" onClick={() => void judgeConversation(id).then((j) => setOut(`Model: ${j.verdict}. ${j.reason}`)).catch((e) => setOut(e.message))}>Ask the model</button>{out && <span className="ml-2 text-xs">{out}</span>}</span>);
+}
+
 export default function Page() {
   const { can } = useMe();
   const [days, setDays] = useState(7);
@@ -74,13 +81,14 @@ export default function Page() {
             <p className="text-sm">{cal.data.agreement.numerator} of {cal.data.compared} compared conversations. Score said good, reviewer said wrong: {cal.data.scoreSaidGoodReviewerSaidWrong}. Score said poor, reviewer said correct: {cal.data.scoreSaidBadReviewerSaidCorrect}.</p>
             {cal.data.disagreements.length > 0 && <ul className="mt-2 text-xs">{cal.data.disagreements.map((d) => <li key={d.sessionId}>{d.sessionId.slice(0, 14)}: score {d.score}, reviewer {d.verdict}</li>)}</ul>}
           </>)}
+          {cal.data?.model && cal.data.model.judged > 0 && <p className="mt-2 text-sm">Model verdicts: {cal.data.model.judged} made, {cal.data.model.compared} also reviewed by a person{cal.data.model.agreement.value !== null ? `, agreement ${pct(cal.data.model.agreement.value)}` : ""}. <span className="text-xs text-muted">{cal.data.model.note}</span></p>}
           {cal.data && <p className="mt-2 text-xs text-muted">{cal.data.note}</p>}
         </GlassCard>
         <GlassCard title="Lowest scores">
-          {c.lowest.length === 0 ? <Empty>Nothing scored.</Empty> : <ul className="space-y-2 text-sm">{c.lowest.slice(0, 10).map((l) => <li key={l.sessionId}><strong>{l.score}</strong> · {l.agentId} · {l.sessionId.slice(0, 14)}<br /><span className="text-xs text-muted">{l.criteria.filter((x) => x.result === "fail").map((x) => `${x.label}: ${x.reason}`).join("; ")}</span></li>)}</ul>}
+          {c.lowest.length === 0 ? <Empty>Nothing scored.</Empty> : <ul className="space-y-2 text-sm">{c.lowest.slice(0, 10).map((l) => <li key={l.sessionId}><strong>{l.score}</strong> · {l.agentId} · {l.sessionId.slice(0, 14)}<Judge id={l.sessionId} /><br /><span className="text-xs text-muted">{l.criteria.filter((x) => x.result === "fail").map((x) => `${x.label}: ${x.reason}`).join("; ")}</span></li>)}</ul>}
         </GlassCard>
         <GlassCard title="Sample to review">
-          {c.sampleToReview.length === 0 ? <Empty>No unreviewed conversations in the sample.</Empty> : <ul className="space-y-1 text-sm">{c.sampleToReview.slice(0, 15).map((s) => <li key={s}>{s.slice(0, 18)}</li>)}</ul>}
+          {c.sampleToReview.length === 0 ? <Empty>No unreviewed conversations in the sample.</Empty> : <ul className="space-y-1 text-sm">{c.sampleToReview.slice(0, 15).map((s) => <li key={s}>{s.slice(0, 18)}<Judge id={s} /></li>)}</ul>}
           <p className="mt-2 text-xs text-muted">A fixed share of conversations chosen by their id, so the same ones always come up. Open them from Admin → Review and QA.</p>
         </GlassCard>
         {can("reviews:write") && <div className="lg:col-span-2"><Coaching /></div>}

@@ -324,3 +324,96 @@ def test_the_webhook_secret_is_never_stored_and_survives_a_restart_of_the_servic
     svc.derive = None
     assert svc.webhook_secret(stored) == ""                                         # with nothing to derive from, no signature is accepted
     assert not svc.verify_signature(stored, b"x", sign("anything", b"x"))
+
+
+def world_with_events():
+    from northcx.events import EventFeed
+    from northcx.outbox import InMemoryOutbox, Outbox
+    loop = asyncio.new_event_loop()
+    llm = ScriptedLLM([text("Triage note: delivery problem.")] * 20)
+    rt = Runtime(llm, InMemoryStore(), TraceStore())
+    reg = example_registry()
+    register_staff_tools(reg, WorkspaceService(rt, rt.traces, None, None, None, None))
+    t = load_templates(LIBRARY)["shift-briefing"]
+    agents = {"support": support_agent(), "shift-briefing": reg.build(render(t, "shift-briefing", {}, reg).spec, BuildContext(llm=llm))}
+    ac = AccessControl(bootstrap_key=KEY)
+    feed = EventFeed(Outbox(InMemoryOutbox()))
+    app = create_app(rt, rt.traces, agents, access=ac, events=feed)
+    key = lambda n, r: {"authorization": "Bearer " + loop.run_until_complete(ac.issue(n, r, "t"))[1]}  # noqa: E731
+    return app, feed, key, loop
+
+
+EVENT_ROUTINE = {"id": "on-handoff", "name": "Note new hand-offs", "trigger": {"type": "event", "event": "handoff.created"}, "limits": {"maxSeconds": 60},
+                 "steps": [{"id": "note", "kind": "assistant", "assistant": "shift-briefing", "prompt": "Write a one line note about this event: {{input}}"},
+                           {"id": "keep", "kind": "output", "title": "Hand-off note {date}"}]}
+
+
+def test_an_event_routine_starts_once_per_event_never_replays_history_and_saves_an_output():
+    app, feed, key, loop = world_with_events()
+    c = TestClient(app)
+    ann, ben = key("ann", "release_manager"), key("ben", "release_manager")
+    loop.run_until_complete(feed.emit("handoff.created", {"queue": "old"}, "s-old"))                # before the routine exists: must not trigger it
+    assert c.post("/v1/automations", headers=ann, json={"definition": {**EVENT_ROUTINE, "trigger": {"type": "event", "event": "nonsense.event"}}}).status_code == 400
+    assert c.post("/v1/automations", headers=ann, json={"definition": EVENT_ROUTINE}).status_code == 201
+    propose_and_approve(c, ann, ben, "on-handoff")
+    svc = app.state.automations
+
+    async def go():
+        assert await svc.events_tick() == 0                                                         # first pass only marks the end of the feed
+        await feed.emit("conversation.rated", {"rating": 5}, "s-1")                                    # a different event type: ignored
+        await feed.emit("handoff.created", {"queue": "billing"}, "s-2")
+        await feed.emit("handoff.created", {"queue": "returns"}, "s-3")
+        assert await svc.events_tick() == 1                                                         # one routine runs one at a time: the second event waits its turn
+        for t in list(svc._tasks):
+            await t
+        assert await svc.events_tick() == 1 and await svc.events_tick() == 0                           # then it is taken, and nothing is taken twice
+        for t in list(svc._tasks):
+            await t
+        runs = await svc.repo.runs("on-handoff", 10)
+        assert len(runs) == 2 and all(r.trigger == "event" and r.status == "succeeded" for r in runs)
+        assert all(s["status"] == "ok" for s in runs[0].steps) and runs[0].steps[1]["outputId"].startswith("out-")
+        await feed.emit("handoff.created", {"queue": "x"}, "s-4")
+        await svc.pause("on-handoff", True)
+        assert await svc.events_tick() == 0                                                         # paused: nothing starts
+        await svc.pause("on-handoff", False)
+        assert await svc.events_tick() == 1                                                         # the paused period did not lose the event
+    loop.run_until_complete(go())
+    out = c.get("/v1/workspace/outputs", headers=ann).json()["outputs"]
+    assert out and out[0]["owner"].startswith("automation:on-handoff") and out[0]["visibility"] == "shared" and out[0]["title"].startswith("Hand-off note 20")
+    assert c.get("/v1/automations/on-handoff/runs", headers=ann).json()["runs"][0]["trigger"] == "event"
+
+
+def test_a_burst_of_events_is_taken_one_run_at_a_time_without_losing_or_repeating_any():
+    app, feed, key, loop = world_with_events()
+    c = TestClient(app)
+    ann, ben = key("ann", "release_manager"), key("ben", "release_manager")
+    c.post("/v1/automations", headers=ann, json={"definition": {**EVENT_ROUTINE, "id": "burst", "steps": EVENT_ROUTINE["steps"][:1]}})
+    propose_and_approve(c, ann, ben, "burst")
+    svc = app.state.automations
+
+    async def go():
+        await svc.events_tick()
+        for i in range(8):
+            await feed.emit("handoff.created", {"n": i}, f"s-{i}")
+        passes = 0
+        while passes < 30:
+            passes += 1
+            n = await svc.events_tick()
+            for t in list(svc._tasks):
+                await t
+            if n == 0:
+                break
+        runs = await svc.repo.runs("burst", 50)
+        return runs, passes
+    runs, passes = loop.run_until_complete(go())
+    assert len(runs) == 8 and all(r.status == "succeeded" for r in runs) and passes < 30        # every event started exactly one run, one after another
+
+
+def test_the_example_routines_on_the_page_are_valid():
+    import re
+    page = open("../apps/workspace/app/automations/page.tsx").read()
+    for name in ("STARTER", "DIGEST", "EVENT"):
+        src = re.search(r"const " + name + r" = `(.*?)`;", page, re.S).group(1)
+        doc = yaml.safe_load(src)
+        clean = validate_definition(doc, {"performance", "quality"}, frozenset({"handoff.created"}))
+        assert clean["steps"] and clean["id"]

@@ -116,6 +116,8 @@ def build_runtime(c: SimpleNamespace) -> None:
     runtime.customers = CustomerService(PgCustomerNotes(c.engine) if c.db_url else None, PgSettings(c.engine) if c.db_url else None)
     from northcx.qa import RubricService
     runtime.coaching = PgCoaching(c.engine) if c.db_url else None
+    from northcx.db import PgJudgements
+    runtime.judgements = PgJudgements(c.engine) if c.db_url else None
     runtime.rubrics = RubricService(PgSettings(c.engine) if c.db_url else None)
     from northcx.org_templates import OrgTemplateService
     from northcx.templates import LIBRARY, load_templates

@@ -48,9 +48,12 @@ class Hooks:
     assistant_exists: Callable[[str], Awaitable[bool]]
     reports: dict[str, Callable[[int], Awaitable[dict[str, Any]]]] = field(default_factory=dict)
     over_budget: Callable[[], Awaitable[bool]] | None = None
+    save_output: Callable[[str, str, str], Awaitable[str]] | None = None                    # title, body, routine id -> output id
+    events: Callable[[int, int], Awaitable[list[dict[str, Any]]]] | None = None             # after id, limit -> status events (ids and short values only)
+    event_types: frozenset[str] = frozenset()
 
 
-def validate_definition(data: Any, reports: set[str]) -> dict[str, Any]:
+def validate_definition(data: Any, reports: set[str], events: set[str] | frozenset[str] = frozenset()) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise AutomationError(400, "A routine is a mapping")
     unknown = set(data) - {"id", "name", "description", "trigger", "steps", "limits"}
@@ -66,14 +69,19 @@ def validate_definition(data: Any, reports: set[str]) -> dict[str, Any]:
         raise AutomationError(400, "description must be text of at most 500 characters")
     trig = data.get("trigger") or {}
     kind = trig.get("type") if isinstance(trig, dict) else None
-    if kind not in ("manual", "schedule", "webhook"):
-        raise AutomationError(400, "trigger.type must be manual, schedule or webhook")
+    if kind not in ("manual", "schedule", "webhook", "event"):
+        raise AutomationError(400, "trigger.type must be manual, schedule, webhook or event")
     t: dict[str, Any] = {"type": kind}
     if kind == "schedule":
         h = trig.get("everyHours")
         if isinstance(h, bool) or not isinstance(h, (int, float)) or not MIN_HOURS <= h <= MAX_HOURS:
             raise AutomationError(400, f"trigger.everyHours must be between {MIN_HOURS:g} and {MAX_HOURS:g}")
         t["everyHours"] = float(h)
+    if kind == "event":
+        ev = trig.get("event")
+        if ev not in events:
+            raise AutomationError(400, f"trigger.event must be one of {', '.join(sorted(events)) or 'none are available'}")
+        t["event"] = ev
     steps = data.get("steps")
     if not isinstance(steps, list) or not 1 <= len(steps) <= MAX_STEPS:
         raise AutomationError(400, f"A routine needs 1 to {MAX_STEPS} steps")
@@ -99,8 +107,15 @@ def validate_definition(data: Any, reports: set[str]) -> dict[str, Any]:
             if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= 90:
                 raise AutomationError(400, f"Step '{sid}': days must be a whole number from 1 to 90")
             out.append({"id": sid, "kind": "report", "report": rep, "days": days})
+        elif sk == "output":
+            title, vis = s.get("title"), s.get("visibility", "shared")
+            if not isinstance(title, str) or not 3 <= len(title) <= 100:
+                raise AutomationError(400, f"Step '{sid}': the output title must be 3 to 100 characters ({{date}} is replaced by the day)")
+            if vis != "shared":
+                raise AutomationError(400, f"Step '{sid}': a routine's outputs are shared with everyone who uses the Workspace")
+            out.append({"id": sid, "kind": "output", "title": title, "visibility": "shared"})
         else:
-            raise AutomationError(400, f"Step '{sid}': kind must be assistant or report (a routine cannot write to customers or outside systems in this release)")
+            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report or output (a routine cannot write to customers or outside systems in this release)")
     lim = data.get("limits") or {}
     secs = lim.get("maxSeconds", 120) if isinstance(lim, dict) else None
     if isinstance(secs, bool) or not isinstance(secs, int) or not 10 <= secs <= MAX_SECONDS:
@@ -259,9 +274,12 @@ class AutomationService:
     def _reports(self) -> set[str]:
         return set(self.hooks.reports) if self.hooks else set()
 
+    def _events(self) -> frozenset[str]:
+        return self.hooks.event_types if self.hooks else frozenset()
+
     # ---- definitions and review ----
     async def create(self, data: dict[str, Any], by: str) -> Automation:
-        clean = validate_definition(data, self._reports())
+        clean = validate_definition(data, self._reports(), self._events())
         if await self.repo.versions(clean["id"]):
             raise AutomationError(409, f"A routine '{clean['id']}' already exists; change it to make a new version")
         a = Automation(clean["id"], 1, clean["name"], clean, created_by=by, nonce=secrets.token_hex(8) if clean["trigger"]["type"] == "webhook" else "")
@@ -272,7 +290,7 @@ class AutomationService:
         vs = await self.repo.versions(automation_id)
         if not vs:
             raise AutomationError(404, "Unknown routine")
-        clean = validate_definition(data, self._reports())
+        clean = validate_definition(data, self._reports(), self._events())
         if clean["id"] != automation_id:
             raise AutomationError(400, "The id cannot change; create a new routine instead")
         cur = vs[0]
@@ -369,7 +387,7 @@ class AutomationService:
             raise AutomationError(404, "That routine is not published")
         if (await self.repo.state(automation_id))["paused"]:
             raise AutomationError(409, "That routine is paused")
-        if trigger not in ("manual", "schedule", "webhook"):
+        if trigger not in ("manual", "schedule", "webhook", "event"):
             raise AutomationError(400, "Unknown trigger")
         if a.data["trigger"]["type"] != trigger and trigger != "manual":
             raise AutomationError(409, f"That routine is started by {a.data['trigger']['type']}, not {trigger}")
@@ -431,6 +449,12 @@ class AutomationService:
                     if status != "completed":
                         raise AutomationError(502, f"Step '{s['id']}' ended with status {status}")
                     prev = reply[:MAX_OUTPUT]
+                elif s["kind"] == "output":
+                    if self.hooks.save_output is None:
+                        raise AutomationError(501, "Saving outputs is not configured on this server")
+                    title = s["title"].replace("{date}", time.strftime("%Y-%m-%d", time.gmtime()))
+                    rec["outputId"] = await self.hooks.save_output(title, prev, a.id)
+                    prev = f"Saved as output {rec['outputId']}"
                 else:
                     prev = json.dumps(await self.hooks.reports[s["report"]](s["days"]), default=str)[:MAX_OUTPUT]
                 rec.update({"status": "ok", "output": prev, "endedAt": time.time()})
@@ -448,7 +472,7 @@ class AutomationService:
         await self.sweep()
         if not await self.enabled() or self.hooks is None:
             return 0
-        started = 0
+        started = await self.events_tick()
         for aid in await self.repo.claim_due(now, 10):
             a = next((v for v in await self.repo.versions(aid) if v.status == "published"), None)
             if a is None or a.data["trigger"]["type"] != "schedule":
@@ -460,6 +484,44 @@ class AutomationService:
                 started += 1
             except AutomationError:
                 continue                                                                      # busy or at the limit: tried again next interval
+        return started
+
+    async def events_tick(self) -> int:
+        """Start event routines for events that arrived since last time. Each routine keeps its own place in the feed and moves it forward before it starts anything,
+        so an event starts a routine at most once; a new routine starts at the end of the feed and never replays history. At most five events per routine per pass."""
+        if self.hooks is None or self.hooks.events is None or not await self.enabled():
+            return 0
+        started = 0
+        for a in await self.repo.published():
+            trig = a.data["trigger"]
+            if trig["type"] != "event" or (await self.repo.state(a.id))["paused"]:
+                continue
+            cur = await self.settings.get(f"autocursor:{a.id}")
+            if cur is None:
+                latest = await self.hooks.events(0, 500)
+                await self.settings.put(f"autocursor:{a.id}", {"after": max((e["id"] for e in latest), default=0)}, "automations")
+                continue
+            batch = await self.hooks.events(cur["after"], 50)
+            pos, count, limited = cur["after"], 0, False
+            for e in batch:
+                if e["type"] != trig["event"]:
+                    pos = e["id"]
+                    continue
+                if count >= 5:
+                    limited = True
+                    break
+                await self.settings.put(f"autocursor:{a.id}", {"after": e["id"]}, "automations")      # moved forward first: an event starts a routine at most once
+                try:
+                    await self.run(a.id, "event", "event", json.dumps({k: e[k] for k in ("id", "type", "sessionId", "data") if k in e}, default=str), wait=False)
+                except AutomationError:
+                    await self.settings.put(f"autocursor:{a.id}", {"after": pos}, "automations")      # it did not start (busy or at the limit): this event is tried again next pass
+                    limited = True
+                    break
+                count, started, pos = count + 1, started + 1, e["id"]
+            if not limited and batch:
+                pos = batch[-1]["id"]
+            if pos != cur["after"] or limited:
+                await self.settings.put(f"autocursor:{a.id}", {"after": pos}, "automations")
         return started
 
     async def sweep(self) -> int:

@@ -268,6 +268,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("DELETE", r"/v1/quality/rubric", "releases:publish"),
     ("GET", r"/v1/quality/scorecards", "traces:read"),
     ("GET", r"/v1/quality/calibration", "traces:read"),
+    ("POST", r"/v1/quality/judge", "reviews:write"),
     ("GET", r"/v1/quality/coaching", "reviews:write"),
     ("POST", r"/v1/quality/coaching", "reviews:write"),
     ("DELETE", r"/v1/quality/coaching/[^/]+", "reviews:write"),

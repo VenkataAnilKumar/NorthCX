@@ -7767,6 +7767,49 @@
         ]
       }
     },
+    "/v1/quality/judge": {
+      "post": {
+        "summary": "Judge",
+        "description": "Ask the model for a verdict on one conversation. It reads the masked transcript only, costs a model call, and never replaces a reviewer: it is stored apart and compared with reviews in calibration.",
+        "operationId": "judge_v1_quality_judge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JudgeBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Judge V1 Quality Judge Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "reviews:write",
+        "tags": [
+          "quality"
+        ]
+      }
+    },
     "/v1/quality/rubric": {
       "get": {
         "summary": "Get Rubric",
@@ -12090,6 +12133,21 @@
           "journey"
         ],
         "title": "JourneyScenariosBody"
+      },
+      "JudgeBody": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Sessionid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessionId"
+        ],
+        "title": "JudgeBody"
       },
       "KeyBody": {
         "properties": {

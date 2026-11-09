@@ -9,9 +9,10 @@ from fastapi.responses import JSONResponse
 
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
-from northcx.api.models import CoachingBody, RubricBody
+from northcx.api.models import CoachingBody, JudgeBody, RubricBody
 from northcx.insights import ratio
-from northcx.qa import CHECKS, CoachingNote, InMemoryCoaching, QAError, RubricService, calibration, score
+from northcx.privacy import customer_ref
+from northcx.qa import CHECKS, JUDGE_SYSTEM, CoachingNote, InMemoryCoaching, InMemoryJudgements, Judgement, QAError, RubricService, calibration, parse_judgement, score
 from northcx.reviews import sampled
 
 MAX_SESSIONS = 2000
@@ -21,9 +22,11 @@ def register(app: FastAPI, d: AppDeps) -> None:
     record, runtime, insight, review_repo, traces = d.record, d.runtime, d.insight, d.review_repo, d.traces
     rubrics: RubricService = getattr(runtime, "rubrics", None) or RubricService()
     coaching = getattr(runtime, "coaching", None) or InMemoryCoaching()
-    app.state.rubrics, app.state.coaching = rubrics, coaching
-    if type(runtime.privacy).__name__ == "InMemoryPrivacy":      # the Postgres backend erases the table itself
+    judgements = getattr(runtime, "judgements", None) or InMemoryJudgements()
+    app.state.rubrics, app.state.coaching, app.state.judgements = rubrics, coaching, judgements
+    if type(runtime.privacy).__name__ == "InMemoryPrivacy":      # the Postgres backend erases the tables itself
         runtime.privacy.coaching = coaching
+        runtime.privacy.judgements = judgements
 
     async def scored(days: int, agent: str | None) -> tuple[dict[str, Any], dict[str, dict[str, Any]], dict[str, str], dict[str, Any]]:
         rubric = await rubrics.get()
@@ -100,7 +103,38 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if not 1 <= days <= 90:
             return _err(400, "bad_request", "days must be between 1 and 90")
         rubric, results, verdicts, _ = await scored(days, None)
-        return {"rubricVersion": rubric["version"], "passMark": rubric["passMark"], **calibration({s: r["score"] for s, r in results.items()}, verdicts, rubric["passMark"])}
+        mine = await judgements.for_sessions(list(results))
+        model = calibration({s: (100.0 if j.verdict == "good" else 0.0) for s, j in mine.items()}, verdicts, 50.0)       # the model's verdict as a score against a person's
+        return {"rubricVersion": rubric["version"], "passMark": rubric["passMark"], **calibration({s: r["score"] for s, r in results.items()}, verdicts, rubric["passMark"]),
+                "model": {"judged": len(mine), "compared": model["compared"], "agreement": model["agreement"], "disagreements": model["disagreements"],
+                          "note": "The model's verdicts are compared with reviewers' verdicts on the same conversations. Until the agreement is high on a good number of them, treat a model verdict as a pointer, not a result."}}
+
+    @app.post("/v1/quality/judge")
+    async def judge(body: JudgeBody, request: Request) -> Any:
+        """Ask the model for a verdict on one conversation. It reads the masked transcript only, costs a model call, and never replaces a reviewer: it is stored apart and compared with reviews in calibration."""
+        from northcx.handoffs import transcript
+        from northcx.insights import mask
+        from northcx.types import LLMRequest, text_of
+        if not await traces.summaries(body.session_id, 1):
+            return _err(404, "not_found", "Unknown conversation")
+        led = getattr(runtime, "ledger", None)
+        if led is not None and await led.over_budget():
+            return _err(402, "budget", "The daily budget is used up")
+        lines = "\n".join(f"{m['from']}: {mask(m['text'], 600)}" for m in transcript(await runtime.store.load_messages(body.session_id))[:60])
+        if not lines.strip():
+            return _err(409, "conflict", "That conversation has nothing to judge")
+        try:
+            res = await runtime.llm.complete(LLMRequest(system=JUDGE_SYSTEM, messages=[{"role": "user", "content": lines}], model=None, max_tokens=300))
+            verdict = parse_judgement(text_of(res.content))
+        except QAError as e:
+            return _err(502, "model_unusable", str(e))
+        except Exception:
+            return _err(502, "model_unavailable", "The model could not be reached; try again")
+        rubric = await rubrics.get()
+        j = Judgement(body.session_id, verdict["verdict"], verdict["reason"], rubric["version"], request.state.identity.name)
+        await judgements.put(j)
+        await record(request, "quality.judge", customer_ref(body.session_id), verdict=j.verdict)
+        return j.to_dict()
 
     @app.get("/v1/quality/coaching")
     async def list_coaching(sessionId: str | None = None, about: str | None = None) -> Any:

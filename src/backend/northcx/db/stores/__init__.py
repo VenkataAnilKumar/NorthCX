@@ -22,6 +22,7 @@ from .coaching import PgCoaching
 from .customers import PgCustomerNotes
 from .automations import PgAutomations
 from .outputs import PgContent
+from .judgements import PgJudgements
 from .release_requests import PgReleaseRequests
 from .shared_state import PgAlertState, PgCrawlJobs
 from .limits import PgLimiter, PgUsageLedger

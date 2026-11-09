@@ -206,6 +206,7 @@
   "POST /v1/org-templates/x/withdraw": "/v1/org-templates/{template_id}/withdraw -> withdraw",
   "POST /v1/privacy/retention/run": "/v1/privacy/retention/run -> privacy_retention",
   "POST /v1/quality/coaching": "/v1/quality/coaching -> add_coaching",
+  "POST /v1/quality/judge": "/v1/quality/judge -> judge",
   "POST /v1/release-requests/x/approve": "/v1/release-requests/{request_id}/approve -> approve_request",
   "POST /v1/release-requests/x/cancel": "/v1/release-requests/{request_id}/cancel -> cancel_request",
   "POST /v1/release-requests/x/reject": "/v1/release-requests/{request_id}/reject -> reject_request",
@@ -1281,6 +1282,11 @@
    "POST",
    "/v1/quality/coaching",
    "add_coaching"
+  ],
+  [
+   "POST",
+   "/v1/quality/judge",
+   "judge"
   ],
   [
    "POST",

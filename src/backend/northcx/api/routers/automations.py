@@ -43,7 +43,18 @@ def register(app: FastAPI, d: AppDeps) -> None:
         return bool(led is not None and await led.over_budget())
 
     reports = {name: getattr(app.state, f"report_{name}") for name in ("performance", "quality") if hasattr(app.state, f"report_{name}")}
-    svc.hooks = Hooks(run_assistant, exists, reports, over_budget)
+    async def save_output(title: str, body: str, automation_id: str) -> str:
+        content = getattr(runtime, "content", None)
+        if content is None:
+            raise AutomationError(501, "Outputs are not configured on this server")
+        o = await content.create_output(f"automation:{automation_id}", title, body, "digest", "shared", None, f"automation:{automation_id}", 90, False)
+        return o.id
+
+    async def feed(after: int, limit: int) -> list[dict[str, Any]]:
+        return await d.events.listing(after, limit) if d.events is not None else []
+
+    from northcx.events import EVENTS
+    svc.hooks = Hooks(run_assistant, exists, reports, over_budget, save_output, feed if d.events is not None else None, frozenset(EVENTS) if d.events is not None else frozenset())
 
     def fail(e: AutomationError) -> JSONResponse:
         return _err(e.status, {400: "bad_request", 402: "budget", 403: "forbidden", 404: "not_found", 409: "conflict", 429: "rate_limited", 501: "not_configured"}.get(e.status, "error"), str(e))

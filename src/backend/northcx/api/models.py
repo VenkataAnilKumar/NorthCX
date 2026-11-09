@@ -386,6 +386,11 @@ class SpaceEditBody(BaseModel):
     visibility: str | None = None
 
 
+class JudgeBody(BaseModel):
+    session_id: str = Field(alias="sessionId", min_length=1, max_length=200)
+    model_config = {"populate_by_name": True}
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

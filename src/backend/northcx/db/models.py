@@ -753,6 +753,18 @@ class WorkspaceSpaceRow(TenantScoped, Base):
     data: Mapped[Any] = mapped_column(JSONB, nullable=False)
 
 
+class QaJudgementRow(TenantScoped, Base):
+    """A model's verdict on a conversation (Quality); a person's review is separate and decides."""
+    __tablename__ = "qa_judgements"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    session_id: Mapped[str] = mapped_column(String(200), primary_key=True)
+    verdict: Mapped[str] = mapped_column(String(8), nullable=False)
+    reason: Mapped[str] = mapped_column(String(400), nullable=False)
+    rubric_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    judged_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

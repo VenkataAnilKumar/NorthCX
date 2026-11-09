@@ -519,7 +519,7 @@ export interface Scorecards {
   days: number; rubricVersion: number; passMark: number; scored: number; conversations: number; averageScore: number | null; passRate: { value: number | null; numerator: number; denominator: number };
   byAgent: { agent: string; scored: number; average: number }[]; byCheck: { id: string; label: string; passed: number; failed: number }[]; lowest: QaScored[]; sampleToReview: string[]; truncated: boolean; note: string;
 }
-export interface Calibration { compared: number; agreement: { value: number | null; numerator: number; denominator: number }; scoreSaidGoodReviewerSaidWrong: number; scoreSaidBadReviewerSaidCorrect: number; disagreements: { sessionId: string; score: number; verdict: string }[]; note: string; passMark: number }
+export interface Calibration { model?: { judged: number; compared: number; agreement: { value: number | null; numerator: number; denominator: number }; disagreements: { sessionId: string; score: number; verdict: string }[]; note: string }; compared: number; agreement: { value: number | null; numerator: number; denominator: number }; scoreSaidGoodReviewerSaidWrong: number; scoreSaidBadReviewerSaidCorrect: number; disagreements: { sessionId: string; score: number; verdict: string }[]; note: string; passMark: number }
 export interface CoachingNote { id: string; sessionId: string; about: string; note: string; author: string; createdAt: number }
 export const getRubric = () => api<Rubric>("/v1/quality/rubric");
 export const putRubric = (r: { criteria: RubricCriterion[]; passMark: number; sample: number }) => api<Rubric>("/v1/quality/rubric", { method: "PUT", body: JSON.stringify(r) });
@@ -587,3 +587,4 @@ export const getSpace = (id: string) => api<SpaceItem>(`/v1/workspace/spaces/${i
 export const createSpace = (b: { name: string; description?: string; instructions?: string; visibility?: string }) => api<SpaceItem>("/v1/workspace/spaces", { method: "POST", body: JSON.stringify(b) });
 export const editSpace = (id: string, b: Partial<{ name: string; description: string; instructions: string; visibility: string }>) => api<SpaceItem>(`/v1/workspace/spaces/${id}`, { method: "PUT", body: JSON.stringify(b) });
 export const deleteSpace = (id: string) => api<{ deleted: boolean }>(`/v1/workspace/spaces/${id}`, { method: "DELETE" });
+export const judgeConversation = (sessionId: string) => api<{ sessionId: string; verdict: "good" | "poor"; reason: string; by: string }>("/v1/quality/judge", { method: "POST", body: JSON.stringify({ sessionId }) });

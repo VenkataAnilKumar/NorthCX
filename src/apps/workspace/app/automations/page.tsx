@@ -15,6 +15,31 @@ steps:
     assistant: shift-briefing
     prompt: "Write a briefing of a few lines from this: {{previous}}"
 `;
+const DIGEST = `id: weekly-digest
+name: Weekly digest
+description: A weekly summary of how the team and the agents did, saved to Outputs.
+trigger: {type: schedule, everyHours: 168}
+limits: {maxSeconds: 180}
+steps:
+  - {id: team, kind: report, report: performance, days: 7}
+  - {id: quality, kind: report, report: quality, days: 7}
+  - id: write
+    kind: assistant
+    assistant: shift-briefing
+    prompt: "Write a short weekly digest for the team lead from these figures: {{previous}}"
+  - {id: keep, kind: output, title: "Weekly digest {date}"}
+`;
+const EVENT = `id: note-handoffs
+name: Note new hand-offs
+description: When a conversation is handed to a person, write a one-line note.
+trigger: {type: event, event: handoff.created}
+steps:
+  - id: note
+    kind: assistant
+    assistant: shift-briefing
+    prompt: "Write one line about this event: {{input}}"
+  - {id: keep, kind: output, title: "Hand-off note {date}"}
+`;
 const when = (t: number | null) => (t ? new Date(t * 1000).toLocaleString() : "never");
 const LABEL: Record<string, string> = { draft: "Draft", proposed: "Waiting for a second person", published: "Published", rejected: "Rejected", superseded: "Replaced", retired: "Retired" };
 
@@ -49,7 +74,7 @@ export default function Page() {
   const list = data!.automations;
   return (
     <>
-      <PageHeader title="Automations" subtitle="Routines that run by themselves. In this release a step is a staff assistant (read-only) or a built-in report; nothing is sent to customers or outside systems. A second person approves each routine before it runs." />
+      <PageHeader title="Automations" subtitle="Routines that run by themselves. In this release a step is a staff assistant (read-only), a built-in report, or saving the result to Outputs; nothing is sent to customers or outside systems. A routine starts by hand, on a schedule, by a signed webhook, or when an event happens. A second person approves each routine before it runs." />
       {!data!.enabled && <p role="alert" className="mb-3 rounded-xl border border-border p-3 text-sm">All routines are stopped for your organization. {can("keys:manage") && <button className="btn ml-2" onClick={() => void go(() => setAutomationsEnabled(true))}>Turn them back on</button>}</p>}
       {can("keys:manage") && data!.enabled && <p className="mb-3 text-xs"><button className="underline" onClick={() => { if (confirm("Stop every routine in the organization? Running ones stop at their next step.")) void go(() => setAutomationsEnabled(false)); }}>Stop all routines</button></p>}
       {note && <p className="mb-2 text-sm" role="status">{note}</p>}{err && <div className="mb-3"><ErrorBox message={err} /></div>}
@@ -81,6 +106,7 @@ export default function Page() {
         <div className="mt-2 flex gap-2">
           <button className="btn btn-primary" disabled={!can("versions:create")} onClick={() => void go(async () => { if (editing) await reviseAutomation(editing, text); else { const r = await createAutomation(text); if (r.webhookSecret) setNote(`Saved. Webhook secret (shown once): ${r.webhookSecret}`); } }, editing ? "Saved." : undefined)}>{editing ? "Save changes" : "Save as draft"}</button>
           {editing && <button className="btn" onClick={() => { setEditing(null); setText(STARTER); }}>Start a new one</button>}
+          {!editing && <><button className="btn" onClick={() => setText(DIGEST)}>Weekly digest example</button><button className="btn" onClick={() => setText(EVENT)}>On an event example</button></>}
         </div>
       </GlassCard>
     </>

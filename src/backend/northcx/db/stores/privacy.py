@@ -81,6 +81,7 @@ class PgPrivacy(_Base):
             out["rolloutAssignments"] = (await s.execute(text("delete from rollout_assignments where session_id = :s"), p)).rowcount
             out["reviews"] = (await s.execute(text("delete from conversation_reviews where session_id = :s"), p)).rowcount
             out["tags"] = (await s.execute(text("delete from conversation_tags where session_id = :s"), p)).rowcount
+            out["judgements"] = (await s.execute(text("delete from qa_judgements where session_id = :s"), p)).rowcount
             out["coachingNotes"] = (await s.execute(text("delete from coaching_notes where session_id = :s"), p)).rowcount
             out["feedback"] = (await s.execute(text("delete from conversation_feedback where session_id = :s"), p)).rowcount
             out["exports"] = (await s.execute(text("delete from trace_exports where trace_id in (select id from traces where session_id = :s)"), p)).rowcount
