@@ -39,7 +39,7 @@ E1 model providers: WP1.1 (provider layer, `provider:model` names, capability ch
 | **Later** | Marketing site; Slack, Teams and helpdesk surfaces; native mobile apps; a marketplace |
 
 ## Portals and surfaces
-The ten target portals and surfaces (marketing site, workspace, builder, admin portal, developer portal, analytics, trust and legal centers, ops console, back office, embedded surfaces) are mapped to epics in section 10 of the gap-closure plan, including eight additions (E14 to E21) and what can be verified here.
+The ten target portals and surfaces (marketing site, workspace, builder, admin portal, developer portal, analytics, trust and legal centers, ops console, back office, embedded surfaces) are mapped to epics in section 10 of the gap-closure plan, including eight additions (E14 to E21) and what can be verified here. Since 2026-11-09 the workspace and the admin portal are designed as two apps, the Workspace and the Admin app (the Studio extended); see `../07-design/NorthCX_Platform-Features-and-Tabs.md`.
 
 ## Decisions made
 - **Web layout (D10, decision 140), decided and started:** several apps plus shared packages in one repository; back office on an internal network under `/platform/v1`; marketing, trust, legal and developer portal under `src/site`. Studio now lives in `src/apps/studio` with shared packages in `src/packages`. See `05-technical/NorthCX_Repo-Structure.md`.
