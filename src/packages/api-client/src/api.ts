@@ -403,7 +403,7 @@ export const createFromTemplate = (id: string, agentId: string, params: Record<s
 // ---------- Workspace (staff Pilot, tasks, search, memory) ----------
 export interface PilotSource { title: string | null; url: string | null; section: string | null; updated: string | null; stale: boolean }
 export interface PilotReply { chatId: string; reply: string; status: Status; traceId: string | null; sources: PilotSource[]; tools: string[]; temporary: boolean; memory: boolean }
-export const pilotChat = (message: string, opts: { chatId?: string; style?: "quick" | "research"; memory?: boolean; temporary?: boolean } = {}) =>
+export const pilotChat = (message: string, opts: { chatId?: string; style?: "quick" | "research"; memory?: boolean; temporary?: boolean; spaceId?: string } = {}) =>
   api<PilotReply>("/v1/workspace/chat", { method: "POST", body: JSON.stringify({ message, ...opts }) });
 
 export type TaskStatus = "draft" | "needs_answers" | "planned" | "approved" | "running" | "paused" | "done" | "stopped" | "failed";
@@ -559,3 +559,27 @@ export const reviseAutomation = (id: string, yaml: string) => api<Automation>(`/
 export const automationAction = (id: string, action: "propose" | "approve" | "reject" | "retire" | "pause" | "resume" | "run", body: object = {}) => api<unknown>(`/v1/automations/${id}/${action}`, { method: "POST", body: JSON.stringify(body) });
 export const automationRuns = (id: string) => api<{ runs: AutoRun[] }>(`/v1/automations/${id}/runs`).then((r) => r.runs);
 export const setAutomationsEnabled = (enabled: boolean) => api<{ enabled: boolean }>("/v1/automation-settings", { method: "PUT", body: JSON.stringify({ enabled }) });
+
+// ---------- Outputs and Spaces (Workspace) ----------
+export interface OutputItem { id: string; title: string; kind: string; visibility: "private" | "shared"; owner: string; spaceId: string | null; source: string; version: number; versions: number; createdAt: number; updatedAt: number; expiresAt: number; size: number; body?: string; history?: { n: number; at: number; by: string; size: number }[] }
+export interface SpaceItem { id: string; name: string; description: string; instructions: string; visibility: "private" | "shared"; owner: string; updatedAt: number; outputs?: OutputItem[] }
+export const listOutputs = (opts: { space?: string; kind?: string; mine?: boolean } = {}) =>
+  api<{ outputs: OutputItem[] }>(`/v1/workspace/outputs?${new URLSearchParams({ ...(opts.space ? { space: opts.space } : {}), ...(opts.kind ? { kind: opts.kind } : {}), ...(opts.mine ? { mine: "true" } : {}) })}`).then((r) => r.outputs);
+export const getOutput = (id: string) => api<OutputItem>(`/v1/workspace/outputs/${id}`);
+export const saveOutput = (b: { title: string; body: string; kind?: string; visibility?: string; spaceId?: string; source?: "manual" | "pilot" }) => api<OutputItem>("/v1/workspace/outputs", { method: "POST", body: JSON.stringify(b) });
+export const editOutput = (id: string, b: { title?: string; body?: string; visibility?: string }) => api<OutputItem>(`/v1/workspace/outputs/${id}`, { method: "PUT", body: JSON.stringify(b) });
+export const deleteOutput = (id: string) => api<{ deleted: boolean }>(`/v1/workspace/outputs/${id}`, { method: "DELETE" });
+export async function downloadOutput(id: string, format: string, name: string): Promise<void> {
+  const key = getApiKey();
+  const res = await fetch(`/api/northcx/v1/workspace/outputs/${id}/export?format=${format}`, { headers: key ? { authorization: `Bearer ${key}` } : {} });
+  if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: { message?: string } } | null)?.error?.message ?? `Download failed (${res.status})`);
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url; a.download = `${name.replace(/[^A-Za-z0-9_-]+/g, "-").slice(0, 60) || "output"}.${format}`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+export const listSpaces = () => api<{ spaces: SpaceItem[] }>("/v1/workspace/spaces").then((r) => r.spaces);
+export const getSpace = (id: string) => api<SpaceItem>(`/v1/workspace/spaces/${id}`);
+export const createSpace = (b: { name: string; description?: string; instructions?: string; visibility?: string }) => api<SpaceItem>("/v1/workspace/spaces", { method: "POST", body: JSON.stringify(b) });
+export const editSpace = (id: string, b: Partial<{ name: string; description: string; instructions: string; visibility: string }>) => api<SpaceItem>(`/v1/workspace/spaces/${id}`, { method: "PUT", body: JSON.stringify(b) });
+export const deleteSpace = (id: string) => api<{ deleted: boolean }>(`/v1/workspace/spaces/${id}`, { method: "DELETE" });

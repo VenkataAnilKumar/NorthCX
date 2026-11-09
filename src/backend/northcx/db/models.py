@@ -722,6 +722,37 @@ class AutomationStateRow(TenantScoped, Base):
     paused: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
+class WorkspaceOutputRow(TenantScoped, Base):
+    """A result a person kept in the Workspace (Outputs), with its versions."""
+    __tablename__ = "workspace_outputs"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    owner: Mapped[str] = mapped_column(String(200), nullable=False)
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    visibility: Mapped[str] = mapped_column(String(10), nullable=False)
+    space_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    source: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    expires_at: Mapped[float] = mapped_column(Float, nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    __table_args__ = (Index("ix_workspace_outputs_space", "space_id"), Index("ix_workspace_outputs_owner", "owner"), Index("ix_workspace_outputs_expires", "expires_at"))
+
+
+class WorkspaceSpaceRow(TenantScoped, Base):
+    """A space: instructions and a home for outputs."""
+    __tablename__ = "workspace_spaces"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    owner: Mapped[str] = mapped_column(String(200), nullable=False)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    visibility: Mapped[str] = mapped_column(String(10), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+    data: Mapped[Any] = mapped_column(JSONB, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

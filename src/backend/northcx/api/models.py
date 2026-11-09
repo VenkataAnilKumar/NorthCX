@@ -240,6 +240,7 @@ class MemberBody(BaseModel):
 
 class WorkspaceChatBody(BaseModel):
     message: str = Field(min_length=1, max_length=8000)
+    space_id: str | None = Field(default=None, alias="spaceId", max_length=20)     # work inside a space: its instructions apply
     chat_id: str | None = Field(default=None, alias="chatId", pattern=r"^[A-Za-z0-9_-]{1,64}$")  # leave out to start a new chat
     style: str = Field(default="quick", pattern="^(quick|research)$")
     memory: bool = True        # false: this chat neither reads nor writes the person's memory
@@ -346,6 +347,37 @@ class AutomationRunBody(BaseModel):
 
 class AutomationSettingsBody(BaseModel):
     enabled: bool
+
+
+class OutputBody(BaseModel):
+    title: str = Field(min_length=2, max_length=120)
+    body: str = Field(min_length=1, max_length=100000)
+    kind: str = "note"
+    visibility: str = "private"
+    space_id: str | None = Field(default=None, alias="spaceId", max_length=20)
+    source: str = Field(default="manual", pattern="^(manual|pilot)$")           # a person can say where it came from, but not pretend to be a routine
+    days: int = Field(default=90, ge=1, le=365)
+    model_config = {"populate_by_name": True}
+
+
+class OutputEditBody(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+    body: str | None = Field(default=None, max_length=100000)
+    visibility: str | None = None
+
+
+class SpaceBody(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    description: str = Field(default="", max_length=500)
+    instructions: str = Field(default="", max_length=2000)
+    visibility: str = "private"
+
+
+class SpaceEditBody(BaseModel):
+    name: str | None = Field(default=None, max_length=80)
+    description: str | None = Field(default=None, max_length=500)
+    instructions: str | None = Field(default=None, max_length=2000)
+    visibility: str | None = None
 
 
 class KeyBody(BaseModel):

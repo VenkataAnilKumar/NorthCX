@@ -73,6 +73,7 @@ from .api.routers import org_templates as _org_templates_router
 from .api.routers import quality as _quality_router
 from .api.routers import customers as _customers_router
 from .api.routers import automations as _automations_router
+from .api.routers import workspace_content as _workspace_content_router
 from .api.routers import admin_overview as _admin_overview_router
 from .tenancy import TENANT
 from .api.routers import voice as _voice_router
@@ -232,6 +233,17 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/groups/[^/]+/members", "keys:manage"),
     ("DELETE", r"/v1/groups/[^/]+/members/[^/]+", "keys:manage"),
     ("POST", r"/v1/workspace/chat", "workspace:use"),
+    ("GET", r"/v1/workspace/outputs", "workspace:use"),
+    ("POST", r"/v1/workspace/outputs", "workspace:use"),
+    ("GET", r"/v1/workspace/outputs/[^/]+", "workspace:use"),
+    ("PUT", r"/v1/workspace/outputs/[^/]+", "workspace:use"),
+    ("DELETE", r"/v1/workspace/outputs/[^/]+", "workspace:use"),
+    ("GET", r"/v1/workspace/outputs/[^/]+/export", "workspace:use"),
+    ("GET", r"/v1/workspace/spaces", "workspace:use"),
+    ("POST", r"/v1/workspace/spaces", "workspace:use"),
+    ("GET", r"/v1/workspace/spaces/[^/]+", "workspace:use"),
+    ("PUT", r"/v1/workspace/spaces/[^/]+", "workspace:use"),
+    ("DELETE", r"/v1/workspace/spaces/[^/]+", "workspace:use"),
     ("GET", r"/v1/automations", "agents:read"),
     ("POST", r"/v1/automations", "versions:create"),
     ("GET", r"/v1/automations/[^/]+", "agents:read"),
@@ -465,6 +477,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _quality_router.register(app, deps)
     _customers_router.register(app, deps)
     _automations_router.register(app, deps)
+    _workspace_content_router.register(app, deps)
     _admin_overview_router.register(app, deps)
     _voice_router.register(app, deps)
     _public_router.register(app, deps)

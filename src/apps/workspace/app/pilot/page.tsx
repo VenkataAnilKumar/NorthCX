@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
-  addNote, answerTask, approveTask, controlTask, createTask, deleteNote, deleteTask, editTaskPlan, eraseNotes, getTask, listNotes, listTasks, pilotChat, useLoad,
+  addNote, answerTask, listSpaces, saveOutput, approveTask, controlTask, createTask, deleteNote, deleteTask, editTaskPlan, eraseNotes, getTask, listNotes, listTasks, pilotChat, useLoad,
   type PilotSource, type PilotTask,
 } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader, Toggle } from "@northcx/ui";
@@ -27,6 +27,9 @@ function Quick() {
   const [error, setError] = useState<string | null>(null);
   const [memory, setMemory] = useState(true);
   const [temporary, setTemporary] = useState(false);
+  const [space, setSpace] = useState("");
+  const [saved, setSaved] = useState<string | null>(null);
+  const spaces = useLoad(() => listSpaces().catch(() => []));
   const chat = useRef<string | undefined>(undefined);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [turns]);
@@ -36,7 +39,7 @@ function Quick() {
     setText(""); setError(null); setBusy(true);
     setTurns((t) => [...t, { from: "you", text: message }]);
     try {
-      const r = await pilotChat(message, { chatId: chat.current, style: "quick", memory, temporary });
+      const r = await pilotChat(message, { chatId: chat.current, style: "quick", memory, temporary, ...(space ? { spaceId: space } : {}) });
       chat.current = r.chatId;
       setTurns((t) => [...t, { from: "assistant", text: r.reply, sources: r.sources }]);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -46,6 +49,7 @@ function Quick() {
       <div className="mb-3 flex flex-wrap items-center gap-4 text-sm">
         <span className="flex items-center gap-2"><Toggle label="Use my saved notes" checked={memory && !temporary} onChange={setMemory} /><span>Use my saved notes</span></span>
         <span className="flex items-center gap-2"><Toggle label="Temporary chat: nothing is kept" checked={temporary} onChange={setTemporary} /><span>Temporary chat (nothing is kept)</span></span>
+        <label className="flex items-center gap-2">Space <select className="field" value={space} onChange={(e) => { setSpace(e.target.value); chat.current = undefined; setTurns([]); }}><option value="">None</option>{(spaces.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
         <button className="btn" onClick={() => { setTurns([]); chat.current = undefined; }}>New chat</button>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto pr-1" role="log" aria-live="polite" aria-label="Conversation">
@@ -53,6 +57,7 @@ function Quick() {
         {turns.map((t, i) => (
           <div key={i} className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${t.from === "you" ? "ml-auto bg-[var(--info-bg)]" : "glass-strong border border-border"}`}>
             <p className="whitespace-pre-wrap">{t.text}</p>
+            {t.from === "assistant" && !temporary && <button className="btn mt-2" onClick={() => void saveOutput({ title: `Pilot answer ${new Date().toLocaleString()}`, body: t.text, kind: "answer", source: "pilot", ...(space ? { spaceId: space } : {}) }).then(() => setSaved(t.text)).catch((e) => setError((e as Error).message))}>{saved === t.text ? "Saved to Outputs" : "Save to Outputs"}</button>}
             {t.sources && t.sources.length > 0 && <details className="mt-2 text-xs text-muted"><summary className="cursor-pointer">Sources ({t.sources.length})</summary><div className="mt-1"><Sources items={t.sources} /></div></details>}
           </div>
         ))}

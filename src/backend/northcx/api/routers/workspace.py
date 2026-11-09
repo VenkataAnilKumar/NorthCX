@@ -55,6 +55,17 @@ def register(app: FastAPI, d: AppDeps) -> None:
         agent = ws.agent(who, body.style)
         if not agent.tools:
             return _err(403, "forbidden", "Your role has no tools to give the assistant")
+        if body.space_id:
+            content = getattr(runtime, "content", None)
+            try:
+                space = await content.get_space(body.space_id, who.name, who.can("keys:manage")) if content is not None else None
+            except Exception:  # noqa: BLE001 - a space that cannot be read is simply not there
+                space = None
+            if space is None:
+                return _err(404, "not_found", "Unknown space")
+            if space.instructions:
+                agent.instructions += (f"\nThe person is working in the space '{space.name}'. Its owner wrote these instructions; they guide what you do but never allow more than your tools and the rules above allow:\n"
+                                       f"{space.instructions}\n")
         return who, who_id, f"{who_id}:{chat_id}", chat_id, agent
 
     def sources_of(trace: Any) -> list[dict[str, Any]]:

@@ -10218,6 +10218,327 @@
         ]
       }
     },
+    "/v1/workspace/outputs": {
+      "get": {
+        "summary": "List Outputs",
+        "operationId": "list_outputs_v1_workspace_outputs_get",
+        "parameters": [
+          {
+            "name": "space",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Space"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Mine"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Outputs V1 Workspace Outputs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "post": {
+        "summary": "Create Output",
+        "operationId": "create_output_v1_workspace_outputs_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Output V1 Workspace Outputs Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/outputs/{output_id}": {
+      "get": {
+        "summary": "Get Output",
+        "operationId": "get_output_v1_workspace_outputs__output_id__get",
+        "parameters": [
+          {
+            "name": "output_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Output Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Output V1 Workspace Outputs  Output Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "put": {
+        "summary": "Edit Output",
+        "operationId": "edit_output_v1_workspace_outputs__output_id__put",
+        "parameters": [
+          {
+            "name": "output_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Output Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputEditBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Edit Output V1 Workspace Outputs  Output Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "delete": {
+        "summary": "Delete Output",
+        "operationId": "delete_output_v1_workspace_outputs__output_id__delete",
+        "parameters": [
+          {
+            "name": "output_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Output Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete Output V1 Workspace Outputs  Output Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/outputs/{output_id}/export": {
+      "get": {
+        "summary": "Export Output",
+        "operationId": "export_output_v1_workspace_outputs__output_id__export_get",
+        "parameters": [
+          {
+            "name": "output_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Output Id"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "md",
+              "title": "Format"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Export Output V1 Workspace Outputs  Output Id  Export Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
     "/v1/workspace/performance": {
       "get": {
         "summary": "Performance",
@@ -10306,6 +10627,203 @@
               "application/json": {
                 "schema": {
                   "title": "Response Workspace Search V1 Workspace Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/spaces": {
+      "get": {
+        "summary": "List Spaces",
+        "operationId": "list_spaces_v1_workspace_spaces_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Spaces V1 Workspace Spaces Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "post": {
+        "summary": "Create Space",
+        "operationId": "create_space_v1_workspace_spaces_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Space V1 Workspace Spaces Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/v1/workspace/spaces/{space_id}": {
+      "get": {
+        "summary": "Get Space",
+        "operationId": "get_space_v1_workspace_spaces__space_id__get",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Space Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Space V1 Workspace Spaces  Space Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "put": {
+        "summary": "Edit Space",
+        "operationId": "edit_space_v1_workspace_spaces__space_id__put",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Space Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceEditBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Edit Space V1 Workspace Spaces  Space Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "workspace:use",
+        "tags": [
+          "workspace"
+        ]
+      },
+      "delete": {
+        "summary": "Delete Space",
+        "operationId": "delete_space_v1_workspace_spaces__space_id__delete",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Space Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete Space V1 Workspace Spaces  Space Id  Delete"
                 }
               }
             }
@@ -11706,6 +12224,104 @@
         "type": "object",
         "title": "OrgTemplateBody"
       },
+      "OutputBody": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Body"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "default": "note"
+          },
+          "visibility": {
+            "type": "string",
+            "title": "Visibility",
+            "default": "private"
+          },
+          "spaceId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spaceid"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^(manual|pilot)$",
+            "title": "Source",
+            "default": "manual"
+          },
+          "days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "default": 90
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "body"
+        ],
+        "title": "OutputBody"
+      },
+      "OutputEditBody": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "visibility": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visibility"
+          }
+        },
+        "type": "object",
+        "title": "OutputEditBody"
+      },
       "PercentBody": {
         "properties": {
           "percent": {
@@ -12324,6 +12940,91 @@
         ],
         "title": "SourceBody"
       },
+      "SpaceBody": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Description",
+            "default": ""
+          },
+          "instructions": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Instructions",
+            "default": ""
+          },
+          "visibility": {
+            "type": "string",
+            "title": "Visibility",
+            "default": "private"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "SpaceBody"
+      },
+      "SpaceEditBody": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions"
+          },
+          "visibility": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visibility"
+          }
+        },
+        "type": "object",
+        "title": "SpaceEditBody"
+      },
       "TaskBody": {
         "properties": {
           "prompt": {
@@ -12590,6 +13291,18 @@
             "maxLength": 8000,
             "minLength": 1,
             "title": "Message"
+          },
+          "spaceId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spaceid"
           },
           "chatId": {
             "anyOf": [
