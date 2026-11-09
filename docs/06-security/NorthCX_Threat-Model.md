@@ -39,7 +39,7 @@ Status: **Built**. Updated: 2026-11-09. Master for: threats and their handling. 
 
 ## Threats and how each is handled
 
-Disposition: **M** mitigated, **A** accepted with the residual noted, **T** transferred to a component the operator runs.
+Disposition: **M** mitigated, **A** accepted with the residual noted, **T** transferred to a component the operator runs. Rows S6 to S10 and S12 carry an **L** that was never defined when they were added (2026-11-03 onward); their handling column lists mitigations, so read them as mitigated until the owner of the threat model confirms what L was meant to say (for example "low residual risk").
 
 ### Identity and access
 | # | Threat | Handling | Disp. |
@@ -56,7 +56,7 @@ Disposition: **M** mitigated, **A** accepted with the residual noted, **T** tran
 | # | Threat | Handling | Disp. |
 |---|---|---|---|
 | C1 | Prompt injection in a customer message | Input checks (takeover phrasing withheld, personal data masked) before the model sees text; the model's replies and tool calls pass reply/tool guardrails and, for sensitive tools, human approval | M |
-| C2 | Prompt injection in third-party content (tool results, knowledge, files) | Output guardrails screen tool results; text attachments pass the input checks and are marked untrusted; customer facts and memories are labelled untrusted data | M (pictures and PDFs: A) |
+| C2 | Prompt injection in third-party content (tool results, knowledge, files) | Output guardrails screen tool results; text attachments pass the input checks and are marked untrusted; customer facts and memories are labelled untrusted data | M (pictures, and PDFs in file mode: A; PDFs in `pdf_text` mode pass the input checks) |
 | C3 | The model is manipulated into an unwanted action | Writes can require approval; tool scopes limit who and where; strict skills and journeys enforce order; fail-closed supervision; idempotency stops repeats | M |
 | C9 | Hostile web pages or files imported as knowledge (hidden instructions, parser exploits) | Visible text only; PDFs read in a worker thread with a time limit and a page cap; sizes capped; the text reaches the model as tool results through the output checks; style-sheet-hidden text is a known gap | M / A |
 | C4 | Malicious upload | Identified by content; programs, archives, Office files, SVG/HTML refused; size and count caps; optional scanner; served only as sandboxed downloads to staff | M |
