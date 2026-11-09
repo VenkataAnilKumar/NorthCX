@@ -114,6 +114,20 @@ check((await page.getByRole("navigation", { name: "Main" }).count()) === 0, "ful
 await page.keyboard.press("Escape");
 check((await page.getByRole("navigation", { name: "Main" }).count()) === 1, "full window: Esc brings the rail back");
 
+// outputs and spaces: keep a result, see it, make a space
+await post("/v1/workspace/outputs", { title: `Smoke output ${stamp}`, body: "Three hand-offs were about delivery.", kind: "report" });
+await page.goto(`${WEB}/outputs`);
+await page.getByText(`Smoke output ${stamp}`).waitFor();
+check(true, "outputs: a kept result is listed");
+await page.goto(`${WEB}/spaces`);
+await page.getByLabel("Name", { exact: true }).fill(`Smoke space ${stamp}`);
+await page.getByRole("button", { name: "Create space" }).click();
+await page.getByText(`Smoke space ${stamp}`).first().waitFor();
+check(true, "spaces: a space can be created");
+await page.goto(`${WEB}/customers`);
+await page.getByLabel("Order number").waitFor();
+check(true, "customers: the order number search shows");
+
 for (const p of ["/assistants", "/customers", "/outputs", "/spaces", "/automations", "/quality", "/performance", "/settings"]) {
   await page.goto(`${WEB}${p}`);
   check(!(await page.locator("body").innerText()).includes("Application error"), `page loads: ${p}`);
