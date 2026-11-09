@@ -67,10 +67,24 @@ Match device, light or dark; accent; density (comfortable or compact); text size
 ## 11. What would make it feel 2026 without becoming noisy
 Large quiet headings; a single glowing primary button; blur and light for depth; micro-detail such as a soft inner highlight and tabular numbers; AI work shown as a plan and a steps list instead of a spinner; a command bar as the main way to jump. What it deliberately avoids: many colours, gradients on controls, heavy shadows, dense tables with borders everywhere, decorative animation.
 
+## 13. Navigation modes and tab icons
+Three modes for the left navigation, in both apps. The choice is remembered per person and per app.
+
+| Mode | What it looks like | How to switch |
+|---|---|---|
+| **Expanded** (default) | The 232 px glass rail: icon and name for each of the six items, a count badge on the group with waiting work, the person at the bottom | The chevron at the foot of the rail, or **Ctrl B** |
+| **Collapsed** | A 72 px icon-only rail. Each item is one icon; the selected one has the glass highlight and the accent; a small count badge shows waiting work; hovering or focusing shows an opaque tooltip with the name and the count ("Work, 2 waiting"). The page gains about 160 px of width | The chevron, or **Ctrl B** again. Narrow windows (under 1100 px) collapse automatically |
+| **Full window** | The rail and the top bar are hidden so the page uses the whole window. Only a small glass menu handle at the left edge and a slim pill at the top ("Full window · Esc to show navigation") remain. The sub-tabs and the page title stay, because they belong to the page | A "Full window" button in the top bar, or **Ctrl .** ; **Esc** or the handle brings the navigation back. The Pilot offers it while a task runs |
+
+Full window is meant for the Pilot (a long plan or result), the Inbox when working one conversation, and presentations. The browser's own full-screen (F11) works alongside it. Notifications still appear as toasts in full window mode, and the command bar opens with **Ctrl K** from anywhere.
+
+**Tab icons** (mockup `ui-4-tab-icons.png`): one line icon per left item, 24 px grid, 1.6 px stroke, round caps, no fill, drawn for NorthCX (no third-party icon set, so no dependency or licence to track). Workspace: Home (house), Pilot (sparkle), Work (inbox tray), Assist (speech bubble), Create (stacked layers), Team (bars). Admin: Overview (four tiles), Operate (pulse line), Build (cube), Govern (shield with tick), Platform (server stack), Personal (person). Rules: icons appear on the six left items and nowhere else; sub-tabs and the 25 Admin pages stay text-only; every icon has a text label (visible when expanded, a tooltip when collapsed, and an accessible name for screen readers); the accent colours only the selected icon; the waiting-count badge uses the accent. Mockups: `ui-5-collapsed-rail.png`, `ui-6-full-window.png`.
+
 ## 12. Open questions for the owner
 1. **Accent colour:** the proposal uses a calm blue. Alternatives: a deep teal or a graphite-only look with no accent hue.
 2. **Default theme:** match the device (recommended), or light first.
 3. **Brand mark:** a wordmark only for now (as drawn), or a symbol.
 4. **Density:** comfortable by default (as drawn) or compact for the Admin app.
+5. **Full window shortcut:** Ctrl . (proposed) or another key; and whether full window should also hide the sub-tabs.
 
-Mockup source: `scripts/gen_ui_proposal.py` (HTML in `07-design/mockups/ui-*.html`, images in `assets/design/ui-*.png`).
+Mockup source: `scripts/gen_ui_proposal.py` (six screens: `ui-1` to `ui-6`) (HTML in `07-design/mockups/ui-*.html`, images in `assets/design/ui-*.png`).

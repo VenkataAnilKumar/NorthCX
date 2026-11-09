@@ -50,6 +50,21 @@ h1{font-size:26px;letter-spacing:-.03em;font-weight:650}.sub{color:var(--mut);ma
 .bar{height:6px;border-radius:9px;background:var(--hair);overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);border-radius:9px}
 .mock{position:fixed;right:14px;bottom:10px;font-size:11px;color:var(--faint)}
 table{width:100%;border-collapse:collapse}td,th{padding:12px 4px;text-align:left;border-top:1px solid var(--hair)}th{border-top:0;color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+.rail{position:relative;z-index:20;width:72px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;height:calc(900px - 32px)}
+.rail .logo{font-weight:700;letter-spacing:-.03em;padding:2px 0 12px;font-size:15px}
+.ib{position:relative;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:var(--mut)}
+.ib.on{background:var(--glass2);color:var(--accent);box-shadow:0 1px 0 var(--line) inset,0 2px 8px rgba(0,0,0,.06)}
+.ib svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ib .bd{position:absolute;top:3px;right:3px;min-width:16px;height:16px;border-radius:99px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.dark .ib .bd{color:#0d0f16}
+.tip{position:absolute;left:60px;top:50%;transform:translateY(-50%);white-space:nowrap;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--bg1) 94%,#fff);border:1px solid var(--hair);box-shadow:var(--sh);z-index:5}
+.rail .sp{flex:1}
+.hint{display:flex;gap:8px;align-items:center;color:var(--faint);font-size:12px}
+.tile{padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.tile .ib{width:56px;height:56px}.tile .ib svg{width:28px;height:28px}
+.fw{z-index:20;position:fixed;left:14px;top:50%;transform:translateY(-50%);padding:6px;border-radius:16px}
+.fwpill{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;padding:6px 14px;border-radius:99px;font-size:12px}
 </style></head><body class="dark"><div class="app"><aside class="g side"><div class="brand">NorthCX<span>Workspace</span></div><nav class="nav"><a class=""><span>Home</span></a><a class="on"><span>Pilot</span></a><a class=""><span>Work</span><span class=n>2</span></a><a class=""><span>Assist</span></a><a class=""><span>Create</span></a><a class=""><span>Team</span></a></nav><div class="sp"></div><div class="me"><div class="av">DK</div><div><b>Dana K.</b><div class="d">Billing team</div></div></div></aside><div class="main"><div class="g top"><div class="cmd">Search or jump to&hellip; <span style="margin-left:auto"><kbd>Ctrl K</kbd></span></div><span class="pill ok">Available</span><div class="av">DK</div></div>
 <div class="row sb"><div><h1>Why did delivery complaints rise?</h1><div class="sub">Escalation analyst &middot; Billing escalations</div></div><div class="seg"><a class="on">Plan</a><a class="">Result</a><a class="">Files</a><a class="">Sources</a><a class="">Context</a><a class="">Steps</a><a class="">Side chat</a></div></div>
 <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;flex:1">
