@@ -14,6 +14,13 @@ Every company can offer customers an agent that resolves issues end to end, safe
 ## 3. Product statement
 NorthCX is an open-source platform for building, testing, releasing and running supervised customer-experience agents. Agents act on business systems through typed tools, are checked by supervisors, hand off to people with full context, and are released only after simulations pass.
 
+## 3a. Platform surfaces (design decided 2026-11-09; built only where marked in the Feature Catalog)
+The product is one platform with two jobs: customer-facing agents that resolve issues under supervision, and a **Workspace** where the staff who supervise them work, with assistants of their own. It has two web apps (one sign-in, one design system) beside the customer channels:
+- **Workspace** for support staff, team leads and reviewers. Six left items: Home, Pilot, Work (Inbox, Approvals, Customers), Assist (Assistants, Search, Library), Create (Outputs, Spaces, Automations) and Team (Quality, Performance; leads and reviewers only). The **Pilot** is where a person gives an assistant a task: it asks clarifying questions, writes a plan for approval, then works in the background, on the company's own data only in the first release.
+- **Settings and Admin** (the Studio, extended) for administrators, release managers, developers, reviewers and auditors: Operate, Build, Govern and Platform groups, an **Agent Hub** (a catalog of agents and assistants; installing never makes one live), a **Builder** assistant, and personal settings with **personal intelligence** (instructions, persona, memory, skills; organization rules always outrank personal ones).
+- **Hybrid model selection:** local, private and public models chosen by privacy limits, qualification, rules and cost; a fallback never crosses a forbidden tier.
+Details: `../07-design/NorthCX_Platform-Features-and-Tabs.md`. Everything in this section except the customer channels and the current Studio is designed, not built.
+
 ## 4. Product pillars
 | Pillar | Promise | Key features (catalog IDs) |
 |---|---|---|
@@ -30,7 +37,7 @@ NorthCX is an open-source platform for building, testing, releasing and running 
 Mid-size and large companies with meaningful support volume and engineering capacity, plus platform teams inside larger enterprises. Initial focus: e-commerce, subscription and service businesses where most contacts are order, billing and account requests.
 
 ## 6. Users
-Described in `NorthCX_Personas.md`: CX lead, platform engineer, compliance owner, support agent, reviewer, administrator, and the end customer.
+Described in `NorthCX_Personas.md`: CX lead, platform engineer, compliance owner, support agent, reviewer, administrator, and the end customer. The Workspace adds a daily-use surface for the support agent, reviewer and team lead personas (section 3a).
 
 ## 7. Scope
 ### In scope (v1)
@@ -38,7 +45,7 @@ Agent authoring in code and Studio, tools and approvals, supervision, handoff, c
 ### Out of scope (v1)
 General-purpose autonomous agents (browsing, code execution), hosted multi-tenant SaaS, replacing the helpdesk, outcome-based billing, full workforce management.
 ### After 1.0 (decided 2026-11-08)
-Multi-tenancy and the staff workspace move into scope after 1.0 (not in 1.0). Outcome-based billing stays out of scope until the open-versus-commercial decision (D1). Agents remain supervised and permission-bound; general-purpose autonomous agents and replacing the helpdesk stay non-goals.
+Multi-tenancy and the staff workspace move into scope after 1.0 (not in 1.0); the Workspace, Pilot, Agent Hub, Builder, Automations, personal intelligence and hybrid model selection are designed (2026-11-09) and planned for after 1.0. Web search for assistants is later and off by default; Customers view is second release. Outcome-based billing stays out of scope until the open-versus-commercial decision (D1). Agents remain supervised and permission-bound; general-purpose autonomous agents and replacing the helpdesk stay non-goals.
 
 ## 8. Principles
 1. Safe by default: fail closed when unsure.

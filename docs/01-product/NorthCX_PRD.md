@@ -1,6 +1,6 @@
 # NorthCX Product Requirements Document
 
-Status: Draft. Requirement IDs are FR1-FR34; feature IDs (A, R, T, S, H, C, K, Q, O, U, P) refer to `03-specs/NorthCX_Feature-Catalog.md`. Metric definitions are in `NorthCX_Success-Metrics.md`.
+Status: Draft. Requirement IDs are FR1-FR41 (FR35-FR41 are the after-1.0 platform additions, designed 2026-11-09); feature IDs (A, R, T, S, H, C, K, Q, O, U, P) refer to `03-specs/NorthCX_Feature-Catalog.md`. Metric definitions are in `NorthCX_Success-Metrics.md`.
 
 ## 1. Goals
 1. Resolve common customer requests autonomously and measurably.
@@ -57,6 +57,19 @@ Priority P0/P1/P2. "Done when" is the acceptance test.
 | FR32 | Identity verification and business-hours routing | P1 | 3 | C9,H8 | Account action requires verification; after-hours flow works |
 | FR33 | Baseline platform: containers, configuration, signed webhooks, key auth, memory, runtime guarantees | P0 | 1-3 | P1,P7,P8,P9,K1,R1-R4 | Documented deployment runs; webhook delivered signed |
 | FR34 | Optional extensions: mobile/web SDK, attachments, single sign-on, data residency, multi-tenancy, metering | P2 | 4-Later | C7,C10,P5,P6,P10,P11 | Decided per extension after v1 |
+
+### After 1.0: Workspace and platform additions (designed 2026-11-09; none are built yet)
+Detail and screens: `07-design/NorthCX_Platform-Features-and-Tabs.md`. Catalog IDs for these are assigned when each is scheduled.
+
+| ID | Requirement | Pri | Phase | Catalog | Done when |
+|---|---|---|---|---|---|
+| FR35 | Workspace app for staff: Inbox, Approvals, Search, Library, Outputs, Spaces, Quality, Performance under six left items with sub-tabs | P1 | After 1.0 | E5, E6 | A staff member resolves a hand-off and decides an approval without opening the Studio |
+| FR36 | Pilot: assistant tasks with clarifying questions, a plan the person approves, background runs, pause and redirect, files and sources, task styles | P1 | After 1.0 | E5 | A Research task runs from an approved plan and returns a cited result |
+| FR37 | Assistants and Agent Hub: predefined staff assistants and a catalog; installing never makes an agent live | P1 | After 1.0 | E5 | An assistant installs, is reviewed, and only then runs |
+| FR38 | Automations: multi-step work with triggers, people where needed, limits and a kill switch | P2 | After 1.0 | E8, E14 | A scheduled automation runs, pauses for a person, and can be stopped |
+| FR39 | Personal intelligence: instructions, persona, memory and skills in layers; organization rules outrank team, space and personal ones; memory informs and never overrides | P1 | After 1.0 | E5 | A personal instruction cannot weaken an organization rule |
+| FR40 | Hybrid model selection: local, private and public models by privacy limits, qualification, rules and cost; a fallback never crosses a forbidden tier | P1 | After 1.0 | E1 | A sensitive conversation never reaches a public model, including on fallback |
+| FR41 | Customers view: cross-channel timeline for leads and reviewers; masked, search by reference only, every open audited (second release) | P2 | After 1.0 | E2 | An open is audited and a deletion request removes the record |
 
 ## 5. Non-functional requirements
 See `03-specs/NorthCX_Non-Functional-Requirements.md`.

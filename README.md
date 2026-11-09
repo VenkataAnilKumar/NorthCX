@@ -204,6 +204,10 @@ cd src/sdk && npm ci && npm test && npm run build
 
 The browser SDK and a drop-in `<northcx-chat>` widget have no runtime dependencies and stream replies, retry, renew tokens, accept uploads and show teammate replies. Your server mints a short-lived chat token for the signed-in customer, so the agent knows who it is talking to. See the [client SDK guide](docs/05-technical/NorthCX_Client-SDK.md).
 
+## 🔭 What is next: the staff Workspace (designed, not built)
+
+After 1.0 the plan adds a second web app, the **Workspace**, for the people who supervise the agents: Home, **Pilot** (give an assistant a task, approve its plan, get a cited result from your own data), Work (Inbox, Approvals, Customers), Assist (Assistants, Search, Library), Create (Outputs, Spaces, Automations) and Team (Quality, Performance). The Studio grows into a grouped admin app with an Agent Hub, a Builder assistant and personal settings, and models are chosen across local, private and public tiers under your privacy rules. This is **design and mockups only**; see [the platform specification](docs/07-design/NorthCX_Platform-Features-and-Tabs.md).
+
 ## 📊 Honest status
 
 **NorthCX is a release candidate (1.0.0-rc.1).** The feature set is complete and covered by more than 1,300 backend tests plus Studio and SDK tests, browser smoke tests and a clean-checkout verification. Before you rely on it:

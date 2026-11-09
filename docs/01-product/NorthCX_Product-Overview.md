@@ -26,7 +26,7 @@ Status: Snapshot (2026-11-05), release candidate 1.0.0-rc.1. Describes the produ
 | &nbsp;&nbsp;Access and audit; Data residency; Settings | Administrators, auditors | Keys and roles, the tamper-evident audit log, where data may go, sign-in | ✅ |
 | **Human inbox integration** | Support staff | Hand-offs delivered to your helpdesk (signed webhook, Chatwoot adapter) | ✅ |
 | **Command-line tools** | Developers, CI | Scenario runner with gating, load test, cost estimator | ✅ |
-| **Staff workspace** (chat, agents, automations, libraries, generated outputs, history) | Support reps, leads, QA, operations | The same engine pointed at staff, under each person's permissions | 🗺️ E5, E6, E8 |
+| **Staff workspace** (decided design, 2026-11-09): six left items, Home, Pilot, Work, Assist, Create and Team, with sub-tabs (Inbox, Approvals, Customers, Assistants, Search, Library, Outputs, Spaces, Automations, Quality, Performance); the Pilot gives an assistant a task with a plan the person approves | Support reps, leads, QA, operations | The same engine pointed at staff, under each person's permissions | 🗺️ E5, E6, E8 |
 | **Admin portal, developer portal, ops console, back office** | Administrators, developers, operators | See section 6 | 🗺️ |
 
 ## 2. Capability areas

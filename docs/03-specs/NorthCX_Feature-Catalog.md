@@ -156,4 +156,4 @@ Status: Draft. The complete list of NorthCX features. Priority: P0 must, P1 shou
 106 features. Built: 28. Everything else is planned. Features marked P0 and Planned define the remaining work for Phases 1 and 2.
 
 ## Traceability
-Product requirements FR1-FR34 in the PRD list the catalog IDs they cover in their "Catalog" column. Every P0 and P1 feature maps to at least one requirement.
+Product requirements FR1-FR34 (the 1.0 set) in the PRD list the catalog IDs they cover in their "Catalog" column. Every P0 and P1 feature maps to at least one requirement.
