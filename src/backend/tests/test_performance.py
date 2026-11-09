@@ -30,7 +30,7 @@ def approval(by, opened, took, state="approved"):
 
 def test_figures_count_what_they_say_and_separate_me_from_the_team():
     hs = [handoff("ann", NOW - 3600, 600), handoff("ann", NOW - 7200, 1200), handoff("ben", NOW - 5000, 300, after=True), handoff(None, NOW - 4000, 0)]
-    ap = [approval("ann", NOW - 1000, 60), approval("ann", NOW - 900, 120, "rejected"), approval("ben", NOW - 800, 30), approval("ben", NOW - 700, 30, "expired")]
+    ap = [approval("ann", NOW - 1000, 60, "executed"), approval("ann", NOW - 900, 120, "rejected"), approval("ben", NOW - 800, 30), approval("ben", NOW - 700, 30, "expired")]
     f = figures(hs, ap, "ann", NOW - 7 * 86400, NOW, False, now=NOW)
     assert f["mine"]["handoffsResolved"] == 2 and f["mine"]["approvalsDecided"] == 2 and f["mine"]["approved"] == 1 and f["mine"]["rejected"] == 1
     assert f["mine"]["handoffTime"]["medianSeconds"] == 900.0

@@ -289,3 +289,24 @@ async def test_routines_survive_the_database_and_claim_once_and_stay_in_their_te
         assert await svc.repo.list() == [] and await svc.repo.claim_due(later, 10) == []
     finally:
         TENANT.reset(token)
+
+
+def test_a_run_lost_with_its_process_is_marked_failed_and_the_organization_limit_holds():
+    from northcx.automations import Run, TENANT_CONCURRENCY
+    app, rt, key, loop = world()
+    c = TestClient(app)
+    ann, ben = key("ann", "release_manager"), key("ben", "release_manager")
+    c.post("/v1/automations", headers=ann, json={"definition": BRIEF})
+    propose_and_approve(c, ann, ben)
+    svc = app.state.automations
+    lost = Run("morning-brief", 1, "manual", "ann")
+    lost.started_at = time.time() - 3600
+    loop.run_until_complete(svc.repo.save_run(lost))
+    assert loop.run_until_complete(svc.sweep()) == 1
+    got = loop.run_until_complete(svc.repo.get_run(lost.id))
+    assert got.status == "failed" and "interrupted" in got.error
+    # other routines running count toward the organization limit, whichever server started them
+    for i in range(TENANT_CONCURRENCY):
+        loop.run_until_complete(svc.repo.save_run(Run(f"other-{i}", 1, "manual", "ann")))
+    with pytest.raises(AutomationError, match="already running; try again"):
+        loop.run_until_complete(svc.run("morning-brief", "manual", "ann"))

@@ -85,10 +85,19 @@ await page.goto(`${WEB}/search?q=refund`);
 await page.getByRole("search").waitFor();
 check(true, "search: the unified search page works");
 
-// tabs whose backend is not built say so
+// the pages that used to be placeholders are real now: each shows its own content
 await page.goto(`${WEB}/automations`);
-await page.getByText("Not available yet").waitFor();
-check(true, "automations: honest not-available page");
+await page.getByRole("heading", { name: "Automations" }).waitFor();
+check(true, "automations: page works");
+await page.goto(`${WEB}/performance`);
+await page.getByText("Hand-offs you resolved").waitFor();
+check(true, "performance: your numbers show");
+await page.goto(`${WEB}/quality`);
+await page.getByRole("heading", { name: "Scorecards" }).waitFor();
+check(true, "quality: scorecards show");
+await page.goto(`${WEB}/customers`);
+await page.getByLabel("Customer identifier").waitFor();
+check(true, "customers: the lookup form shows");
 
 // navigation modes: sub-tabs, collapsed icon rail, full window
 await page.goto(`${WEB}/inbox`);

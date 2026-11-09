@@ -168,3 +168,16 @@ async def test_org_templates_survive_the_database_and_stay_in_their_tenant(app_e
         assert [v.version for v in await s.repo.versions("gift-cards")] == [1]
     with as_tenant("nobody"):
         assert await s.repo.list() == [] and await s.published() == {}
+
+
+def test_a_built_in_with_no_signature_is_refused_while_a_signing_key_ships():
+    from northcx.api.template_lookup import tampered
+    from northcx.templates import Template
+    t = load_templates(LIBRARY)["complaints"]
+    assert tampered(t) is None
+    unsigned = Template(**{**t.__dict__, "provenance": {**t.provenance, "signed": False, "verified": False, "status": "unsigned"}})
+    assert "unsigned" in tampered(unsigned)
+    no_key = Template(**{**t.__dict__, "provenance": {**t.provenance, "signed": False, "verified": False, "keyFingerprint": None, "status": "unsigned"}})
+    assert tampered(no_key) is None                                  # no key shipped at all: nothing to check against
+    local = Template(**{**t.__dict__, "provenance": {"source": "file", "signed": False, "verified": False, "status": "local file"}})
+    assert tampered(local) is None

@@ -158,7 +158,8 @@ class AutomationRepo(Protocol):
     async def save_run(self, r: Run) -> None: ...
     async def runs(self, automation_id: str | None, limit: int) -> list[Run]: ...
     async def get_run(self, run_id: str) -> Run | None: ...
-    async def running(self, automation_id: str, since: float) -> int: ...
+    async def running(self, automation_id: str | None, since: float) -> int: ...       # None: every routine in this tenant
+    async def fail_stale(self, before: float) -> int: ...                                # runs still 'running' that started before this were lost with their process
     async def state(self, automation_id: str) -> dict[str, Any]: ...    # {"nextRun": float|None, "paused": bool}
     async def set_state(self, automation_id: str, next_run: float | None | str = "keep", paused: bool | None = None) -> None: ...
     async def claim_due(self, now: float, limit: int) -> list[str]: ...
@@ -198,9 +199,16 @@ class InMemoryAutomations:
     async def get_run(self, run_id: str) -> Run | None:
         return self._runs.get((current_tenant(), run_id))
 
-    async def running(self, automation_id: str, since: float) -> int:
+    async def running(self, automation_id: str | None, since: float) -> int:
         t = current_tenant()
-        return sum(1 for (tt, _), r in self._runs.items() if tt == t and r.automation_id == automation_id and r.status == "running" and r.started_at >= since)
+        return sum(1 for (tt, _), r in self._runs.items() if tt == t and (automation_id is None or r.automation_id == automation_id) and r.status == "running" and r.started_at >= since)
+
+    async def fail_stale(self, before: float) -> int:
+        t = current_tenant()
+        stale = [r for (tt, _), r in self._runs.items() if tt == t and r.status == "running" and r.started_at < before]
+        for r in stale:
+            r.status, r.error, r.ended_at = "failed", "The run was interrupted (the server stopped)", time.time()
+        return len(stale)
 
     async def state(self, automation_id: str) -> dict[str, Any]:
         return dict(self._state.get((current_tenant(), automation_id), {"nextRun": None, "paused": False}))
@@ -227,7 +235,6 @@ class AutomationService:
         self.hooks: Hooks | None = None
         self._lock = asyncio.Lock()
         self._enabled_cache: dict[str, tuple[float, bool]] = {}
-        self._tenant_runs: dict[str, int] = {}
         self._tasks: set[asyncio.Task] = set()
 
     # ---- the switch for everything ----
@@ -364,9 +371,8 @@ class AutomationService:
             limit = a.data["limits"]["maxSeconds"]
             if await self.repo.running(automation_id, time.time() - limit - 60):
                 raise AutomationError(409, "That routine is already running")
-            if self._tenant_runs.get(t, 0) >= TENANT_CONCURRENCY:
+            if await self.repo.running(None, time.time() - MAX_SECONDS - 60) >= TENANT_CONCURRENCY:       # counted in the database, so it holds across servers
                 raise AutomationError(429, f"{TENANT_CONCURRENCY} routines are already running; try again shortly")
-            self._tenant_runs[t] = self._tenant_runs.get(t, 0) + 1
             run = Run(a.id, a.version, trigger, by)
             await self.repo.save_run(run)
         if wait:
@@ -395,7 +401,6 @@ class AutomationService:
             try:
                 await self.repo.save_run(run)
             finally:
-                self._tenant_runs[tenant] = max(0, self._tenant_runs.get(tenant, 1) - 1)
                 TENANT.reset(token)
 
     async def _steps(self, a: Automation, run: Run, input_text: str) -> None:
@@ -433,6 +438,7 @@ class AutomationService:
     async def tick(self, now: float | None = None) -> int:
         """Start every scheduled routine that is due. Runs in the background so one slow routine does not hold up the others."""
         now = time.time() if now is None else now
+        await self.sweep()
         if not await self.enabled() or self.hooks is None:
             return 0
         started = 0
@@ -448,6 +454,10 @@ class AutomationService:
             except AutomationError:
                 continue                                                                      # busy or at the limit: tried again next interval
         return started
+
+    async def sweep(self) -> int:
+        """Mark runs lost with their process as failed, so the history never shows a run 'running' forever."""
+        return await self.repo.fail_stale(time.time() - MAX_SECONDS - 120)
 
     async def stop_all_runs(self) -> None:
         for t in list(self._tasks):

@@ -11,7 +11,7 @@ from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import CoachingBody, RubricBody
 from northcx.insights import ratio
-from northcx.qa import CoachingNote, InMemoryCoaching, QAError, RubricService, calibration, score
+from northcx.qa import CHECKS, CoachingNote, InMemoryCoaching, QAError, RubricService, calibration, score
 from northcx.reviews import sampled
 
 MAX_SESSIONS = 2000
@@ -52,7 +52,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
 
     @app.get("/v1/quality/rubric")
     async def get_rubric() -> Any:
-        return {**await rubrics.get(), "checks": {"kinds": list(__import__("northcx.qa", fromlist=["CHECKS"]).CHECKS)}}
+        return {**await rubrics.get(), "checks": {"kinds": list(CHECKS)}}
 
     @app.put("/v1/quality/rubric")
     async def put_rubric(body: RubricBody, request: Request) -> Any:

@@ -83,7 +83,7 @@ export default function Page() {
           {c.sampleToReview.length === 0 ? <Empty>No unreviewed conversations in the sample.</Empty> : <ul className="space-y-1 text-sm">{c.sampleToReview.slice(0, 15).map((s) => <li key={s}>{s.slice(0, 18)}</li>)}</ul>}
           <p className="mt-2 text-xs text-muted">A fixed share of conversations chosen by their id, so the same ones always come up. Open them from Admin → Review and QA.</p>
         </GlassCard>
-        <div className="lg:col-span-2"><Coaching /></div>
+        {can("reviews:write") && <div className="lg:col-span-2"><Coaching /></div>}
         {can("releases:publish") && rub.data && <div className="lg:col-span-2"><RubricEditor key={rub.data.version} rubric={rub.data} onSaved={() => { rub.reload(); card.reload(); }} /></div>}
       </div>
     </>

@@ -17,6 +17,7 @@ export default function Page() {
   const [busy, setBusy] = useState(false);
   const run = async (f: () => Promise<unknown>) => { setErr(null); setBusy(true); try { await f(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); } };
   const open = (cid: string) => run(async () => { setRec(await customerLookup(cid)); setId(cid); setRevealed(null); });
+  if (!can("customers:read")) return (<><PageHeader title="Customers" subtitle="Your role cannot open this view." /><Empty>Ask an administrator if you need it.</Empty></>);
   if (enabled.loading && !enabled.data) return <Loading />;
   if (enabled.data && !enabled.data.enabled) return (
     <>

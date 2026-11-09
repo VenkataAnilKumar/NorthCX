@@ -12,6 +12,7 @@ from typing import Any
 from .insights import percentile
 
 MIN_GROUP = 5
+APPROVED_STATES = {"approved", "executing", "executed", "failed"}   # an approved action moves on once it runs
 DAY = 86400.0
 
 
@@ -39,7 +40,7 @@ def figures(handoffs: list[Any], approvals: list[Any], me: str, since: float, un
     def mine(who: str) -> dict[str, Any]:
         hs = [h for h in done_h if h.resolved_by == who]
         ap = [a for a in done_a if a.decided_by == who]
-        return {"handoffsResolved": len(hs), "approvalsDecided": len(ap), "approved": sum(a.state == "approved" for a in ap), "rejected": sum(a.state == "rejected" for a in ap),
+        return {"handoffsResolved": len(hs), "approvalsDecided": len(ap), "approved": sum(a.state in APPROVED_STATES for a in ap), "rejected": sum(a.state == "rejected" for a in ap),
                 "handoffTime": _times([(h.created_at, h.resolved_at) for h in hs]), "approvalTime": _times([(a.created_at, a.decided_at) for a in ap]),
                 "series": _series([h.resolved_at for h in hs] + [a.decided_at for a in ap], since, days)}
 

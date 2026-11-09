@@ -23,4 +23,7 @@ async def lookup(d: AppDeps, template_id: str) -> Template | None:
 def tampered(t: Template) -> str | None:
     """A built-in whose content no longer matches its signature is not installed."""
     p: dict[str, Any] = t.provenance
-    return f"This built-in template is {p.get('status')}, so it cannot be installed. Reinstall NorthCX or restore the file." if p.get("source") == "built-in" and p.get("signed") and not p.get("verified") else None
+    # a built-in that cannot be verified is refused: changed, forged, or never signed while a signing key ships. With no key shipped at all there is nothing to check against.
+    if p.get("source") == "built-in" and not p.get("verified") and (p.get("signed") or p.get("keyFingerprint")):
+        return f"This built-in template is {p.get('status')}, so it cannot be installed. Reinstall NorthCX or restore the file."
+    return None

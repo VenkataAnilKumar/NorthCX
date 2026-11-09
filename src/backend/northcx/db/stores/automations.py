@@ -71,10 +71,20 @@ class PgAutomations(_Base):
             r = (await s.execute(select(AutomationRunRow).where(AutomationRunRow.id == run_id))).scalar_one_or_none()
         return _run(r) if r else None
 
-    async def running(self, automation_id: str, since: float) -> int:
+    async def running(self, automation_id: str | None, since: float) -> int:
+        q = select(AutomationRunRow.id).where(AutomationRunRow.status == "running", AutomationRunRow.started_at >= since)
+        if automation_id is not None:
+            q = q.where(AutomationRunRow.automation_id == automation_id)
         async with self._ro() as s:
-            rows = (await s.execute(select(AutomationRunRow.id).where(AutomationRunRow.automation_id == automation_id, AutomationRunRow.status == "running", AutomationRunRow.started_at >= since))).all()
-        return len(rows)
+            return len((await s.execute(q)).all())
+
+    async def fail_stale(self, before: float) -> int:
+        async with self._sm.begin() as s:
+            rows = (await s.execute(select(AutomationRunRow).where(AutomationRunRow.status == "running", AutomationRunRow.started_at < before))).scalars().all()
+            for r in rows:
+                r.status = "failed"
+                r.data = {**r.data, "error": "The run was interrupted (the server stopped)", "ended_at": time.time()}
+            return len(rows)
 
     async def state(self, automation_id: str) -> dict[str, Any]:
         async with self._ro() as s:

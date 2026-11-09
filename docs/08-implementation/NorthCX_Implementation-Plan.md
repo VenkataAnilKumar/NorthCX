@@ -368,22 +368,22 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 
 **Wave 2 (1.2)**
 - [ ] E2 multi-tenancy (WP2.1 to WP2.10)
-- [ ] E5 staff workspace backend (WP5.1 to WP5.8)
+- [x] E5 staff workspace backend (WP5.1 to WP5.8) (built in Phase 4, 2026-11-09)
 - [ ] E6 libraries and generated outputs
-- [ ] E16 guardrail policy management
+- [x] E16 guardrail policy management (built in Phase 5c: proven, second-person review, locked, versioned)
 - [ ] E18 support access
-- [ ] E22 Agent Hub (accepted)
+- [x] E22 Agent Hub (accepted) (built in Phase 5 and 5c; the improvement loop with the Builder is not built)
 - [ ] Workspace app first release and the regrouped Admin app (early code on `main` to be reworked)
 
 **Documentation**
 - [x] Product documents complete for the designed platform and reviewed end to end (2026-11-09, decision 172)
 
 **Wave 3 (1.3)**
-- [ ] E8 automations (WP8.1 to WP8.6)
+- [ ] E8 automations (WP8.1 to WP8.6): first release built in Phase 6c (manual, schedule and webhook triggers, read-only steps, review, kill switches); the event trigger, the describe-it builder (8.5) and write steps with approvals are not built
 - [ ] E14 visual workflow editor
-- [ ] E15 workspace analytics
+- [ ] E15 workspace analytics: personal and team figures built in Phase 6a; adoption, cost per team and views by group are not built
 - [ ] E9 connector SDK, OAuth flow, packs (WP9.1 to WP9.5)
-- [ ] E7 QA scoring and digests
+- [ ] E7 QA scoring and digests: rubric scoring, calibration and coaching notes built in Phase 6a; model scoring and scheduled digests are not built
 
 **Wave 4 (1.4)**
 - [ ] E10 metering, plans, usage export
