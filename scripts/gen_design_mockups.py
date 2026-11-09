@@ -626,7 +626,7 @@ SCREENS["49-settings-skills"] = settings_shell("Profile", "Profile", "How you ap
 <div class="row"><span class="btn p">Save</span><span class="btn">Try it</span><span class="btn">Share with team</span></div><p class="note" style="margin-top:8px">A skill gives instructions and may point to knowledge. It cannot give an assistant new tools or access; sharing needs a reviewer.</p></div></div>""")
 
 
-PILOT_TABS = lambda on: "".join(f'<span class="pb {"on" if t == on else ""}">{t}</span>' for t in ["Plan", "Output", "Files", "Sources", "Context", "Steps", "Side chat"])
+PILOT_TABS = lambda on: "".join(f'<span class="pb {"on" if t == on else ""}">{t}</span>' for t in ["Plan", "Result", "Files", "Sources", "Context", "Steps", "Side chat"])
 PILOT_CSS = """<style>.pb{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;margin-right:4px}.pb.on{background:var(--primary);color:#fff;border-color:var(--primary)}
 .seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;font-size:12px}.seg span{padding:3px 10px;background:var(--surface)}.seg .on{background:var(--primary);color:#fff;font-weight:700}
 .menu{position:absolute;left:14px;bottom:100px;width:360px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 30px #0f172a33;padding:6px;z-index:5}.menu div{padding:7px 10px;border-radius:8px}.menu small{display:block;color:var(--muted)}
