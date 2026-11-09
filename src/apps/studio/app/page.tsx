@@ -1,40 +1,78 @@
 "use client";
 import Link from "next/link";
-import { listApprovals, listHandoffs, listTraces, useLoad } from "@northcx/api-client";
-import { ErrorBox, Loading, PageHeader } from "@northcx/ui";
+import { getAlerts, getOverview, listApprovals, listHandoffs, listAgents, useLoad, useMe } from "@northcx/api-client";
+import { Empty, ErrorBox, GlassCard, Loading, PageHeader, StatTile } from "@northcx/ui";
+
+const pct = (r?: { value: number | null }) => (r && r.value !== null ? `${Math.round(r.value * 100)}%` : "–");
 
 export default function Overview() {
+  const { can } = useMe();
   const { data, error, loading, reload } = useLoad(async () => {
-    const [traces, pending, handoffs] = await Promise.all([listTraces(), listApprovals("pending"), listHandoffs("open")]);
-    return { traces, pending, handoffs };
+    const [approvals, handoffs, agents] = await Promise.all([listApprovals("pending"), listHandoffs("open"), listAgents()]);
+    // Insights and alerts need their own permissions; without them the page still works with what it can read.
+    const overview = await getOverview(24 * 7).catch(() => null);
+    const alerts = await getAlerts().catch(() => null);
+    return { approvals, handoffs, agents, overview, alerts };
   });
   if (loading && !data) return <Loading />;
   if (error) return <ErrorBox message={error} onRetry={reload} />;
-  const { traces, pending, handoffs } = data!;
-  const total = traces.length;
-  const count = (s: string) => traces.filter((t) => t.status === s).length;
-  const rate = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "–");
-  const cards = [
-    { label: "Conversations", value: String(total), href: "/conversations" },
-    { label: "Completed", value: rate(count("completed")), href: "/conversations?status=completed" },
-    { label: "Escalated", value: rate(count("escalated")), href: "/conversations?status=escalated" },
-    { label: "Open handoffs", value: String(handoffs.length), href: "/handoffs" },
-    { label: "Pending approvals", value: String(pending.length), href: "/approvals" },
+  const { approvals, handoffs, agents, overview, alerts } = data!;
+  const firing = alerts?.active ?? [];
+  const attention = [
+    ...firing.map((a) => ({ key: `a-${a.rule}`, kind: "Alert", text: `${a.rule}: value ${Number(a.value).toPrecision(3)} over ${a.samples} samples`, href: "/monitoring", tone: "bad" as const })),
+    ...approvals.slice(0, 5).map((a) => ({ key: `p-${a.id}`, kind: "Approval", text: `${a.tool} is waiting: ${a.reason}`, href: "/approvals", tone: "warn" as const })),
+    ...handoffs.slice(0, 5).map((h) => ({ key: `h-${h.id}`, kind: "Hand-off", text: `${h.reason || h.trigger} (${h.agentId})`, href: "/handoffs", tone: "warn" as const })),
   ];
   return (
     <>
-      <PageHeader title="Overview" subtitle="Runs since the backend started (in-memory storage)." />
-      <ul className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        {cards.map((c) => (
-          <li key={c.label}>
-            <Link href={c.href} className="block rounded-xl border border-border bg-surface p-4 shadow-sm hover:border-primary">
-              <div className="text-sm text-muted">{c.label}</div>
-              <div className="mt-1 text-3xl font-semibold">{c.value}</div>
-            </Link>
-          </li>
-        ))}
+      <PageHeader title="Overview" subtitle="What needs attention across your agents. Figures are for the last 7 days and your selected environment." />
+      <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <li><StatTile label="Conversations" value={overview?.conversations ?? "–"} hint={overview ? `${overview.turns} turns` : "Insights not available to your role"} /></li>
+        <li><StatTile label="Resolved (provisional)" value={pct(overview?.resolutionRate)} hint={overview ? `contained ${pct(overview.containmentRate)} · ${overview.resolutionRate.pending} pending` : undefined} /></li>
+        <li><StatTile label="Open hand-offs" value={handoffs.length} tone={handoffs.length ? "warn" : undefined} hint={handoffs.length ? "people are needed" : "none waiting"} /></li>
+        <li><StatTile label="Pending approvals" value={approvals.length} tone={approvals.length ? "warn" : undefined} hint={approvals.length ? "agents are waiting" : "none waiting"} /></li>
       </ul>
-      {total === 0 && <p className="mt-6 text-sm text-muted">No conversations yet. Try the <Link className="underline" href="/chat">test console</Link>.</p>}
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <GlassCard title="Needs attention" className="lg:col-span-2">
+          {attention.length === 0 ? <Empty>Nothing needs you right now.</Empty> : (
+            <ul className="divide-y divide-border">
+              {attention.map((a) => (
+                <li key={a.key} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                  <span><span className={`mr-2 rounded-full px-2 py-0.5 text-xs ${a.tone === "bad" ? "bg-[var(--bad-bg)] text-[var(--bad)]" : "bg-[var(--warn-bg)] text-[var(--warn)]"}`}>{a.kind}</span>{a.text}</span>
+                  <Link href={a.href} className="btn">Open</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </GlassCard>
+        <GlassCard title={`Agents (${agents.length})`} action={<Link href="/agents" className="text-xs text-primary underline">All agents</Link>}>
+          <ul className="space-y-2 text-sm">
+            {agents.slice(0, 8).map((a) => (
+              <li key={a.id} className="flex items-center justify-between"><Link href={`/agents/${a.id}`} className="font-medium hover:underline">{a.id}</Link>
+                <span className="text-xs text-muted">{a.version ? `v${a.version}` : "from file"}{a.model ? ` · ${a.model}` : ""}</span></li>
+            ))}
+          </ul>
+        </GlassCard>
+      </div>
+      {overview && (
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <GlassCard title="Hand-offs by trigger">
+            {Object.keys(overview.handoffs.byTrigger).length === 0 ? <Empty>No hand-offs in this period.</Empty> : (
+              <ul className="space-y-1 text-sm">{Object.entries(overview.handoffs.byTrigger).map(([k, v]) => <li key={k} className="flex justify-between"><span>{k}</span><span className="text-muted">{v}</span></li>)}</ul>
+            )}
+          </GlassCard>
+          <GlassCard title="Tools used">
+            {Object.keys(overview.tools.used).length === 0 ? <Empty>No tool calls in this period.</Empty> : (
+              <ul className="space-y-1 text-sm">{Object.entries(overview.tools.used).slice(0, 6).map(([k, v]) => <li key={k} className="flex justify-between"><span>{k}</span><span className="text-muted">{v}{overview.tools.errors[k] ? ` · ${overview.tools.errors[k]} failed` : ""}</span></li>)}</ul>
+            )}
+          </GlassCard>
+          <GlassCard title="Satisfaction" action={can("insights:read") ? <Link href="/insights" className="text-xs text-primary underline">Insights</Link> : undefined}>
+            <p className="text-3xl font-bold">{overview.satisfaction.average ?? "–"}</p>
+            <p className="text-xs text-muted">{overview.satisfaction.responses} ratings · response rate {pct(overview.satisfaction.responseRate)}</p>
+          </GlassCard>
+        </div>
+      )}
+      <p className="mt-4 text-xs text-muted">{overview?.note}</p>
     </>
   );
 }

@@ -387,3 +387,14 @@ export async function importKnowledgeFile(source: string, file: File): Promise<{
   if (!res.ok) throw new ApiError(res.status, body?.error?.message ?? `Import failed (${res.status})`);
   return body;
 }
+
+// ---- agent hub (templates) ----
+export interface TemplateInfo { id: string; title: string; description: string; intent: string; parameters: { name: string; description: string; default: string | null; required: boolean }[]; requiresTools: string[]; scenarios: number }
+export interface TemplateRender { specYaml: string; scenariosYaml: string; scenarios: number; missingTools: string[]; warnings: string[] }
+export const listTemplates = () => api<{ templates: TemplateInfo[] }>("/v1/templates").then((r) => r.templates);
+export const renderTemplate = (id: string, agentId: string, params: Record<string, string>) =>
+  api<TemplateRender>(`/v1/templates/${id}/render`, { method: "POST", body: JSON.stringify({ agentId, params }) });
+export interface TemplateInstall extends TemplateRender { agentId: string; number: number; scenariosSaved: string[]; scenariosSkipped: string[] }
+/** Saves the rendered agent as a draft version (never live) and, when asked, the template's test scenarios. */
+export const createFromTemplate = (id: string, agentId: string, params: Record<string, string>, saveScenarios = true) =>
+  api<TemplateInstall>(`/v1/templates/${id}/create-version`, { method: "POST", body: JSON.stringify({ agentId, params, saveScenarios }) });

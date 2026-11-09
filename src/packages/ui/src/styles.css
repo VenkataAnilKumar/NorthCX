@@ -1,43 +1,103 @@
-/* NorthCX design tokens and base styles, shared by every web app. Import after `@import "tailwindcss"`. */
+/* NorthCX design tokens and base styles, shared by every web app. Import after `@import "tailwindcss"`.
+   The look is "glass": translucent surfaces over a soft gradient. Text always sits on a surface that is opaque enough
+   for contrast; where the browser or the person asks for less transparency, surfaces turn solid. */
 @source "."; /* class names used by the shared components */
 
 :root {
-  --bg: #f6f8fb;
-  --surface: #ffffff;
+  --bg: #eef2f9;
+  --surface: rgba(255, 255, 255, 0.68);
+  --surface-strong: rgba(255, 255, 255, 0.86);
   --text: #0f172a;
-  --muted: #5b6678;
-  --border: #d9e0ea;
+  --muted: #546079;
+  --border: rgba(15, 23, 42, 0.12);
+  --border-strong: rgba(15, 23, 42, 0.22);
   --primary: #0b3d91;
   --primary-text: #ffffff;
   --ok: #0f7b3f;
-  --ok-bg: #dcf5e6;
+  --ok-bg: rgba(15, 123, 63, 0.14);
   --warn: #8a5300;
-  --warn-bg: #fdecc8;
+  --warn-bg: rgba(194, 120, 3, 0.18);
   --info: #0b4fb3;
-  --info-bg: #dce9ff;
+  --info-bg: rgba(11, 79, 179, 0.14);
   --bad: #a11d1d;
-  --bad-bg: #fde0e0;
+  --bad-bg: rgba(161, 29, 29, 0.14);
+  --glass-blur: 18px;
+  --glass-shadow: 0 8px 30px rgba(15, 23, 42, 0.1);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --canvas:
+    radial-gradient(55rem 38rem at 6% -8%, rgba(100, 140, 255, 0.7), transparent 62%),
+    radial-gradient(48rem 36rem at 100% 2%, rgba(185, 130, 255, 0.55), transparent 60%),
+    radial-gradient(48rem 38rem at 40% 112%, rgba(90, 210, 180, 0.55), transparent 62%),
+    radial-gradient(26rem 20rem at 78% 70%, rgba(255, 170, 130, 0.3), transparent 65%);
+  --row-pad: 0.6rem;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1220;
-    --surface: #131c2e;
+  :root:not([data-theme="light"]) {
+    --bg: #0a1020;
+    --surface: rgba(24, 34, 58, 0.55);
+    --surface-strong: rgba(24, 34, 58, 0.8);
     --text: #e8edf6;
-    --muted: #9aa7bd;
-    --border: #26324a;
-    --primary: #6ea0ff;
-    --primary-text: #0b1220;
+    --muted: #a3afc5;
+    --border: rgba(255, 255, 255, 0.13);
+    --border-strong: rgba(255, 255, 255, 0.26);
+    --primary: #7fa8ff;
+    --primary-text: #0a1020;
     --ok: #6fe3a0;
-    --ok-bg: #12331f;
+    --ok-bg: rgba(111, 227, 160, 0.16);
     --warn: #ffd27a;
-    --warn-bg: #3a2a0a;
+    --warn-bg: rgba(255, 210, 122, 0.16);
     --info: #9cc2ff;
-    --info-bg: #122a52;
+    --info-bg: rgba(156, 194, 255, 0.16);
     --bad: #ff9a9a;
-    --bad-bg: #3d1414;
+    --bad-bg: rgba(255, 154, 154, 0.16);
+    --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    --canvas:
+      radial-gradient(60rem 40rem at 8% -10%, rgba(60, 100, 220, 0.5), transparent 60%),
+      radial-gradient(50rem 38rem at 100% 0%, rgba(120, 70, 210, 0.4), transparent 58%),
+      radial-gradient(50rem 40rem at 45% 115%, rgba(20, 150, 130, 0.35), transparent 60%);
   }
 }
+
+:root[data-theme="dark"] {
+  --bg: #0a1020;
+  --surface: rgba(24, 34, 58, 0.55);
+  --surface-strong: rgba(24, 34, 58, 0.8);
+  --text: #e8edf6;
+  --muted: #a3afc5;
+  --border: rgba(255, 255, 255, 0.13);
+  --border-strong: rgba(255, 255, 255, 0.26);
+  --primary: #7fa8ff;
+  --primary-text: #0a1020;
+  --ok: #6fe3a0;
+  --ok-bg: rgba(111, 227, 160, 0.16);
+  --warn: #ffd27a;
+  --warn-bg: rgba(255, 210, 122, 0.16);
+  --info: #9cc2ff;
+  --info-bg: rgba(156, 194, 255, 0.16);
+  --bad: #ff9a9a;
+  --bad-bg: rgba(255, 154, 154, 0.16);
+  --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --canvas:
+    radial-gradient(60rem 40rem at 8% -10%, rgba(60, 100, 220, 0.5), transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%, rgba(120, 70, 210, 0.4), transparent 58%),
+    radial-gradient(50rem 40rem at 45% 115%, rgba(20, 150, 130, 0.35), transparent 60%);
+}
+
+/* Accent colours change only the primary colour; status colours never change. */
+:root[data-accent="teal"] { --primary: #0b6b66; }
+:root[data-accent="violet"] { --primary: #5a2fb3; }
+:root[data-accent="green"] { --primary: #17692f; }
+@media (prefers-color-scheme: dark) {
+  :root[data-accent="teal"]:not([data-theme="light"]) { --primary: #6fe0d6; }
+  :root[data-accent="violet"]:not([data-theme="light"]) { --primary: #b79bff; }
+  :root[data-accent="green"]:not([data-theme="light"]) { --primary: #7de09a; }
+}
+:root[data-theme="dark"][data-accent="teal"] { --primary: #6fe0d6; }
+:root[data-theme="dark"][data-accent="violet"] { --primary: #b79bff; }
+:root[data-theme="dark"][data-accent="green"] { --primary: #7de09a; }
 
 @theme inline {
   --color-bg: var(--bg);
@@ -49,13 +109,72 @@
   --color-primary-text: var(--primary-text);
 }
 
+/* Text size and density, set by the person in Preferences. */
+:root[data-text="large"] { font-size: 17px; }
+:root[data-text="small"] { font-size: 15px; }
+:root[data-density="compact"] { --row-pad: 0.35rem; }
+:root[data-density="spacious"] { --row-pad: 0.9rem; }
+
 body {
-  background: var(--bg);
+  background: var(--canvas), var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  min-height: 100vh;
 }
 
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* Glass: every card-like surface. Existing pages use `bg-surface`, so they pick the effect up too. */
+.glass,
+[class~="bg-surface"] {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+}
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--glass-shadow), var(--glass-edge);
+}
+.glass-strong {
+  background: var(--surface-strong);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.4)) saturate(1.5);
+  backdrop-filter: blur(calc(var(--glass-blur) * 1.4)) saturate(1.5);
+}
+[class~="bg-surface"] { box-shadow: var(--glass-shadow), var(--glass-edge); }
+
+/* Less transparency when the browser cannot blur, or the person (or their system) asks for it. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --surface: #ffffff; --surface-strong: #ffffff; }
+  :root[data-theme="dark"] { --surface: #18223a; --surface-strong: #18223a; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --surface: #ffffff; --surface-strong: #ffffff; --glass-blur: 0px; }
+  :root[data-theme="dark"] { --surface: #18223a; --surface-strong: #18223a; }
+}
+@media (prefers-reduced-transparency: reduce) and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --surface: #18223a; --surface-strong: #18223a; }
+}
+:root[data-contrast="high"] { --surface: #ffffff; --surface-strong: #ffffff; --border: rgba(15, 23, 42, 0.55); --muted: #2f3a52; --glass-blur: 0px; }
+:root[data-contrast="high"][data-theme="dark"] { --surface: #131c2e; --surface-strong: #131c2e; --border: rgba(255, 255, 255, 0.6); --muted: #d5dcec; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+:root[data-motion="reduce"] *, :root[data-motion="reduce"] *::before, :root[data-motion="reduce"] *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+
+/* Buttons and small controls shared by every app. */
+.btn { display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid var(--border-strong); background: var(--surface-strong); color: var(--text); border-radius: 0.6rem; padding: 0.4rem 0.8rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+.btn:hover { border-color: var(--primary); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+.btn-danger { color: var(--bad); }
+.pill { display: inline-flex; align-items: center; gap: 0.3rem; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 0.15rem 0.7rem; font-size: 0.75rem; }
+.field { width: 100%; border: 1px solid var(--border-strong); background: var(--surface-strong); color: var(--text); border-radius: 0.6rem; padding: 0.45rem 0.7rem; font-size: 0.9rem; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.tbl th { text-align: left; font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+.tbl td { padding: var(--row-pad) 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.tbl tr:last-child td { border-bottom: 0; }
