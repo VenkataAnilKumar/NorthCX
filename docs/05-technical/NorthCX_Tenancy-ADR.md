@@ -22,6 +22,18 @@ Why not RLS alone: the read path deliberately avoids a transaction per statement
 
 With no tenant set, RLS returned 0 rows. RLS with a per-transaction setting costs about 0.35 ms more at the median than today's path (one extra statement and a transaction), and the tail is similar. A conversation turn makes dozens of store calls, so the RLS layer is expected to add roughly ten milliseconds per turn; WP2.9 re-measures this on the load tool and holds it to the documented figure within 10 percent, and if it does not, the setting moves to the connection checkout (one statement per checkout, not per call). These are numbers from one machine, not a production benchmark.
 
+## 2a. Revision while building batch b: row-level security is the enforcement, the predicate is the helper
+The first draft above made the explicit predicate primary. Building batch b showed why that is the wrong way round here: the stores contain about 145 hand-written SQL statements, and a predicate that must be remembered in each one is exactly the thing that gets forgotten. So the enforcement is now in the database, and it covers raw SQL too:
+- every session sets `app.tenant` (and `app.system`, used by nothing in a request) as its first statement (`northcx/db/tenant_sql.py`); one extra statement per session, the cost measured above;
+- each tenant table has a policy `tenant_id = current_setting('app.tenant')` for reading and writing, and its `tenant_id` column defaults from the same setting, so an insert that names no tenant gets the caller's and one that names another tenant is refused;
+- the ORM also adds the predicate to every ORM select, update and delete (defence in depth, and it uses the index);
+- ids chosen by clients or outside systems (session, customer, source ids and so on) are unique per tenant, so two tenants may use the same id; a write cannot overwrite another tenant's row because the conflict target includes the tenant;
+- background jobs run once per active tenant, as that tenant, instead of seeing every tenant at once;
+- the policies do not apply to a superuser, a role with BYPASSRLS or the table owner, so a deployment with more than one tenant must run the server as an ordinary role (`NORTHCX_MIGRATION_DATABASE_URL` keeps migrations on the owner); the server checks this at start and refuses otherwise.
+Tests run as an ordinary role: the same session id in two tenants stays separate; a raw `select * from messages` with no tenant condition returns only the caller's rows; a write naming another tenant is refused; another tenant's approval cannot be decided; erasing a session or a customer touches only the caller's tenant.
+
+**Built so far (2026-11-09):** conversation data (batch b). **Still to do:** knowledge (c), channels (d), releases and versions (e), the rest (f), per-tenant configuration, channel routing by binding, limits, the platform API, and the full gates.
+
 ## 3. Rules the rest of the work follows
 1. The tenant comes only from the authenticated key, a chat token's minting key or an inbound channel binding. It is never read from a request body, header or query.
 2. A resource of another tenant is "not found" (404), never "forbidden".

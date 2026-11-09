@@ -27,6 +27,7 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 | `NORTHCX_API_KEY` (`_FILE`) | Bootstrap admin key | none; without any key the server is open |
 | `NORTHCX_REQUIRE_AUTH` | `1` refuses to start without any key | off (compose sets it) |
 | `NORTHCX_DATABASE_URL` (`_FILE`) | Postgres URL; migrations run at start | in-memory storage |
+| `NORTHCX_MIGRATION_DATABASE_URL` (`_FILE`) | Postgres URL of the table owner, used only to apply migrations, so the server itself can run as an ordinary role (needed for tenant isolation; see 'Tenants and the database role') | the same as `NORTHCX_DATABASE_URL` |
 | `NORTHCX_REGISTRY` | `module:function` returning the tool registry | `examples.support_agent:registry` |
 | `NORTHCX_AGENTS_DIR`, `NORTHCX_SCENARIOS_DIR` | Spec and scenario directories | the bundled examples |
 | `NORTHCX_SECRET_<NAME>` (`_FILE`) | A credential for tools | none |
@@ -176,3 +177,15 @@ cd src/apps/studio && API_KEY=<admin key> WEB_URL=http://localhost:3001 API_URL=
 ```
 
 It creates one fresh conversation each run, so it can be repeated. The single sign-on round trip was also checked in a browser against a local OpenID Connect provider (sign in, role from groups, sign out, refusal of an unmapped person).
+
+## Tenants and the database role
+Tenant isolation for conversation data (sessions, messages, facts, memories, traces, approvals, hand-offs, outbox, feedback, tags, reviews, routes and the customer index; more tables follow in the next batches, see `05-technical/NorthCX_Tenancy-ADR.md`) relies on Postgres row-level security. Postgres does not apply those policies to a superuser, to a role with BYPASSRLS, or to the owner of a table. A single-company deployment usually connects as the owner, which is fine while there is only the `default` tenant, but **a second tenant needs the server to run as an ordinary role**:
+
+```sql
+CREATE ROLE northcx_app LOGIN PASSWORD '...' NOSUPERUSER NOBYPASSRLS;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO northcx_app;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO northcx_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE northcx IN SCHEMA public GRANT ALL ON TABLES TO northcx_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE northcx IN SCHEMA public GRANT ALL ON SEQUENCES TO northcx_app;
+```
+Then point `NORTHCX_DATABASE_URL` at `northcx_app` and `NORTHCX_MIGRATION_DATABASE_URL` at the owner (`northcx`). When tenants other than `default` exist, or `NORTHCX_TENANCY_PREVIEW=1`, the server checks its role at start and refuses to run if the policies would not apply. Background jobs run once per active tenant, as that tenant.
