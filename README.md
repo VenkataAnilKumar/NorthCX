@@ -4,11 +4,11 @@
 
 <br>
 
-[![CI](https://github.com/VenkataAnilKumar/NorthCX/actions/workflows/ci.yml/badge.svg)](https://github.com/VenkataAnilKumar/NorthCX/actions/workflows/ci.yml)
+[![CI](https://github.com/VenkataAnilKumar/ClaudeSI/actions/workflows/ci.yml/badge.svg)](https://github.com/VenkataAnilKumar/ClaudeSI/actions/workflows/ci.yml)
 [![Licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-1747b8)](LICENSE)
 [![Status: release candidate](https://img.shields.io/badge/status-1.0.0--rc.1-f59e0b)](CHANGELOG.md)
 [![Backend: Python 3.12+](https://img.shields.io/badge/backend-Python%203.12%2B-3776ab)](src/backend)
-[![Studio: Next.js](https://img.shields.io/badge/studio-Next.js-111827)](src/apps/studio)
+[![Apps: Next.js](https://img.shields.io/badge/apps-Admin%20%2B%20Workspace-111827)](src/apps)
 [![Self-hosted](https://img.shields.io/badge/deploy-self--hosted-16a34a)](docs/08-implementation/NorthCX_Deployment-Guide.md)
 
 **[Quick start](#-try-it-in-five-minutes)** · **[What you get](#-what-you-get)** · **[How it works](#-how-it-works)** · **[Safety](#-safety-you-can-explain-to-your-risk-team)** · **[Docs](#-documentation)** · **[Status](#-honest-status)**
@@ -83,13 +83,14 @@ Containment, escalation, satisfaction and cost, each shown with its numerator an
 | **Knowledge and memory** | Sources, freshness, citations, file import, website crawler with schedules, long-term customer memory with recall and erase, history summarisation for long conversations |
 | **Observe** | Metrics with denominators, alerts with delivery tracking, always-on monitoring of every turn, conversation search and tags, plain-language analytics with charts, trace export (OpenTelemetry, Langfuse), signed status events |
 | **Govern** | Roles and scoped keys, single sign-on (OpenID Connect), hash-chained audit log, privacy export, erasure and retention, data-residency policy checked at start-up, security hardening with standing tests |
+| **Staff work** | Workspace with Inbox, Customers, Pilot, Outputs, Spaces, Library, Automations, Quality and Performance; organisation policies and signed templates |
 | **Run** | Docker Compose stack, Postgres 16 with pgvector, migrations at start, load and cost tools, configuration through environment and files |
 
 </details>
 
 ## 🖥️ Studio: the operator console
 
-Everything above is operated from **Studio**, a web console with roles, so reviewers, developers and auditors each see what they need.
+Everything above is built and governed from **Studio** (the admin console, port 3001), a web console with roles, so developers, reviewers and auditors each see what they need. Beyond agents, Studio holds the Agent Hub, organisation policies and templates, models and budgets, usage by model and team, and an "Improve this agent" loop that investigates problems, proposes a fix and tests it beside the live version, without ever releasing it.
 
 <table>
 <tr>
@@ -143,11 +144,12 @@ Read the [threat model](docs/06-security/NorthCX_Threat-Model.md) and [security 
 No API key needed: an offline demo model lets you click through the whole console.
 
 ```bash
-git clone https://github.com/VenkataAnilKumar/NorthCX.git && cd NorthCX
+git clone https://github.com/VenkataAnilKumar/ClaudeSI.git && cd ClaudeSI
 cp .env.example .env
 # edit .env: set NORTHCX_DB_PASSWORD (letters and digits), NORTHCX_API_KEY (a long random value), and NORTHCX_DEMO=1
 docker compose up -d --build --wait
-# Studio: http://localhost:3001  (Settings → paste the API key)      API: http://localhost:3000
+# Admin console (Studio): http://localhost:3001   Workspace (staff): http://localhost:3002   API: http://localhost:3000
+# Open Settings in either app and paste the API key
 ```
 
 The demo model is a handful of keyword rules, not an AI. Try *"where is order 1042?"*, *"refund 500 for order 1042"* (over the limit, so it waits for approval) and *"I want a person"*, then look at **Approvals**, **Handoffs** and **Insights**.
@@ -192,7 +194,7 @@ NORTHCX_DEMO=1 NORTHCX_API_KEY=$(python -c "import secrets;print(secrets.token_u
 # meaning-based search additionally needs the pgvector extension)
 
 # Studio
-cd src && npm ci && npm test && NORTHCX_API_URL=http://localhost:3000 npm run dev      # http://localhost:3001 (npm workspaces: apps/studio and the shared packages)
+cd src && npm ci && npm test && NORTHCX_API_URL=http://localhost:3000 npm run dev      # http://localhost:3001 (npm workspaces: apps/studio, apps/workspace and the shared packages; the Workspace runs on 3002)
 
 # browser SDK and widget
 cd src/sdk && npm ci && npm test && npm run build
@@ -204,21 +206,42 @@ cd src/sdk && npm ci && npm test && npm run build
 
 The browser SDK and a drop-in `<northcx-chat>` widget have no runtime dependencies and stream replies, retry, renew tokens, accept uploads and show teammate replies. Your server mints a short-lived chat token for the signed-in customer, so the agent knows who it is talking to. See the [client SDK guide](docs/05-technical/NorthCX_Client-SDK.md).
 
-## 🔭 What is next: the staff Workspace (designed, not built)
+## 🧑‍💼 The Workspace: where your staff work
 
-After 1.0 the plan adds a second web app, the **Workspace**, for the people who supervise the agents: Home, **Pilot** (give an assistant a task, approve its plan, get a cited result from your own data), Work (Inbox, Approvals, Customers), Assist (Assistants, Search, Library), Create (Outputs, Spaces, Automations) and Team (Quality, Performance). The Studio grows into a grouped admin app with an Agent Hub, a Builder assistant and personal settings, and models are chosen across local, private and public tiers under your privacy rules. This is **design and mockups only**; see [the platform specification](docs/07-design/NorthCX_Platform-Features-and-Tabs.md).
+The second app, **Workspace** (port 3002), is for the people who supervise the agents and do the follow-up work. Everything runs under the same permissions, approvals and audit log as the rest of the platform.
+
+| Group | What is in it |
+|---|---|
+| **Work** | **Inbox** (hand-offs with suggested replies and macros), **Approvals**, **Customers** (look up by exact identifier, masked by default, reveal with a logged reason, notes, remove a stored fact, switch off memory) |
+| **Assist** | **Pilot** (give an assistant a task; styles Quick, Research, Think and Do; *Do* only proposes, and nothing runs until you confirm), **Assistants** catalog, **Search**, **Library** with saved items |
+| **Create** | **Outputs** (private, team or shared), **Spaces** with files (text and PDF), **Automations** |
+| **Team** | **Quality** (deterministic rubric scoring, reviewer calibration, coaching notes, on-request model verdicts) and **Performance** (by person and by team; groups under five are folded to protect people) |
+
+**Automations** are routines with a manual, schedule, webhook (signed) or event trigger. Steps can ask an assistant, build a report, wait for a **different person** to approve, tag, notify (only after a person step, to destinations you list) and produce an output. Build them in YAML, on a canvas, or by describing what you want. There is a kill switch per routine and for the whole tenant.
+
+## 🏢 Organisations and tenancy
+
+* **Organisation policies and templates** use a two-person rule: one person proposes, a second with the release permission approves; versions are kept and superseding is explicit. Built-in templates are **signed** (Ed25519) and refused if altered.
+* **Multi-tenancy (evaluation preview).** Tenants are isolated by composite keys and Postgres row-level security under an ordinary database role, with a separate platform API listener, per-tenant limits, an encrypted secrets vault and per-tenant model providers. A whole-route sweep test runs two tenants against every route. It is **off by default** and gated behind `NORTHCX_TENANCY_PREVIEW=1` until an outside penetration test is done. See the [threat model](docs/06-security/NorthCX_Tenant-Isolation-Threat-Model.md) and the [penetration-test brief](docs/06-security/NorthCX_Penetration-Test-Brief.md).
 
 ## 📊 Honest status
 
-**NorthCX is a release candidate (1.0.0-rc.1).** The feature set is complete and covered by more than 1,300 backend tests plus Studio and SDK tests, browser smoke tests and a clean-checkout verification. Before you rely on it:
+**NorthCX is a feature-complete release candidate (1.0.0-rc.1), ready for a supervised single-company pilot, not yet proven in production.**
+
+| Verified | Result |
+|---|---|
+| Backend tests | 1,775 passed, 0 failed (273 routes, migrations through 0056) |
+| Frontend tests | 28 (Studio) and 198 (Workspace) passed |
+| Browser smoke tests | Passed on production builds of both apps |
+| Tenant load gate | Measured overhead 0 to 2% against a 15% limit |
 
 | | |
 |---|---|
-| ✅ **Ready** | Everything in the feature list above, built, tested and documented |
-| ⚠️ **Not yet done** | An independent penetration test; a pass with a live model (everything so far ran against scripted and offline models); judge calibration with a real model |
-| 🧱 **By design (for now)** | One company and one region per deployment (multi-tenancy, metering and billing are on the roadmap, not built) |
+| ✅ **Ready** | Everything described above, built, tested and documented |
+| ⚠️ **Not yet done** | An independent penetration test; a pass with a live model (so far everything ran against scripted and offline models); judge calibration with a real model; testing against your identity provider (OpenID Connect is built, **SAML is not**); a human design review of the interfaces |
+| 🧱 **Preview** | Multi-tenant operation is for evaluation only; production use is one company and one region per deployment |
 
-Read the [security review](docs/06-security/NorthCX_Security-Review.md) and the [release checklist](docs/08-implementation/NorthCX_Release-Checklist.md) before exposing it to the public internet.
+Read the [security review](docs/06-security/NorthCX_Security-Review.md), the [release checklist](docs/08-implementation/NorthCX_Release-Checklist.md) and the [owner runbooks](docs/08-implementation/NorthCX_Owner-Runbooks.md) before exposing it to the public internet.
 
 ## 📚 Documentation
 
@@ -230,7 +253,9 @@ Read the [security review](docs/06-security/NorthCX_Security-Review.md) and the 
 | Connect your systems | [Integrations](docs/05-technical/NorthCX_Integrations.md), [API design](docs/05-technical/NorthCX_API-Design.md) |
 | Manage knowledge | [Knowledge design](docs/05-technical/NorthCX_Knowledge-Design.md) |
 | Measure and monitor | [Observability](docs/05-technical/NorthCX_Observability.md) |
-| Judge the security | [Threat model](docs/06-security/NorthCX_Threat-Model.md), [Security review](docs/06-security/NorthCX_Security-Review.md), [`SECURITY.md`](SECURITY.md) |
+| Operate it | [Owner runbooks](docs/08-implementation/NorthCX_Owner-Runbooks.md), [Project status](docs/08-implementation/NorthCX_Project-Status.md) |
+| Judge the security | [Threat model](docs/06-security/NorthCX_Threat-Model.md), [Tenant isolation](docs/06-security/NorthCX_Tenant-Isolation-Threat-Model.md), [Security review](docs/06-security/NorthCX_Security-Review.md), [Pen-test brief](docs/06-security/NorthCX_Penetration-Test-Brief.md), [`SECURITY.md`](SECURITY.md) |
+| Understand the staff apps | [Platform features and tabs](docs/07-design/NorthCX_Platform-Features-and-Tabs.md) |
 | See what is built | [Feature catalog](docs/03-specs/NorthCX_Feature-Catalog.md), [Decision log](docs/09-project/NorthCX_Decision-Log.md), [`CHANGELOG.md`](CHANGELOG.md) |
 | Contribute | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) |
 
@@ -241,7 +266,8 @@ Start at [`docs/README.md`](docs/README.md) for the full map.
 | Path | Contents |
 |---|---|
 | `src/backend/` | Python backend (FastAPI): runtime, guardrails, stores, server, channels, tools (`loadtest`, `cost`, `simulation`, `voice_sim`), example agent, tests |
-| `src/apps/studio/` | Studio, the operator console (Next.js); more apps (staff workspace, admin, ops) are planned as separate apps |
+| `src/apps/studio/` | Studio, the admin console (Next.js, port 3001) |
+| `src/apps/workspace/` | Workspace, the staff app (Next.js, port 3002) |
 | `src/packages/` | Code shared by the web apps: `ui` (components) and `api-client` (typed API client and session helpers) |
 | `src/sdk/` | Browser SDK and `<northcx-chat>` widget (TypeScript, no runtime dependencies) |
 | `src/prototype/` | TypeScript reference implementation of the runtime semantics |
