@@ -372,7 +372,7 @@ The documented figures in `NorthCX_Performance.md` are updated after each gate a
 - [ ] E6 libraries and generated outputs: Outputs and Spaces built in Phase 7a (text outputs with versions, masked exports); Library items with macros were built in Phase 10; PowerPoint decks are not built
 - [x] E16 guardrail policy management (built in Phase 5c: proven, second-person review, locked, versioned)
 - [ ] E18 support access
-- [x] E22 Agent Hub (accepted) (built in Phase 5 and 5c; the improvement loop with the Builder is not built)
+- [x] E22 Agent Hub (accepted) (built in Phase 5 and 5c; the Builder's improvement loop was built in Phase 11)
 - [ ] Workspace app first release and the regrouped Admin app (early code on `main` to be reworked)
 
 **Documentation**

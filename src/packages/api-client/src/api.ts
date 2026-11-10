@@ -615,3 +615,13 @@ export const addSpaceFile = (spaceId: string, name: string, content: { text: str
 export const deleteSpaceFile = (spaceId: string, fileId: string) => api<{ deleted: boolean }>(`/v1/workspace/spaces/${spaceId}/files/${fileId}`, { method: "DELETE" });
 export const confirmPilotAction = (id: string) => api<PilotAction>(`/v1/workspace/actions/${id}/confirm`, { method: "POST" });
 export const cancelPilotAction = (id: string) => api<PilotAction>(`/v1/workspace/actions/${id}/cancel`, { method: "POST" });
+
+// ---------- The Builder's improvement loop ----------
+export interface ImproveResult {
+  findings: { days: number; conversations: number; causes: { cause: string; count: number }[]; reviewerFailures: Record<string, number>; examples: string[] };
+  proposal: { specYaml: string; changes: string[]; warnings: string[] };
+  tests: { verdict: string; safe: boolean; before?: { ran: boolean; passed?: boolean; counts?: { total: number; failed: number }; reason?: string }; after?: { ran: boolean; passed?: boolean; counts?: { total: number; failed: number }; reason?: string } };
+  draftVersion: number | null; note: string;
+}
+export const improveAgent = (agentId: string, opts: { days?: number; focus?: string; createDraft?: boolean } = {}) =>
+  api<ImproveResult>(`/v1/agents/${encodeURIComponent(agentId)}/improve`, { method: "POST", body: JSON.stringify(opts) });

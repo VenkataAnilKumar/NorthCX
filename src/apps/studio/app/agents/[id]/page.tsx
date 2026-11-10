@@ -3,7 +3,38 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { type AgentVersion, ApiError, type Checklist, createVersion, diffVersions, formatTime, type Gate, getChecklist, getEnvironments, getLive, getVersionDetail, listReleases, listVersions, promoteAgent, publishVersion, rollbackAgent, runForVersion, useLoad, useMe, type VersionDiff, versionGate } from "@northcx/api-client";
 import { RolloutPanel } from "@/components/rollout-panel";
+import { improveAgent, type ImproveResult } from "@northcx/api-client";
 import { Empty, ErrorBox, Loading, PageHeader, StatusBadge } from "@northcx/ui";
+
+function Improve({ agentId, onSaved }: { agentId: string; onSaved: () => void }) {
+  const [focus, setFocus] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<ImproveResult | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const run = async (createDraft: boolean) => {
+    setBusy(true); setErr(null);
+    try { const r = await improveAgent(agentId, { focus: focus.trim() || undefined, createDraft }); setRes(r); if (createDraft) onSaved(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+  };
+  return (
+    <section className="rounded-xl border border-border bg-surface p-4">
+      <h2 className="mb-1 font-medium">Improve this agent</h2>
+      <p className="text-sm text-muted">Looks at the last 14 days (hand-offs, failed tools, blocked replies, reviewer marks), proposes a change, tests it next to the live version, and can save it as a draft. Nothing is released from here.</p>
+      <label className="mt-2 block text-sm">Anything specific? (optional)<input className="field mt-1 w-full" maxLength={300} value={focus} onChange={(e) => setFocus(e.target.value)} /></label>
+      <button className="btn mt-2" disabled={busy} onClick={() => void run(false)}>{busy ? "Working…" : "Investigate and propose"}</button>
+      {err && <div className="mt-2"><ErrorBox message={err} /></div>}
+      {res && (
+        <div className="mt-3 space-y-2 text-sm">
+          <p><strong>What is going wrong:</strong> {res.findings.causes.length ? res.findings.causes.slice(0, 4).map((c) => `${c.cause} (${c.count})`).join("; ") : "nothing specific found"}.</p>
+          <p><strong>Proposed changes:</strong></p><ul className="list-disc pl-5">{res.proposal.changes.map((c) => <li key={c}>{c}</li>)}</ul>
+          {res.proposal.warnings.length > 0 && <ul className="list-disc pl-5 text-[var(--warn)]">{res.proposal.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
+          <p><strong>Tests:</strong> {res.tests.verdict}{res.tests.before?.counts ? ` (live: ${res.tests.before.counts.total - res.tests.before.counts.failed}/${res.tests.before.counts.total} pass; proposal: ${res.tests.after?.counts ? res.tests.after.counts.total - res.tests.after.counts.failed : "?"}/${res.tests.after?.counts?.total ?? "?"})` : ""}</p>
+          <details><summary className="cursor-pointer">The proposed agent</summary><pre className="mt-1 max-h-72 overflow-auto rounded-lg bg-bg p-3 text-xs">{res.proposal.specYaml}</pre></details>
+          {res.draftVersion ? <p role="status">Saved as draft version {res.draftVersion}. It goes through the usual release checks and a second person.</p>
+            : <button className="btn btn-primary" disabled={busy || !res.tests.safe && res.tests.verdict.includes("breaks")} onClick={() => void run(true)}>Save as a draft version</button>}
+        </div>)}
+    </section>
+  );
+}
 
 function DiffView({ d }: { d: VersionDiff }) {
   if (d.identical) return <p className="text-sm text-muted">No differences.</p>;
@@ -201,6 +232,7 @@ export default function AgentVersions({ params }: { params: Promise<{ id: string
             {created && <p role="status" className="mt-2 text-sm text-[var(--ok)]">{created}</p>}
             {formErr && <p role="alert" className="mt-2 break-words text-sm text-[var(--bad)]">{formErr}</p>}
           </form>
+          {can("versions:create") && live.data && <Improve agentId={id} onSaved={() => setTick((n) => n + 1)} />}
           <section aria-label="Release history">
             <h2 className="mb-2 font-medium">Release history</h2>
             {!releases.data?.length ? <Empty>Nothing released yet.</Empty> : (

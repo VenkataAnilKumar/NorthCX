@@ -427,6 +427,13 @@ class LibrarySuggestBody(BaseModel):
     limit: int = Field(default=5, ge=1, le=10)
 
 
+class ImproveBody(BaseModel):
+    days: int = Field(default=14, ge=1, le=90)
+    focus: str | None = Field(default=None, max_length=300)
+    create_draft: bool = Field(default=False, alias="createDraft")
+    model_config = {"populate_by_name": True}
+
+
 class KeyBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     role: str

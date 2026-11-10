@@ -977,6 +977,60 @@
         ]
       }
     },
+    "/v1/agents/{agent_id}/improve": {
+      "post": {
+        "summary": "Improve Agent",
+        "description": "Investigate how the live agent is failing, propose a change, test it against the agent's own scenarios next to the live version, and optionally save it as a draft for a reviewer.",
+        "operationId": "improve_agent_v1_agents__agent_id__improve_post",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImproveBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Improve Agent V1 Agents  Agent Id  Improve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "versions:create",
+        "tags": [
+          "agents"
+        ]
+      }
+    },
     "/v1/agents/{agent_id}/journeys/draft": {
       "post": {
         "summary": "Journey Draft",
@@ -13063,6 +13117,36 @@
           "agentId"
         ],
         "title": "HubBody"
+      },
+      "ImproveBody": {
+        "properties": {
+          "days": {
+            "type": "integer",
+            "maximum": 90.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "default": 14
+          },
+          "focus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Focus"
+          },
+          "createDraft": {
+            "type": "boolean",
+            "title": "Createdraft",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ImproveBody"
       },
       "JourneyDraftBody": {
         "properties": {

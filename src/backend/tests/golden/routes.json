@@ -149,6 +149,7 @@
   "POST /scim/v2/Users": "/scim/v2/Users -> create_user",
   "POST /v1/agents/x/chat": "/v1/agents/{agent_id}/chat -> chat",
   "POST /v1/agents/x/chat/stream": "/v1/agents/{agent_id}/chat/stream -> chat_stream",
+  "POST /v1/agents/x/improve": "/v1/agents/{agent_id}/improve -> improve_agent",
   "POST /v1/agents/x/journeys/draft": "/v1/agents/{agent_id}/journeys/draft -> journey_draft",
   "POST /v1/agents/x/journeys/scenarios": "/v1/agents/{agent_id}/journeys/scenarios -> journey_scenarios",
   "POST /v1/agents/x/promote": "/v1/agents/{agent_id}/promote -> promote",
@@ -1017,6 +1018,11 @@
    "POST",
    "/v1/agents/{agent_id}/chat/stream",
    "chat_stream"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/improve",
+   "improve_agent"
   ],
   [
    "POST",

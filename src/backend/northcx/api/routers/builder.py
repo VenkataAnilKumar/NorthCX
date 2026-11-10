@@ -12,12 +12,13 @@ import yaml
 from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
-from northcx.api.models import BuilderBody, JourneyDraftBody, JourneyScenariosBody, RefineBody, ScenarioDraftBody
+from northcx.api.models import BuilderBody, ImproveBody, JourneyDraftBody, JourneyScenariosBody, RefineBody, ScenarioDraftBody
 from northcx.builder import BuildError, draft_agent, refine_agent
 from northcx.catalog import AgentUnavailable
 from northcx.journeys import draft_prompt, DraftError, JourneySpec, parse_draft, scenarios as journey_scenarios_list, scenarios_yaml as journey_scenarios_yaml, SYSTEM as JOURNEY_SYSTEM
 from northcx.scenario_draft import draft_scenarios
-from northcx.spec import parse_spec, SpecError
+from northcx.spec import AgentSpec, parse_spec, SpecError
+from northcx.versions import Conflict, InvalidSpec
 from northcx.transcribe import TranscribeError
 from northcx.types import LLMRequest, text_of
 
@@ -32,6 +33,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     runtime = d.runtime
     too_many = d.too_many
     transcriber = d.transcriber
+    rel_error = d.rel_error
 
     @app.post("/v1/builder/draft")
     async def builder_draft(body: BuilderBody, request: Request) -> Any:
@@ -94,6 +96,46 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(502, "model_unavailable", "The model could not be reached; try again")
         await record(request, "builder.refine", out["spec"]["id"], changes=len(out["changes"]), warnings=len(out["warnings"]))
         return out
+
+    @app.post("/v1/agents/{agent_id}/improve")
+    async def improve_agent(agent_id: str, body: ImproveBody, request: Request) -> Any:
+        """Investigate how the live agent is failing, propose a change, test it against the agent's own scenarios next to the live version, and optionally save it as a draft for a reviewer."""
+        from northcx.improve import investigate, propose, run_pair
+        svc = need_rel()
+        if isinstance(svc, JSONResponse):
+            return svc
+        who: Identity = request.state.identity
+        if not who.allows_agent(agent_id):
+            return _err(403, "forbidden", "This key cannot work on that agent")
+        if not (await access.limiter.hit(f"builder:{who.key_id or 'open'}", 5))[0]:
+            return too_many(60, "agent drafts")
+        live, _ = await svc.live(agent_id)
+        if live is None:
+            return _err(404, "not_found", "That agent has no live version to improve")
+        live_spec = AgentSpec.model_validate(live.spec)
+        live_yaml = yaml.safe_dump({"id": agent_id, **live_spec.model_dump(mode="json", exclude_defaults=True)}, sort_keys=False, allow_unicode=True)
+        findings = await investigate(d.insight, d.review_repo, agent_id, body.days)
+        try:
+            out = await propose(runtime.llm, svc.registry, live_yaml, findings, body.focus)
+        except BuildError as e:
+            return _err(422, "unusable_draft", str(e))
+        except Exception:
+            log.exception("agent improvement failed")
+            return _err(502, "model_unavailable", "The model could not be reached; try again")
+        new_spec = parse_spec(out["specYaml"])
+        tests = await run_pair(d.simulations, live_spec, new_spec) if d.simulations is not None else {"verdict": "scenarios are not configured", "safe": False}
+        result: dict[str, Any] = {"findings": findings, "proposal": {"specYaml": out["specYaml"], "changes": out["changes"], "warnings": out["warnings"]}, "tests": tests, "draftVersion": None,
+                                  "note": "A proposal for a reviewer. Nothing is released from here."}
+        if body.create_draft:
+            if out["warnings"] and any(w.startswith("Needs fixing") for w in out["warnings"]):
+                return _err(422, "unusable_draft", "The proposal still has problems that must be fixed before it can be saved as a draft")
+            try:
+                v = await svc.create_version(agent_id, new_spec, d.actor(request, None), "improvement proposal: " + "; ".join(out["changes"])[:300])
+            except (InvalidSpec, Conflict) as e:
+                return rel_error(e)
+            result["draftVersion"] = v.number
+        await record(request, "builder.improve", agent_id, causes=len(findings["causes"]), changes=len(out["changes"]), safe=tests.get("safe"), draft=result["draftVersion"])
+        return result
 
     @app.post("/v1/builder/transcribe")
     async def builder_transcribe(request: Request, language: str | None = None) -> Any:
