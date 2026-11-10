@@ -4,7 +4,7 @@
 
 <br>
 
-[![CI](https://github.com/VenkataAnilKumar/ClaudeSI/actions/workflows/ci.yml/badge.svg)](https://github.com/VenkataAnilKumar/ClaudeSI/actions/workflows/ci.yml)
+[![CI](https://github.com/VenkataAnilKumar/NorthCX/actions/workflows/ci.yml/badge.svg)](https://github.com/VenkataAnilKumar/NorthCX/actions/workflows/ci.yml)
 [![Licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-1747b8)](LICENSE)
 [![Status: release candidate](https://img.shields.io/badge/status-1.0.0--rc.1-f59e0b)](CHANGELOG.md)
 [![Backend: Python 3.12+](https://img.shields.io/badge/backend-Python%203.12%2B-3776ab)](src/backend)
@@ -144,7 +144,7 @@ Read the [threat model](docs/06-security/NorthCX_Threat-Model.md) and [security 
 No API key needed: an offline demo model lets you click through the whole console.
 
 ```bash
-git clone https://github.com/VenkataAnilKumar/ClaudeSI.git && cd ClaudeSI
+git clone https://github.com/VenkataAnilKumar/NorthCX.git && cd NorthCX
 cp .env.example .env
 # edit .env: set NORTHCX_DB_PASSWORD (letters and digits), NORTHCX_API_KEY (a long random value), and NORTHCX_DEMO=1
 docker compose up -d --build --wait
