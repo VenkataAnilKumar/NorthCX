@@ -62,6 +62,7 @@
   "GET /v1/automations/x": "/v1/automations/{automation_id} -> get_automation",
   "GET /v1/automations/x/runs": "/v1/automations/{automation_id}/runs -> runs",
   "GET /v1/catalog": "/v1/catalog -> catalog",
+  "GET /v1/channels": "/v1/channels -> channels_status",
   "GET /v1/conversations/search": "/v1/conversations/search -> conversation_search",
   "GET /v1/customers/settings": "/v1/customers/settings -> get_settings",
   "GET /v1/events": "/v1/events -> event_feed",
@@ -584,6 +585,11 @@
    "GET",
    "/v1/catalog",
    "catalog"
+  ],
+  [
+   "GET",
+   "/v1/channels",
+   "channels_status"
   ],
   [
    "GET",

@@ -161,7 +161,7 @@ await page.getByText("no role").waitFor();
 check(true, "sso landing: error shown");
 
 // the other main pages load without a client error
-for (const p of ["/hub", "/preferences", "/profile", "/", "/conversations", "/simulations", "/knowledge", "/handoffs", "/approvals", "/agents", "/access", "/chat", "/trust", "/org"]) {
+for (const p of ["/hub", "/preferences", "/profile", "/", "/conversations", "/simulations", "/knowledge", "/handoffs", "/approvals", "/agents", "/access", "/chat", "/trust", "/org", "/channels", "/memory", "/privacy"]) {
   await page.goto(`${WEB}${p}`);
   await page.waitForLoadState("networkidle");
   check(!(await page.locator("body").innerText()).includes("Application error"), `page loads: ${p}`);

@@ -191,3 +191,14 @@ async def test_the_retention_job_uses_the_tenants_own_period_and_the_platform_de
     finally:
         bg._every = original
     assert purged == [7]
+
+
+def test_channel_status_lists_what_is_on_and_no_credentials():
+    web, plat, key, ac, rt, run = world()
+    plat.post("/platform/v1/tenants", headers=P, json={"id": "acme", "name": "Acme"})
+    got = web.get("/v1/channels", headers=key("acme"))
+    assert got.status_code == 200
+    rows = {c["id"]: c for c in got.json()["channels"]}
+    assert rows["web"]["configured"] is True and {"email", "sms", "whatsapp", "telegram", "voice"} <= set(rows)
+    assert all(set(c) <= {"id", "label", "configured", "inbound", "note"} for c in rows.values())    # nothing else, so no secret can leak
+    assert web.get("/v1/channels").status_code in (401, 403)

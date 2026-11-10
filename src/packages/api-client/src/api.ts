@@ -630,3 +630,5 @@ export const improveAgent = (agentId: string, opts: { days?: number; focus?: str
 export interface TenantLimitRow { value: number | null; source: "tenant" | "platform" | "none" }
 export const getTenantLimits = () => api<{ tenant: string; limits: Record<string, TenantLimitRow> }>("/v1/tenant/limits");
 export const getTenantProvider = () => api<{ tenant: string; own: boolean; baseUrl?: string; defaultModel?: string; where?: string; keyStored?: boolean }>("/v1/tenant/provider");
+export interface ChannelRow { id: string; label: string; configured: boolean; inbound: string; note?: string }
+export const getChannels = () => api<{ channels: ChannelRow[] }>("/v1/channels").then((r) => r.channels);

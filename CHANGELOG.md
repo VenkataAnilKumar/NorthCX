@@ -9,6 +9,7 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - UI and UX design approved: glass surfaces, one accent colour, a floating six-item rail that can be collapsed to icons or hidden in full window mode, original tab icons, AA contrast rules (`docs/07-design/NorthCX_UI-UX-Design-Proposal.md`, six mockups).
 
 ### Added (Admin: Trust and reliability, Organization settings)
+- Admin **Channels** (new `GET /v1/channels`: which channels are on and where each receives messages, never a credential), **Memory** and **Privacy and data** (a person's own assistant notes: view, delete, download; how long outputs and run history are kept) are live. 274 routes.
 - Two Admin pages that were placeholders now read live server state: **Trust and reliability** (residency, alerting and delivery, monitoring findings, the customer-view and automation switches) and **Organization settings** (identifier, model provider, limits and where each comes from, switches). Studio's Automations tab opens the Workspace; the Workspace nav no longer marks built tabs as "soon". Screenshots retaken.
 
 ### Added (Phase 10: Library items)

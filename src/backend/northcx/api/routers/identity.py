@@ -34,6 +34,19 @@ def register(app: FastAPI, d: AppDeps) -> None:
         tl = getattr(d.runtime, "tenant_limits", None)
         return {"tenant": request.state.identity.tenant, "limits": await tl.effective(request.state.identity.tenant) if tl is not None else {}}
 
+    @app.get("/v1/channels")
+    async def channels_status() -> Any:
+        """Which customer channels this server has switched on, and where each one receives messages. Never any credential."""
+        on = lambda x: x is not None  # noqa: E731
+        return {"channels": [
+            {"id": "web", "label": "Web chat and SDK", "configured": True, "inbound": "/v1/agents/{agent}/chat", "note": "Always on; the browser widget uses a short-lived chat token your server mints."},
+            {"id": "email", "label": "Email", "configured": on(d.email), "inbound": "/v1/channels/email/inbound"},
+            {"id": "sms", "label": "SMS", "configured": on(d.sms), "inbound": "/channels/sms/twilio"},
+            {"id": "whatsapp", "label": "WhatsApp", "configured": on(d.whatsapp), "inbound": "/channels/whatsapp/meta"},
+            {"id": "telegram", "label": "Telegram", "configured": on(d.telegram), "inbound": "/channels/telegram/webhook"},
+            {"id": "voice", "label": "Phone calls (voice bridge)", "configured": on(d.voice), "inbound": "/v1/voice/stream"},
+        ]}
+
     @app.get("/v1/tenant/provider")
     async def tenant_provider(request: Request) -> Any:
         """Whether this organization has its own model provider, without the key. Set by the platform operator."""

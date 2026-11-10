@@ -40,12 +40,12 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
     { href: "/trust", label: "Trust and reliability" },
     ...(can("audit:read") ? [{ href: "/residency", label: "Data residency" }] : []),
   ];
-  const platform: SubItem[] = [soon("channels", "Channels"), soon("systems", "Systems"), { href: "/usage", label: "Usage and billing" }, { href: "/org", label: "Organization settings" }];
+  const platform: SubItem[] = [{ href: "/channels", label: "Channels" }, soon("systems", "Systems"), { href: "/usage", label: "Usage and billing" }, { href: "/org", label: "Organization settings" }];
   const personal: SubItem[] = [
     { href: "/profile", label: "Profile" },
     { href: "/preferences", label: "Preferences" },
-    soon("memory", "Memory"), soon("connectors", "Connectors"), soon("mcp", "MCP servers"), soon("notifications", "Notifications"),
-    soon("privacy", "Privacy and data"), soon("limits", "Usage and limits"), soon("keys", "API keys"), soon("security", "Security and sessions"),
+    { href: "/memory", label: "Memory" }, soon("connectors", "Connectors"), soon("mcp", "MCP servers"), soon("notifications", "Notifications"),
+    { href: "/privacy", label: "Privacy and data" }, soon("limits", "Usage and limits"), soon("keys", "API keys"), soon("security", "Security and sessions"),
     { href: "/settings", label: "Connection" },
   ];
   const nav: NavItem[] = [

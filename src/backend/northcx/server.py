@@ -259,6 +259,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/workspace/spaces/[^/]+/files/[^/]+", "workspace:use"),
     ("DELETE", r"/v1/workspace/spaces/[^/]+/files/[^/]+", "workspace:use"),
     ("DELETE", r"/v1/workspace/spaces/[^/]+", "workspace:use"),
+    ("GET", r"/v1/channels", "agents:read"),
     ("GET", r"/v1/tenant/limits", "agents:read"),
     ("GET", r"/v1/tenant/provider", "agents:read"),
     ("GET", r"/v1/automations", "agents:read"),

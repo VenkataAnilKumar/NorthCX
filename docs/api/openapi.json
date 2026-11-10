@@ -3738,6 +3738,29 @@
         ]
       }
     },
+    "/v1/channels": {
+      "get": {
+        "summary": "Channels Status",
+        "description": "Which customer channels this server has switched on, and where each one receives messages. Never any credential.",
+        "operationId": "channels_status_v1_channels_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Channels Status V1 Channels Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "channels"
+        ]
+      }
+    },
     "/v1/channels/email/inbound": {
       "post": {
         "summary": "Email Inbound",
