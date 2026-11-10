@@ -105,6 +105,10 @@ Everything above is built and governed from **Studio** (the admin console, port 
 <td width="50%"><img src="docs/assets/studio-policies.png" alt="Policies"><br><sub><b>Policies.</b> Organisation rules with two-person review and locking.</sub></td>
 <td width="50%"><img src="docs/assets/studio-models.png" alt="Models and budgets"><br><sub><b>Models and budgets.</b> Choose models per agent and set budgets from the page.</sub></td>
 </tr>
+<tr>
+<td width="50%"><img src="docs/assets/studio-trust.png" alt="Trust and reliability"><br><sub><b>Trust and reliability.</b> The live state of residency, alerting, monitoring and kill switches.</sub></td>
+<td width="50%"><img src="docs/assets/studio-channels.png" alt="Channels"><br><sub><b>Channels.</b> Which channels are on and where each receives messages.</sub></td>
+</tr>
 </table>
 
 ## 🧭 How it works

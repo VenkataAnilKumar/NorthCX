@@ -45,7 +45,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
     { href: "/profile", label: "Profile" },
     { href: "/preferences", label: "Preferences" },
     { href: "/memory", label: "Memory" }, soon("connectors", "Connectors"), soon("mcp", "MCP servers"), soon("notifications", "Notifications"),
-    { href: "/privacy", label: "Privacy and data" }, soon("limits", "Usage and limits"), soon("keys", "API keys"), soon("security", "Security and sessions"),
+    { href: "/privacy", label: "Privacy and data" }, soon("limits", "Usage and limits"), { href: "/access", label: "API keys" }, soon("security", "Security and sessions"),
     { href: "/settings", label: "Connection" },
   ];
   const nav: NavItem[] = [

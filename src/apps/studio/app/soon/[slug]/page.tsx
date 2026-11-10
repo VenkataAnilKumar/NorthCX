@@ -9,7 +9,6 @@ const PAGES: Record<string, { title: string; what: string; needs: string }> = {
   "mcp": { title: "MCP servers", what: "Tool servers you or your organization have connected.", needs: "an MCP client (E9)" },
   "notifications": { title: "Notifications", what: "Choose what reaches you and where.", needs: "notification delivery (E5)" },
   "limits": { title: "Usage and limits", what: "Your own usage and the limits that apply to you.", needs: "usage metering (E10)" },
-  "keys": { title: "API keys", what: "Keys you create for yourself, limited to your own access.", needs: "personal keys (E3)" },
   "security": { title: "Security and sessions", what: "Where you are signed in, with sign-out for each session.", needs: "sessions (E3)" },
 };
 
