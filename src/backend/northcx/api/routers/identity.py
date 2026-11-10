@@ -34,6 +34,14 @@ def register(app: FastAPI, d: AppDeps) -> None:
         tl = getattr(d.runtime, "tenant_limits", None)
         return {"tenant": request.state.identity.tenant, "limits": await tl.effective(request.state.identity.tenant) if tl is not None else {}}
 
+    @app.get("/v1/tenant/provider")
+    async def tenant_provider(request: Request) -> Any:
+        """Whether this organization has its own model provider, without the key. Set by the platform operator."""
+        from northcx.tenancy import TENANT
+        repo = getattr(getattr(d.runtime, "budget_settings", None), "repo", None)
+        cfg = await repo.get("tenant_provider") if repo is not None else None
+        return {"tenant": request.state.identity.tenant, "own": bool(cfg), **({"baseUrl": cfg["baseUrl"], "defaultModel": cfg["defaultModel"], "where": cfg["where"], "keyStored": True} if cfg else {})}
+
     @app.post("/v1/me/logout")
     async def logout(request: Request) -> Any:
         """End a single-sign-on session now. Other kinds of key are left alone (revoke those on the Access page)."""

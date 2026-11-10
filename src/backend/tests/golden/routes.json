@@ -118,6 +118,7 @@
   "GET /v1/templates": "/v1/templates -> list_templates",
   "GET /v1/templates/x": "/v1/templates/{template_id} -> get_template",
   "GET /v1/tenant/limits": "/v1/tenant/limits -> tenant_limits",
+  "GET /v1/tenant/provider": "/v1/tenant/provider -> tenant_provider",
   "GET /v1/trace-export": "/v1/trace-export -> trace_export_status",
   "GET /v1/traces": "/v1/traces -> list_traces",
   "GET /v1/traces/x": "/v1/traces/{trace_id} -> get_trace",
@@ -863,6 +864,11 @@
    "GET",
    "/v1/tenant/limits",
    "tenant_limits"
+  ],
+  [
+   "GET",
+   "/v1/tenant/provider",
+   "tenant_provider"
   ],
   [
    "GET",

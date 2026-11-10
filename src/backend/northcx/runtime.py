@@ -84,6 +84,8 @@ class Runtime:
         self.secrets = secrets or NO_SECRETS
         self.monitor = monitor or Monitor()
         self.ledger = ledger or UsageLedger()
+        self.vault: Any = None  # northcx.vault.Vault: each tenant's sealed secrets
+        self.tenant_llm: Any = None  # northcx.vault.TenantLLM when tenants may have their own model provider
         self.pilot_actions: Any = None  # northcx.pilot_actions.PilotActionService: what the Pilot proposed and the person has yet to confirm
         self.decision_teams: Any = None  # northcx.decision_teams: which team answered a hand-off or approval
         self.tenant_limits: Any = None  # northcx.tenant_limits.TenantLimits: ceilings the platform operator sets per tenant

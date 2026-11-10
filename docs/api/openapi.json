@@ -10010,6 +10010,29 @@
         ]
       }
     },
+    "/v1/tenant/provider": {
+      "get": {
+        "summary": "Tenant Provider",
+        "description": "Whether this organization has its own model provider, without the key. Set by the platform operator.",
+        "operationId": "tenant_provider_v1_tenant_provider_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Tenant Provider V1 Tenant Provider Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "agents:read",
+        "tags": [
+          "tenant"
+        ]
+      }
+    },
     "/v1/trace-export": {
       "get": {
         "summary": "Trace Export Status",

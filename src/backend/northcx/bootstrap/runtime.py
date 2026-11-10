@@ -74,6 +74,16 @@ def build_runtime(c: SimpleNamespace) -> None:
             check_money_budget(providers, currency)
         except ValueError as e:
             sys.exit(f"NORTHCX_DAILY_BUDGET: {e}")
+    from northcx.secrets import env_or_file as _env
+    from northcx.vault import TenantLLM, Vault, VaultError
+    from northcx.db import PgSecrets as _PgSecrets, PgSettings as _PgSettings
+    try:
+        vault = Vault(_PgSecrets(c.engine) if c.db_url else None, _env("NORTHCX_MASTER_KEY"), _env("NORTHCX_MASTER_KEY_PREVIOUS"))
+    except VaultError as e:
+        sys.exit(f"Configuration error: {e}")
+    tenant_llm = None
+    if vault.enabled and c.db_url:                  # a tenant that has its own model provider is served by it; everyone else by the platform's
+        llm = tenant_llm = TenantLLM(llm, vault, _PgSettings(c.engine))
     runtime = Runtime(llm, store, traces, approvals, Outbox(outbox_repo, notifier), handoffs, secrets, monitor=Monitor(monitor_repo), privacy=privacy_backend, router=router, inbox=inbox, exports=exports, context=context_source,
                       memories=memory_repo if os.environ.get("NORTHCX_MEMORY", "1") != "0" else None,
                       compactor=(Compactor(llm, int(os.environ["NORTHCX_SUMMARIZE_AFTER_TOKENS"]), model=os.environ.get("NORTHCX_SUMMARY_MODEL") or None)
@@ -106,6 +116,7 @@ def build_runtime(c: SimpleNamespace) -> None:
     from northcx.org_policies import OrgPolicyService
     runtime.org_policies = OrgPolicyService(PgOrgPolicies(c.engine) if c.db_url else None)
     from northcx.db import PgCoaching, PgCustomerNotes, PgSettings
+    runtime.vault, runtime.tenant_llm = vault, tenant_llm
     from northcx.customers import CustomerService
     from northcx.tenant_limits import TenantLimits
     runtime.tenant_limits = TenantLimits(PgSettings(c.engine) if c.db_url else None, {

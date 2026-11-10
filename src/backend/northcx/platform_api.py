@@ -41,7 +41,7 @@ def err(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
 
 
-def create_platform_app(key: str, tenants: Any, limits: Any, settings_repo: Any, audit: Any, access: Any = None) -> FastAPI:
+def create_platform_app(key: str, tenants: Any, limits: Any, settings_repo: Any, audit: Any, access: Any = None, vault: Any = None, tenant_llm: Any = None) -> FastAPI:
     if not key or len(key) < MIN_KEY:
         raise ConfigError(f"NORTHCX_PLATFORM_KEY must be at least {MIN_KEY} characters")
     app = FastAPI(title="NorthCX platform", docs_url=None, redoc_url=None, openapi_url=None)
@@ -170,6 +170,98 @@ def create_platform_app(key: str, tenants: Any, limits: Any, settings_repo: Any,
         await limits.clear(tenant_id)
         await note(tenant_id, "platform.limits_cleared")
         return await view(t)
+
+    # ---- secrets and a tenant's own model provider: values go in, never come out ----
+    from .vault import VaultError, validate_provider
+
+    def vault_error(e: VaultError) -> JSONResponse:
+        return err(e.status, {400: "bad_request", 501: "not_configured"}.get(e.status, "error"), str(e))
+
+    @app.get("/platform/v1/tenants/{tenant_id}/secrets")
+    async def list_secrets(tenant_id: str) -> Any:
+        if await tenants.repo.get(tenant_id) is None:
+            return err(404, "not_found", "Unknown tenant")
+        return {"enabled": bool(vault and vault.enabled), "secrets": await vault.names(tenant_id) if vault and vault.enabled else []}
+
+    @app.put("/platform/v1/tenants/{tenant_id}/secrets/{name}")
+    async def put_secret(tenant_id: str, name: str, request: Request) -> Any:
+        if await tenants.repo.get(tenant_id) is None:
+            return err(404, "not_found", "Unknown tenant")
+        try:
+            if vault is None:
+                raise VaultError(501, "The secrets vault is off: set NORTHCX_MASTER_KEY")
+            body = await request.json()
+            await vault.put(tenant_id, name, body.get("value") if isinstance(body, dict) else None, "platform")
+        except VaultError as e:
+            return vault_error(e)
+        except ValueError:
+            return err(400, "bad_request", "The body must be JSON like {\"value\": \"...\"}")
+        if tenant_llm is not None:
+            tenant_llm.forget(tenant_id)
+        await note(tenant_id, "platform.secret_set", name=name)               # the name only, never the value
+        return {"name": name, "stored": True}
+
+    @app.delete("/platform/v1/tenants/{tenant_id}/secrets/{name}")
+    async def delete_secret(tenant_id: str, name: str) -> Any:
+        if vault is None or not vault.enabled:
+            return err(501, "not_configured", "The secrets vault is off: set NORTHCX_MASTER_KEY")
+        if not await vault.delete(tenant_id, name):
+            return err(404, "not_found", "No such secret")
+        if tenant_llm is not None:
+            tenant_llm.forget(tenant_id)
+        await note(tenant_id, "platform.secret_deleted", name=name)
+        return {"deleted": True}
+
+    @app.put("/platform/v1/tenants/{tenant_id}/provider")
+    async def put_provider(tenant_id: str, request: Request) -> Any:
+        """Give a tenant its own model provider (an OpenAI-compatible service). Its key must already be stored as a secret."""
+        if await tenants.repo.get(tenant_id) is None:
+            return err(404, "not_found", "Unknown tenant")
+        try:
+            if vault is None or not vault.enabled:
+                raise VaultError(501, "The secrets vault is off: set NORTHCX_MASTER_KEY")
+            cfg = validate_provider(await request.json())
+            if await vault.repo.get(tenant_id, cfg["secret"]) is None:
+                raise VaultError(400, f"Store the key first as the secret '{cfg['secret']}'")
+        except VaultError as e:
+            return vault_error(e)
+        except ValueError:
+            return err(400, "bad_request", "The body must be JSON")
+        token = TENANT.set(tenant_id)
+        try:
+            await settings_repo.put("tenant_provider", cfg, "platform")
+        finally:
+            TENANT.reset(token)
+        if tenant_llm is not None:
+            tenant_llm.forget(tenant_id)
+        await note(tenant_id, "platform.provider_set", baseUrl=cfg["baseUrl"], model=cfg["defaultModel"], where=cfg["where"])
+        return {k: v for k, v in cfg.items() if k != "secret"}
+
+    @app.delete("/platform/v1/tenants/{tenant_id}/provider")
+    async def delete_provider(tenant_id: str) -> Any:
+        token = TENANT.set(tenant_id)
+        try:
+            gone = await settings_repo.delete("tenant_provider")
+        finally:
+            TENANT.reset(token)
+        if tenant_llm is not None:
+            tenant_llm.forget(tenant_id)
+        if gone:
+            await note(tenant_id, "platform.provider_removed")
+        return {"removed": gone}
+
+    @app.post("/platform/v1/vault/reseal")
+    async def reseal() -> Any:
+        """After changing the master key (the old one in NORTHCX_MASTER_KEY_PREVIOUS): seal every tenant's secrets again with the new one."""
+        if vault is None or not vault.enabled:
+            return err(501, "not_configured", "The secrets vault is off: set NORTHCX_MASTER_KEY")
+        total = 0
+        try:
+            for t in await tenants.repo.list():
+                total += await vault.reseal(t.id)
+        except VaultError as e:
+            return vault_error(e)
+        return {"resealed": total}
 
     @app.post("/platform/v1/tenants/{tenant_id}/bindings", status_code=201)
     async def bind(tenant_id: str, body: BindingBody) -> Any:

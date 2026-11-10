@@ -37,4 +37,4 @@ def build_platform(c: SimpleNamespace):
     from northcx.budget_settings import InMemorySettings
     from northcx.platform_api import create_platform_app
     settings_repo = c.runtime.budget_settings.repo if getattr(c.runtime, "budget_settings", None) is not None else InMemorySettings()
-    return create_platform_app(key, c.access.tenants, c.runtime.tenant_limits, settings_repo, c.audit_repo, c.access)
+    return create_platform_app(key, c.access.tenants, c.runtime.tenant_limits, settings_repo, c.audit_repo, c.access, getattr(c.runtime, "vault", None), getattr(c.runtime, "tenant_llm", None))

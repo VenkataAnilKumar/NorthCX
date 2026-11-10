@@ -818,6 +818,16 @@ class PilotActionRow(TenantScoped, Base):
     __table_args__ = (Index("ix_pilot_actions_owner", "owner", "chat_id"),)
 
 
+class TenantSecretRow(TenantScoped, Base):
+    """A secret that belongs to a tenant, sealed with the platform's master key (see northcx/vault.py)."""
+    __tablename__ = "tenant_secrets"
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    name: Mapped[str] = mapped_column(String(40), primary_key=True)
+    sealed: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

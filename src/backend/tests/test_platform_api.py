@@ -52,7 +52,7 @@ def test_the_platform_api_needs_its_own_key_and_a_tenants_key_does_not_work_on_i
 def test_the_platform_api_has_no_route_to_a_tenants_data():
     web, plat, key, ac, rt, run = world()
     paths = {r.path for r in plat.app.routes if getattr(r, "path", "").startswith("/platform")}
-    assert all(p.startswith("/platform/v1/tenants") or p == "/platform/health" for p in paths)
+    assert all(p.startswith("/platform/v1/tenants") or p in ("/platform/health", "/platform/v1/vault/reseal") for p in paths)
     assert not any(w in p for p in paths for w in ("session", "conversation", "customer", "message", "document", "trace", "output", "note"))
 
 
