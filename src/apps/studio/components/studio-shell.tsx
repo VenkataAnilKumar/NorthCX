@@ -28,7 +28,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
     { href: "/hub", label: "Agent Hub" },
     { href: "/agents/build", label: "Builder" },
     ...(can("knowledge:read") ? [{ href: "/knowledge", label: "Library" }] : []),
-    soon("automations", "Automations"),
+    { href: `${WORKSPACE_URL}/automations`, label: "Automations" }, // lives in the Workspace
     { href: "/simulations", label: "Simulations" },
     { href: "/models", label: "Models and budgets" },
     { href: "/chat", label: "Test console" },

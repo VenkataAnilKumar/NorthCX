@@ -4,7 +4,6 @@ import { ComingSoon } from "@northcx/ui";
 
 /** Honest placeholders for Admin pages whose backend is not built yet; nothing here shows made-up data. */
 const PAGES: Record<string, { title: string; what: string; needs: string }> = {
-  "automations": { title: "Automations", what: "See, pause and stop every automation in the organization, with run history and the kill switch.", needs: "automations (E8)" },
   "trust": { title: "Trust and reliability", what: "Security posture, status and reliability figures for the organization.", needs: "the trust centre (E16)" },
   "channels": { title: "Channels", what: "Where agents talk to customers, with a health view per channel.", needs: "a Channels admin view over the existing adapters" },
   "systems": { title: "Systems", what: "Connected business systems and the permissions each agent has on them.", needs: "native connectors (E4)" },
