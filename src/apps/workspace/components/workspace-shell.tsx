@@ -20,7 +20,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
     { href: "/inbox", label: "Work", icon: "Work", children: [
       { href: "/inbox", label: "Inbox", badge: waiting.data?.handoffs },
       { href: "/approvals", label: "Approvals", badge: waiting.data?.approvals },
-      { href: "/customers", label: "Customers", soon: true },
+      { href: "/customers", label: "Customers" },
     ] },
     { href: "/assistants", label: "Assist", icon: "Assist", children: [
       { href: "/assistants", label: "Assistants" },
@@ -28,13 +28,13 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       { href: "/library", label: "Library" },
     ] },
     { href: "/outputs", label: "Create", icon: "Create", children: [
-      { href: "/outputs", label: "Outputs", soon: true },
-      { href: "/spaces", label: "Spaces", soon: true },
-      { href: "/automations", label: "Automations", soon: true },
+      { href: "/outputs", label: "Outputs" },
+      { href: "/spaces", label: "Spaces" },
+      { href: "/automations", label: "Automations" },
     ] },
     ...(lead ? [{ href: "/quality", label: "Team", icon: "Team" as const, children: [
-      { href: "/quality", label: "Quality", soon: true },
-      { href: "/performance", label: "Performance", soon: true },
+      { href: "/quality", label: "Quality" },
+      { href: "/performance", label: "Performance" },
     ] }] : []),
   ];
   return (

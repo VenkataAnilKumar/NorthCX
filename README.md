@@ -98,8 +98,12 @@ Everything above is built and governed from **Studio** (the admin console, port 
 <td width="50%"><img src="docs/assets/studio-insights.png" alt="Insights dashboard"><br><sub><b>Insights.</b> Every figure shows what it is a share of; ask questions in plain words.</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/assets/studio-knowledge.png" alt="Knowledge management"><br><sub><b>Knowledge.</b> Sources, files, crawls and a "try a question" box.</sub></td>
+<td width="50%"><img src="docs/assets/studio-hub.png" alt="Agent Hub"><br><sub><b>Agent Hub.</b> Predefined agents and organisation templates, with provenance.</sub></td>
 <td width="50%"><img src="docs/assets/studio-versions.png" alt="Versions and releases"><br><sub><b>Versions and releases.</b> Immutable versions, checklist, gate, staged rollout, rollback.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/assets/studio-policies.png" alt="Policies"><br><sub><b>Policies.</b> Organisation rules with two-person review and locking.</sub></td>
+<td width="50%"><img src="docs/assets/studio-models.png" alt="Models and budgets"><br><sub><b>Models and budgets.</b> Choose models per agent and set budgets from the page.</sub></td>
 </tr>
 </table>
 
@@ -216,6 +220,21 @@ The second app, **Workspace** (port 3002), is for the people who supervise the a
 | **Assist** | **Pilot** (give an assistant a task; styles Quick, Research, Think and Do; *Do* only proposes, and nothing runs until you confirm), **Assistants** catalog, **Search**, **Library** with saved items |
 | **Create** | **Outputs** (private, team or shared), **Spaces** with files (text and PDF), **Automations** |
 | **Team** | **Quality** (deterministic rubric scoring, reviewer calibration, coaching notes, on-request model verdicts) and **Performance** (by person and by team; groups under five are folded to protect people) |
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/workspace-home.png" alt="Workspace home"><br><sub><b>Home.</b> What needs you right now.</sub></td>
+<td width="50%"><img src="docs/assets/workspace-inbox.png" alt="Inbox"><br><sub><b>Inbox.</b> Hand-offs with the full package and suggested replies.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/assets/workspace-customers.png" alt="Customers"><br><sub><b>Customers.</b> Exact identifier only, masked, every open recorded.</sub></td>
+<td width="50%"><img src="docs/assets/workspace-automations.png" alt="Automations"><br><sub><b>Automations.</b> YAML, canvas or describe-it.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/assets/workspace-quality.png" alt="Quality"><br><sub><b>Quality.</b> Rubric scoring and reviewer calibration.</sub></td>
+<td width="50%"><img src="docs/assets/workspace-performance.png" alt="Performance"><br><sub><b>Performance.</b> Personal and team figures, small groups folded.</sub></td>
+</tr>
+</table>
 
 **Automations** are routines with a manual, schedule, webhook (signed) or event trigger. Steps can ask an assistant, build a report, wait for a **different person** to approve, tag, notify (only after a person step, to destinations you list) and produce an output. Build them in YAML, on a canvas, or by describing what you want. There is a kill switch per routine and for the whole tenant.
 
