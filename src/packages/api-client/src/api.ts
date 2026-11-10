@@ -625,3 +625,8 @@ export interface ImproveResult {
 }
 export const improveAgent = (agentId: string, opts: { days?: number; focus?: string; createDraft?: boolean } = {}) =>
   api<ImproveResult>(`/v1/agents/${encodeURIComponent(agentId)}/improve`, { method: "POST", body: JSON.stringify(opts) });
+
+// ---------- Organization settings and trust (Admin) ----------
+export interface TenantLimitRow { value: number | null; source: "tenant" | "platform" | "none" }
+export const getTenantLimits = () => api<{ tenant: string; limits: Record<string, TenantLimitRow> }>("/v1/tenant/limits");
+export const getTenantProvider = () => api<{ tenant: string; own: boolean; baseUrl?: string; defaultModel?: string; where?: string; keyStored?: boolean }>("/v1/tenant/provider");

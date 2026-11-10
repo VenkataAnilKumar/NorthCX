@@ -4,10 +4,8 @@ import { ComingSoon } from "@northcx/ui";
 
 /** Honest placeholders for Admin pages whose backend is not built yet; nothing here shows made-up data. */
 const PAGES: Record<string, { title: string; what: string; needs: string }> = {
-  "trust": { title: "Trust and reliability", what: "Security posture, status and reliability figures for the organization.", needs: "the trust centre (E16)" },
   "channels": { title: "Channels", what: "Where agents talk to customers, with a health view per channel.", needs: "a Channels admin view over the existing adapters" },
   "systems": { title: "Systems", what: "Connected business systems and the permissions each agent has on them.", needs: "native connectors (E4)" },
-  "org": { title: "Organization settings", what: "Name, defaults, retention and feature switches for the organization.", needs: "multi-tenancy (E2)" },
   "memory": { title: "Memory", what: "What assistants remember about you, with per-item delete.", needs: "staff memory (E5.5)" },
   "connectors": { title: "Connectors", what: "Your own connected accounts and what each can be used for.", needs: "connectors (E4)" },
   "mcp": { title: "MCP servers", what: "Tool servers you or your organization have connected.", needs: "an MCP client (E9)" },

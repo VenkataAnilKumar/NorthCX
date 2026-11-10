@@ -161,11 +161,17 @@ await page.getByText("no role").waitFor();
 check(true, "sso landing: error shown");
 
 // the other main pages load without a client error
-for (const p of ["/hub", "/preferences", "/profile", "/", "/conversations", "/simulations", "/knowledge", "/handoffs", "/approvals", "/agents", "/access", "/chat"]) {
+for (const p of ["/hub", "/preferences", "/profile", "/", "/conversations", "/simulations", "/knowledge", "/handoffs", "/approvals", "/agents", "/access", "/chat", "/trust", "/org"]) {
   await page.goto(`${WEB}${p}`);
   await page.waitForLoadState("networkidle");
   check(!(await page.locator("body").innerText()).includes("Application error"), `page loads: ${p}`);
 }
+await page.goto(`${WEB}/trust`);
+await page.getByText("Controls", { exact: true }).waitFor();
+check((await page.locator("body").innerText()).includes("Data residency"), "trust: shows live controls");
+await page.goto(`${WEB}/org`);
+await page.getByText("Requests per minute").waitFor();
+check(true, "org: shows limits");
 check(errors.length === 0, `no client errors${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
 await browser.close();
 if (failures.length) { console.log(`\n${failures.length} failed`); process.exit(1); }

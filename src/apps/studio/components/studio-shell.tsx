@@ -37,10 +37,10 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
     { href: "/people", label: "People and groups" },
     ...(any("keys:manage", "audit:read") ? [{ href: "/access", label: "Access keys" }, { href: "/access#audit", label: "Audit and activity" }] : []),
     { href: "/policies", label: "Policies" },
-    soon("trust", "Trust and reliability"),
+    { href: "/trust", label: "Trust and reliability" },
     ...(can("audit:read") ? [{ href: "/residency", label: "Data residency" }] : []),
   ];
-  const platform: SubItem[] = [soon("channels", "Channels"), soon("systems", "Systems"), { href: "/usage", label: "Usage and billing" }, soon("org", "Organization settings")];
+  const platform: SubItem[] = [soon("channels", "Channels"), soon("systems", "Systems"), { href: "/usage", label: "Usage and billing" }, { href: "/org", label: "Organization settings" }];
   const personal: SubItem[] = [
     { href: "/profile", label: "Profile" },
     { href: "/preferences", label: "Preferences" },
