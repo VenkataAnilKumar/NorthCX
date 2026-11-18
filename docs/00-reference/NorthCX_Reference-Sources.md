@@ -89,3 +89,5 @@ git clone --depth 1 https://github.com/langfuse/langfuse automations/langfuse
 | Agenta | Side-by-side prompt versions and judge scoring |
 | Hermes Agent, OpenGeni | One gateway for many channels, scheduled jobs, replayable sessions |
 | Decagon, Sierra, Intercom | Plain-language procedures, simulations, always-on quality checks |
+
+Commercial and open-source agent interfaces to study, grouped by NorthCX screen, are in `NorthCX_Agent-UI-References.md`.
