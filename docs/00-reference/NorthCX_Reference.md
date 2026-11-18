@@ -6,7 +6,7 @@ Status: **Reference**. Updated: 2026-11-09. Master for: named third-party compon
 
 Date: 2026-11-02
 
-> **Outcome since this research (2026-11-09).** The backend became Python, not the TypeScript runtime proposed in section 8 (Decision Log #3). No component in sections 2, 8 or 11 was adopted or copied: memory, knowledge retrieval, observability export, the Studio and the channels were all written in-house, and NorthCX depends on no reference project (`../05-technical/NorthCX_Build-vs-Adopt.md`, `NOTICE`, `THIRD_PARTY.md`). The "NorthCX (target)" column in section 7 is now built for simulation testing, voice (through a bridge) and the low-code builder. Read this document as the research record, not as current design.
+> **Outcome since this research (2026-11-09).** The backend became Python, not the TypeScript runtime proposed in section 8 (Decision Log #3). No component in sections 2, 8 or 11 was adopted or copied: memory, knowledge retrieval, observability export, the Studio and the channels were all written in-house, and NorthCX depends on no reference project (`../12-project/NorthCX_Build-vs-Adopt.md`, `NOTICE`, `THIRD_PARTY.md`). The "NorthCX (target)" column in section 7 is now built for simulation testing, voice (through a bridge) and the low-code builder. Read this document as the research record, not as current design.
 
 ---
 
@@ -68,7 +68,7 @@ Sierra (founded 2023 by Bret Taylor and Clay Bavor) sells enterprise customer-ex
 
 ## 3. Feature-to-component map
 
-Statuses and paths as of 2026-11-02 (the `src/core` TypeScript scaffold is now `src/prototype`). Today every row except outcome-based billing is built in-house in the Python backend (`../05-technical/NorthCX_System-Architecture.md`).
+Statuses and paths as of 2026-11-02 (the `src/core` TypeScript scaffold is now `src/prototype`). Today every row except outcome-based billing is built in-house in the Python backend (`../00-platform/NorthCX_System-Architecture.md`).
 
 | Sierra capability | Chosen / proposed component | Status |
 |---|---|---|
@@ -127,7 +127,7 @@ Details are third-party summaries and **unverified**.
 | Low-code builder | Yes | Control plane UI | Yes | Agent builder | Phase 4 |
 | Self-host | Unclear | Yes | Yes | Yes | Yes |
 
-Segments: enterprise CX agent platforms (Sierra, direct benchmark); incumbent helpdesk AI; open-source frameworks (Agno), workflow builders (Sim), knowledge/chat (Onyx); general agent platforms (Kortix/Suna, different use case). Sierra's reported outcome-based pricing informs the pricing options in `01-product`.
+Segments: enterprise CX agent platforms (Sierra, direct benchmark); incumbent helpdesk AI; open-source frameworks (Agno), workflow builders (Sim), knowledge/chat (Onyx); general agent platforms (Kortix/Suna, different use case). Sierra's reported outcome-based pricing informs the pricing options in `00-platform/NorthCX_Pricing-Model.md`.
 
 ## 8. Proposed component selections (moved from the technical docs)
 
@@ -152,7 +152,7 @@ Licence cautions to review before use: Onyx `ee/`, Langfuse `ee/`, Chatwoot ente
 
 ## 9. Additional feature research (web search, 2026-11-02)
 
-Search snippets and vendor marketing pages; **unverified**. Used as input to `03-specs/NorthCX_Feature-Catalog.md`.
+Search snippets and vendor marketing pages; **unverified**. Used as input to `12-project/NorthCX_Feature-Catalog.md`.
 
 ### Sierra components reported
 | Component | Reported detail |
@@ -203,7 +203,7 @@ Not yet checked: LiveKit Agents, Letta, Graphiti, Arize Phoenix, Guardrails AI.
 
 ## 11. Code-reuse map (feature to source)
 
-Strategy decision (2026-11-02): do not write everything from scratch. Fetch the reference repositories, copy or adapt the code that implements our features, and keep provenance. Policy is in `05-technical/NorthCX_Code-Reuse-Policy.md`.
+Strategy decision (2026-11-02): do not write everything from scratch. Fetch the reference repositories, copy or adapt the code that implements our features, and keep provenance. Policy is in `08-governance-safety/NorthCX_Code-Reuse-Policy.md`.
 
 Paths verified from the repository trees; fitness of each module is **not yet assessed** (no code read beyond directory names). **Outcome:** none of these was copied; the modules that were assessed and the reasons are in `THIRD_PARTY.md`.
 

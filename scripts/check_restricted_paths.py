@@ -2,7 +2,7 @@
 """Fail if the repository contains files copied from restricted locations.
 
 Reference projects keep enterprise code in `ee/` or `enterprise/` directories under separate commercial
-licences. Those files must never be copied into NorthCX (see docs/05-technical/NorthCX_Code-Reuse-Policy.md).
+licences. Those files must never be copied into NorthCX (see docs/08-governance-safety/NorthCX_Code-Reuse-Policy.md).
 Also checks that every file under third_party/ has a licence next to it and that THIRD_PARTY.md and NOTICE exist.
 """
 from __future__ import annotations

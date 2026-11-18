@@ -1,6 +1,6 @@
 
 
-> **Archived 2026-11-09.** Merged into `../04-ai-architecture/NorthCX_Simulation-and-Evals.md`. Kept for history; not maintained.
+> **Archived 2026-11-09.** Merged into `../06-testing-evaluation/NorthCX_Simulation-and-Evals.md`. Kept for history; not maintained.
 
 ## Regression from real conversations and knowledge changes (Q5, Q7) — as built
 

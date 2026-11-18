@@ -1,6 +1,6 @@
 """Generates the UI design proposal mockups (glass, minimal colour). Sample data only. Run: python scripts/gen_ui_proposal.py"""
 from pathlib import Path
-OUT = Path(__file__).resolve().parent.parent / "docs" / "07-design" / "mockups"
+OUT = Path(__file__).resolve().parent.parent / "docs" / "02-studio" / "mockups"
 
 CSS = """
 :root{--bg1:#eef1f7;--bg2:#e6e4f2;--bg3:#f4f1ec;--ink:#14161f;--mut:#5b6072;--faint:#8b90a0;

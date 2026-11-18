@@ -1,6 +1,6 @@
 # NorthCX Admin and Workspace design rounds (history)
 
-> **Archived 2026-11-09.** Sections 0a to 0f of `../07-design/NorthCX_Admin-Platform-Design.md`, moved here unchanged. They use earlier names; the final names and decisions are in `../07-design/NorthCX_Platform-Features-and-Tabs.md`. Kept for history; not maintained.
+> **Archived 2026-11-09.** Sections 0a to 0f of `../02-studio/NorthCX_Admin-Platform-Design.md`, moved here unchanged. They use earlier names; the final names and decisions are in `../02-studio/NorthCX_Platform-Features-and-Tabs.md`. Kept for history; not maintained.
 
 ## 0a. New interfaces, round 2 (2026-11-09) [design history; final names and decisions are in the tabs specification]
 Added after the feature research (`00-reference/NorthCX_Feature-Research-2026-11.md`, sections 7 to 10). Each is a candidate, not a commitment; most need new backend work. All sample data.

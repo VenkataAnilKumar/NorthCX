@@ -1,8 +1,8 @@
 # NorthCX Implementation Phases
 
-> **Archived 2026-11-09.** The 1.0 phases are finished; current plan: `../08-implementation/NorthCX_Implementation-Plan.md`. Kept for history; not maintained.
+> **Archived 2026-11-09.** The 1.0 phases are finished; current plan: `../12-project/NorthCX_Implementation-Plan.md`. Kept for history; not maintained.
 
-Status: Draft. Feature IDs from `03-specs/NorthCX_Feature-Catalog.md`.
+Status: Draft. Feature IDs from `12-project/NorthCX_Feature-Catalog.md`.
 
 | Phase | Goal | Deliverables (catalog IDs) | Exit criteria |
 |---|---|---|---|

@@ -1,4 +1,4 @@
-"""How the database knows which tenant a statement is for (WP2.3, WP2.4; see docs/05-technical/NorthCX_Tenancy-ADR.md).
+"""How the database knows which tenant a statement is for (WP2.3, WP2.4; see docs/08-governance-safety/NorthCX_Tenancy-ADR.md).
 
 Every database session sets two settings right after it begins: `app.tenant` (the request's tenant) and `app.system` (on only inside
 `system_scope()`, for background jobs that must see every tenant). Row-level security policies on each tenant table compare `tenant_id` with

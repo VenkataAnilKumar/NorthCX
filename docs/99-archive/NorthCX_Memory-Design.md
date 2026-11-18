@@ -1,6 +1,6 @@
 # NorthCX Long-term Memory — Design
 
-> **Archived 2026-11-09.** Merged into `../04-ai-architecture/NorthCX_Knowledge-and-Memory.md`. Kept for history; not maintained.
+> **Archived 2026-11-09.** Merged into `../05-knowledge-memory/NorthCX_Knowledge-and-Memory.md`. Kept for history; not maintained.
 
 Feature K2/K6 follow-on (W12). Customer facts (key/value, set by tools or the company's systems) already exist; this adds free-text **memories**: short notes an agent learns in one conversation and can use in later ones, such as "prefers email over phone" or "ships to the office on weekdays".
 

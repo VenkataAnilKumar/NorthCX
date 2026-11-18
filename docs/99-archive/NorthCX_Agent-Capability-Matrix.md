@@ -1,6 +1,6 @@
 # NorthCX Agent Capability Matrix
 
-> **Archived 2026-11-09.** It repeated the Feature Catalog; use `../03-specs/NorthCX_Feature-Catalog.md`. Kept for history; not maintained.
+> **Archived 2026-11-09.** It repeated the Feature Catalog; use `../12-project/NorthCX_Feature-Catalog.md`. Kept for history; not maintained.
 
 Status: Draft. Summary of the Feature Catalog by capability. State: Built / Planned.
 

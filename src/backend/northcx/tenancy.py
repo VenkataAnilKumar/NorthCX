@@ -1,4 +1,4 @@
-"""Tenants (WP2.2): who a request belongs to. First slice of multi-tenancy; see docs/05-technical/NorthCX_Tenancy-ADR.md.
+"""Tenants (WP2.2): who a request belongs to. First slice of multi-tenancy; see docs/08-governance-safety/NorthCX_Tenancy-ADR.md.
 
 What exists: the `tenants` and `channel_bindings` tables, a request-scoped current tenant (set from the key), keys and the audit log carrying a
 tenant, and the key and audit APIs showing a caller only their own tenant. What does NOT exist yet: tenant columns on every other table (WP2.3
@@ -124,7 +124,7 @@ class TenantService:
     async def create(self, tenant_id: str, name: str) -> Tenant:
         if not self.preview:
             raise TenantError("Creating a tenant other than the default one needs NORTHCX_TENANCY_PREVIEW=1: tenant isolation is not finished yet "
-                              "(see docs/05-technical/NorthCX_Tenancy-ADR.md), so a second tenant is for evaluation only")
+                              "(see docs/08-governance-safety/NorthCX_Tenancy-ADR.md), so a second tenant is for evaluation only")
         if not TENANT_ID_RE.fullmatch(tenant_id) or tenant_id == DEFAULT_TENANT:
             raise TenantError("A tenant id is 3 to 40 lower-case letters, digits and hyphens, and is not 'default'")
         if not name.strip() or len(name) > 120:

@@ -1,6 +1,6 @@
 # Third-Party Code
 
-Provenance of code copied or adapted from other projects. Policy: `docs/05-technical/NorthCX_Code-Reuse-Policy.md`.
+Provenance of code copied or adapted from other projects. Policy: `docs/08-governance-safety/NorthCX_Code-Reuse-Policy.md`.
 
 **Current state: no third-party source code is copied or adapted into NorthCX, and the product has no dependency on any reference project's SDK or library.** Copying or adapting reference code for a feature is allowed under the policy (permissive licences, attribution header, an entry in the table below), but nothing is copied at the moment. The only third-party packages the product installs are ordinary infrastructure libraries (web server, database driver, HTTP client, YAML, and the web framework), listed in `src/backend/pyproject.toml` and the `package.json` files under `src` (`apps/studio`, `packages/*`, `sdk`).
 

@@ -19,12 +19,12 @@ cd src/sdk && npm ci && npm test              # npm run build if you changed src
 Offline demo (no API key): set `NORTHCX_DEMO=1` plus a database password and an API key in `.env`, then `docker compose up -d --build --wait`. The demo model is keyword rules, not an AI.
 
 ## Current direction (decided 2026-11-18)
-Read `docs/05-technical/NorthCX_Agent-Platform-Design.md`. In short: re-platform in place (keep the safety core and its tests), add a unified Agent API and a tool gateway, and rebuild Chat, Agent Studio, Integrations and Automations on top, one module at a time. Self-hosted first. Studio is a product for non-engineers (YAML is an advanced view). The Workspace and packaged CX agents are later products. Nothing in the design is built yet.
+Read `docs/00-platform/NorthCX_Agent-Platform-Design.md`. In short: re-platform in place (keep the safety core and its tests), add a unified Agent API and a tool gateway, and rebuild Chat, Agent Studio, Integrations and Automations on top, one module at a time. Self-hosted first. Studio is a product for non-engineers (YAML is an advanced view). The Workspace and packaged CX agents are later products. Nothing in the design is built yet.
 
 Work in the order given in the design's phasing table, one small step at a time. No live-model pass has been run (no API key was available); mark anything that depends on real model behaviour as unverified.
 
 ## Reference sources (read-only)
-Open-source projects, specifications and product pages studied for the four modules. The full list with links and the clone script is `docs/05-technical/NorthCX_Reference-Sources.md`; the lessons taken from them are in section 2a and 2b of the design. A developer may keep clones in a folder outside this repository, laid out as `northcx-sources/{integrations,chat,studio,automations,benchmarks}/`. If that folder is available, read it; if not, work from the design and the links, and do not guess at what a project does.
+Open-source projects, specifications and product pages studied for the four modules. The full list with links and the clone script is `docs/00-reference/NorthCX_Reference-Sources.md`; the lessons taken from them are in section 2a and 2b of the design. A developer may keep clones in a folder outside this repository, laid out as `northcx-sources/{integrations,chat,studio,automations,benchmarks}/`. If that folder is available, read it; if not, work from the design and the links, and do not guess at what a project does.
 
 | Module | Read first | Study for |
 |---|---|---|
@@ -42,9 +42,9 @@ How to use them:
 
 ## Rules to keep
 - **The core safety model is not negotiable:** risky actions wait for a person, fail closed, every action audited. New tool sources (MCP, connectors) go through the gateway so approvals, scopes, dry-run, secrets and audit apply equally. Routines never write to customers.
-- **No third-party code is copied** (`NOTICE`, `THIRD_PARTY.md`). Reference projects are for reading; the rules for any exception are in `docs/05-technical/NorthCX_Code-Reuse-Policy.md`. Reference material lives in a separate folder outside this repository (for example `northcx-sources/`); never commit it. The list of what to study is `docs/05-technical/NorthCX_Reference-Sources.md`.
+- **No third-party code is copied** (`NOTICE`, `THIRD_PARTY.md`). Reference projects are for reading; the rules for any exception are in `docs/08-governance-safety/NorthCX_Code-Reuse-Policy.md`. Reference material lives in a separate folder outside this repository (for example `northcx-sources/`); never commit it. The list of what to study is `docs/00-reference/NorthCX_Reference-Sources.md`.
 - **Every change ships complete:** tests (a bug fix comes with a test that failed before), the affected docs, `CHANGELOG.md`, a decision-log entry for non-obvious decisions, and settings added to `.env.example`. New endpoints need a route-permission entry (a test fails otherwise). Outbound calls must not follow redirects; SQL values are always bound.
 - **Sign commits** with `git commit -s` (see `CONTRIBUTING.md`).
 - **Next.js here is not the version you know.** Each app has an `AGENTS.md`; read the docs in `node_modules/next/dist/docs/` before writing Next.js code.
-- **Be honest about status.** The README's status table and the docs' status lines must match what was actually verified. Items that need an outside party (an API key, a penetration test, vendor sandbox accounts, tags) are listed in `docs/08-implementation/NorthCX_Release-Checklist.md`; do not tick them without evidence.
+- **Be honest about status.** The README's status table and the docs' status lines must match what was actually verified. Items that need an outside party (an API key, a penetration test, vendor sandbox accounts, tags) are listed in `docs/10-releases/NorthCX_Release-Checklist.md`; do not tick them without evidence.
 - Do not commit secrets. Do not open a pull request or merge unless asked.
