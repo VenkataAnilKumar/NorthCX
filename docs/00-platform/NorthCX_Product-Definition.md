@@ -53,7 +53,7 @@ Multi-tenancy and the staff workspace move into scope after 1.0 (not in 1.0); th
 3. Everything is testable: no agent change reaches customers without passing checks.
 4. Humans stay in the loop: handoff is a first-class path, not a failure.
 5. Open and replaceable: every external dependency sits behind an interface.
-6. Model-agnostic, Claude-first.
+6. Hybrid models: local, private-cloud and public-cloud models side by side, each qualified per agent before it serves customers (decision 198; replaces "model-agnostic, Claude-first").
 7. Honest about uncertainty: unknown means ask or escalate.
 
 ## 9. Assumptions to validate

@@ -13,6 +13,8 @@ Principles carried over from the product definition: safe by default (fail close
 1. **Self-hosted for now.** The first customers run NorthCX on their own infrastructure. A managed cloud is later. Consequences: every module must run from the existing Docker Compose stack with no required cloud service; anything optional (an Activepieces sidecar, a local model) must be genuinely optional; outbound access to external servers (for example a vendor's MCP server) must be an explicit, reviewable network decision for the operator.
 2. **Studio is a CX product for non-engineers.** The primary author is a CX lead or operations person, not a developer. Consequences: plain-language and graph authoring come first, YAML becomes an advanced and export view, errors and checks are written for non-engineers, and nothing a CX author needs may require editing environment variables or files. Engineers keep full code access.
 
+3. **Hybrid models (decision 198).** Agents run on local, private-cloud and public-cloud models side by side; Claude is one cloud option. Consequences: every module works with any configured provider; each model is qualified per agent before it serves customers and the result is shown; validation starts with a local-model pass (for example Ollama) and adds cloud-model passes when keys are available; prompts may need tuning per model.
+
 Two roles result, and the design keeps them apart: the **operator** (platform engineer, sets what is allowed: hosts, servers, secrets, models, limits, once) and the **CX author** (builds and releases agents and routines within what the operator allowed).
 
 ## 2. What the research found
@@ -208,7 +210,8 @@ Two new pieces, everything else exists:
 
 | Step | Work | Exit check |
 |---|---|---|
-| 0 | Live-model pass and fix what breaks (needs an API key); decide D1 (open versus commercial) | Shipped scenarios pass in live mode |
+| 0a | Local-model pass: run the shipped scenarios live through the server on a local model (`../09-models/NorthCX_Local-Models-Guide.md`), qualify it per agent, fix integration bugs; decide D1 | Scenarios run live on a local model; differences recorded |
+| 0b | Cloud-model pass when keys are available (Claude and at least one other), judge calibration on a strong model | Shipped scenarios pass in live mode on a cloud model; judge agreement measured |
 | 1 | Tool gateway interface, YAML source wrapped, conformance suite | Existing connector tests still pass unchanged |
 | 2 | MCP source plus one real connector (Zendesk) behind approvals | Conformance suite passes against it; injection scenarios pass |
 | 3 | Connection catalogue UI in Studio | Add, test and disable a connection without YAML |
@@ -262,7 +265,7 @@ A review of all ten platform areas (the four modules plus knowledge and memory, 
 **First-customer journey to build towards.** Install, connect Zendesk and Shopify, choose an order-status-and-refunds template, write procedures in plain words, run simulations, **shadow mode** (new: the agent drafts each reply and a person approves or edits it before it is sent), staged rollout, and insights showing the resolution rate.
 
 **Order.**
-1. Live-model pass when a key is available (everything else depends on it).
+1. Local-model pass now (Ollama, through the server), then cloud-model passes when keys are available; a model qualification report per agent (decision 198).
 2. Tool gateway, MCP, and the Zendesk, Shopify and Stripe connectors.
 3. Guided Studio for non-engineers, ending with the usability gate; shadow mode.
 4. Operator experience: install, upgrade, backup, health.

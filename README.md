@@ -17,7 +17,7 @@
 
 ---
 
-**NorthCX is an open-source platform for running AI agents that handle real customer conversations and do the work, not just answer questions**: look up the order, issue the refund, update the account, and hand over to a person when they should. It is built on the Claude API and runs on your own infrastructure, so customer data stays where you put it.
+**NorthCX is an open-source platform for running AI agents that handle real customer conversations and do the work, not just answer questions**: look up the order, issue the refund, update the account, and hand over to a person when they should. It runs on your own infrastructure with **local and cloud models side by side** (self-hosted models such as Ollama, and cloud models such as Claude or any OpenAI-compatible service), so customer data stays where you put it and sensitive conversations can stay on your own servers.
 
 Most "AI chat" projects stop at the demo. NorthCX is the other 90%: **every reply and every action is supervised, risky actions wait for a human, every change is tested before customers see it, and every figure can be traced back to the conversations behind it.**
 
@@ -162,7 +162,7 @@ docker compose up -d --build --wait
 
 The demo model is a handful of keyword rules, not an AI. Try *"where is order 1042?"*, *"refund 500 for order 1042"* (over the limit, so it waits for approval) and *"I want a person"*, then look at **Approvals**, **Handoffs** and **Insights**.
 
-For real conversations, set `ANTHROPIC_API_KEY` instead of `NORTHCX_DEMO=1` and write your own agent, starting from a template or from your own procedures.
+For real conversations, replace `NORTHCX_DEMO=1` with a model: a local one through a providers file (see the [local models guide](docs/09-models/NorthCX_Local-Models-Guide.md)), a cloud one such as `ANTHROPIC_API_KEY`, or both. Then write your own agent, starting from a template or from your own procedures.
 
 <details>
 <summary><b>An agent is just a file</b> (the shipped example)</summary>
@@ -304,4 +304,4 @@ Issues, ideas and pull requests are welcome. Start with [`CONTRIBUTING.md`](CONT
 
 Apache-2.0. See [`LICENSE`](LICENSE); copied code keeps its own notices ([`NOTICE`](NOTICE), [`THIRD_PARTY.md`](THIRD_PARTY.md)).
 
-<div align="center"><sub>Built on the Claude API · self-hosted · your data stays yours</sub></div>
+<div align="center"><sub>Local and cloud models · self-hosted · your data stays yours</sub></div>
