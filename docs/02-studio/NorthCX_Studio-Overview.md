@@ -16,6 +16,8 @@ Status: **Reference**. Updated: 2026-11-18. Master for: the one-page overview of
 
 Plan: [`Agent Platform design`](../00-platform/NorthCX_Agent-Platform-Design.md) (phasing in section 10, priorities in section 13). States come from the documents below and the changelog, not from running the product.
 
+Interfaces worth studying for each NorthCX screen (named, so kept in `00-reference`): [`../00-reference/NorthCX_Agent-UI-References.md`](../00-reference/NorthCX_Agent-UI-References.md).
+
 ## Documents in this folder
 | Document | What it is |
 |---|---|

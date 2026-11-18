@@ -4,6 +4,11 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Documentation (hybrid models, 2026-11-18)
+- The product is hybrid (decision 198): local and cloud models side by side, each qualified per agent; Claude is one cloud option. New `docs/09-models/NorthCX_Local-Models-Guide.md` (providers file, plain-http rule, qualification through the server; not yet run against a real local server). README, Product Definition (principle 6), Agent Platform design (decision 3, phases 0a and 0b), Models overview, Model-Providers (a stale "not built" line), Project Status, session prompts and CLAUDE.md updated.
+
+- Agent interface references: `docs/00-reference/NorthCX_Agent-UI-References.md` lists commercial and open-source agent interfaces by kind (customer chat, builder studios, general chat apps, agent-in-the-loop, quality and observability) and maps them to NorthCX's screens.
+
 ### Fixed (2026-11-18)
 - Container images: the Studio and Workspace images each build only their own app (`npm run build -w <app>`). They ran the root build, which builds both apps, but each image holds only one, so `docker compose up --build` (and the CI `stack` job) failed since 2026-11-09.
 

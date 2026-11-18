@@ -18,13 +18,25 @@ secrets and audit on every tool path; mark anything that needs a live model as u
 Do not open a pull request or merge. At the end list the tests you ran and did not run.
 ```
 
-## 1. Live-model pass (only when an Anthropic API key is available)
+## 1a. Local-model pass (no API key needed)
 ```text
-With ANTHROPIC_API_KEY set: run the example agent in the Studio test console; run the
-shipped scenarios in live mode (python -m northcx.simulation); try an agent draft, a journey
-draft, a plain-language analytics question and the judge. Record every difference from the
-scripted results in docs/10-releases/NorthCX_Release-Checklist.md and fix or document
-each. Do not tick checklist items without evidence.
+Follow docs/09-models/NorthCX_Local-Models-Guide.md. Start a local model server (for example
+Ollama) with a tool-calling model, write a providers file with where: local, and start NorthCX
+with NORTHCX_PROVIDERS_FILE set and NORTHCX_DEMO unset. Run the example agent in the Studio test
+console (order status, a refund over the limit that must wait for approval, a request for a
+person). Then run the shipped scenarios live through the server (POST /v1/simulations/runs, mode
+live, model local:<model>) and record a qualification. Write down every difference from the
+scripted results and every step of the guide that was wrong, and correct the guide. Do not mark
+the cloud-model pass as done.
+```
+
+## 1b. Cloud-model pass (only when keys are available)
+```text
+With a cloud provider in the providers file (for example ANTHROPIC_API_KEY for Claude, or another
+OpenAI-compatible service): repeat 1a on the cloud model; try an agent draft, a journey draft, a
+plain-language analytics question and the judge; calibrate the judge on a strong model. Record
+differences in docs/10-releases/NorthCX_Release-Checklist.md and fix or document each. Do not tick
+checklist items without evidence.
 ```
 
 ## 2a. Tool gateway

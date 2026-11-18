@@ -1,6 +1,6 @@
 # NorthCX Documentation
 
-NorthCX is an open-source, self-hosted platform for supervised customer-experience agents, built on the Claude API. Every document starts with one line: **Status** (Built, Partly built, Designed, Plan, Reference or Archive), **Updated** and **Master for** (what it is the source of truth for).
+NorthCX is an open-source, self-hosted platform for supervised customer-experience agents that run local and cloud models side by side (decision 198). Every document starts with one line: **Status** (Built, Partly built, Designed, Plan, Reference or Archive), **Updated** and **Master for** (what it is the source of truth for).
 
 The documents are organised by **platform area**. Each area folder starts with a one-page overview (`NorthCX_<Area>-Overview.md`): what the area covers, what is built, the gaps, and links to every document in it.
 
@@ -67,7 +67,7 @@ The documents are organised by **platform area**. Each area folder starts with a
 | Folder | Documents |
 |---|---|
 | `00-platform/` | Product-Definition, Product-Overview (snapshot), PRD, Personas, Success-Metrics, Pricing-Model (blocked on D1), Competitive-Analysis, Agent-Platform-Design, System-Architecture, Agent-Runtime |
-| `00-reference/` | Reference, North-Gap-Analysis, Feature-Research-2026-11, Reference-Sources, Agent-Platform-Research, Competitor-Landscape. The only folder where other companies' products are named. |
+| `00-reference/` | Reference, North-Gap-Analysis, Feature-Research-2026-11, Reference-Sources, Agent-Platform-Research, Competitor-Landscape, Agent-UI-References. The only folder where other companies' products are named. |
 | `01-chat/` | Chat-Overview, Channels-and-Voice, Voice (bridge protocol), Client-SDK, Handoff-and-Approvals-Spec |
 | `02-studio/` | Studio-Overview, Studio, Admin-Platform-Design, Agent-Hub-Design, Platform-Features-and-Tabs, UI-UX-Design-Proposal (the approved glass look: colour, surfaces, type, layout, motion, navigation modes, tab icons), Design-System, Templates; `mockups/` holds the HTML sources of the screens in `assets/design/` |
 | `03-automations/` | Automations-Overview, Automations-Spec |
@@ -76,7 +76,7 @@ The documents are organised by **platform area**. Each area folder starts with a
 | `06-testing-evaluation/` | Testing-Overview, Simulation-and-Evals, Testing-Strategy |
 | `07-observability/` | Observability-Overview, Observability, Reliability-and-Cost |
 | `08-governance-safety/` | Governance-Overview, Guardrails-and-Supervisors, Data-Flow, Tenancy-ADR, Code-Reuse-Policy, Threat-Model, Security-and-Compliance, Security-Review, Tenant-Isolation-Threat-Model, Penetration-Test-Brief, Licenses |
-| `09-models/` | Models-Overview, Model-Providers, Hybrid-Model-Selection |
+| `09-models/` | Models-Overview, Model-Providers, Hybrid-Model-Selection, Local-Models-Guide |
 | `10-releases/` | Releases-Overview, Release-Management, Release-Checklist |
 | `11-operations/` | Operations-Overview, Deployment-Guide, Owner-Runbooks, Performance, Database-Schema, Repo-Structure |
 | `12-project/` | Project-Status, Roadmap, Implementation-Plan, Gap-Closure-Plan, Feature-Catalog, Feature-Spec, User-Stories, User-Journey, Non-Functional-Requirements, Tech-Stack-Decisions, Build-vs-Adopt, Decision-Log, Glossary, Docs-Completion-Checklist, Session-Prompts, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |

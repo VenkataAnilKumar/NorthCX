@@ -26,3 +26,5 @@ Where these are planned in NorthCX: `../00-platform/NorthCX_Agent-Platform-Desig
 - Individual decisions are hard to understand in real time (reported for Decagon).
 - Limited control over simulations (reported for Intercom Fin).
 - Long deployments for the contact-centre platforms (one competitor's estimate: three to six months for Cognigy and Kore.ai).
+
+Their interfaces, with open-source ones beside them, are compared screen by screen in `NorthCX_Agent-UI-References.md`.
