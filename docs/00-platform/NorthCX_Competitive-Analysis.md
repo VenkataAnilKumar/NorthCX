@@ -1,6 +1,6 @@
 # NorthCX Competitive Analysis
 
-Status: **Reference**. Updated: 2026-11-09. Master for: market position (named comparisons are in 00-reference). Named competitors and sourced comparisons are in `00-reference/NorthCX_Reference.md` (sections 1, 2, 7, 9). Ratings below are hypotheses.
+Status: **Reference**. Updated: 2026-11-18. Master for: market position (named comparisons are in 00-reference). Named competitors and sourced comparisons are in `00-reference/NorthCX_Reference.md` (sections 1, 2, 7, 9). Ratings below are hypotheses.
 
 ## 1. Market map
 | Segment | What they offer | Strength | Weakness vs NorthCX goals |
@@ -64,3 +64,17 @@ For companies that want customer-service agents that act, NorthCX is the open-so
 
 ## 8. To verify
 All competitor facts through primary sources once reachable. The NorthCX column says what is built; nothing in it has been measured against a competitor, and no customer evidence exists yet.
+
+## 9. Overcoming the loss scenarios (2026-11-18)
+How each "we lose when" case in section 4 is answered. Build items point at the priorities in `NorthCX_Agent-Platform-Design.md` (section 13); go-to-market items are proposals for the owner. Named competitors for each case are in `../00-reference/NorthCX_Competitor-Landscape.md`.
+
+| We lose when | Answer now | Answer later | Proof that it worked |
+|---|---|---|---|
+| The buyer wants a fully managed service today | Make self-hosting feel managed: one-command install with a setup wizard, tested upgrades, backup and restore, a health page (operator experience) | A dedicated single-company instance run by the project or by certified partners (needs D1); multi-tenant cloud only after the penetration test | Time from clone to a running agent; an upgrade between two releases with no manual step |
+| The buyer is committed to one helpdesk's built-in AI | Native connectors to that helpdesk (the tool gateway and first connectors), and **shadow mode** as the way in: NorthCX drafts beside the current setup and a person compares, with nothing replaced | Publish a side-by-side test of the same scenarios; cost per conversation against per-resolution pricing | Shadow-mode agreement rate; cost per conversation from the existing cost figures |
+| There is no engineering capacity | Guided Studio for non-engineers; two or three ready-made agents for the target market (order status, refunds, returns, subscription changes) with passing tests | Split the work: an operator (engineer or partner) sets up once, the CX team owns everything after | The usability gate: a CX lead releases a template agent unaided |
+| The buyer needs packaged speech and telephony | Do not build it yet; publish a documented, tested reference setup for one telephony provider on the existing bridge protocol ("bring your own phone system") | An open-source voice framework if pilots keep asking | Pilot requests for voice |
+| No production evidence exists (applies to every deal) | The live-model pass; an independent penetration test; a firm resolution figure | One design-partner pilot in the target market: shadow mode, then a staged rollout, measured honestly | A published case study with its denominators |
+
+Order: proof first (live-model pass, penetration test), then connectors and shadow mode, then guided Studio and ready-made agents, then operator experience, then D1 and a managed offering, then a voice reference setup.
+

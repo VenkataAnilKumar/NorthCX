@@ -67,7 +67,7 @@ The documents are organised by **platform area**. Each area folder starts with a
 | Folder | Documents |
 |---|---|
 | `00-platform/` | Product-Definition, Product-Overview (snapshot), PRD, Personas, Success-Metrics, Pricing-Model (blocked on D1), Competitive-Analysis, Agent-Platform-Design, System-Architecture, Agent-Runtime |
-| `00-reference/` | Reference, North-Gap-Analysis, Feature-Research-2026-11, Reference-Sources, Agent-Platform-Research. The only folder where other companies' products are named. |
+| `00-reference/` | Reference, North-Gap-Analysis, Feature-Research-2026-11, Reference-Sources, Agent-Platform-Research, Competitor-Landscape. The only folder where other companies' products are named. |
 | `01-chat/` | Chat-Overview, Channels-and-Voice, Voice (bridge protocol), Client-SDK, Handoff-and-Approvals-Spec |
 | `02-studio/` | Studio-Overview, Studio, Admin-Platform-Design, Agent-Hub-Design, Platform-Features-and-Tabs, UI-UX-Design-Proposal (the approved glass look: colour, surfaces, type, layout, motion, navigation modes, tab icons), Design-System, Templates; `mockups/` holds the HTML sources of the screens in `assets/design/` |
 | `03-automations/` | Automations-Overview, Automations-Spec |
