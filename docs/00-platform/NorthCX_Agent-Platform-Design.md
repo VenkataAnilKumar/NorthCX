@@ -17,56 +17,53 @@ Two roles result, and the design keeps them apart: the **operator** (platform en
 
 ## 2. What the research found
 
-Verification: **repo** means read in this repository; **vendor/search** means a vendor page or a search summary (directional only); **not verified** means background knowledge.
+The named research (protocols, reference projects, commercial products, with how far each fact was verified) is in `../00-reference/NorthCX_Agent-Platform-Research.md`. The conclusions that shape this design:
 
-| Topic | Finding | Source quality |
+| Topic | Conclusion | Verified how |
 |---|---|---|
-| MCP | Spec revision 2026-07-28 is final. It is stateless (no initialize handshake or session header, so any server instance can serve a request), hardens authorization (issuer validation), and formalises extensions (Tasks, MCP Apps). Tool annotations and elicitation were not confirmed. | search of MCP blog and spec pages |
-| AG-UI | Typed event stream. Human approval is an **interrupt**: the run ends with `RUN_FINISHED` carrying an `interrupt` outcome (id, reason, message; reason `tool_call` references a prior tool call), and the client starts a new run with a `resume` array answering every open interrupt. | search of AG-UI docs |
-| assistant-ui | MIT React chat library with tool UI and inline approvals; works with AG-UI and custom data-stream backends. Its own AG-UI runtime docs could not be reached. | GitHub page |
-| Activepieces | Integrations ("pieces") are TypeScript packages with one auth definition, actions and triggers; action and trigger names are permanent because flows store them. Embedding and multi-tenant details were not confirmed. | docs via search |
-| Durable approvals | Temporal models a wait for approval as a signal with a timeout, with no compute used while waiting. Limits: deterministic workflow code, and a history cap of 51,200 events or 50 MB. | Temporal docs via search |
-| Competitors | Sierra Journeys and Decagon AOPs are natural-language procedures compiled to structured logic, with generation from existing procedures or transcripts; Intercom replaced Tasks with Procedures (March 2026), keeps Workflows for linear canvas flows, and simulates procedures on past conversations. | vendor pages, unverified |
+| Model Context Protocol (MCP) | The 2026-07-28 revision is final and stateless (any server instance can answer a request), hardens authorization and formalises extensions. Tool annotations and elicitation are not yet confirmed. | Search of the protocol's own blog and specification pages |
+| AG-UI (agent-to-UI event protocol) | Typed run events; human approval is an interrupt that ends a run, and a new run carries the answer. | Search of the protocol's documentation; to be re-checked against the specification before building |
+| Chat UI library (assistant-ui) | Tool cards and inline approvals; works with AG-UI and custom backends. Its AG-UI runtime documentation could not be reached. | Project page |
+| Integration library (Activepieces) | An integration bundles one authentication definition with actions and triggers; action and trigger names are permanent. Embedding not confirmed. | Documentation via search |
+| Durable approvals | A wait for approval is a signal with a timeout and uses no compute while waiting; workflow engines that replay history impose determinism and history limits. | Documentation via search |
+| Leading CX agent platforms | Authors write plain-language procedures that compile to structured logic, generate them from existing procedures or transcripts, and simulate them on past conversations before launch; linear canvas flows are kept separate from reasoning procedures. | Vendor material, unverified |
 
-## 2a. Lessons taken from the reference projects
+## 2a. Lessons adopted
 
-The projects below were read for ideas only (GitHub pages and search summaries; no code was read or copied). Each lesson names the design decision it changed. "Inferred" means the lesson is my reading of a feature list, not something confirmed in code.
+Each lesson came from reading other projects and products (named in the research note) for ideas only; no code was read into this repository or copied.
 
-| Reference | Lesson | Decision it changes |
-|---|---|---|
-| **Sim** (workflow builder; Next.js, Zustand, TanStack Query, React Flow; 280+ integrations with triggers and actions) | An integration is a bundle of **actions and triggers**, browsed in one catalogue next to the canvas | The connection catalogue (section 5) lists triggers as well as tools; Automations and Studio both read it |
-| **Hermes Agent** (one gateway process for many messaging platforms; session search with FTS5 plus summaries; cron with delivery to chat; skills improved from use) | Channels, scheduled jobs and memory share one gateway and one session model | Chat sessions stay channel-neutral (section 6); scheduled results are delivered only to staff destinations the administrator set up, never to customers (NorthCX's existing `notify` rule); skills-from-use is a Studio suggestion that goes through the normal draft, test and release path, never self-applied |
-| **LobeHub** (agent config bundles role, model, skills, connectors, memory; team modes sequential, parallel, debate; reviewable editable memory; resource library) | Agent setup is one screen; memory should be visible and editable by a person | Studio's agent inspector shows model, tools from the catalogue, knowledge and memory settings together; memory view with delete stays a requirement. Team modes are **not** adopted (specialist routing already exists and supervision is simpler) |
-| **LibreChat** (branching, edit and resubmit, file chat, artifacts, MCP) | Staff need to re-run a conversation from an earlier turn with a changed message | Studio test console and Pilot get edit-and-rerun from a turn (staff surfaces only; customer conversations are never edited) |
-| **Agno AgentOS** (runtime exposed as an API with 50+ endpoints, SSE and websockets, JWT RBAC, OpenTelemetry) | Treat the runtime as a documented API product, not an internal detail | Agent API section 4: publish the contract (OpenAPI is already generated) and version it; every UI uses only it |
-| **OpenGeni** (durable, replayable sessions; approvals; Postgres event history and audit; managed sandboxes) | Sessions should be observable, interruptible and replayable from stored events | Add **session replay** from stored trace events to Studio (also useful for simulation regression); confirms the approval and audit model |
-| **Onyx** (40 to 50+ connectors; permission-aware search is paid) | Connector breadth is a buying criterion, and per-user permissions are the hard part | Integrations roadmap ranks connectors by the first customers' systems; the gateway carries the **acting identity** so a staff tool call runs with that person's rights (the `Tool.audience` and `permission` fields already model this) |
-| **Cognee** (graph plus vector memory; REST, MCP, SDK) | Memory can improve by relationships, not only recall | Memory backend stays behind `MemoryStore`; trial Cognee as one implementation, not a dependency of the four modules |
-| **Agenta** (prompt versions, side-by-side comparison, LLM-as-judge, OTel traces) | Compare two versions on the same cases before release | Studio release view adds a side-by-side of the live and candidate versions on the same scenarios (the improvement loop already runs both; surface it) |
-| **Jan** (OpenAI-compatible local server on localhost; extensions) | A local model is just another OpenAI-compatible endpoint | No new work: the existing OpenAI-compatible provider is the path; document how to point it at a local server |
-| **Intercom Fin, Sierra, Decagon** (procedures compiled to structured logic; simulate on past conversations) | Authors write plain-language procedures; the platform enforces them | Studio procedure-first authoring and simulation from past conversations (section 7) |
-| **Macro, Busabase, Rerun, Eigent, Orkas, holaOS, Kuse** (inferred: shared workspaces for people and agents, desktop agent teams) | Mostly employee-side or developer-side products | Informs the later Workspace, not these four modules |
+| Lesson | Decision it changes |
+|---|---|
+| An integration is a bundle of **actions and triggers**, browsed in one catalogue | The connection catalogue (section 5) lists triggers as well as tools; Automations and Studio both read it |
+| Channels, scheduled jobs and memory share one gateway and one session model | Chat sessions stay channel-neutral (section 6); scheduled results go only to staff destinations the administrator set up, never to customers (the existing `notify` rule); learning skills from use is a Studio suggestion that goes through draft, test and release, never self-applied |
+| Agent setup is one screen; memory is visible and editable by a person | Studio's agent inspector shows model, tools from the catalogue, knowledge and memory together; a memory view with delete stays a requirement |
+| Staff need to re-run a conversation from an earlier turn with a changed message | Studio test console and Pilot get edit-and-rerun from a turn (staff surfaces only; customer conversations are never edited) |
+| The runtime is a documented API product, not an internal detail | The Agent API (section 4) publishes and versions its contract (OpenAPI is already generated); every UI uses only it |
+| Sessions are observable, interruptible and replayable from stored events | Studio gets **session replay** from stored trace events (also useful for simulation regression) |
+| Connector breadth is a buying criterion, and per-user permissions are the hard part | Connectors are ranked by the first customers' systems; the gateway carries the **acting identity** so a staff tool call runs with that person's rights (`Tool.audience` and `permission` already model this) |
+| Memory can improve through relationships, not only recall | The memory backend stays behind `MemoryStore`; a graph-based store can be trialled as one implementation |
+| Compare two versions on the same cases before release | The release view shows the live and candidate versions side by side on the same scenarios (the improvement loop already runs both) |
+| A local model is just another OpenAI-compatible endpoint | No new work: document how to point the existing OpenAI-compatible provider at a local server |
+| Authors write plain-language procedures; the platform enforces them | Procedure-first authoring and simulation from past conversations (section 7) |
 
-What was **not** adopted, and why: autonomous general-purpose agent behaviour (Hermes, Suna, Eigent) conflicts with the supervised, permission-bound model; team and debate modes add behaviour that is hard to test and approve; copying any project's code (the project policy records that nothing is copied).
+Not adopted: autonomous, general-purpose agent behaviour (it conflicts with the supervised, permission-bound model); team and debate modes between agents (hard to test and approve); copying any project's code.
 
-## 2b. Product reference model: Fin, Sierra and Decagon
+## 2b. Gaps against market practice
 
-NorthCX is positioned as the self-hosted, inspectable counterpart of Intercom Fin, Sierra and Decagon. All three run the same loop: **teach** (plain-language procedures), **test** (simulations before launch), **deploy** (every channel), **monitor and improve** (insights, always-on quality checks, suggestions). Facts come from vendor pages and third-party reviews and are directional.
+NorthCX is positioned as the self-hosted, inspectable alternative to closed, managed CX agent platforms. Those platforms run one loop: **teach** (plain-language procedures), **test** (simulations before launch), **deploy** (every channel), **monitor and improve** (insights, always-on quality checks, suggestions). The NorthCX column was checked in this repository; the market column is directional (named in the research note).
 
-Gaps found against NorthCX (the repo column was checked in this repository):
-
-| Gap | Reference behaviour | NorthCX today (repo) | Where it is designed |
+| Gap | Market practice | NorthCX today (repo) | Where it is designed |
 |---|---|---|---|
-| Native connectors to systems of record | All three integrate natively with helpdesks and CRMs | YAML connectors, a Chatwoot adapter, no MCP yet | Section 5 |
-| Guided authoring for non-engineers | Procedures and Journeys written in plain language, generated from existing material | Drafts from procedures and recordings exist; no guided path | Section 7 |
-| Plain-language quality criteria | Decagon Watchtower checks live conversations against criteria written in plain language | Quality rubric is a list of deterministic checks (`qa.py`); a model verdict is on request only | Section 7 (author-written criteria that run as model-judged checks, with the deterministic rubric kept as the baseline) |
-| Segment-aware guidance | Fin Guidance sets tone and rules by segment or product line | Brand voice, forbidden phrases and per-channel styles | Section 7 (guidance sets attached to segments) |
-| Scheduled and CI simulations with alerts | Decagon runs simulations on a schedule or in CI and alerts | Scenarios run in CI as a build gate (`ci.yml`); no scheduled production runs found in the simulation, regression or monitor code | Section 8: a scheduled routine that runs the live agent's scenarios and notifies a destination |
-| Proactive suggestions | Fin Suggestions, Sierra monitors | "Improve this agent" on request | Section 7 (surface findings as a feed; changes still go through draft, test, release) |
-| Voice | Native voice in all three | Conversation side built; speech and telephony are an operator bridge | Out of scope for the four modules; decide separately |
-| Outcome pricing | Per outcome or resolution | Not built | Blocked on D1 |
+| Native connectors to systems of record | Native helpdesk and CRM integrations | YAML connectors, a helpdesk inbox adapter, no MCP yet | Section 5 |
+| Guided authoring for non-engineers | Procedures written in plain language, generated from existing material | Drafts from procedures and recordings exist; no guided path | Section 7 |
+| Plain-language quality criteria | Live conversations checked against criteria written in plain language | Quality rubric of deterministic checks (`qa.py`); a model verdict on request only | Section 7 (author-written criteria run as model-judged checks; the deterministic rubric stays the baseline) |
+| Segment-aware guidance | Tone and rules set per segment or product line | Brand voice, forbidden phrases and per-channel styles | Section 7 (guidance sets attached to segments) |
+| Scheduled and CI simulations with alerts | Simulations on a schedule or in CI, with alerting | Scenarios run in CI as a build gate (`ci.yml`); no scheduled production runs found | Section 8 (a scheduled routine that runs the live agent's scenarios and notifies a destination) |
+| Proactive suggestions | A feed of suggested changes and monitors | "Improve this agent" on request | Section 7 (findings as a feed; changes still go through draft, test, release) |
+| Voice | Native voice | Conversation side built; speech and telephony are an operator bridge | Out of scope for the four modules; decide separately |
+| Outcome pricing | Priced per outcome or resolution | Not built | Blocked on D1 |
 
-Where NorthCX should not copy them: managed per-outcome SaaS (self-hosted first), closed workflows (inspectability is the edge), and opaque decisions (reviewers of those products report difficulty understanding individual decisions in real time, which NorthCX's traces and audit log are meant to answer).
+Where NorthCX should not follow: managed per-outcome software as a service (self-hosted first), closed workflows (inspectability is the edge), and opaque decisions (reviewers report difficulty understanding individual decisions in such products, which NorthCX's traces and audit log are meant to answer).
 
 ## 3. Where the repo is today (anchors)
 
@@ -115,7 +112,7 @@ Two new pieces, everything else exists:
 - **Network safety** copies the connector rules: operator allowlist of hosts or server URLs (the MCP equivalent of `NORTHCX_CONNECTOR_HOSTS`), HTTPS only, no redirects, timeouts, response size caps, per-call and per-tenant rate limits. MCP tool results are untrusted data and pass through the existing tool-output screening before the model reads them.
 - **MCP transport.** Target the stateless 2026-07-28 revision (fits multiple server replicas), keep a compatibility path for servers on the earlier revision, and use the official MCP Python SDK behind a thin interface (decision D7).
 - **NorthCX as an MCP server** (later): expose read-only tools (conversation search, approvals queue, analytics) with scoped keys; write tools off by default.
-- **Catalogue** in Studio: connection list, test-call button, tool list with effect and approval settings, usage and failures. Each connection lists its **triggers** (events it can start routines from) next to its tools, so Studio and Automations share one catalogue (lesson from Sim).
+- **Catalogue** in Studio: connection list, test-call button, tool list with effect and approval settings, usage and failures. Each connection lists its **triggers** (events it can start routines from) next to its tools, so Studio and Automations share one catalogue.
 - **Acting identity**: a tool call carries who it acts for, so a staff tool runs with that person's rights and never more (see `Tool.audience` and `permission`).
 
 **Self-hosted operation (decision 1).**
@@ -168,7 +165,7 @@ Two new pieces, everything else exists:
 - **One canonical definition**: the agent spec (YAML) stays the source of truth. The UI edits it through the server, and a **round-trip test** over generated definitions proves the graph view and the YAML always agree. This is the same technique already used for the Automations canvas.
 - **Graph editor** on React Flow for journeys: step nodes, branch edges, a node inspector, keyboard operation, accessibility parity with the form view. The current journey form editor remains as the list view.
 - **Connector picker**: tools are chosen from the gateway catalogue, with effect and approval shown, instead of typed names.
-- **Procedure-first authoring** (the Sierra and Decagon pattern): write steps in plain language, compile to the structured journey deterministically, and generate from existing procedures or transcripts (already built: drafts from procedures and recordings).
+- **Procedure-first authoring** (the pattern of leading CX agent platforms; see section 2): write steps in plain language, compile to the structured journey deterministically, and generate from existing procedures or transcripts (already built: drafts from procedures and recordings).
 - **Run panel**: run a scenario or a live test on the canvas with the trace overlaid on nodes.
 - **Release path unchanged**: immutable versions, scenarios and attack suites, gate, staged rollout, rollback; add an **agent catalogue with publish approval** (two-person rule, as for policies).
 - **Improvement loop** stays: it proposes a draft version and never releases. Surface its live-versus-candidate comparison as a side-by-side view on the same scenarios in the release screen.

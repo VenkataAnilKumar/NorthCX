@@ -1,6 +1,6 @@
 # NorthCX Product Definition
 
-Status: **Partly built**. Updated: 2026-11-09. Master for: vision, problem, pillars, market and scope. Companion documents: PRD, Personas, Success-Metrics, Feature-Catalog.
+Status: **Partly built**. Updated: 2026-11-18. Master for: vision, problem, pillars, market and scope. Companion documents: PRD, Personas, Success-Metrics, Feature-Catalog.
 
 ## 1. Vision
 Every company can offer customers an agent that resolves issues end to end, safely, in any channel, on infrastructure the company controls.
@@ -19,7 +19,7 @@ The product is one platform with two jobs: customer-facing agents that resolve i
 - **Workspace** for support staff, team leads and reviewers. Six left items: Home, Pilot, Work (Inbox, Approvals, Customers), Assist (Assistants, Search, Library), Create (Outputs, Spaces, Automations) and Team (Quality, Performance; leads and reviewers only). The **Pilot** is where a person gives an assistant a task: it asks clarifying questions, writes a plan for approval, then works in the background, on the company's own data only in the first release.
 - **Settings and Admin** (the Studio, extended) for administrators, release managers, developers, reviewers and auditors: six left items (Overview, Operate, Build, Govern, Platform, Personal) holding 25 organization pages and 10 personal pages as sub-tabs, an **Agent Hub** (a catalog of agents and assistants; installing never makes one live), a **Builder** assistant, and personal settings with **personal intelligence** (instructions, persona, memory, skills; organization rules always outrank personal ones).
 - **Hybrid model selection:** local, private and public models chosen by privacy limits, qualification, rules and cost; a fallback never crosses a forbidden tier.
-Details: `../02-studio/NorthCX_Platform-Features-and-Tabs.md`. Everything in this section except the customer channels and the 1.0 Studio pages is designed, not built; early, unfinished code for the two web apps is on `main`.
+Details: `../02-studio/NorthCX_Platform-Features-and-Tabs.md`. Built since this section was written (see `../../CHANGELOG.md` and the root `README.md`): the Workspace tabs Inbox, Approvals, Customers, Pilot (Quick, Research, Think and Do), Assistants, Search, Library, Outputs, Spaces, Automations, Quality and Performance, and the Admin pages listed in the README. Hybrid model selection is partly built. The build direction from 2026-11-18 is `NorthCX_Agent-Platform-Design.md`.
 
 ## 4. Product pillars
 | Pillar | Promise | Key features (catalog IDs) |

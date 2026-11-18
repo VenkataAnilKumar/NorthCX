@@ -1,6 +1,6 @@
 # NorthCX Feature Catalog
 
-Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every feature with its ID and state. The complete list of NorthCX features. Priority: P0 must, P1 should, P2 could. Phase numbers follow `99-archive/NorthCX_Implementation-Phases.md` (the 1.0 phases, finished). State: Built, Planned, or Planned (designed) for section 12.
+Status: **Partly built**. Updated: 2026-11-18. Master for: the list of every feature with its ID and state. The complete list of NorthCX features. Priority: P0 must, P1 should, P2 could. Phase numbers follow `99-archive/NorthCX_Implementation-Phases.md` (the 1.0 phases, finished). State: Built, Planned, or Planned (designed) for section 12.
 
 ## 1. Agent definition and authoring
 | ID | Feature | Pri | Phase | State |
@@ -155,11 +155,13 @@ Status: **Partly built**. Updated: 2026-11-09. Master for: the list of every fea
 ## Counts
 106 features in sections 1 to 11 (the 1.0 set): 103 built, Q3 partly built (the judge is not yet calibrated with a real model), P10 multi-tenancy and P11 metering planned (after 1.0, E2 and E10). Section 12 lists 77 further features for after 1.0, all designed and none built. Counted on 2026-11-09.
 
+**Correction (2026-11-18).** The section 12 states are out of date: since 2026-11-09 the changelog and the root README record most of the Workspace as built (Inbox, Approvals, Customers, Pilot, Assistants, Search, Library, Outputs, Spaces, Automations, Quality, Performance), the tenancy preview, per-tenant model providers and the improvement loop. The rows below have not yet been re-checked one by one, so the count of built section 12 features is not given here; until they are, use `../../CHANGELOG.md` for what is built.
+
 ## Traceability
 Product requirements FR1-FR34 (the 1.0 set) in the PRD list the catalog IDs they cover in their "Catalog" column; FR35-FR41 cover section 12. Every P0 and P1 feature maps to at least one requirement.
 
 ## 12. Staff platform (designed 2026-11-09, planned after 1.0)
-None of these is built (early, unfinished web code exists on `main` for parts of W and AD). First Workspace release (decision 162): W1 Home, W2 Inbox, W3 Approvals, W5 Pilot, W6 Assistants, W7 Search, W8 Library and W14; W4 Customers is second release. Requirements: `../13-workspace/NorthCX_Workspace-Spec.md`, `../13-workspace/NorthCX_Pilot-Spec.md`, `../13-workspace/NorthCX_Personal-Intelligence-Spec.md`, `../03-automations/NorthCX_Automations-Spec.md`, `../02-studio/NorthCX_Agent-Hub-Design.md`, `../09-models/NorthCX_Hybrid-Model-Selection.md`. Product requirements FR35 to FR41 cover them.
+States in this section date from 2026-11-09 and are out of date (see the correction under Counts); much of W is built. First Workspace release (decision 162): W1 Home, W2 Inbox, W3 Approvals, W5 Pilot, W6 Assistants, W7 Search, W8 Library and W14; W4 Customers is second release. Requirements: `../13-workspace/NorthCX_Workspace-Spec.md`, `../13-workspace/NorthCX_Pilot-Spec.md`, `../13-workspace/NorthCX_Personal-Intelligence-Spec.md`, `../03-automations/NorthCX_Automations-Spec.md`, `../02-studio/NorthCX_Agent-Hub-Design.md`, `../09-models/NorthCX_Hybrid-Model-Selection.md`. Product requirements FR35 to FR41 cover them.
 
 ### Workspace app
 | ID | Feature | Pri | Phase | State |
