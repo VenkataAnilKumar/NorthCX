@@ -82,20 +82,42 @@ class ApprovalFlow:
         except ValidationError as e:
             return await done(False, {"error": f"input is no longer valid: {e.error_count()} problem(s)"})
         trace = Trace(agent.id, claimed.session_id)
+        facts, channel = await self._turn_context(claimed)
         blocked = await self.rt._check(agent, "tool", (claimed.tool, claimed.input), claimed.session_id,
                                        await self.rt.store.load_messages(claimed.session_id), trace,
-                                       {"customer_id": claimed.customer_id,
-                                        "facts": await self.rt.store.get_facts(claimed.customer_id) if claimed.customer_id else {}})
+                                       {"customer_id": claimed.customer_id, "facts": facts, "channel": channel})
         if blocked:
             return await done(False, {"error": f"blocked by policy: {blocked}"})
         try:
             out, simulated = await self.rt.execute_tool(tool, data, ToolContext(
                 claimed.session_id, claimed.customer_id, self.rt.store, idempotency_key=claimed.id,
-                dry_run=self.rt.dry_run, secrets=self.rt.secrets))
+                dry_run=self.rt.dry_run, secrets=self.rt.secrets, facts=dict(facts)))
         except Exception as e:
             return await done(False, {"error": self.rt.secrets.redact_text(str(e))})
         result = {"result": self.rt.secrets.redact(json.loads(json.dumps(out, default=str)))}
         return await done(True, {**result, "dry_run": True} if simulated else result)
+
+    async def _turn_context(self, a: Approval) -> tuple[dict[str, str], str | None]:
+        """What the re-check needs to judge the call the way the runtime judged it: the customer's facts worked out the same way
+        (stored facts, then the company's systems, a stored `identity_verified` ignored and replaced by the platform's own check,
+        as it stands now), and the channel of the turn that asked for the action (from that turn's trace)."""
+        facts: dict[str, str] = dict(await self.rt.store.get_facts(a.customer_id)) if a.customer_id else {}
+        if self.rt.context is not None and a.customer_id and not self.rt.dry_run:
+            try:
+                got = await self.rt.context.get(a.customer_id, a.session_id)
+                if got.status not in ("error", "timeout"):
+                    facts.update(got.facts)
+            except Exception:  # without the company's facts a scope that needs them refuses: fail closed
+                pass
+        facts.pop("identity_verified", None)  # only the platform can say a customer is verified
+        if self.rt.verification is not None and a.customer_id and not self.rt.dry_run \
+                and await self.rt.verification.is_verified(a.session_id, a.customer_id):
+            facts["identity_verified"] = "yes"
+        channel = None
+        held = await self.rt.traces.get(a.trace_id) if a.trace_id else None
+        if held is not None:
+            channel = next((e.data.get("channel") for e in held.events if e.type in ("user", "system") and e.data.get("channel")), None)
+        return facts, channel
 
     async def expire_stale(self, agents: Any, ttl_seconds: float, now: float | None = None) -> list[Approval]:
         """Expire approvals pending longer than the TTL and hand each conversation to a person."""

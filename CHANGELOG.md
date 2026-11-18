@@ -10,6 +10,7 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Agent interface references: `docs/00-reference/NorthCX_Agent-UI-References.md` lists commercial and open-source agent interfaces by kind (customer chat, builder studios, general chat apps, agent-in-the-loop, quality and observability) and maps them to NorthCX's screens.
 
 ### Fixed (2026-11-18)
+- Approvals: an approved action was refused at execution when its tool scope limited it to a channel or to verified customers, because the re-check ran without the turn's channel and without the facts the runtime works out live. The re-check and the tool now get the same context (channel from the held turn's trace; facts from the store, the company's systems and the platform's identity check as at execution). Regression tests added, including that a verification that lapsed before approval still blocks.
 - Container images: the Studio and Workspace images each build only their own app (`npm run build -w <app>`). They ran the root build, which builds both apps, but each image holds only one, so `docker compose up --build` (and the CI `stack` job) failed since 2026-11-09.
 
 ### Documentation (restructure by platform area, 2026-11-18)
