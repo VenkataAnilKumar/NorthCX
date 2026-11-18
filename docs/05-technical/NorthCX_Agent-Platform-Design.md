@@ -8,6 +8,13 @@ NorthCX already has a strong customer-agent engine (runtime, guardrails, approva
 
 Principles carried over from the product definition: safe by default (fail closed), actions are explicit (typed tools, approvals, audit), everything is testable, humans stay in the loop, every external dependency sits behind an interface.
 
+## 1a. Decisions from the owner (2026-11-18)
+
+1. **Self-hosted for now.** The first customers run NorthCX on their own infrastructure. A managed cloud is later. Consequences: every module must run from the existing Docker Compose stack with no required cloud service; anything optional (an Activepieces sidecar, a local model) must be genuinely optional; outbound access to external servers (for example a vendor's MCP server) must be an explicit, reviewable network decision for the operator.
+2. **Studio is a CX product for non-engineers.** The primary author is a CX lead or operations person, not a developer. Consequences: plain-language and graph authoring come first, YAML becomes an advanced and export view, errors and checks are written for non-engineers, and nothing a CX author needs may require editing environment variables or files. Engineers keep full code access.
+
+Two roles result, and the design keeps them apart: the **operator** (platform engineer, sets what is allowed: hosts, servers, secrets, models, limits, once) and the **CX author** (builds and releases agents and routines within what the operator allowed).
+
 ## 2. What the research found
 
 Verification: **repo** means read in this repository; **vendor/search** means a vendor page or a search summary (directional only); **not verified** means background knowledge.
@@ -92,6 +99,12 @@ Two new pieces, everything else exists:
 - **Catalogue** in Studio: connection list, test-call button, tool list with effect and approval settings, usage and failures. Each connection lists its **triggers** (events it can start routines from) next to its tools, so Studio and Automations share one catalogue (lesson from Sim).
 - **Acting identity**: a tool call carries who it acts for, so a staff tool runs with that person's rights and never more (see `Tool.audience` and `permission`).
 
+**Self-hosted operation (decision 1).**
+- **Operator versus author.** Hosts, MCP server URLs, secrets and limits are set by the **operator**, in an admin screen with audit (today they are environment variables such as `NORTHCX_CONNECTOR_HOSTS`; keep that path and add the screen). CX authors only pick from approved connections.
+- **Network reality.** A self-hosted deployment may have no outbound internet. The residency report and an admin "network needs" page list every external host a connection reaches, so an operator can open exactly those. Vendor-hosted MCP servers (Zendesk, Stripe) are optional; a connection to a server inside the customer's network works the same way.
+- **No required extra services.** The gateway, MCP client and connectors run inside the existing backend process. An Activepieces sidecar is an optional compose profile, off by default.
+- **Upgrades** must keep stored connections working (migrations, as for the rest of the schema).
+
 **Build versus adopt.** MCP SDK: adopt. YAML connectors: keep. Activepieces: adopt as an optional sidecar for breadth, only through the gateway. First real connectors: vendor-hosted MCP servers (Zendesk, Stripe) where they exist, otherwise YAML. Native vendor connectors need sandbox accounts and cannot be verified here.
 
 **Tests and gates.**
@@ -122,7 +135,15 @@ Two new pieces, everything else exists:
 
 ## 7. Agent Studio module
 
-**Goal.** A team designs, tests and releases an agent without hand-editing YAML, and an engineer can still work in code, with the two always equivalent.
+**Goal.** A CX lead with no engineering help designs, tests and releases an agent, and an engineer can still work in code, with the two always equivalent.
+
+**Non-engineer requirements (decision 2).**
+- **Default path is guided**: start from a template or from pasted procedures or transcripts, then review a plain-language summary of what the agent will do, which tools it may use and what needs approval. YAML is behind an "Advanced" view and an export.
+- **Plain-language checks**: every validation message says what to change in the author's terms (for example "this step uses a tool that can change an order, so it needs an approval rule"), never a schema path.
+- **Safe defaults and guard rails in the UI**: write tools default to needing approval; a release is blocked with a clear checklist (tests passed, reviewer named); the author can always preview and test before anything is live.
+- **Test in place**: type a customer message beside the editor and see the trace as steps in words; one click turns a good or bad conversation into a test.
+- **Choose from what the operator allowed**: the tool and connection pickers show only approved connections; the author cannot add a new host or secret (that is the operator's job, section 5).
+- **Usability gate**: the module is not done until a CX lead who has never seen the product creates, tests and releases a template-based agent in a timed, observed session without help from engineering.
 
 **Design.**
 - **One canonical definition**: the agent spec (YAML) stays the source of truth. The UI edits it through the server, and a **round-trip test** over generated definitions proves the graph view and the YAML always agree. This is the same technique already used for the Automations canvas.
@@ -176,17 +197,20 @@ Two new pieces, everything else exists:
 | 2 | MCP source plus one real connector (Zendesk) behind approvals | Conformance suite passes against it; injection scenarios pass |
 | 3 | Connection catalogue UI in Studio | Add, test and disable a connection without YAML |
 | 4 | AG-UI endpoint and assistant-ui in the Studio console | Same run renders identically over SSE and AG-UI |
-| 5 | Graph editor with round-trip tests | Property tests green; release flow unchanged |
+| 5 | Guided authoring (templates, plain-language summary and checks) then graph editor with round-trip tests | Property tests green; release flow unchanged; non-engineer usability gate passed |
 | 6 | Automations: `tool` step, `branch`, connector triggers | Write-tool-needs-person rule enforced |
 | 7 | MCP server exposure, widget AG-UI subset, more connectors | Scoped read-only tools only |
 
 ## 11. Open decisions
 
-1. How far to rebuild: this plan assumes in-place re-platforming.
-2. D1 (open versus commercial): affects code layout (a separate enterprise directory) and whether Activepieces or other dual-licensed pieces are bought.
+Decided: first customers self-host; Studio is for non-engineers (section 1a).
+
+1. How far to rebuild: this plan assumes in-place re-platforming. Still to confirm.
+2. D1 (open versus commercial): affects code layout (a separate enterprise directory) and whether Activepieces or other dual-licensed pieces are bought. Self-hosting makes the question sharper: what, if anything, is sold to a customer who runs it themselves.
 3. Which connectors first, set by the first customers' systems.
 4. Whether customer-facing surfaces should ever show approvals (this plan says no).
 5. Whether to stay on the earlier MCP revision for a transition period.
+6. Who the first CX author is, so the usability gate in section 7 can be run with a real person.
 
 ## 12. What is not verified
 
