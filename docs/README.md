@@ -41,7 +41,7 @@ NorthCX is an open-source, self-hosted platform for supervised customer-experien
 | `02-market/` | Competitive-Analysis |
 | `03-specs/` | Feature-Catalog, Feature-Spec, Handoff-and-Approvals-Spec, Release-Management, Non-Functional-Requirements, User-Stories, User-Journey, Workspace-Spec, Pilot-Spec, Personal-Intelligence-Spec, Automations-Spec |
 | `04-ai-architecture/` | Agent-Runtime, Guardrails-and-Supervisors, Knowledge-and-Memory, Simulation-and-Evals, Data-Flow, Model-Providers, Hybrid-Model-Selection |
-| `05-technical/` | System-Architecture, Staff-Platform-Architecture, Tech-Stack-Decisions, Build-vs-Adopt, Code-Reuse-Policy, Channels-and-Voice, Voice, Client-SDK, Integrations, API-Design, Database-Schema, Observability, Repo-Structure, Reliability-and-Cost, Knowledge-Design |
+| `05-technical/` | System-Architecture, Staff-Platform-Architecture, Tech-Stack-Decisions, Build-vs-Adopt, Code-Reuse-Policy, Channels-and-Voice, Voice, Client-SDK, Integrations, Agent-Platform-Design, Reference-Sources, API-Design, Database-Schema, Observability, Repo-Structure, Reliability-and-Cost, Knowledge-Design |
 | `06-security/` | Security-and-Compliance, Threat-Model, Security-Review, Licenses |
 | `07-design/` | Platform-Features-and-Tabs, Admin-Platform-Design, Agent-Hub-Design, Design-System, UI-UX-Design-Proposal (the approved glass look: colour, surfaces, type, layout, motion, navigation modes, tab icons), Studio; `mockups/` holds the HTML sources of the screens in `assets/design/` |
 | `08-implementation/` | Implementation-Plan, Gap-Closure-Plan, Roadmap, Project-Status, Release-Checklist, Deployment-Guide, Testing-Strategy, Performance |
