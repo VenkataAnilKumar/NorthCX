@@ -234,3 +234,41 @@ Decided: first customers self-host; Studio is for non-engineers (section 1a).
 ## 12. What is not verified
 
 All competitor and project facts above come from search summaries and vendor pages. Nothing here has been prototyped. Before building, verify: the AG-UI interrupt and resume shape, assistant-ui's AG-UI runtime, MCP tool annotations and the 2026-07-28 authorization changes, and Activepieces embedding.
+
+## 13. Priorities (feature review, 2026-11-18)
+
+A review of all ten platform areas (the four modules plus knowledge and memory, testing and evaluation, observability, governance and safety, the model layer and release management), made against the two decisions in section 1a. It is based on the documents and code read in this repository, not on running the product.
+
+**Overall.** The feature set is broad and careful, but unproven: nothing has run against a live model and no customer has used it. The priority is to stop adding breadth and prove one complete customer journey.
+
+**Checked in the code while reviewing.**
+- There is **no shadow mode** (the agent drafts, a person sends) for live customer conversations. The nearest feature is agent assist (`northcx/assist.py`): suggested replies and next steps for a person who has *taken over* a conversation.
+- A **provisional resolution rate** exists (`northcx/insights.py`): a conversation counts as resolved when its last turn completed, it never reached a person and it stayed quiet for three days. The code notes it can overstate resolution because a customer's return in a new conversation is not detected.
+
+| Area | Verdict | Do next |
+|---|---|---|
+| Chat | Strong channel coverage | No new channels; make web chat, email and hand-off excellent for the first pilot |
+| Agent Studio | Built for engineers today | Highest product priority: the guided path (template, connect, preview, test, release) before the graph editor |
+| Automations | Safe, staff-oriented | Freeze new step kinds until a pilot needs them; build only the scheduled simulation routine with alerts |
+| Integrations | Largest gap | Tool gateway, MCP, and three connectors for the target market in the product definition (e-commerce and subscription): Zendesk, Shopify, Stripe |
+| Knowledge and memory | Mature | Add only a "test my knowledge" check that shows questions the sources cannot answer |
+| Testing and evaluation | A strength | Plain-language quality criteria; calibrate the judge once a key is available |
+| Observability | Honest figures | Make resolution firm: link conversations to a customer so a return within the window counts against it; agree the definition before any outcome pricing |
+| Governance and safety | Ahead of most | Document an OpenID Connect bridge (for example Keycloak or Dex) as the SAML answer; book the penetration test |
+| Model layer | Works; not designed for self-hosted buyers | Keep Claude the default; write a short design for local and private models without promising equal quality |
+| Release management | Excellent | Surface the side-by-side version comparison in Studio only |
+
+**A missing area: operator experience.** For self-hosted customers, install, upgrade, backup and restore, health and logs decide whether they keep running NorthCX. Add a one-command install with a setup wizard, tested upgrades between versions, backup and restore commands, and a health page.
+
+**Freeze or defer.** The Workspace extras (Spaces, Outputs, Library, Performance: keep, add nothing until pilot users ask); the multi-tenancy preview (not needed for one self-hosted company; frozen until the penetration test); hybrid model selection and the later staff-platform features; new channels.
+
+**First-customer journey to build towards.** Install, connect Zendesk and Shopify, choose an order-status-and-refunds template, write procedures in plain words, run simulations, **shadow mode** (new: the agent drafts each reply and a person approves or edits it before it is sent), staged rollout, and insights showing the resolution rate.
+
+**Order.**
+1. Live-model pass when a key is available (everything else depends on it).
+2. Tool gateway, MCP, and the Zendesk, Shopify and Stripe connectors.
+3. Guided Studio for non-engineers, ending with the usability gate; shadow mode.
+4. Operator experience: install, upgrade, backup, health.
+5. Firm resolution figure and plain-language quality criteria.
+
+Prompts for Claude Code sessions that carry out these steps are in `../09-project/NorthCX_Session-Prompts.md`.

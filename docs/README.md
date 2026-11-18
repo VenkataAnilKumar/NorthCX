@@ -45,7 +45,7 @@ NorthCX is an open-source, self-hosted platform for supervised customer-experien
 | `06-security/` | Security-and-Compliance, Threat-Model, Security-Review, Licenses |
 | `07-design/` | Platform-Features-and-Tabs, Admin-Platform-Design, Agent-Hub-Design, Design-System, UI-UX-Design-Proposal (the approved glass look: colour, surfaces, type, layout, motion, navigation modes, tab icons), Studio; `mockups/` holds the HTML sources of the screens in `assets/design/` |
 | `08-implementation/` | Implementation-Plan, Gap-Closure-Plan, Roadmap, Project-Status, Release-Checklist, Deployment-Guide, Testing-Strategy, Performance |
-| `09-project/` | Decision-Log, Glossary, Docs-Completion-Checklist, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |
+| `09-project/` | Decision-Log, Glossary, Docs-Completion-Checklist, Session-Prompts, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |
 | `99-archive/` | Superseded documents, each with a pointer to its replacement: the finished 1.0 phase, sprint and next-features plans, the 1.0 implementation checklist, the capability matrix, the memory design, simulation testing, the Studio UI spec and the Admin design rounds |
 | `api/` | Generated API reference: `openapi.json` and `index.html` (do not edit; run `python scripts/gen_api_reference.py`) |
 
