@@ -12,7 +12,8 @@ COPY apps/studio apps/studio
 COPY packages packages
 ARG NORTHCX_API_URL=http://backend:3000
 ENV NORTHCX_API_URL=$NORTHCX_API_URL NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# Build only this app: the image holds just this app and the shared packages, so the root build (both apps) cannot run here.
+RUN npm run build -w @northcx/studio
 
 FROM node:22-slim
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3001 HOSTNAME=0.0.0.0

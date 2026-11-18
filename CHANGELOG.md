@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Fixed (2026-11-18)
+- Container images: the Studio and Workspace images each build only their own app (`npm run build -w <app>`). They ran the root build, which builds both apps, but each image holds only one, so `docker compose up --build` (and the CI `stack` job) failed since 2026-11-09.
+
 ### Documentation (restructure by platform area, 2026-11-18)
 - Documents reorganised by platform area (decision 197): `docs/00-platform/`, `01-chat/` to `10-releases/`, `11-operations/`, `12-project/`, `13-workspace/`; `00-reference/` and `99-archive/` unchanged in role. Moves only, history kept, every internal and code reference updated; the tests and generators that read documents use the new paths.
 
