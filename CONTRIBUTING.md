@@ -1,6 +1,6 @@
 # Contributing to NorthCX
 
-Thank you for helping. This page is the short version; the long one is [`docs/09-project/NorthCX_Contributing.md`](docs/09-project/NorthCX_Contributing.md).
+Thank you for helping. This page is the short version; the long one is [`docs/12-project/NorthCX_Contributing.md`](docs/12-project/NorthCX_Contributing.md).
 
 ## Set up
 ```bash
@@ -14,8 +14,8 @@ Browser checks: `src/apps/studio/e2e/smoke.mjs`, `src/apps/workspace/e2e/smoke.m
 ## What a good change looks like
 1. **Tests first-class.** Behaviour changes come with tests; a bug fix comes with a test that failed before. A change to what an agent does comes with a scenario in `src/backend/examples/scenarios`. No network in unit tests.
 2. **Docs in the same change.** Update the affected document, the Feature Catalog status, and add a line to the decision log for any decision a reader would otherwise have to guess. Settings must be in `docker-compose.yml`, `.env.example` and the deployment guide (a test enforces it).
-3. **Security by default.** New endpoints need an entry in the route permission table (a test fails otherwise); new outbound calls must not follow redirects; SQL values are always bound; anything a customer can influence is untrusted data. See `docs/06-security/NorthCX_Threat-Model.md`.
-4. **No dependence on other projects' SDKs.** Ordinary infrastructure libraries are fine; reference projects are for reading. Copying code is allowed only under the rules in `docs/05-technical/NorthCX_Code-Reuse-Policy.md` (permissive licence, attribution, an entry in `THIRD_PARTY.md`). External research and product names belong in `docs/00-reference/` only.
+3. **Security by default.** New endpoints need an entry in the route permission table (a test fails otherwise); new outbound calls must not follow redirects; SQL values are always bound; anything a customer can influence is untrusted data. See `docs/08-governance-safety/NorthCX_Threat-Model.md`.
+4. **No dependence on other projects' SDKs.** Ordinary infrastructure libraries are fine; reference projects are for reading. Copying code is allowed only under the rules in `docs/08-governance-safety/NorthCX_Code-Reuse-Policy.md` (permissive licence, attribution, an entry in `THIRD_PARTY.md`). External research and product names belong in `docs/00-reference/` only.
 5. **Small and explained.** Say what changed and why, and what you did not do.
 
 ## Sign your work

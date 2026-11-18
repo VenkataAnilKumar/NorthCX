@@ -9,7 +9,7 @@
 [![Status: release candidate](https://img.shields.io/badge/status-1.0.0--rc.1-f59e0b)](CHANGELOG.md)
 [![Backend: Python 3.12+](https://img.shields.io/badge/backend-Python%203.12%2B-3776ab)](src/backend)
 [![Apps: Next.js](https://img.shields.io/badge/apps-Admin%20%2B%20Workspace-111827)](src/apps)
-[![Self-hosted](https://img.shields.io/badge/deploy-self--hosted-16a34a)](docs/08-implementation/NorthCX_Deployment-Guide.md)
+[![Self-hosted](https://img.shields.io/badge/deploy-self--hosted-16a34a)](docs/11-operations/NorthCX_Deployment-Guide.md)
 
 **[Quick start](#-try-it-in-five-minutes)** · **[What you get](#-what-you-get)** · **[How it works](#-how-it-works)** · **[Safety](#-safety-you-can-explain-to-your-risk-team)** · **[Docs](#-documentation)** · **[Status](#-honest-status)**
 
@@ -145,7 +145,7 @@ flowchart LR
 | *Can we prove what happened?* | Per-run traces, a tamper-evident audit log, release records tied to the exact version, and status events for your own systems |
 | *Can customers be erased?* | Export, erase and retention rules per customer and per conversation, covering every store |
 
-Read the [threat model](docs/06-security/NorthCX_Threat-Model.md) and [security review](docs/06-security/NorthCX_Security-Review.md) for the detail, including what is **not** covered.
+Read the [threat model](docs/08-governance-safety/NorthCX_Threat-Model.md) and [security review](docs/08-governance-safety/NorthCX_Security-Review.md) for the detail, including what is **not** covered.
 
 ## 🚀 Try it in five minutes
 
@@ -212,7 +212,7 @@ cd src/sdk && npm ci && npm test && npm run build
 
 ## 📦 Put it on your website
 
-The browser SDK and a drop-in `<northcx-chat>` widget have no runtime dependencies and stream replies, retry, renew tokens, accept uploads and show teammate replies. Your server mints a short-lived chat token for the signed-in customer, so the agent knows who it is talking to. See the [client SDK guide](docs/05-technical/NorthCX_Client-SDK.md).
+The browser SDK and a drop-in `<northcx-chat>` widget have no runtime dependencies and stream replies, retry, renew tokens, accept uploads and show teammate replies. Your server mints a short-lived chat token for the signed-in customer, so the agent knows who it is talking to. See the [client SDK guide](docs/01-chat/NorthCX_Client-SDK.md).
 
 ## 🧑‍💼 The Workspace: where your staff work
 
@@ -245,7 +245,7 @@ The second app, **Workspace** (port 3002), is for the people who supervise the a
 ## 🏢 Organisations and tenancy
 
 * **Organisation policies and templates** use a two-person rule: one person proposes, a second with the release permission approves; versions are kept and superseding is explicit. Built-in templates are **signed** (Ed25519) and refused if altered.
-* **Multi-tenancy (evaluation preview).** Tenants are isolated by composite keys and Postgres row-level security under an ordinary database role, with a separate platform API listener, per-tenant limits, an encrypted secrets vault and per-tenant model providers. A whole-route sweep test runs two tenants against every route. It is **off by default** and gated behind `NORTHCX_TENANCY_PREVIEW=1` until an outside penetration test is done. See the [threat model](docs/06-security/NorthCX_Tenant-Isolation-Threat-Model.md) and the [penetration-test brief](docs/06-security/NorthCX_Penetration-Test-Brief.md).
+* **Multi-tenancy (evaluation preview).** Tenants are isolated by composite keys and Postgres row-level security under an ordinary database role, with a separate platform API listener, per-tenant limits, an encrypted secrets vault and per-tenant model providers. A whole-route sweep test runs two tenants against every route. It is **off by default** and gated behind `NORTHCX_TENANCY_PREVIEW=1` until an outside penetration test is done. See the [threat model](docs/08-governance-safety/NorthCX_Tenant-Isolation-Threat-Model.md) and the [penetration-test brief](docs/08-governance-safety/NorthCX_Penetration-Test-Brief.md).
 
 ## 📊 Honest status
 
@@ -264,22 +264,22 @@ The second app, **Workspace** (port 3002), is for the people who supervise the a
 | ⚠️ **Not yet done** | An independent penetration test; a pass with a live model (so far everything ran against scripted and offline models); judge calibration with a real model; testing against your identity provider (OpenID Connect is built, **SAML is not**); a human design review of the interfaces |
 | 🧱 **Preview** | Multi-tenant operation is for evaluation only; production use is one company and one region per deployment |
 
-Read the [security review](docs/06-security/NorthCX_Security-Review.md), the [release checklist](docs/08-implementation/NorthCX_Release-Checklist.md) and the [owner runbooks](docs/08-implementation/NorthCX_Owner-Runbooks.md) before exposing it to the public internet.
+Read the [security review](docs/08-governance-safety/NorthCX_Security-Review.md), the [release checklist](docs/10-releases/NorthCX_Release-Checklist.md) and the [owner runbooks](docs/11-operations/NorthCX_Owner-Runbooks.md) before exposing it to the public internet.
 
 ## 📚 Documentation
 
 | You want to | Read |
 |---|---|
-| Deploy it | [Deployment guide](docs/08-implementation/NorthCX_Deployment-Guide.md) (every setting), [Performance](docs/08-implementation/NorthCX_Performance.md) |
-| Write and test agents | [Agent runtime](docs/04-ai-architecture/NorthCX_Agent-Runtime.md), [Guardrails](docs/04-ai-architecture/NorthCX_Guardrails-and-Supervisors.md), [Simulation and evals](docs/04-ai-architecture/NorthCX_Simulation-and-Evals.md), [Studio](docs/07-design/NorthCX_Studio.md) |
-| Connect channels | [Channels and voice](docs/05-technical/NorthCX_Channels-and-Voice.md), [Voice](docs/05-technical/NorthCX_Voice.md), [Client SDK](docs/05-technical/NorthCX_Client-SDK.md) |
-| Connect your systems | [Integrations](docs/05-technical/NorthCX_Integrations.md), [API design](docs/05-technical/NorthCX_API-Design.md) |
-| Manage knowledge | [Knowledge design](docs/05-technical/NorthCX_Knowledge-Design.md) |
-| Measure and monitor | [Observability](docs/05-technical/NorthCX_Observability.md) |
-| Operate it | [Owner runbooks](docs/08-implementation/NorthCX_Owner-Runbooks.md), [Project status](docs/08-implementation/NorthCX_Project-Status.md) |
-| Judge the security | [Threat model](docs/06-security/NorthCX_Threat-Model.md), [Tenant isolation](docs/06-security/NorthCX_Tenant-Isolation-Threat-Model.md), [Security review](docs/06-security/NorthCX_Security-Review.md), [Pen-test brief](docs/06-security/NorthCX_Penetration-Test-Brief.md), [`SECURITY.md`](SECURITY.md) |
-| Understand the staff apps | [Platform features and tabs](docs/07-design/NorthCX_Platform-Features-and-Tabs.md) |
-| See what is built | [Feature catalog](docs/03-specs/NorthCX_Feature-Catalog.md), [Decision log](docs/09-project/NorthCX_Decision-Log.md), [`CHANGELOG.md`](CHANGELOG.md) |
+| Deploy it | [Deployment guide](docs/11-operations/NorthCX_Deployment-Guide.md) (every setting), [Performance](docs/11-operations/NorthCX_Performance.md) |
+| Write and test agents | [Agent runtime](docs/00-platform/NorthCX_Agent-Runtime.md), [Guardrails](docs/08-governance-safety/NorthCX_Guardrails-and-Supervisors.md), [Simulation and evals](docs/06-testing-evaluation/NorthCX_Simulation-and-Evals.md), [Studio](docs/02-studio/NorthCX_Studio.md) |
+| Connect channels | [Channels and voice](docs/01-chat/NorthCX_Channels-and-Voice.md), [Voice](docs/01-chat/NorthCX_Voice.md), [Client SDK](docs/01-chat/NorthCX_Client-SDK.md) |
+| Connect your systems | [Integrations](docs/04-integrations/NorthCX_Integrations.md), [API design](docs/04-integrations/NorthCX_API-Design.md) |
+| Manage knowledge | [Knowledge design](docs/05-knowledge-memory/NorthCX_Knowledge-Design.md) |
+| Measure and monitor | [Observability](docs/07-observability/NorthCX_Observability.md) |
+| Operate it | [Owner runbooks](docs/11-operations/NorthCX_Owner-Runbooks.md), [Project status](docs/12-project/NorthCX_Project-Status.md) |
+| Judge the security | [Threat model](docs/08-governance-safety/NorthCX_Threat-Model.md), [Tenant isolation](docs/08-governance-safety/NorthCX_Tenant-Isolation-Threat-Model.md), [Security review](docs/08-governance-safety/NorthCX_Security-Review.md), [Pen-test brief](docs/08-governance-safety/NorthCX_Penetration-Test-Brief.md), [`SECURITY.md`](SECURITY.md) |
+| Understand the staff apps | [Platform features and tabs](docs/02-studio/NorthCX_Platform-Features-and-Tabs.md) |
+| See what is built | [Feature catalog](docs/12-project/NorthCX_Feature-Catalog.md), [Decision log](docs/12-project/NorthCX_Decision-Log.md), [`CHANGELOG.md`](CHANGELOG.md) |
 | Contribute | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) |
 
 Start at [`docs/README.md`](docs/README.md) for the full map.

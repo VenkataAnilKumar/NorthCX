@@ -12,4 +12,4 @@ The backend (`src/backend`), the Studio web console and its shared packages (`sr
 
 ## What we have done and what we have not
 
-Our threat model, the review we did and its findings are in `docs/06-security/`. No independent penetration test has been done yet.
+Our threat model, the review we did and its findings are in `docs/08-governance-safety/`. No independent penetration test has been done yet.

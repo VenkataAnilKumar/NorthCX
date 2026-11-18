@@ -29,7 +29,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
 
     @app.websocket("/v1/voice/stream")
     async def voice_stream(ws: WebSocket) -> None:
-        """The telephony bridge's connection for one call (JSON messages both ways; see docs/05-technical/NorthCX_Voice.md). Authenticated with a
+        """The telephony bridge's connection for one call (JSON messages both ways; see docs/01-chat/NorthCX_Voice.md). Authenticated with a
         channel key in the Authorization header, because the HTTP key check does not cover WebSockets."""
         if voice is None:
             await ws.close(code=4404)

@@ -1,12 +1,18 @@
 # Changelog
 
-All notable changes. The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [Semantic Versioning](https://semver.org/). Detailed design decisions are numbered in `docs/09-project/NorthCX_Decision-Log.md`.
+All notable changes. The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [Semantic Versioning](https://semver.org/). Detailed design decisions are numbered in `docs/12-project/NorthCX_Decision-Log.md`.
 
 ## [Unreleased]
 
+### Fixed (2026-11-18)
+- Container images: the Studio and Workspace images each build only their own app (`npm run build -w <app>`). They ran the root build, which builds both apps, but each image holds only one, so `docker compose up --build` (and the CI `stack` job) failed since 2026-11-09.
+
+### Documentation (restructure by platform area, 2026-11-18)
+- Documents reorganised by platform area (decision 197): `docs/00-platform/`, `01-chat/` to `10-releases/`, `11-operations/`, `12-project/`, `13-workspace/`; `00-reference/` and `99-archive/` unchanged in role. Moves only, history kept, every internal and code reference updated; the tests and generators that read documents use the new paths.
+
 ### Documentation (staff platform design, 2026-11-09)
 - Designed and documented, not built: the staff Workspace (six left items with sub-tabs), the Pilot, Assistants and the Agent Hub, Builder, Automations, personal intelligence, hybrid model selection, and the regrouped Admin app (25 organization pages, six left items with sub-tabs). New specifications for the Workspace, Pilot, personal intelligence and automations; a staff platform architecture; feature catalog section 12 (77 planned features); requirements FR35 to FR41; personas, stories, journeys, threat model, non-functional requirements, testing and design system updates; 59 mockups; decisions 153 to 171.
-- UI and UX design approved: glass surfaces, one accent colour, a floating six-item rail that can be collapsed to icons or hidden in full window mode, original tab icons, AA contrast rules (`docs/07-design/NorthCX_UI-UX-Design-Proposal.md`, six mockups).
+- UI and UX design approved: glass surfaces, one accent colour, a floating six-item rail that can be collapsed to icons or hidden in full window mode, original tab icons, AA contrast rules (`docs/02-studio/NorthCX_UI-UX-Design-Proposal.md`, six mockups).
 
 ### Added (Admin: Trust and reliability, Organization settings)
 - Admin **Channels** (new `GET /v1/channels`: which channels are on and where each receives messages, never a credential), **Memory** and **Privacy and data** (a person's own assistant notes: view, delete, download; how long outputs and run history are kept) are live. 274 routes.
@@ -87,7 +93,7 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Two-person rule for releases (`NORTHCX_RELEASE_APPROVALS`, `/v1/release-requests`, migration 0036): in the listed environments a publish or promote waits for a different person with the release permission; the release gate is judged at approval; staged rollouts are unavailable there; rollback is never held up.
 - Tenant isolation for all tenant data (migrations 0038 to 0041): knowledge and its meaning-search index, crawling, attachments, email, SMS, voice and verification, versions, releases, rollouts, scenarios, simulation runs, usage and budgets (counted per tenant), groups, SCIM people, idempotency, alerts, findings, exports, qualifications and release requests join the conversation tables. Inbound channel messages are routed by binding (SMS number, WhatsApp number id, Telegram bot, email domain); unbound addresses are ignored once any binding exists. Background jobs run once per tenant. Gates: table coverage, conversation-route API sweep, two-tenant fuzz, migration round trip. Not built: per-tenant configuration and credentials, per-tenant rate limits, the platform API, the load gate.
 - Tenant isolation for conversation data (migration 0038): sessions, messages, facts, memories, traces, approvals, hand-offs, outbox, feedback, tags, reviews, routes and the customer index carry a tenant and are protected by Postgres row-level security (raw SQL included); client-chosen ids are unique per tenant; background jobs run once per tenant; the server must run as an ordinary database role when more than one tenant exists (`NORTHCX_MIGRATION_DATABASE_URL` for migrations) and checks this at start. Other tables are not isolated yet.
-- Tenancy, first slice (migration 0037, `05-technical/NorthCX_Tenancy-ADR.md`): tenants and channel bindings, a request-scoped tenant from the key, keys and audit entries per tenant, suspension, and the decision between predicate and row-level security with measurements. **Isolation of every other table is not built**, so creating a second tenant needs `NORTHCX_TENANCY_PREVIEW=1`; a deployment with no tenants behaves as before.
+- Tenancy, first slice (migration 0037, `08-governance-safety/NorthCX_Tenancy-ADR.md`): tenants and channel bindings, a request-scoped tenant from the key, keys and audit entries per tenant, suspension, and the decision between predicate and row-level security with measurements. **Isolation of every other table is not built**, so creating a second tenant needs `NORTHCX_TENANCY_PREVIEW=1`; a deployment with no tenants behaves as before.
 - Groups (`/v1/groups`, migration 0034): roles bound to people, by hand-added email or by the identity provider's group name. With `NORTHCX_SSO_USE_GROUPS=1` a sign-in session's permissions are the union of the role map and every group the person is in.
 
 ### Added (Phase 2: model foundations)
@@ -191,7 +197,7 @@ First release candidate: the planned feature set (phases 1 to 6, minus the items
 - **Docs**: product, architecture, security (threat model, review report), deployment, performance and cost, SDK and voice guides.
 
 ### Security
-- Review findings fixed before this release: request size caps, voice stream flood limits, default security headers, a crash on malformed identity tokens, explicit no-redirect HTTP clients. See `docs/06-security/NorthCX_Security-Review.md`.
+- Review findings fixed before this release: request size caps, voice stream flood limits, default security headers, a crash on malformed identity tokens, explicit no-redirect HTTP clients. See `docs/08-governance-safety/NorthCX_Security-Review.md`.
 
 ### Not in this release
 Native iOS and Android SDKs; outbound calls; agent-assisted building (A8); natural-language analytics (O8); data residency options (P6); messaging apps beyond SMS; knowledge crawling and meaning-based search; per-agent scoping of roles; multi-tenancy and metering.

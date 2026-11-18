@@ -1,7 +1,7 @@
 """Choosing a model per request (WP1.9, WP1.10): hard data constraints first, then the operator's ordered rules, then the fallback chain
 restricted to what is allowed. The decision, the rule that made it and every model skipped (with the reason) go into the trace.
 
-Rules are data, not code (docs/04-ai-architecture/NorthCX_Hybrid-Model-Selection.md); the file is `NORTHCX_ROUTING_RULES_FILE`:
+Rules are data, not code (docs/09-models/NorthCX_Hybrid-Model-Selection.md); the file is `NORTHCX_ROUTING_RULES_FILE`:
 
 ```yaml
 policy:

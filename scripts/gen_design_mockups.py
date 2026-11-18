@@ -1,11 +1,11 @@
-"""Writes the static HTML mockups of the admin platform and staff workspace to docs/07-design/mockups/.
+"""Writes the static HTML mockups of the admin platform and staff workspace to docs/02-studio/mockups/.
 Design artefacts only: every figure is sample data. Screenshots are made by scripts/shoot_mockups.js."""
 from __future__ import annotations
 
 import html
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent.parent / "docs" / "07-design" / "mockups"
+OUT = Path(__file__).resolve().parent.parent / "docs" / "02-studio" / "mockups"
 E = html.escape
 
 CSS = """

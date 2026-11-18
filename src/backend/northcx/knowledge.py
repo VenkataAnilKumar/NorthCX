@@ -1,4 +1,4 @@
-"""Knowledge: company documents an agent can search and cite. See docs/05-technical/NorthCX_Knowledge-Design.md."""
+"""Knowledge: company documents an agent can search and cite. See docs/05-knowledge-memory/NorthCX_Knowledge-Design.md."""
 from __future__ import annotations
 
 import hashlib

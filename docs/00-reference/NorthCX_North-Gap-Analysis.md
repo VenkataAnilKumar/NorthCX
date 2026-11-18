@@ -2,7 +2,7 @@
 
 Status: **Reference**. Updated: 2026-11-09. Master for: the 2026-11-04 gap analysis against an external product. Lives in `00-reference/` because it compares NorthCX with an external product (Cohere North) and names third-party systems.
 
-A snapshot of 2026-11-04. The response to it is `../08-implementation/NorthCX_Gap-Closure-Plan.md` and, for the staff side, the design of 2026-11-09 (`../07-design/NorthCX_Platform-Features-and-Tabs.md`: the Workspace, Pilot, Agent Hub, Automations and the Admin app). Based on the NorthCX repository, which its README describes as 1.0.0-rc.1, with more than 1,300 backend tests, Studio, the SDK and widget, six channels, approvals, simulations and releases.
+A snapshot of 2026-11-04. The response to it is `../12-project/NorthCX_Gap-Closure-Plan.md` and, for the staff side, the design of 2026-11-09 (`../02-studio/NorthCX_Platform-Features-and-Tabs.md`: the Workspace, Pilot, Agent Hub, Automations and the Admin app). Based on the NorthCX repository, which its README describes as 1.0.0-rc.1, with more than 1,300 backend tests, Studio, the SDK and widget, six channels, approvals, simulations and releases.
 
 The key difference from Cohere North is the user. **NorthCX is customer-facing**: AI agents talk to your customers. **North is employee-facing**: a private AI workspace for staff, with chat, search, agents, automations, apps, and deployment anywhere. So "NorthCX like North" means keeping the strong customer-agent engine and adding the staff-side workspace plus North's enterprise platform layers.
 
@@ -31,7 +31,7 @@ The key difference from Cohere North is the user. **NorthCX is customer-facing**
 - Surfaces: browser extension, Slack and Teams bot, and sidebars for Zendesk, Salesforce and Intercom
 
 ### 2. Model layer
-- Today it is Claude only (by design, behind one interface). Build the planned multi-provider layer (`04-ai-architecture/NorthCX_Model-Providers.md`): an adapter that works with OpenAI-style APIs and self-hosted models, provider-qualified model names, fallback chains that mix providers
+- Today it is Claude only (by design, behind one interface). Build the planned multi-provider layer (`09-models/NorthCX_Model-Providers.md`): an adapter that works with OpenAI-style APIs and self-hosted models, provider-qualified model names, fallback chains that mix providers
 - Private inference option: self-hosted open-weight models for air-gapped customers
 - Cost governance: budgets in currency (only token budgets exist today), per-team spend dashboards, routing simple tasks to cheaper models
 
@@ -75,6 +75,6 @@ The key difference from Cohere North is the user. **NorthCX is customer-facing**
 The safety and release machinery (approvals, simulations, release gates, audit) is ahead of most platforms. The gaps are the employee workspace, enterprise connectors, multi-tenancy and billing, and flexible deployment.
 
 ## Sources
-- NorthCX repository: README, CHANGELOG, `03-specs/NorthCX_Feature-Catalog.md`, `04-ai-architecture/NorthCX_Model-Providers.md`, `08-implementation/NorthCX_Roadmap.md`, `01-product/NorthCX_Pricing-Model.md`, `05-technical/NorthCX_Integrations.md`
+- NorthCX repository: README, CHANGELOG, `12-project/NorthCX_Feature-Catalog.md`, `09-models/NorthCX_Model-Providers.md`, `12-project/NorthCX_Roadmap.md`, `00-platform/NorthCX_Pricing-Model.md`, `04-integrations/NorthCX_Integrations.md`
 - [Cohere North](https://cohere.com/north)
 - Editable copy: [Claude Doc](https://claude.ai/artifact/Knd2TEjCDth8DhgGQninMr)

@@ -1,8 +1,8 @@
 # NorthCX Phase Plan (Phases 2-6)
 
-> **Archived 2026-11-09.** The 1.0 phases are finished; current plan: `../08-implementation/NorthCX_Implementation-Plan.md`. Kept for history; not maintained.
+> **Archived 2026-11-09.** The 1.0 phases are finished; current plan: `../12-project/NorthCX_Implementation-Plan.md`. Kept for history; not maintained.
 
-Status: Draft for review. Feature IDs refer to `03-specs/NorthCX_Feature-Catalog.md`; reuse sources and paths are in `00-reference/NorthCX_Reference.md` (sections 10-12). Sprint numbers match `NorthCX_Sprint-Plan.md`; durations are placeholders until velocity is measured.
+Status: Draft for review. Feature IDs refer to `12-project/NorthCX_Feature-Catalog.md`; reuse sources and paths are in `00-reference/NorthCX_Reference.md` (sections 10-12). Sprint numbers match `NorthCX_Sprint-Plan.md`; durations are placeholders until velocity is measured.
 
 ## 1. Where we start
 Phase 1 is done: Python runtime, supervisors, input checks, approvals (stored, not resumed), traces, HTTP API, widget, example agent, offline demo model, and a Next.js platform (overview, test console, conversations, approvals, agents, settings). State is in memory. 31 backend and 6 web tests pass; the web flow is browser-tested.

@@ -1,6 +1,6 @@
 # NorthCX Plan: closing the known gaps before 1.0.0
 
-> **Archived 2026-11-09.** All four batches were built (decisions 131 to 134); current plan: `../08-implementation/NorthCX_Implementation-Plan.md`. Kept for history; not maintained.
+> **Archived 2026-11-09.** All four batches were built (decisions 131 to 134); current plan: `../12-project/NorthCX_Implementation-Plan.md`. Kept for history; not maintained.
 
 Status: done. All four batches below were built and pushed (decision log entries 131 to 134); the exceptions are listed under "Not built" in the Knowledge, Observability, Integrations and Channels documents. Each batch is a separate commit pushed to `claude/awesome-brown-o0nk5s` and `main`, with tests, docs, decision-log entries, catalog and CHANGELOG updates, and a real-service check where one can be run here (local Postgres with pgvector; browser smoke for Studio).
 

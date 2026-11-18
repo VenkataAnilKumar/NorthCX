@@ -1,6 +1,6 @@
 # NorthCX Studio UI Spec
 
-> **Archived 2026-11-09.** Merged into `../07-design/NorthCX_Studio.md`. Kept for history; not maintained.
+> **Archived 2026-11-09.** Merged into `../02-studio/NorthCX_Studio.md`. Kept for history; not maintained.
 
 > **Note (2026-11-09):** this describes the Studio on `main` (flat navigation). The planned grouped Admin app, the Workspace and the shared design system are specified in `NorthCX_Platform-Features-and-Tabs.md`, `NorthCX_Admin-Platform-Design.md` and `NorthCX_Design-System.md`. Names there win where they differ.
 
@@ -32,7 +32,7 @@ Built in `src/apps/studio`: Access and audit page (keys, audit log, integrity ch
 - **Conversations (U4):** filters, tags, failure causes, open trace, create regression scenario.
 - **Approvals (U5):** queue with age and risk, payload, context, approve/reject with note.
 - **Knowledge (U6):** sources, freshness, test queries with citations.
-- **Customer widget (C7, built):** `<northcx-chat>`, documented in `05-technical/NorthCX_Client-SDK.md`.
+- **Customer widget (C7, built):** `<northcx-chat>`, documented in `01-chat/NorthCX_Client-SDK.md`.
 - **Attachments (C10, built):** a paperclip in the test console; the trace shows what was attached.
 - **Specialist agents (R8, built):** a section in the editor to choose which agents this one may pass conversations to and when; the trace shows each transfer.
 - **Monitoring (built):** active alerts, rules, recent alert events with delivery status and a test-alert button, and the conversations flagged by the always-on checks with filters and links to traces.

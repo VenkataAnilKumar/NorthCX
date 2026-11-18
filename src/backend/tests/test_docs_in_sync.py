@@ -22,7 +22,7 @@ def test_every_database_table_is_described_in_the_schema_document():
     tables = set()
     for p in (ROOT / "src" / "backend" / "northcx" / "db" / "migrations" / "versions").glob("*.py"):
         tables |= set(re.findall(r'create_table\(\s*"([a-z_]+)"', p.read_text()))
-    doc = (ROOT / "docs" / "05-technical" / "NorthCX_Database-Schema.md").read_text()
+    doc = (ROOT / "docs" / "11-operations" / "NorthCX_Database-Schema.md").read_text()
     assert sorted(t for t in tables if f"`{t}`" not in doc) == []
 
 
@@ -30,7 +30,7 @@ def test_every_setting_the_code_reads_is_in_the_deployment_guide():
     names = set()
     for p in (ROOT / "src" / "backend" / "northcx").rglob("*.py"):
         names |= set(re.findall(r'["\'](NORTHCX_[A-Z0-9_]+)["\']', p.read_text()))
-    guide = (ROOT / "docs" / "08-implementation" / "NorthCX_Deployment-Guide.md").read_text()
+    guide = (ROOT / "docs" / "11-operations" / "NorthCX_Deployment-Guide.md").read_text()
     assert sorted(n for n in names if not n.endswith("_FILE") and n not in guide) == []
 
 
@@ -43,7 +43,7 @@ def test_every_setting_the_code_reads_is_in_the_example_environment_file():
 
 
 def test_decision_log_numbers_are_unique_and_complete():
-    nums = [int(n) for n in re.findall(r"^\| (\d+) \|", (ROOT / "docs" / "09-project" / "NorthCX_Decision-Log.md").read_text(), re.M)]
+    nums = [int(n) for n in re.findall(r"^\| (\d+) \|", (ROOT / "docs" / "12-project" / "NorthCX_Decision-Log.md").read_text(), re.M)]
     assert len(nums) == len(set(nums)), "a decision number is used twice"
     assert sorted(nums) == list(range(1, len(nums) + 1)), "a decision number is missing"
 
