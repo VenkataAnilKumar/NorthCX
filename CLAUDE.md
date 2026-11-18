@@ -24,7 +24,7 @@ Read `docs/00-platform/NorthCX_Agent-Platform-Design.md`. In short: re-platform 
 Work in the order given in the design's phasing table, one small step at a time. No live-model pass has been run (no API key was available); mark anything that depends on real model behaviour as unverified.
 
 ## Reference sources (read-only)
-Open-source projects, specifications and product pages studied for the four modules. The full list with links and the clone script is `docs/00-reference/NorthCX_Reference-Sources.md`; the lessons taken from them are in section 2a and 2b of the design. A developer may keep clones in a folder outside this repository, laid out as `northcx-sources/{integrations,chat,studio,automations,benchmarks}/`. If that folder is available, read it; if not, work from the design and the links, and do not guess at what a project does.
+Open-source projects, specifications and product pages studied for the four modules. The full list with links and the clone script is `docs/00-reference/NorthCX_Reference-Sources.md`; the conclusions are in sections 2 to 2b of the design, and the named research (which projects and products taught what) is `docs/00-reference/NorthCX_Agent-Platform-Research.md`. A developer may keep clones in a folder outside this repository, laid out as `northcx-sources/{integrations,chat,studio,automations,benchmarks}/`. If that folder is available, read it; if not, work from the design and the links, and do not guess at what a project does.
 
 | Module | Read first | Study for |
 |---|---|---|

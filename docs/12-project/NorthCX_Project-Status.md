@@ -1,6 +1,14 @@
 # NorthCX Project Status and Plan
 
-Status: **Reference**. Updated: 2026-11-09. Master for: a one-page snapshot of where the project stands. A one-page summary of where the project stands and what is planned. The detail lives in `../10-releases/NorthCX_Release-Checklist.md` (finishing 1.0) and `NorthCX_Gap-Closure-Plan.md` (after 1.0). Update this page when a wave ships or a decision is made.
+Status: **Reference**. Updated: 2026-11-18. Master for: a one-page snapshot of where the project stands. A one-page summary of where the project stands and what is planned. The detail lives in `../10-releases/NorthCX_Release-Checklist.md` (finishing 1.0) and `NorthCX_Gap-Closure-Plan.md` (after 1.0). Update this page when a wave ships or a decision is made.
+
+## Update (2026-11-18)
+- **Direction.** The build direction is now `../00-platform/NorthCX_Agent-Platform-Design.md`: re-platform in place, add a unified Agent API and a tool gateway, and rebuild Chat, Agent Studio, Integrations and Automations on top. Owner decisions: self-hosted first; Studio is a product for non-engineers. Priorities and the order of work are in its section 13; prompts for each step are in `NorthCX_Session-Prompts.md`.
+- **Documentation.** Reorganised by platform area (decision 197): one folder and a one-page overview per area. Named research moved to `../00-reference/`.
+- **CI.** The compose stack job had failed on `main` since 2026-11-09 (each app image ran the build for both apps). Fixed on 2026-11-18; CI on `main` is green again for all seven jobs.
+- **Still open.** The live-model pass (no API key yet), the independent penetration test, the `v1.0.0-rc.1` tag and the 1.0.0 release (owner actions); nothing in the Agent Platform design is built yet.
+
+The sections below are the snapshot of 2026-11-09 and have not been re-checked.
 
 ## Product documentation (2026-11-09)
 The product documents now cover the whole designed platform: vision and requirements (FR1 to FR41), personas, stories and journeys, the feature catalog (section 12), four after-1.0 specifications, the staff platform architecture, threat model and security, non-functional requirements, testing, design system, roadmap and decision log (to #176). What remains is listed in `NorthCX_Docs-Completion-Checklist.md`. No design-phase feature is built.
