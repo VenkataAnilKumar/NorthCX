@@ -49,6 +49,25 @@ The projects below were read for ideas only (GitHub pages and search summaries; 
 
 What was **not** adopted, and why: autonomous general-purpose agent behaviour (Hermes, Suna, Eigent) conflicts with the supervised, permission-bound model; team and debate modes add behaviour that is hard to test and approve; copying any project's code (the project policy records that nothing is copied).
 
+## 2b. Product reference model: Fin, Sierra and Decagon
+
+NorthCX is positioned as the self-hosted, inspectable counterpart of Intercom Fin, Sierra and Decagon. All three run the same loop: **teach** (plain-language procedures), **test** (simulations before launch), **deploy** (every channel), **monitor and improve** (insights, always-on quality checks, suggestions). Facts come from vendor pages and third-party reviews and are directional.
+
+Gaps found against NorthCX (the repo column was checked in this repository):
+
+| Gap | Reference behaviour | NorthCX today (repo) | Where it is designed |
+|---|---|---|---|
+| Native connectors to systems of record | All three integrate natively with helpdesks and CRMs | YAML connectors, a Chatwoot adapter, no MCP yet | Section 5 |
+| Guided authoring for non-engineers | Procedures and Journeys written in plain language, generated from existing material | Drafts from procedures and recordings exist; no guided path | Section 7 |
+| Plain-language quality criteria | Decagon Watchtower checks live conversations against criteria written in plain language | Quality rubric is a list of deterministic checks (`qa.py`); a model verdict is on request only | Section 7 (author-written criteria that run as model-judged checks, with the deterministic rubric kept as the baseline) |
+| Segment-aware guidance | Fin Guidance sets tone and rules by segment or product line | Brand voice, forbidden phrases and per-channel styles | Section 7 (guidance sets attached to segments) |
+| Scheduled and CI simulations with alerts | Decagon runs simulations on a schedule or in CI and alerts | Scenarios run in CI as a build gate (`ci.yml`); no scheduled production runs found in the simulation, regression or monitor code | Section 8: a scheduled routine that runs the live agent's scenarios and notifies a destination |
+| Proactive suggestions | Fin Suggestions, Sierra monitors | "Improve this agent" on request | Section 7 (surface findings as a feed; changes still go through draft, test, release) |
+| Voice | Native voice in all three | Conversation side built; speech and telephony are an operator bridge | Out of scope for the four modules; decide separately |
+| Outcome pricing | Per outcome or resolution | Not built | Blocked on D1 |
+
+Where NorthCX should not copy them: managed per-outcome SaaS (self-hosted first), closed workflows (inspectability is the edge), and opaque decisions (reviewers of those products report difficulty understanding individual decisions in real time, which NorthCX's traces and audit log are meant to answer).
+
 ## 3. Where the repo is today (anchors)
 
 - **Tools** are `Tool` dataclasses (`northcx/agent.py`): typed input model, `effect` ("read" or "write", write by default), `requires_approval`, `dry_run_result`, audience and permission. Write tools are replaced by dry-run results when the platform is testing.
