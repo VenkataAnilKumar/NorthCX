@@ -32,6 +32,12 @@ TAG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 HIGH_RISK = frozenset({"notify"})  # steps that send something out of the platform: only after a person has approved in the same routine
 MAX_INPUT = 2000
 MIN_HOURS, MAX_HOURS = 1.0, 24.0 * 30
+TRIGGER_TYPES = {  # what starts a routine, in the words the editor shows
+    "manual": ("Run by hand", "A person starts the routine from the Workspace when they want it."),
+    "schedule": ("On a schedule", f"Starts by itself every so many hours (from {MIN_HOURS:g} to {MAX_HOURS:g})."),
+    "webhook": ("When a system calls", "Starts when another system sends a signed request to the routine's address."),
+    "event": ("When something happens", "Starts when NorthCX records an event, such as a handoff or a low rating."),
+}
 TENANT_CONCURRENCY = 3
 CLAIM_SECONDS = 300.0       # a claimed schedule is retried after this if the process that claimed it died
 ID_RE = re.compile(r"^[a-z][a-z0-9-]{2,39}$")
@@ -76,7 +82,7 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
         raise AutomationError(400, "description must be text of at most 500 characters")
     trig = data.get("trigger") or {}
     kind = trig.get("type") if isinstance(trig, dict) else None
-    if kind not in ("manual", "schedule", "webhook", "event"):
+    if kind not in TRIGGER_TYPES:
         raise AutomationError(400, "trigger.type must be manual, schedule, webhook or event")
     t: dict[str, Any] = {"type": kind}
     if kind == "schedule":
@@ -435,7 +441,7 @@ class AutomationService:
             raise AutomationError(404, "That routine is not published")
         if (await self.repo.state(automation_id))["paused"]:
             raise AutomationError(409, "That routine is paused")
-        if trigger not in ("manual", "schedule", "webhook", "event"):
+        if trigger not in TRIGGER_TYPES:
             raise AutomationError(400, "Unknown trigger")
         if a.data["trigger"]["type"] != trigger and trigger != "manual":
             raise AutomationError(409, f"That routine is started by {a.data['trigger']['type']}, not {trigger}")

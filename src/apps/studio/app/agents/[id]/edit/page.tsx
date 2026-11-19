@@ -1,5 +1,6 @@
 "use client";
 import { type Catalog, getCatalog, getLive, listAgents, previewSpec, releaseToEnvironment, saveSpec, type SpecPreview, useLoad, useMe } from "@northcx/api-client";
+import { toolGroups } from "@/lib/tool-groups";
 import { JourneyEditor } from "@/components/journey-editor";
 import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
@@ -107,12 +108,15 @@ function Editor({ id, initial, catalog }: { id: string; initial: Spec; catalog: 
           </div>
         </Section>
         <Section title="Tools" hint="What the agent can do. Tools that change things are marked; ones that need approval wait for a person.">
-          {catalog.tools.map((t) => (
-            <label key={t.name} className="flex items-start gap-2 text-sm">
-              <input type="checkbox" checked={tools.includes(t.name)} onChange={(e) => set("tools", e.target.checked ? [...tools, t.name] : tools.filter((x) => x !== t.name))} className="mt-1" />
-              <span><code>{t.name}</code> <span className="rounded bg-border/60 px-1 text-xs">{t.effect === "write" ? "changes things" : "read only"}</span>{t.approval && <span className="ml-1 rounded bg-[var(--info-bg)] px-1 text-xs text-[var(--info)]">can need approval</span>}
-                <span className="block text-muted">{t.description}</span></span>
-            </label>))}
+          {toolGroups(catalog.tools).map((g) => (
+            <fieldset key={g.title} className="space-y-2"><legend className="text-xs font-medium text-muted">{g.title}</legend>
+              {g.tools.map((t) => (
+                <label key={t.name} className="flex items-start gap-2 text-sm">
+                <input type="checkbox" checked={tools.includes(t.name)} onChange={(e) => set("tools", e.target.checked ? [...tools, t.name] : tools.filter((x) => x !== t.name))} className="mt-1" />
+                <span><code>{t.name}</code> <span className="rounded bg-border/60 px-1 text-xs">{t.effect === "write" ? "changes things" : "read only"}</span>{t.approval && <span className="ml-1 rounded bg-[var(--info-bg)] px-1 text-xs text-[var(--info)]">can need approval</span>}
+                  <span className="block text-muted">{t.description}</span></span>
+              </label>))}
+            </fieldset>))}
         </Section>
         <RefPicker label="Reply and tool checks" options={catalog.guardrails} value={spec.guardrails ?? []} onChange={(v) => set("guardrails", v)} hints />
         <RefPicker label="Customer message checks" options={catalog.inputGuardrails} value={spec.input_guardrails ?? []} onChange={(v) => set("input_guardrails", v)} />

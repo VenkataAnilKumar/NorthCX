@@ -5,7 +5,8 @@ import { FlowEditor } from "../components/FlowEditor";
 import type { Definition } from "../components/flow";
 
 afterEach(cleanup);
-const catalog = { reports: ["performance", "quality"], events: ["handoff.created"], destinations: ["ops-chat"], assistants: ["shift-briefing"], kinds: ["report", "assistant", "person", "tag", "notify", "output"], triggers: ["manual", "schedule", "webhook", "event"] };
+const catalog = { reports: ["performance", "quality"], events: ["handoff.created"], destinations: ["ops-chat"], assistants: ["shift-briefing"], kinds: ["report", "assistant", "person", "tag", "notify", "output"], triggers: ["manual", "schedule", "webhook", "event"],
+  triggerInfo: [{ type: "manual", label: "Run by hand", description: "A person starts the routine when they want it." }, { type: "schedule", label: "On a schedule", description: "Starts by itself every so many hours." }] };
 const START: Definition = { id: "r1", name: "R", trigger: { type: "manual" }, steps: [{ id: "a", kind: "report", report: "performance", days: 1 }, { id: "b", kind: "output", title: "Digest" }, { id: "c", kind: "tag", tag: "x" }] };
 
 function Harness({ initial = START }: { initial?: Definition }) {
@@ -74,5 +75,14 @@ describe("the canvas editor", () => {
     render(createElement(FlowEditor, { value: START, onChange: () => { throw new Error("changed"); }, catalog, readOnly: true }));
     fireEvent.keyDown(card(/Step 2/), { key: "Delete" });
     expect(screen.queryByRole("button", { name: /Add after/ })).toBeNull();
+  });
+});
+
+describe("trigger description", () => {
+  it("explains the chosen trigger in words from the catalogue", () => {
+    render(createElement(Harness));
+    fireEvent.click(screen.getByRole("button", { name: "List" }));
+    fireEvent.click(screen.getByRole("button", { name: "Starts by hand" }));
+    expect(screen.getByText("A person starts the routine when they want it.")).toBeTruthy();
   });
 });

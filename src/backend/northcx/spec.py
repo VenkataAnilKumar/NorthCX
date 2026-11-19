@@ -297,7 +297,7 @@ class Registry:
             cached = self._catalog.get(n)
             if cached is None or cached[0] is not t:
                 cached = self._catalog[n] = (t, list(t.input_model.model_json_schema().get("properties", {})), tool_fingerprint(t))
-            tools.append({"name": n, "description": t.description, "effect": t.effect, "source": t.source, "fingerprint": cached[2], "approval": t.requires_approval is not None,
+            tools.append({"name": n, "description": t.description, "effect": t.effect, "source": t.source, "connection": n.split("__", 1)[0] if t.source == "mcp" else None, "fingerprint": cached[2], "approval": t.requires_approval is not None,
                           "inputs": cached[1]})
         return {"tools": tools,
                 "guardrails": [{"name": n, "description": DESCRIPTIONS.get(n, ""), "example": examples.get(n)} for n in self.guardrail_names()],
