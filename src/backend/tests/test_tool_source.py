@@ -88,3 +88,11 @@ async def test_the_tool_call_trace_event_names_the_source():
     res = await rt.run(Agent(id="a", instructions="x", tools=[t]), "s1", "hi")
     calls = [e for e in res.trace.events if e.type == "tool_call"]
     assert [c.data["source"] for c in calls] == ["connectors"]
+
+
+def test_the_catalogue_shows_each_tools_fingerprint():
+    r = Registry()
+    t = tool("a")
+    r.add_tools("connectors", [t])
+    (entry,) = r.describe()["tools"]
+    assert entry["fingerprint"] == tool_fingerprint(t)

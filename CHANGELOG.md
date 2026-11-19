@@ -17,6 +17,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added (Phase 1, WP 1.2, 2026-11-19)
 - Each tool records its source (`registry`, `connectors`, `verification`, `knowledge`, `memory` or `staff`), shown in the tool catalogue (`GET /v1/catalog`, new `source` field) and on each `tool_call` trace event. Tools register through `Registry.add_tools(source, tools)`, which refuses a taken name and names both sources. `tool_fingerprint(tool)` hashes a tool's definition (not its code or credentials). No other behaviour changes.
 
+### Changed (Phase 1 follow-up, 2026-11-19)
+- `GET /v1/catalog` tools now include `fingerprint` (a hash of the tool's definition). The api-client types `source` and `fingerprint` as always present.
+
 ### Added (Phase 1, WP 1.1, 2026-11-19)
 - The Agent API contract: `docs/api/agent-api-v1.json` (61 operations: permission, parameters, request body) and the stability rule for `/v1` (add only; never remove, retype or newly require) in the API Design document. `scripts/gen_agent_api_contract.py` writes the snapshot and refuses a breaking change; `tests/test_agent_api_contract.py` checks it. Responses are untyped today and are not covered.
 
