@@ -84,7 +84,7 @@ Not in Phase 2 (recorded, not dead requirements): OAuth authorization-code sign-
 | 2.3b | The Connections screen in Studio (Build, Connections; shown to anyone who can read versions, controls only to an administrator): allowed hosts, add, review tools, approve ticked tools, check for changes, switch on or off, trust, delete, in plain words with labelled fields | An operator does the same in the screen without editing files; component tests and a real-browser walkthrough | **Built** (in review) |
 | 2.4 | One catalogue of tools and triggers read by Studio and Automations | Catalogue API with tests | **Built** ([`NorthCX_Integration-Catalogue.md`](NorthCX_Integration-Catalogue.md)) |
 | 2.5 | Connectors for the target market (helpdesk, commerce, payments) | A sandbox demonstration | **Blocked: no vendor sandbox accounts (owner, 2026-11-19).** Connectors written from vendor documentation alone would be unverified and are not claimed |
-| 2.6 | Network-needs page; residency entries for every connection | Every external host is listed | Not started |
+| 2.6 | Network-needs page; residency entries for every connection | Every external host is listed | **Built** ([`../11-operations/NorthCX_Network-Needs.md`](../11-operations/NorthCX_Network-Needs.md)) |
 
 Not done in 2.1, on purpose: era caching (each call probes `server/discover` once, one extra request; measure before caching); a true older-only server in the tests (the fake is dual-era and the client is run in handshake mode, plus a wrapper that refuses `server/discover` the way an older server does); 
 

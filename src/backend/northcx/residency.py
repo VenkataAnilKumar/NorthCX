@@ -129,8 +129,34 @@ def _flow(name: str, kind: str, host: str | None, data: str, policy: Policy | No
     return {"name": name, "kind": kind, "host": host, "data": data, "region": region, "status": status}
 
 
-def build_report(env: Mapping[str, str], policy: Policy | None) -> dict[str, Any]:
+def _destination_hosts(value: str) -> list[tuple[str, str]]:
+    out = []
+    for part in filter(None, (p.strip() for p in value.split(","))):
+        name, _, url = part.partition("=")
+        if name and url.startswith(("https://", "http://")):
+            out.append((name.strip(), host_of(url) or ""))   # a mailto: destination goes through the SMTP server, which has its own flow
+    return out
+
+
+def _providers(text: str | None) -> list[dict[str, Any]]:
+    try:
+        items = (yaml.safe_load(text or "") or {}).get("providers") or []
+    except (yaml.YAMLError, AttributeError):
+        return []   # the providers loader refuses a bad file and stops the server; the report does not repeat that
+    return [it for it in items if isinstance(it, dict) and it.get("name")]
+
+
+def _provider_flows(items: list[dict[str, Any]], env: Mapping[str, str], policy: Policy | None) -> list[dict[str, Any]]:
     flows = []
+    for it in items:
+        host = host_of(str(it.get("baseUrl", ""))) if it.get("type") == "openai-compatible" else host_of(env.get("ANTHROPIC_BASE_URL", "")) or "api.anthropic.com"
+        flows.append(_flow(f"Language model: {it['name']}", "outbound", host, "Conversation text, tool results and knowledge passages the agent reads", policy))
+    return flows
+
+
+def build_report(env: Mapping[str, str], policy: Policy | None, providers_text: str | None = None) -> dict[str, Any]:
+    flows = []
+    listed = _providers(providers_text)
     db = env.get("NORTHCX_DATABASE_URL") or env.get("DATABASE_URL")
     if db:
         flows.append(_flow("Database", "storage", host_of(db.split("@", 1)[-1] if "@" in db else db), "Everything NorthCX stores: conversations, memories, traces, knowledge, audit log", policy))
@@ -138,6 +164,8 @@ def build_report(env: Mapping[str, str], policy: Policy | None) -> dict[str, Any
         value = env.get(var, "").strip()
         if var == "NORTHCX_SMTP_URL" and not value:
             value = env.get("NORTHCX_SMTP_URL_FILE", "") and "(file)"
+        if var == "ANTHROPIC_BASE_URL" and any(p.get("type") == "anthropic" for p in listed):
+            continue  # the providers file lists the Claude provider with its address
         if var == "ANTHROPIC_BASE_URL":
             if not (value or env.get("ANTHROPIC_API_KEY") or env.get("ANTHROPIC_API_KEY_FILE")):
                 continue  # no live model configured (offline demo)
@@ -150,6 +178,9 @@ def build_report(env: Mapping[str, str], policy: Policy | None) -> dict[str, Any
         if var == "NORTHCX_SMTP_URL" and value == "(file)":
             host = None
         flows.append(_flow(name, "outbound", host, data, policy))
+    flows.extend(_provider_flows(listed, env, policy))
+    for name, h in _destination_hosts(env.get("NORTHCX_AUTOMATION_DESTINATIONS", "")):
+        flows.append(_flow(f"Routine destination ({name})", "outbound", h, "Routine results: summaries and reports, signed", policy))
     for h in [x.strip().lower() for x in env.get("NORTHCX_CONNECTOR_HOSTS", "").split(",") if x.strip()]:
         flows.append(_flow(f"Business system ({h})", "outbound", h.split(":")[0], "Tool inputs and results for the connectors that use this host", policy))
     for h in [x.strip().lower() for x in env.get("NORTHCX_MCP_HOSTS", "").split(",") if x.strip()]:
