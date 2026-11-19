@@ -45,7 +45,7 @@ The sweep has already found two real defects, both fixed and covered: a chat tok
 | T9 | The platform operator reads tenant data | The platform API has no route to conversations, people or documents; its actions are written to the tenant's own audit log | an operator with database or host access can read anything (see below) |
 | T10 | A stored secret is read from a database dump | Values are sealed; the master key is not in the database | the master key lives in the server's environment; anyone who has both the dump and the environment can open the secrets |
 | T11 | Cross-tenant timing or error-message side channels | Not addressed beyond uniform 404s | A determined attacker could measure response time differences |
-| T12 | A suspended tenant keeps access | Keys of a suspended tenant are refused on the next request | chat tokens minted before suspension stop working because their key does |
+| T12 | A suspended tenant keeps access | Keys of a suspended tenant are refused on the next request | chat tokens minted by the tenant's keys are refused too (`test_a_suspended_tenants_chat_tokens_stop_working_at_once`). Until 2026-11-19 they were not: the key stayed active, so its tokens kept working until they expired, although this row said otherwise |
 | T13 | A migration or restore mixes tenants | Migration round-trip test; restores are whole-database | a partial restore by hand could; use whole-database restores |
 | T14 | Model providers see other tenants' data | A tenant with its own provider never falls back to the platform's; the platform's model sees only the requests made by tenants without their own | prompts to a shared provider are not separated by tenant at the provider |
 

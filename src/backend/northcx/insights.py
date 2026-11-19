@@ -64,7 +64,8 @@ class FeedbackFacts:
 def facts_from_trace(t: Trace) -> TurnFacts:
     ev = t.events
     start = ev[0].t if ev else 0.0
-    f = TurnFacts(t.id, t.session_id, t.agent_id, t.environment, start, (ev[-1].t - start) if ev else 0.0, t.status())
+    end = next((e.t for e in ev if e.type == "reply"), ev[-1].t if ev else 0.0)  # a turn lasts until its reply; later records (an approval's execution) do not count
+    f = TurnFacts(t.id, t.session_id, t.agent_id, t.environment, start, (end - start) if ev else 0.0, t.status())
     pending_search: str | None = None
     said: list[str] = []
     for e in ev:

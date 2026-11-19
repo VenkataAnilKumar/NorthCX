@@ -250,3 +250,48 @@ async def test_verification_that_lapsed_before_approval_blocks_execution(env):
     await flow.resolve(agents, r.pending_approvals[0]["id"], True, "rae")
     a = await rt.approvals.get(r.pending_approvals[0]["id"])
     assert a.state == "failed" and calls.keys == [] and "not available for this customer" in a.result["error"]
+
+
+async def _execution_traces(rt):
+    out = []
+    for s in await rt.traces.summaries("s", 50):
+        t = await rt.traces.get(s.id)
+        if t and any(e.type == "approval_execution" for e in t.events):
+            out.append(t)
+    return out
+
+
+async def test_a_block_at_execution_time_is_kept_in_a_trace(env):
+    # Why an approved action did not run must be on record, not only on the approval: the check's own events are saved.
+    class Frozen(Guardrail):
+        name = "freeze"
+
+        async def check_tool_call(self, name, input, ctx):
+            return Verdict.deny("refunds are frozen")
+
+    _, rt, agent, flow, agents, aid, _ = await held(env, extra=[text("Refunds are paused.")])
+    agent.guardrails.append(Frozen())
+    await flow.resolve(agents, aid, True, "rae")
+    [t] = await _execution_traces(rt)
+    kinds = {e.type: e.data for e in t.events}
+    assert kinds["approval_execution"] == {"approval": aid, "tool": "refund", "outcome": "blocked"}
+    assert kinds["guardrail"]["reason"] == "refunds are frozen"
+
+
+async def test_an_executed_approval_is_kept_in_a_trace(env):
+    _, rt, _, flow, agents, aid, _ = await held(env)
+    await flow.resolve(agents, aid, True, "rae")
+    [t] = await _execution_traces(rt)
+    assert [e.data for e in t.events if e.type == "approval_execution"] == [{"approval": aid, "tool": "refund", "outcome": "executed"}]
+
+
+async def test_the_execution_record_joins_the_held_turn_and_leaves_its_figures_alone(env):
+    # Kept with the turn that asked (no extra turn counted); that turn's status and latency stay as they were.
+    from northcx.insights import facts_from_trace
+    _, rt, _, flow, agents, aid, _ = await held(env)
+    held_trace = (await rt.approvals.get(aid)).trace_id
+    before = facts_from_trace(await rt.traces.get(held_trace))
+    await flow.resolve(agents, aid, True, "rae")
+    [t] = await _execution_traces(rt)
+    after = facts_from_trace(t)
+    assert t.id == held_trace and after.status == "needs_approval" and after.duration == before.duration

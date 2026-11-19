@@ -70,24 +70,30 @@ class ApprovalFlow:
         """Run the held tool call exactly once. Inputs are validated and supervisors re-checked at execution time."""
         claimed = await self.rt.approvals.claim_execution(a.id)
         tool = next((t for t in agent.tools if t.name == claimed.tool), None)
+        # The execution record joins the trace of the turn that asked for the action, so why it ran or not is on record with it,
+        # and no extra turn is counted in the figures. A missing trace (never expected) gets a trace of its own.
+        trace = (await self.rt.traces.get(claimed.trace_id) if claimed.trace_id else None) or Trace(agent.id, claimed.session_id, agent_version=agent.version)
 
-        async def done(ok: bool, payload: dict[str, Any]) -> dict[str, Any]:
+        async def done(ok: bool, payload: dict[str, Any], outcome: str = "") -> dict[str, Any]:
             await self.rt.approvals.complete(claimed.id, ok, payload)
+            trace.add("approval_execution", approval=claimed.id, tool=claimed.tool, outcome=outcome or ("executed" if ok else "failed"))
+            for e in trace.events:
+                e.data = self.rt.secrets.redact(e.data)
+            await self.rt.traces.save(trace)
             return payload
 
         if tool is None:
-            return await done(False, {"error": f"tool '{claimed.tool}' no longer exists"})
+            return await done(False, {"error": f"tool '{claimed.tool}' no longer exists"}, "tool_missing")
         try:
             data = tool.input_model.model_validate(claimed.input)
         except ValidationError as e:
-            return await done(False, {"error": f"input is no longer valid: {e.error_count()} problem(s)"})
-        trace = Trace(agent.id, claimed.session_id)
+            return await done(False, {"error": f"input is no longer valid: {e.error_count()} problem(s)"}, "invalid_input")
         facts, channel = await self._turn_context(claimed)
         blocked = await self.rt._check(agent, "tool", (claimed.tool, claimed.input), claimed.session_id,
                                        await self.rt.store.load_messages(claimed.session_id), trace,
                                        {"customer_id": claimed.customer_id, "facts": facts, "channel": channel})
         if blocked:
-            return await done(False, {"error": f"blocked by policy: {blocked}"})
+            return await done(False, {"error": f"blocked by policy: {blocked}"}, "blocked")
         try:
             out, simulated = await self.rt.execute_tool(tool, data, ToolContext(
                 claimed.session_id, claimed.customer_id, self.rt.store, idempotency_key=claimed.id,
