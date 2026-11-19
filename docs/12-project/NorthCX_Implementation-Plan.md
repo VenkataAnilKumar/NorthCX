@@ -1,6 +1,6 @@
 # NorthCX Implementation Plan (all phases and waves)
 
-Status: **Plan**. Updated: 2026-11-09. Master for: the working plan: waves, epics, work packages (master plan). The working plan for building everything from the finished 1.0 release candidate to the full platform. It breaks the epics of `NorthCX_Gap-Closure-Plan.md` into **work packages** (WP) with concrete steps, files, tests, acceptance criteria, sizes, dependencies and verification labels, and lists what only the owner or an outside party can do. Update the checklist in section 14 as work lands.
+Status: **Reference** (superseded for the order of work on 2026-11-19 by `NorthCX_Agent-Platform-Plan.md`, which is now the master plan). Updated: 2026-11-19. Master for: the record of the waves and work packages planned and built up to 2026-11-18, and the work-package details other documents still cite. The working plan for building everything from the finished 1.0 release candidate to the full platform. It breaks the epics of `NorthCX_Gap-Closure-Plan.md` into **work packages** (WP) with concrete steps, files, tests, acceptance criteria, sizes, dependencies and verification labels, and lists what only the owner or an outside party can do. Update the checklist in section 14 as work lands.
 
 **How this relates to the other plan documents**
 | Document | Answers |

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, 
 import { NavIcon, type IconName } from "./icons";
 import { ThemeToggle, usePrefs } from "./theme";
 
-export interface SubItem { href: string; label: string; badge?: number; soon?: boolean }
+export interface SubItem { href: string; label: string; badge?: number }
 /** One of the six left items. Pages sit inside it as sub-tabs; with one visible sub-tab no sub-tab row is shown. */
 export interface NavItem { href: string; label: string; icon: IconName; badge?: number; children?: SubItem[] }
 export interface Switcher { label: string; href: string; current?: boolean }
@@ -41,7 +41,7 @@ export function SubTabs({ items, path, Link }: { items: SubItem[]; path: string;
     <nav aria-label="Sections" className="seg">
       {items.map((t, i) => (
         <Link key={t.href} href={t.href} aria-current={i === current ? "page" : undefined}>
-          {t.label}{t.soon ? <span className="seg-soon">soon</span> : null}{t.badge ? <span className="seg-badge" aria-label={`${t.badge} waiting`}>{t.badge}</span> : null}
+          {t.label}{t.badge ? <span className="seg-badge" aria-label={`${t.badge} waiting`}>{t.badge}</span> : null}
         </Link>
       ))}
     </nav>
