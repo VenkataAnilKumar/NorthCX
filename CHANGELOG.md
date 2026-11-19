@@ -17,6 +17,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added (Phase 1, WP 1.2, 2026-11-19)
 - Each tool records its source (`registry`, `connectors`, `verification`, `knowledge`, `memory` or `staff`), shown in the tool catalogue (`GET /v1/catalog`, new `source` field) and on each `tool_call` trace event. Tools register through `Registry.add_tools(source, tools)`, which refuses a taken name and names both sources. `tool_fingerprint(tool)` hashes a tool's definition (not its code or credentials). No other behaviour changes.
 
+### Fixed (Phase 1 review, 2026-11-19)
+- The API stability check now also reports a route that needs another permission and a request that enforces a new or stricter limit (maximum or minimum length, count or value, or a pattern); `GET /v1/catalog` works out each tool's input names and fingerprint once instead of on every request (about half the cost of building it for 300 tools); the runtime looks a tool up once per call; the typed responses are also checked against Postgres-backed stores in CI.
+
 ### Added (Phase 1, WP 1.6c, 2026-11-19)
 - Response models for the last 12 JSON operations (managed scenario create, update and delete; qualifications; event feed and test; hand-off assist; agent improve; journey drafts; attachment upload): 60 of 61 Agent API operations are typed. Only the streaming chat (server-sent events) is not. Attachment list items are now typed too (additive). Responses are unchanged.
 

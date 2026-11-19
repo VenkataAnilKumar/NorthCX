@@ -161,3 +161,16 @@ def test_a_model_does_not_drop_fields_a_route_adds():
 
 HANDOFF = {"id": "h", "sessionId": "s", "traceId": "t", "agentId": "a", "customerId": None, "trigger": "x", "reason": None, "topics": [], "state": "open", "createdAt": 1.0,
            "resolvedBy": None, "resolvedAt": None, "note": None, "summary": None, "queue": "general", "afterHours": False}
+
+
+def test_the_conversation_routes_answer_with_their_declared_shape_on_postgres(engine):
+    """The same check against Postgres-backed stores, where a stored value can come back as another type than in memory. Skipped without a database."""
+    from northcx.db import PgApprovalStore, PgHandoffs, PgMemoryStore, PgOutbox, PgTraceStore
+    from northcx.outbox import Outbox
+    script = [tool_call("issue_refund", {"order_id": "A-1042", "amount": 500, "reason": "late"}, "t1"),
+              tool_call("handoff_to_human", {"reason": "asked"}, "t2"), text("passed")]
+    rt = Runtime(ScriptedLLM(script), PgMemoryStore(engine), PgTraceStore(engine), PgApprovalStore(engine), Outbox(PgOutbox(engine)), PgHandoffs(engine))
+    app = create_app(rt, rt.traces, {"support": support_agent()})
+    models, seen = declared(app), set()
+    conversation_flow(make_caller(TestClient(app), models, seen))
+    assert seen and seen <= set(models)

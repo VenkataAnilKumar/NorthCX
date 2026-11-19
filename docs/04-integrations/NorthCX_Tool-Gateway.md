@@ -30,7 +30,7 @@ Read in this repository on 2026-11-19.
 | G6 | Developers building on the API | The Agent API is a stated set of routes with a stability rule: within `/v1` fields may be added, never removed or retyped | A test compares those routes' parameters and request bodies with a checked-in snapshot; the comparison reports a removal, a type change or a newly required field and not an addition (responses only where typed, WP 1.6a and 1.6b) |
 
 ## 4. Design
-- **Operators:** no new setting and no new screen. A duplicate tool name stops start-up as it does today, now saying which two sources clash (for example "Tool 'lookup_order' from connectors:/etc/northcx/connectors is already registered by the registry function").
+- **Operators:** no new setting and no new screen. A duplicate tool name stops start-up as it does today, now saying which two sources clash (for example "Tool 'lookup_order' from connectors is already registered by registry").
 - **Catalogue and traces (G2):** one more field, `source`, one of `registry`, `connectors`, `verification`, `knowledge`, `memory` or `staff`. It never contains a secret, a URL or a path that includes a secret.
 - **Fingerprint (G3):** a short hash shown only in the catalogue; later used to pin MCP tool lists. It covers a tool's definition, not its credentials or its server address (those belong to the connection, WP 2.3).
 - **Agent API (G6):** the contract covers chat and streaming chat, sessions, approvals, hand-offs, versions, releases, simulation runs, traces and events. The snapshot is `docs/api/agent-api-v1.json`; the rule is written in the API Design document.

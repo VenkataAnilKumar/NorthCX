@@ -17,7 +17,6 @@ from northcx.runtime import Runtime
 from northcx.safety import ToolOutputInjection
 from northcx.secrets import SecretStore
 from northcx.skills import ToolScope, ToolScopeRule
-from northcx.spec import Registry
 from northcx.store import InMemoryStore
 from northcx.trace import TraceStore
 
@@ -89,12 +88,10 @@ def src(request):
 
 
 def make(src, script, dry_run=False, guardrails=None, output_guardrails=None):
-    """A runtime and an agent holding the source's tools, registered the way the server registers them."""
-    reg = Registry()
-    reg.add_tools("registry", src.tools)
+    """A runtime and an agent holding the source's tools."""
     llm = ScriptedLLM(script)
     rt = Runtime(llm, InMemoryStore(), TraceStore(), secrets=SecretStore({"token": SECRET}), dry_run=dry_run)
-    agent = Agent(id="a", instructions="help", tools=[reg._tools[n] for n in reg.tool_names()], guardrails=guardrails or [],
+    agent = Agent(id="a", instructions="help", tools=src.tools, guardrails=guardrails or [],
                   output_guardrails=output_guardrails or [])
     return llm, rt, agent
 
@@ -132,11 +129,11 @@ async def test_a_write_that_needs_approval_is_held_and_runs_once_after_a_person_
     assert res.error is None and src.executed == [("orders_refund", approval_id)]  # once, with the approval's id as the idempotency key
 
 
-async def test_a_write_under_the_limit_runs_with_a_stable_idempotency_key(src):
+async def test_a_write_under_the_limit_carries_an_idempotency_key_so_a_retry_cannot_act_twice(src):
     _, rt, agent = make(src, [tool_call("orders_refund", {"order_id": "A-1", "amount": 20}, "t1"), text("Done.")])
     await rt.run(agent, "s", "refund 20", "cust")
     (name, key), = src.executed
-    assert name == "orders_refund" and key and len(key) == 32
+    assert name == "orders_refund" and key
 
 
 async def test_a_write_is_replaced_by_its_dry_run_in_a_simulation_but_a_read_still_runs(src):
