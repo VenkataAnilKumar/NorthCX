@@ -61,6 +61,15 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 `400` invalid body, `401` missing or invalid key, `403` the role lacks the permission, `404` unknown resource, `409` a conflict (already decided, already resolved, a run in progress, gate not satisfied), `413` body too large, `429` rate limited (with `Retry-After`), `501` a feature that is not configured, `503` the live agent version cannot be built (`agent_unavailable`; roll back), `500` internal. Error body `{error: {code, message}}`.
 
 ## Later
+## Agent API contract and stability within /v1
+The **Agent API** is every operation tagged `agents`, `sessions`, `simulations`, `handoffs`, `approvals`, `traces` or `events` in `api/openapi.json` (61 operations: chat and streaming chat, sessions, approvals, hand-offs, versions, releases, rollouts, simulation runs, traces, events). Its snapshot is `api/agent-api-v1.json`: for each operation, the permission, the parameters and the request body.
+
+**Rule.** Within `/v1` a route, parameter or request field may be added. It is never removed, retyped, newly required, or stripped of an accepted value. A change that needs that is a new version (`/v2`) with the old one kept for a stated period.
+
+**Checked by** `tests/test_agent_api_contract.py`: it fails on a breaking change and when the snapshot is out of date. `python scripts/gen_agent_api_contract.py` rewrites the snapshot and refuses when the change is breaking.
+
+**Not covered.** Responses: the routes return untyped JSON today, so there is no response schema to compare. Typing the responses of the contract routes is future work, not scheduled.
+
 Built since this section was first written: server-sent events for streaming and signed webhooks for status events. Still open: consistent pagination across every list (most lists take `limit` and some `before` or `after`). The staff platform adds `/v1/workspace/*`, `/v1/hub/*` and policy routes (designed, `../13-workspace/NorthCX_Staff-Platform-Architecture.md`).
 
 
