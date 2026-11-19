@@ -17,6 +17,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added (Phase 1, WP 1.2, 2026-11-19)
 - Each tool records its source (`registry`, `connectors`, `verification`, `knowledge`, `memory` or `staff`), shown in the tool catalogue (`GET /v1/catalog`, new `source` field) and on each `tool_call` trace event. Tools register through `Registry.add_tools(source, tools)`, which refuses a taken name and names both sources. `tool_fingerprint(tool)` hashes a tool's definition (not its code or credentials). No other behaviour changes.
 
+### Tests (Phase 1, WP 1.4, 2026-11-19)
+- `tests/test_tool_conformance.py`: the runtime's guarantees for any tool source (input validated, scope blocks, approval held then run once with the approval id as key, dry-run in simulation, a repeated write runs once, secrets redacted, instructions in results withheld), run against the YAML connector source and a Python source. A new source (the MCP client) adds one fixture.
+
 ### Documentation (Phase 1, 2026-11-19)
 - `docs/04-integrations/NorthCX_Tool-Gateway.md`: Phase 1 research, requirements G1 to G6, design and architecture. The runtime already applies approvals, scopes, dry-run, secrets and output screening to every tool, so a separate gateway layer is dropped (WP 1.3 folded into the conformance suite, WP 1.4); WP 1.5 deferred; the plan's Phase 1 table revised.
 
