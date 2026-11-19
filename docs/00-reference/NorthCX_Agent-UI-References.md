@@ -2,7 +2,7 @@
 
 Status: **Reference**. Updated: 2026-11-18. Master for: commercial and open-source agent interfaces worth studying for NorthCX's screens (customer widget, Studio, test console, Workspace inbox and Pilot, quality and insights). It lives in `00-reference/` because it names other companies' products. Related: `NorthCX_Reference-Sources.md` (repositories and links to fetch), `NorthCX_Competitor-Landscape.md` (competitors by group), `NorthCX_Agent-Platform-Research.md` (what was learned).
 
-Sources: the CX products and open-source projects come from web research in November 2026 (vendor pages, project pages, comparisons); the general commercial assistants (ChatGPT, Claude apps, Gemini, Microsoft Copilot products, Glean) are listed from general knowledge and their current versions were not checked. Licences were not reviewed; some open-source projects carry custom or branding terms (noted). Study for ideas only; nothing is copied (see `../08-governance-safety/NorthCX_Code-Reuse-Policy.md`).
+Sources: the CX products and open-source projects come from web research in November 2026 (vendor pages, project pages, comparisons); the general commercial assistants (ChatGPT, Claude apps, Gemini, Microsoft Copilot products, Glean) are listed from general knowledge and their current versions were not checked. Licences were not reviewed; some open-source projects carry custom or branding terms (noted). Copying and rebranding is allowed where the licence permits and NorthCX never depends on the project (`../08-governance-safety/NorthCX_Code-Reuse-Policy.md`); nothing has been copied yet.
 
 ## 1. Customer-facing chat
 | Product | Type | Study for |
