@@ -70,7 +70,7 @@ def test_the_contract_includes_the_typed_responses():
     ops = snapshot()["operations"]
     assert "approvals" in ops[APPROVALS]["responses"]["200"]["properties"]
     assert ops[CHAT]["responses"]["200"]["properties"]["pendingApprovals"]["type"] == "array"
-    assert ops["POST /v1/agents/{agent_id}/improve"]["responses"] == {}  # not typed yet (WP 1.6c)
+    assert ops["POST /v1/agents/{agent_id}/chat/stream"]["responses"] == {}  # server-sent events: there is no JSON response to type
     assert "201" in ops["POST /v1/agents/{agent_id}/versions"]["responses"]  # a typed response is recorded under the code the route sends
 
 
@@ -84,5 +84,5 @@ def test_removing_retyping_or_making_optional_a_response_field_is_breaking():
 def test_adding_a_response_field_or_a_newly_typed_response_is_allowed():
     def add(ops):
         ops[CHAT]["responses"]["200"]["properties"]["language"] = {"type": "string"}
-        ops["POST /v1/agents/{agent_id}/improve"]["responses"] = {"200": {"type": "object"}}
+        ops["POST /v1/agents/{agent_id}/chat/stream"]["responses"] = {"200": {"type": "object"}}
     assert changed(add) == []

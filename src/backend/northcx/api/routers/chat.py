@@ -12,7 +12,7 @@ from northcx.access import Identity
 from northcx.api.common import _err, _pieces
 from northcx.api.deps import AppDeps
 from northcx.api.models import ChatBody
-from northcx.api.responses import Attachments, ChatResponse, Outbox
+from northcx.api.responses import Attachment, Attachments, ChatResponse, Outbox
 from northcx.attachments import accept as accept_attachment, AttachmentError, check_accepted, MAX_BYTES
 from northcx.catalog import AgentUnavailable
 from northcx.idempotency import request_hash, scope_hash, valid_key
@@ -59,7 +59,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(400, "attachment_not_accepted", str(e))
         return found
 
-    @app.put("/v1/sessions/{session_id}/attachments", status_code=201)
+    @app.put("/v1/sessions/{session_id}/attachments", status_code=201, responses={201: {"model": Attachment}})
     async def upload_attachment(session_id: str, request: Request, filename: str | None = None) -> Any:
         """Upload one file (the request body is the file itself). It is identified by its content, size-limited, optionally scanned, and kept with the conversation."""
         who: Identity = request.state.identity

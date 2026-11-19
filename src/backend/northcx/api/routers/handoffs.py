@@ -10,7 +10,7 @@ from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import ReplyBody, ResolveBody
-from northcx.api.responses import Handoff, HandoffDetail, HandoffInbox, HandoffList, HandoffReply
+from northcx.api.responses import Handoff, HandoffAssist, HandoffDetail, HandoffInbox, HandoffList, HandoffReply
 from northcx.assist import AssistError
 from northcx.decision_teams import note_team
 from northcx.handoffs import PERSON_PREFIX, return_note
@@ -97,7 +97,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "handoff.reply", handoff_id, length=len(text))
         return {"sent": True, "messageId": m.id}
 
-    @app.post("/v1/handoffs/{handoff_id}/assist")
+    @app.post("/v1/handoffs/{handoff_id}/assist", responses={200: {"model": HandoffAssist}})
     async def handoff_assist(handoff_id: str, request: Request) -> Any:
         """Draft suggestions (reply, next steps, key facts, cautions) for the person handling this hand-off. Suggestions only: nothing is sent."""
         if runtime.assist is None:
