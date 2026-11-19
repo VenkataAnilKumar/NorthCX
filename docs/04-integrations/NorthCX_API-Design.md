@@ -68,7 +68,7 @@ The **Agent API** is every operation tagged `agents`, `sessions`, `simulations`,
 
 **Checked by** `tests/test_agent_api_contract.py`: it fails on a breaking change and when the snapshot is out of date. `python scripts/gen_agent_api_contract.py` rewrites the snapshot and refuses when the change is breaking.
 
-**Not covered.** Responses: the routes return untyped JSON today, so there is no response schema to compare. Typing the responses of the contract routes is future work, not scheduled.
+**Not covered.** Responses: the routes return untyped JSON today, so there is no response schema to compare. Typing them is WP 1.6 in the plan.
 
 Built since this section was first written: server-sent events for streaming and signed webhooks for status events. Still open: consistent pagination across every list (most lists take `limit` and some `before` or `after`). The staff platform adds `/v1/workspace/*`, `/v1/hub/*` and policy routes (designed, `../13-workspace/NorthCX_Staff-Platform-Architecture.md`).
 
@@ -95,7 +95,7 @@ Built since this section was first written: server-sent events for streaming and
 | GET | `/templates`, `/templates/{id}` | Agent templates and their parameters (built) |
 | POST | `/templates/{id}/render` | `{agentId, params}`: the filled-in spec YAML, scenario YAML, missing tools and warnings; saves nothing (`versions:create`) (built) |
 | POST | `/templates/{id}/create-version` | Render and save as a new version of `agentId`; refused when the deployment lacks a tool the template needs (built) |
-| GET | `/catalog` | The building blocks an editor can offer: tools (effect, source, approval, inputs), guardrails with an example setting, input and output checks, skills (built) |
+| GET | `/catalog` | The building blocks an editor can offer: tools (effect, source, fingerprint, approval, inputs), guardrails with an example setting, input and output checks, skills (built) |
 | POST | `/agents/{id}/versions/preview` | `{spec}`: every problem found, the digest, whether it equals the latest version, and what differs from production; saves nothing (`versions:create`) (built) |
 | GET | `/simulations/scenarios`, `/simulations/scenarios/{name}` | All scenarios (files and saved), with `source` (`file` or `managed`), `editable`, tags and digest; the detail includes the definition and its YAML (built) |
 | POST | `/simulations/scenarios/validate` | `{yaml}` or `{scenario}`: check a scenario without saving (`scenarios:write`) (built) |

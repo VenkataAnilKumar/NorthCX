@@ -15,7 +15,7 @@ from typing import Any, Callable, Iterable, Literal
 import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
-from .agent import Agent, Tool
+from .agent import Agent, Tool, tool_fingerprint
 from .attachments import ACCEPTED_KINDS as ATTACHMENT_KINDS
 from .transfers import RouteSpec, check_routes
 from .journeys import JourneySpec, to_skill as journey_skill
@@ -287,7 +287,7 @@ class Registry:
         tools = []
         for n in self.tool_names():
             t = self._tools[n]
-            tools.append({"name": n, "description": t.description, "effect": t.effect, "source": t.source, "approval": t.requires_approval is not None,
+            tools.append({"name": n, "description": t.description, "effect": t.effect, "source": t.source, "fingerprint": tool_fingerprint(t), "approval": t.requires_approval is not None,
                           "inputs": list(t.input_model.model_json_schema().get("properties", {}))})
         return {"tools": tools,
                 "guardrails": [{"name": n, "description": DESCRIPTIONS.get(n, ""), "example": examples.get(n)} for n in self.guardrail_names()],

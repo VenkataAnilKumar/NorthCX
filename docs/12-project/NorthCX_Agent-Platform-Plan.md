@@ -40,8 +40,9 @@ No behaviour change; the existing suite is the safety net.
 | 1.4 | A conformance suite for the runtime's guarantees on any tool source (this absorbs the old WP 1.3: the runtime already applies them to every tool) | Green for the YAML connectors and a second in-test source |
 | 1.1 | The Agent API contract: a stated set of routes, a checked-in snapshot and a stability rule (add fields only within `/v1`) | Test fails on a removed or retyped field in a contract route |
 | 1.5 | Deferred: no staff tool needs approval today; returns with the Phase 5 `tool` step | Recorded below |
+| 1.6 | Type the responses of the contract routes and add them to the snapshot | The test fails on a removed or retyped response field |
 
-Details and research: `../04-integrations/NorthCX_Tool-Gateway.md`. Order: 1.2, 1.4, 1.1. The `ToolSource` interface is designed with the MCP client (WP 2.1).
+Details and research: `../04-integrations/NorthCX_Tool-Gateway.md`. Order: 1.2, 1.4, 1.1, 1.6. The `ToolSource` interface is designed with the MCP client (WP 2.1).
 
 ### Phase 2: Integrations (L)
 | WP | Work | Exit check | Needs |
@@ -129,7 +130,9 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 0.4 cloud-model pass | Blocked | Needs cloud model keys |
 | 0.5 D1 and penetration test | Blocked | Needs the owner's decision and an outside tester |
 | 1.x stages 1 to 4 (research to architecture) | Done | `NorthCX_Tool-Gateway.md`; WP 1.3 folded into 1.4, WP 1.5 deferred |
-| 1.2 tool source, registration and fingerprint | In review | 14 new tests; full backend suite 1,605 passed, existing tests unedited |
-| 1.4 conformance suite | In review | `tests/test_tool_conformance.py`: 9 guarantees on the YAML connector source and a Python source (18 tests); removing the secret redaction, dry-run or duplicate-write protection from the runtime makes 6 of them fail |
-| 1.1 Agent API contract | In review | Snapshot of 61 operations, stability rule, 7 tests (a removed route, a removed or retyped or newly required request field or parameter, and a lost enum value each fail; additions pass). Responses are untyped, so not covered. "Screens use only it" is not checked and is not claimed |
+| 1.2 tool source, registration and fingerprint | Done | 14 new tests; full backend suite 1,605 passed, existing tests unedited |
+| 1.4 conformance suite | Done | `tests/test_tool_conformance.py`: 9 guarantees on the YAML connector source and a Python source (18 tests); removing the secret redaction, dry-run or duplicate-write protection from the runtime makes 6 of them fail |
+| 1.1 Agent API contract | Done | Snapshot of 61 operations, stability rule, 7 tests (a removed route, a removed or retyped or newly required request field or parameter, and a lost enum value each fail; additions pass). Responses are untyped, so not covered (WP 1.6). The original exit "screens use only it" is dropped: the Studio also uses admin routes (keys, routing, policies) that are not part of the Agent API |
+| 1.5 acting identity | Deferred | No staff tool needs approval; returns with Phase 5 |
+| 1.6 typed responses for the contract routes | Not started | |
 | Phases 2 to 7 | Not started | |
