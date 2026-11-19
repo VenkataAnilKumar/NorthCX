@@ -151,7 +151,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 2.4 catalogue, 2.6 network needs | Done | Catalogue `connection` and `triggerInfo` fields; residency report gained providers-file models and routine destinations; a test ties the network page to the report. Phase 2 is done except 2.5 (blocked) |
 | 3.1 AG-UI check | Done, unverified | `docs/01-chat/NorthCX_AG-UI-Check.md`: `docs.ag-ui.com` did not resolve from this environment, so the shape comes from the project's GitHub page and search summaries of the draft spec; five points to confirm are listed. Finding: a held action is decided by staff, not the customer, so AG-UI resume applies to the staff surfaces only |
 | 3.2 AG-UI endpoint | Done, wire shape unverified | `POST /v1/agents/{id}/agui`; 9 tests (same text and tool calls as the existing stream, interrupt, resume by staff only, refusals); the stream's setup was moved into one function both endpoints use (its 7 tests unchanged). Agent API contract: 62 operations, additions only. No real AG-UI client has been tried |
-| Phases 3 (3.3 to 3.6) to 7 | Not started | |
+| 3.3 test console | Done | Tool cards, inline approve and reject, expiry noticed, trace in words: 13 new unit and component tests, plus a real-browser run of approve and reject added to the smoke test (passes against the demo stack with an API key). Decision 204: assistant-ui not adopted |
+| Phases 3 (3.4 to 3.6) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.

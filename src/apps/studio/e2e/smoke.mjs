@@ -157,6 +157,22 @@ await page.goto(`${WEB}/sso?error=Your+account+has+no+role`);
 await page.getByText("no role").waitFor();
 check(true, "sso landing: error shown");
 
+// test console: a refund over the limit is held as a card; approve it in one conversation and reject another, from the card
+await page.goto(`${WEB}/chat`);
+await page.getByRole("option", { name: "support" }).waitFor({ state: "attached" });
+for (const [verb, order, done] of [["Approve", "2077", /Approved by/], ["Reject", "2078", /Rejected by/]]) {
+  await page.getByRole("button", { name: "New conversation" }).click();
+  await page.getByLabel("Message").fill(`refund 240 for order ${order}`);
+  await page.getByRole("button", { name: "Send" }).click();
+  const card = page.getByRole("group", { name: "Approval: issue refund" });
+  await card.waitFor();
+  check((await card.innerText()).includes(`order_id ${order}, amount 240`), `console: held refund for ${order} shows what it would do`);
+  check((await page.getByRole("list", { name: "What happened, in words" }).innerText()).includes("Held issue refund for a person"), "console: the trace is shown in words");
+  await page.getByRole("button", { name: new RegExp(`^${verb} `) }).click();
+  await page.getByText(done).waitFor();
+  check(true, `console: ${verb.toLowerCase()} from the card`);
+}
+
 // the other main pages load without a client error
 for (const p of ["/hub", "/preferences", "/profile", "/", "/conversations", "/simulations", "/knowledge", "/handoffs", "/approvals", "/agents", "/access", "/chat", "/trust", "/org", "/channels", "/memory", "/privacy"]) {
   await page.goto(`${WEB}${p}`);

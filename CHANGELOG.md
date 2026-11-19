@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 3, WP 3.3, 2026-11-19)
+- Studio's test console shows each tool the agent used as a card, a held action as a card with Approve and Reject (one click decides it through the existing approvals route; a decision made elsewhere or an expiry is noticed and the buttons go away), and the trace as numbered sentences with the full event list one click away. No backend change. See `docs/01-chat/NorthCX_Test-Console.md`.
+
 ### Added (Phase 3, WP 3.2, 2026-11-19)
 - `POST /v1/agents/{agent_id}/agui`: a run as AG-UI events beside `chat/stream` (which is unchanged). A held action ends the run with an `interrupt` outcome; staff with `approvals:decide` answer by sending `resume`, which makes the same decision as the approvals route. A customer token cannot resume. The field names of the interrupt and resume are not confirmed against the specification. See `docs/01-chat/NorthCX_AG-UI-Endpoint.md`.
 
