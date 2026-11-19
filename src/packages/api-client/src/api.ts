@@ -266,7 +266,7 @@ export const searchConversations = (p: { q?: string; status?: string; tag?: stri
 export const addTag = (sessionId: string, tag: string) => api<{ tags: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/tags/${encodeURIComponent(tag)}`, { method: "PUT" });
 export const removeTag = (sessionId: string, tag: string) => api<{ tags: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/tags/${encodeURIComponent(tag)}`, { method: "DELETE" });
 
-export interface CatalogTool { name: string; description: string; effect: "read" | "write"; approval: boolean; inputs: string[] }
+export interface CatalogTool { name: string; description: string; effect: "read" | "write"; source?: string; approval: boolean; inputs: string[] }
 export interface Catalog {
   tools: CatalogTool[]; guardrails: { name: string; description: string; example: Record<string, unknown> | null }[];
   inputGuardrails: { name: string }[]; outputGuardrails: { name: string }[];

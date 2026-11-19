@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import inspect
+import json
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
@@ -44,6 +46,8 @@ class Tool:
     # when the actor holds `permission`, and acts with that person's rights, never more.
     audience: str = "customer"
     permission: str | None = None
+    # Where the tool was registered from (see `Registry.add_tools`); shown in the catalogue and on each tool_call trace event.
+    source: str = "registry"
 
     def __post_init__(self) -> None:
         if self.effect not in ("read", "write"):
@@ -66,6 +70,14 @@ class Tool:
     async def execute(self, data: BaseModel, ctx: ToolContext) -> Any:
         out = self.run(data, ctx)
         return await out if inspect.isawaitable(out) else out
+
+
+def tool_fingerprint(tool: Tool) -> str:
+    """A SHA-256 of the tool's definition: name, description, input schema, effect, audience, permission and whether it needs approval.
+    It changes when any of these change; it does not cover the code, the credentials or where the tool came from."""
+    definition = {"name": tool.name, "description": tool.description, "input_schema": tool.spec()["input_schema"], "effect": tool.effect,
+                  "audience": tool.audience, "permission": tool.permission, "approval": tool.requires_approval is not None}
+    return hashlib.sha256(json.dumps(definition, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
 
 
 @dataclass

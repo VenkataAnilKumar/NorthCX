@@ -129,4 +129,5 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 0.4 cloud-model pass | Blocked | Needs cloud model keys |
 | 0.5 D1 and penetration test | Blocked | Needs the owner's decision and an outside tester |
 | 1.x stages 1 to 4 (research to architecture) | Done | `NorthCX_Tool-Gateway.md`; WP 1.3 folded into 1.4, WP 1.5 deferred |
-| Phases 1 to 7 (work packages 1.1, 1.2, 1.4 and later) | Not started | |
+| 1.2 tool source, registration and fingerprint | In review | 14 new tests; full backend suite 1,605 passed, existing tests unedited |
+| Phases 1 (1.4, 1.1) to 7 | Not started | |

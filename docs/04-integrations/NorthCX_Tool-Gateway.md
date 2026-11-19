@@ -36,7 +36,7 @@ Read in this repository on 2026-11-19.
 - **Agent API (G6):** the contract covers chat and streaming chat, sessions, approvals, hand-offs, versions, releases, simulation runs, traces and events. The snapshot is `docs/api/agent-api-v1.json`; the rule is written in the API Design document.
 
 ## 5. Architecture
-- `Tool` gets `source: str` (default `"registry"`). `Registry.add_tools(source, tools)` sets it, refuses duplicates, and is used by every place that registers tools today; `bootstrap/agents.py` stops handling duplicates two different ways.
+- `Tool` gets `source: str` (default `"registry"`). `Registry.add_tools(source, tools)` sets it, refuses duplicates, and is used by every place that registers tools today; `bootstrap/agents.py` no longer registers tools one by one. Connectors refuse a name that is taken; the built-in sources (verification, knowledge, memory, staff) still yield to a deployment's own tool of the same name, as before, and say so in the code.
 - `tool_fingerprint(tool)` is a function in `northcx/agent.py`: SHA-256 of a canonical JSON form of the fields in G3.
 - The runtime adds `source` to the `tool_call` trace event. It changes nothing else.
 - **Alternatives rejected:** a gateway layer between the runtime and tools (repeats the runtime's checks; see section 2); a class hierarchy of tools (nothing needs it); doing the Agent API as a second HTTP layer (the existing routes are the API).

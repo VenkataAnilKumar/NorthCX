@@ -348,7 +348,8 @@ class Runtime:
             results: list[dict] = []
             pending_transfer = None
             for use in uses:
-                trace.add("tool_call", name=use["name"], input={"code": "******"} if use["name"] == "check_verification_code" else use["input"])  # (a one-time code is not kept in traces)
+                called = next((t for t in agent.tools if t.name == use["name"]), None)
+                trace.add("tool_call", name=use["name"], input={"code": "******"} if use["name"] == "check_verification_code" else use["input"], **({"source": called.source} if called else {}))  # (a one-time code is not kept in traces)
                 if progress:
                     try:
                         out = progress({"type": "tool", "name": use["name"]})

@@ -35,21 +35,15 @@ def build_agents(c: SimpleNamespace) -> None:
     try:
         reg = registry()
         if os.environ.get("NORTHCX_CONNECTORS_DIR"):
-            for tool in load_connectors(os.environ["NORTHCX_CONNECTORS_DIR"], allowed_hosts_from(os.environ.get("NORTHCX_CONNECTOR_HOSTS"))):
-                reg.tool(tool)  # a tool name that already exists is refused
+            reg.add_tools("connectors", load_connectors(os.environ["NORTHCX_CONNECTORS_DIR"], allowed_hosts_from(os.environ.get("NORTHCX_CONNECTOR_HOSTS"))))  # a tool name that already exists is refused
         if os.environ.get("NORTHCX_SKILLS_DIR"):
             for sk in load_skills(os.environ["NORTHCX_SKILLS_DIR"]):
                 reg.skill(sk)
         if verify_service is not None:
-            for t_ in verification_tools(verify_service):
-                if t_.name not in reg.tool_names():
-                    reg.tool(t_)
-        if "search_knowledge" not in reg.tool_names():
-            reg.tool(knowledge_tool(knowledge_repo))
+            reg.add_tools("verification", [t for t in verification_tools(verify_service) if t.name not in reg.tool_names()])  # the built-in tools yield to a deployment's own tool of the same name
+        reg.add_tools("knowledge", [t for t in [knowledge_tool(knowledge_repo)] if t.name not in reg.tool_names()])
         if runtime.memories is not None:
-            for t in memory_tools(runtime.memories):
-                if t.name not in reg.tool_names():
-                    reg.tool(t)
+            reg.add_tools("memory", [t for t in memory_tools(runtime.memories) if t.name not in reg.tool_names()])
         print(f"Tool secrets available: {', '.join(secrets.names()) or 'none'}")
         specs = {s.id: reg.pin_skills(s, overwrite=True) for s in load_specs(specs_dir)}  # spec files follow the skill files; the digest includes them
         baseline = {}
