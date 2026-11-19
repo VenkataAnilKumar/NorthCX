@@ -150,7 +150,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 2.3b operator screen | In review | Studio Connections page (Build): 11 component tests (permissions, the add form with labelled fields, review and approve with the fingerprints shown, a tool changed in between, checks in plain words, switch off, two-step delete) plus an api-client test; a real-browser walkthrough (Chromium against the built Studio, the backend and a real MCP server over HTTP on localhost): add, review (a poisoned description was left out), approve 2 tools, check, switch off and on, no page errors. Not tested: a screen reader, other browsers, a narrow screen; the smoke test in CI only checks that the page loads |
 | 2.4 catalogue, 2.6 network needs | Done | Catalogue `connection` and `triggerInfo` fields; residency report gained providers-file models and routine destinations; a test ties the network page to the report. Phase 2 is done except 2.5 (blocked) |
 | 3.1 AG-UI check | Done, unverified | `docs/01-chat/NorthCX_AG-UI-Check.md`: `docs.ag-ui.com` did not resolve from this environment, so the shape comes from the project's GitHub page and search summaries of the draft spec; five points to confirm are listed. Finding: a held action is decided by staff, not the customer, so AG-UI resume applies to the staff surfaces only |
-| Phases 3 (3.2 to 3.6) to 7 | Not started | |
+| 3.2 AG-UI endpoint | Done, wire shape unverified | `POST /v1/agents/{id}/agui`; 9 tests (same text and tool calls as the existing stream, interrupt, resume by staff only, refusals); the stream's setup was moved into one function both endpoints use (its 7 tests unchanged). Agent API contract: 62 operations, additions only. No real AG-UI client has been tried |
+| Phases 3 (3.3 to 3.6) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.

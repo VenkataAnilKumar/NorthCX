@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 3, WP 3.2, 2026-11-19)
+- `POST /v1/agents/{agent_id}/agui`: a run as AG-UI events beside `chat/stream` (which is unchanged). A held action ends the run with an `interrupt` outcome; staff with `approvals:decide` answer by sending `resume`, which makes the same decision as the approvals route. A customer token cannot resume. The field names of the interrupt and resume are not confirmed against the specification. See `docs/01-chat/NorthCX_AG-UI-Endpoint.md`.
+
 ### Documentation (Phase 3, WP 3.1, 2026-11-19)
 - `docs/01-chat/NorthCX_AG-UI-Check.md`: what the AG-UI interrupt and resume model says, where it differs from our design and from how approvals work today, and five requirements for the AG-UI endpoint (WP 3.2). Directional only: the specification site could not be reached, and the wire shape differs between the sources.
 

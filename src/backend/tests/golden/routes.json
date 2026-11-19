@@ -152,6 +152,7 @@
   "POST /channels/whatsapp/meta": "/channels/whatsapp/meta -> whatsapp_inbound",
   "POST /scim/v2/Groups": "/scim/v2/Groups -> create_group",
   "POST /scim/v2/Users": "/scim/v2/Users -> create_user",
+  "POST /v1/agents/x/agui": "/v1/agents/{agent_id}/agui -> agui_run",
   "POST /v1/agents/x/chat": "/v1/agents/{agent_id}/chat -> chat",
   "POST /v1/agents/x/chat/stream": "/v1/agents/{agent_id}/chat/stream -> chat_stream",
   "POST /v1/agents/x/improve": "/v1/agents/{agent_id}/improve -> improve_agent",
@@ -1043,6 +1044,11 @@
    "POST",
    "/scim/v2/Users",
    "create_user"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/agui",
+   "agui_run"
   ],
   [
    "POST",
