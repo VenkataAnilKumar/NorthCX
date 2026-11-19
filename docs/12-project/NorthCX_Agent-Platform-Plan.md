@@ -131,4 +131,5 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 1.x stages 1 to 4 (research to architecture) | Done | `NorthCX_Tool-Gateway.md`; WP 1.3 folded into 1.4, WP 1.5 deferred |
 | 1.2 tool source, registration and fingerprint | In review | 14 new tests; full backend suite 1,605 passed, existing tests unedited |
 | 1.4 conformance suite | In review | `tests/test_tool_conformance.py`: 9 guarantees on the YAML connector source and a Python source (18 tests); removing the secret redaction, dry-run or duplicate-write protection from the runtime makes 6 of them fail |
-| Phases 1 (1.1) to 7 | Not started | |
+| 1.1 Agent API contract | In review | Snapshot of 61 operations, stability rule, 7 tests (a removed route, a removed or retyped or newly required request field or parameter, and a lost enum value each fail; additions pass). Responses are untyped, so not covered. "Screens use only it" is not checked and is not claimed |
+| Phases 2 to 7 | Not started | |

@@ -1,0 +1,1845 @@
+{
+  "contract": "NorthCX Agent API",
+  "version": "v1",
+  "groups": [
+    "agents",
+    "sessions",
+    "simulations",
+    "handoffs",
+    "approvals",
+    "traces",
+    "events"
+  ],
+  "operations": {
+    "DELETE /v1/sessions/{session_id}/tags/{tag}": {
+      "permission": "conversations:tag",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "tag",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "DELETE /v1/simulations/scenarios/{name}": {
+      "permission": "scenarios:write",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents": {
+      "permission": "agents:read",
+      "parameters": [],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/environments": {
+      "permission": "versions:read",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/live": {
+      "permission": "agents:read",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "environment",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/qualifications": {
+      "permission": "versions:read",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/releases": {
+      "permission": "versions:read",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "environment",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/rollouts": {
+      "permission": "versions:read",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/rollouts/{rollout_id}/comparison": {
+      "permission": "insights:read",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "rollout_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/versions": {
+      "permission": "versions:read",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/versions/{a}/diff/{b}": {
+      "permission": "versions:read",
+      "parameters": [
+        {
+          "name": "a",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "b",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/versions/{number}": {
+      "permission": "versions:read",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "number",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/agents/{agent_id}/versions/{number}/checklist": {
+      "permission": "versions:read",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "number",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "environment",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/approvals": {
+      "permission": "approvals:read",
+      "parameters": [
+        {
+          "name": "state",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/events": {
+      "permission": "audit:read",
+      "parameters": [
+        {
+          "name": "after",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/events/types": {
+      "permission": "audit:read",
+      "parameters": [],
+      "request": null
+    },
+    "GET /v1/handoffs": {
+      "permission": "handoffs:read",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "queue",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sessionId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        {
+          "name": "state",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/handoffs/{handoff_id}": {
+      "permission": "handoffs:read",
+      "parameters": [
+        {
+          "name": "handoff_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/handoffs/{handoff_id}/inbox": {
+      "permission": "handoffs:read",
+      "parameters": [
+        {
+          "name": "handoff_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/sessions/{session_id}/attachments": {
+      "permission": "traces:read",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/sessions/{session_id}/outbox": {
+      "permission": "outbox:read",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "after",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/sessions/{session_id}/scenario-draft": {
+      "permission": "simulations:run",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/sessions/{session_id}/tags": {
+      "permission": "traces:read",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/sessions/{session_id}/transcript": {
+      "permission": "traces:read",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/simulations/gate": {
+      "permission": "simulations:read",
+      "parameters": [
+        {
+          "name": "agent",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        {
+          "name": "version",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/simulations/runs": {
+      "permission": "simulations:read",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/simulations/runs/{run_id}": {
+      "permission": "simulations:read",
+      "parameters": [
+        {
+          "name": "run_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/simulations/scenarios": {
+      "permission": "simulations:read",
+      "parameters": [],
+      "request": null
+    },
+    "GET /v1/simulations/scenarios/{name}": {
+      "permission": "simulations:read",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/traces": {
+      "permission": "traces:read",
+      "parameters": [
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "sessionId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/traces/{trace_id}": {
+      "permission": "traces:read",
+      "parameters": [
+        {
+          "name": "trace_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "GET /v1/traces/{trace_id}/exports": {
+      "permission": "traces:read",
+      "parameters": [
+        {
+          "name": "trace_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "POST /v1/agents/{agent_id}/chat": {
+      "permission": "chat:send",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "message": {
+              "type": "string",
+              "maxLength": 8000,
+              "minLength": 1
+            },
+            "customerId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "channel": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{1,19}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "environment": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(dev|staging|production)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "attachments": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "maxItems": 5
+            }
+          },
+          "type": "object",
+          "required": [
+            "sessionId",
+            "message"
+          ]
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/chat/stream": {
+      "permission": "chat:send",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "message": {
+              "type": "string",
+              "maxLength": 8000,
+              "minLength": 1
+            },
+            "customerId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "channel": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{1,19}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "environment": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(dev|staging|production)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "attachments": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "maxItems": 5
+            }
+          },
+          "type": "object",
+          "required": [
+            "sessionId",
+            "message"
+          ]
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/improve": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "days": {
+              "type": "integer",
+              "maximum": 90.0,
+              "minimum": 1.0
+            },
+            "focus": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 300
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "createDraft": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/journeys/draft": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {},
+          "type": "object",
+          "required": [
+            "description"
+          ]
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/journeys/scenarios": {
+      "permission": "simulations:run",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "journey": {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          },
+          "type": "object",
+          "required": [
+            "journey"
+          ]
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/promote": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "to": {
+              "type": "string"
+            },
+            "by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object",
+          "required": [
+            "to"
+          ]
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/qualifications": {
+      "permission": "scenarios:require",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "maxLength": 300,
+              "minLength": 1
+            },
+            "runId": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            }
+          },
+          "type": "object",
+          "required": [
+            "model",
+            "runId"
+          ]
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/releases": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "version": {
+              "type": "integer",
+              "minimum": 1.0
+            },
+            "environment": {
+              "type": "string"
+            },
+            "by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object",
+          "required": [
+            "version"
+          ]
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/rollback": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "environment": {
+              "type": "string"
+            },
+            "toVersion": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1.0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/rollouts": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "version": {
+              "type": "integer"
+            },
+            "percent": {
+              "type": "integer"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object",
+          "required": [
+            "version",
+            "percent"
+          ]
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/rollouts/{rollout_id}/abort": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "rollout_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "POST /v1/agents/{agent_id}/rollouts/{rollout_id}/promote": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "rollout_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "properties": {
+                "to": {
+                  "type": "string"
+                },
+                "by": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "note": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 1000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "type": "object",
+              "required": [
+                "to"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/versions": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "spec": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "specYaml": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fromBaseline": {
+              "type": "boolean"
+            },
+            "by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "POST /v1/agents/{agent_id}/versions/preview": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "spec": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "specYaml": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fromBaseline": {
+              "type": "boolean"
+            },
+            "by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "POST /v1/approvals/expire": {
+      "permission": "approvals:decide",
+      "parameters": [],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "olderThanSeconds": {
+              "type": "number",
+              "minimum": 0.0
+            }
+          },
+          "type": "object",
+          "required": [
+            "olderThanSeconds"
+          ]
+        }
+      }
+    },
+    "POST /v1/approvals/{approval_id}/decision": {
+      "permission": "approvals:decide",
+      "parameters": [
+        {
+          "name": "approval_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "approved": {
+              "type": "boolean"
+            },
+            "by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object",
+          "required": [
+            "approved"
+          ]
+        }
+      }
+    },
+    "POST /v1/events/test": {
+      "permission": "keys:manage",
+      "parameters": [],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "type": {
+              "type": "string",
+              "maxLength": 60
+            }
+          },
+          "type": "object",
+          "required": [
+            "type"
+          ]
+        }
+      }
+    },
+    "POST /v1/handoffs/{handoff_id}/assist": {
+      "permission": "handoffs:resolve",
+      "parameters": [
+        {
+          "name": "handoff_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "POST /v1/handoffs/{handoff_id}/reply": {
+      "permission": "handoffs:resolve",
+      "parameters": [
+        {
+          "name": "handoff_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 2000,
+              "minLength": 1
+            },
+            "by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object",
+          "required": [
+            "text"
+          ]
+        }
+      }
+    },
+    "POST /v1/handoffs/{handoff_id}/resolve": {
+      "permission": "handoffs:resolve",
+      "parameters": [
+        {
+          "name": "handoff_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "by": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "returnToAgent": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "POST /v1/sessions/{session_id}/feedback": {
+      "permission": "feedback:send",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "rating": {
+              "type": "integer",
+              "maximum": 5.0,
+              "minimum": 1.0
+            },
+            "comment": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "type": "object",
+          "required": [
+            "rating"
+          ]
+        }
+      }
+    },
+    "POST /v1/simulations/runs": {
+      "permission": "simulations:run",
+      "parameters": [],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "mode": {
+              "type": "string"
+            },
+            "only": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "skipJudge": {
+              "type": "boolean"
+            },
+            "agent": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1.0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 300
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "POST /v1/simulations/scenarios": {
+      "permission": "scenarios:write",
+      "parameters": [],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "yaml": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "scenario": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "POST /v1/simulations/scenarios/validate": {
+      "permission": "scenarios:write",
+      "parameters": [],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "yaml": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "scenario": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      }
+    },
+    "PUT /v1/agents/{agent_id}/rollouts/{rollout_id}/percent": {
+      "permission": "versions:create",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "rollout_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "percent": {
+              "type": "integer"
+            }
+          },
+          "type": "object",
+          "required": [
+            "percent"
+          ]
+        }
+      }
+    },
+    "PUT /v1/sessions/{session_id}/attachments": {
+      "permission": "chat:send",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "filename",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      ],
+      "request": null
+    },
+    "PUT /v1/sessions/{session_id}/review": {
+      "permission": "reviews:write",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "verdict": {
+              "type": "string"
+            },
+            "handoff": {
+              "type": "string"
+            },
+            "failures": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "maxItems": 9
+            },
+            "note": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "type": "object",
+          "required": [
+            "verdict"
+          ]
+        }
+      }
+    },
+    "PUT /v1/sessions/{session_id}/tags/{tag}": {
+      "permission": "conversations:tag",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "tag",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null
+    },
+    "PUT /v1/simulations/scenarios/{name}": {
+      "permission": "scenarios:write",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "yaml": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "scenario": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      }
+    }
+  }
+}
