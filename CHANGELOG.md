@@ -14,6 +14,10 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Quality bar in `CLAUDE.md` and the plan (owner's instruction): no vague or dead requirements, no dead code or placeholders, no fake behaviour or invented figures, no filler; a feature is built only when it works end to end with tests; every pull request says what was verified.
 - Engineering rules in `CLAUDE.md`: one work package per pull request; additive or versioned changes and tested upgrades; no single-provider assumptions; privacy, observability and measurement in every change; justified dependencies; plain, accessible screens; blocked work recorded, never faked.
 
+### Fixed (2026-11-19)
+- Tenancy preview: chat tokens minted by a suspended tenant's keys kept working until they expired; they are now refused at once, as the keys are. The tenant isolation threat model said this already held; it now does, with a test.
+- Approvals: why an approved action ran or not was kept only on the approval record; the outcome and the execution-time checks' events are now added to the trace of the turn that asked. A turn's length in Insights now ends at its reply, so the later record does not change latency figures.
+
 ### Fixed (2026-11-18)
 - Approvals: an approved action was refused at execution when its tool scope limited it to a channel or to verified customers, because the re-check ran without the turn's channel and without the facts the runtime works out live. The re-check and the tool now get the same context (channel from the held turn's trace; facts from the store, the company's systems and the platform's identity check as at execution). Regression tests added, including that a verification that lapsed before approval still blocks.
 - Container images: the Studio and Workspace images each build only their own app (`npm run build -w <app>`). They ran the root build, which builds both apps, but each image holds only one, so `docker compose up --build` (and the CI `stack` job) failed since 2026-11-09.

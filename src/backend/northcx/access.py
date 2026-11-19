@@ -267,6 +267,8 @@ class AccessControl:
             if k is None or not k.active() or "chat:mint" not in ROLES.get(k.role, frozenset()):
                 return None, "invalid"
             tenant = k.tenant_id                    # the conversation belongs to the tenant of the key that opened it, never to the default tenant
+            if self.tenants is not None and tenant != DEFAULT_TENANT and not await self.tenants.is_active(tenant):
+                return None, "invalid"              # suspending a tenant ends its customers' chat tokens at once, as it ends its keys
         return Identity(f"customer session {c.sid[:12]}", "customer_session", f"tok:{c.sid}", False, c.sid, c.cid, c.agent, tenant=tenant), None
 
     async def _key(self, token: str | None) -> Identity | None:

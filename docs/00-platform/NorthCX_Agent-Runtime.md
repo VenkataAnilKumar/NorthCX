@@ -29,7 +29,7 @@ Status: **Built**. Updated: 2026-11-09. Master for: the agent run loop, skills, 
 
 ## Design rules
 - The runtime depends only on the `LLM` interface; a scripted model is used in tests.
-- Tool errors never crash a run; the model sees them and can recover.
+- Tool errors never crash a run; the model sees them and can recover. The error's text is shown to the model (known secrets redacted) and may be repeated to the customer, so a tool raises messages written for that reader, never internal detail; connectors already return safe messages.
 - Blocking decisions always include a reason that is traced.
 - Every exit path saves history and the trace, and saved history is always valid: every `tool_use` is answered and the last turn is the assistant's.
 - Guardrail errors count as denials (fail closed); model errors escalate instead of crashing.

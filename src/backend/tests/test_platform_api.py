@@ -202,3 +202,16 @@ def test_channel_status_lists_what_is_on_and_no_credentials():
     assert rows["web"]["configured"] is True and {"email", "sms", "whatsapp", "telegram", "voice"} <= set(rows)
     assert all(set(c) <= {"id", "label", "configured", "inbound", "note"} for c in rows.values())    # nothing else, so no secret can leak
     assert web.get("/v1/channels").status_code in (401, 403)
+
+
+def test_a_suspended_tenants_chat_tokens_stop_working_at_once():
+    # Chat tokens are minted by a tenant's key; suspending the tenant must end them as it ends the keys, not when they expire.
+    web, plat, key, ac, rt, run = world()
+    plat.post("/platform/v1/tenants", headers=P, json={"id": "acme", "name": "Acme"})
+    k, _ = run(ac.issue("acme-web", "admin", "t", tenant_id="acme"))
+    token, _ = ac.signer.mint(sid="web-1", kid=k.key_id, agent="support", ttl=600)
+    assert run(ac.authenticate(token)) is not None
+    plat.post("/platform/v1/tenants/acme/suspend", headers=P)
+    assert run(ac.authenticate(token)) is None
+    plat.post("/platform/v1/tenants/acme/resume", headers=P)
+    assert run(ac.authenticate(token)) is not None
