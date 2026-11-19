@@ -68,6 +68,7 @@ function TriggerForm({ value, onChange, catalog, readOnly }: { value: Definition
       <h3 className="font-semibold">Trigger</h3>
       <label className="block">Starts<select className="field mt-1 w-full" disabled={readOnly} value={t.type} onChange={(e) => onChange({ ...value, trigger: { type: e.target.value, ...(e.target.value === "schedule" ? { everyHours: 24 } : {}), ...(e.target.value === "event" ? { event: catalog?.events[0] ?? "" } : {}) } })}>
         {(catalog?.triggers ?? ["manual", "schedule", "webhook", "event"]).map((k) => <option key={k} value={k}>{KIND_LABEL[k] ?? k}</option>)}</select></label>
+      <p className="text-xs text-muted">{catalog?.triggerInfo.find((i) => i.type === t.type)?.description}</p>
       {t.type === "schedule" && <label className="block">Every (hours)<input type="number" min={1} max={720} className="field mt-1 w-full" disabled={readOnly} value={t.everyHours ?? 24} onChange={(e) => set({ everyHours: Number(e.target.value) })} /></label>}
       {t.type === "event" && <label className="block">When this happens<select className="field mt-1 w-full" disabled={readOnly} value={t.event ?? ""} onChange={(e) => set({ event: e.target.value })}><option value="">Choose…</option>{(catalog?.events ?? []).map((k) => <option key={k}>{k}</option>)}</select></label>}
       <label className="block">Name<input className="field mt-1 w-full" disabled={readOnly} value={value.name ?? ""} onChange={(e) => onChange({ ...value, name: e.target.value })} /></label>

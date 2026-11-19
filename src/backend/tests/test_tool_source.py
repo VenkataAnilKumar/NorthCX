@@ -96,3 +96,11 @@ def test_the_catalogue_shows_each_tools_fingerprint():
     r.add_tools("connectors", [t])
     (entry,) = r.describe()["tools"]
     assert entry["fingerprint"] == tool_fingerprint(t)
+
+
+def test_describe_names_the_connection_of_an_mcp_tool_and_only_that():
+    r = Registry()
+    r.add_tools("mcp", [tool("shop__lookup"), tool("shop__refund__v2")])
+    r.add_tools("connectors", [tool("crm__find")])
+    by = {t["name"]: t["connection"] for t in r.describe()["tools"]}
+    assert by == {"shop__lookup": "shop", "shop__refund__v2": "shop", "crm__find": None}

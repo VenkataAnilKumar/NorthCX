@@ -768,3 +768,12 @@ def test_the_pilot_can_propose_a_coaching_note_and_it_is_added_only_on_confirmat
     assert c.get("/v1/quality/coaching?sessionId=w1", headers=ann).json()["notes"] == []
     assert c.post(f"/v1/workspace/actions/{a['id']}/confirm", headers=ann).json()["result"] == "Coaching note added"
     assert [n["about"] for n in c.get("/v1/quality/coaching?sessionId=w1", headers=ann).json()["notes"]] == ["rae"]
+
+
+def test_the_automations_catalogue_describes_each_trigger_in_words_and_matches_what_is_accepted():
+    app, rt, key, loop = world()
+    cat = TestClient(app).get("/v1/automations-catalog", headers=key("ann", "release_manager")).json()
+    assert cat["triggers"] == ["manual", "schedule", "webhook", "event"]                    # the existing field is unchanged
+    info = {t["type"]: t for t in cat["triggerInfo"]}
+    assert list(info) == cat["triggers"] and all(t["label"] and len(t["description"]) > 20 for t in info.values())
+    assert info["event"]["events"] == cat["events"] and "events" not in info["schedule"]

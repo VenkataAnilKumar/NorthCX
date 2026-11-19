@@ -11,7 +11,7 @@ from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import AutomationBody, AutomationDecisionBody, AutomationDraftBody, AutomationRunBody, AutomationSettingsBody, OrgPolicyDecisionBody
-from northcx.automations import AutomationError, AutomationService, Hooks, InMemoryAutomations, validate_definition
+from northcx.automations import AutomationError, AutomationService, Hooks, InMemoryAutomations, TRIGGER_TYPES, validate_definition
 from northcx.release_requests import principal
 
 
@@ -278,7 +278,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """What a routine may name: the choices the editor offers."""
         h = svc.hooks
         return {"reports": sorted(h.reports) if h else [], "events": sorted(h.event_types) if h else [], "destinations": sorted(h.destinations) if h else [],
-                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "person", "tag", "notify", "output"], "triggers": ["manual", "schedule", "webhook", "event"]}
+                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "person", "tag", "notify", "output"], "triggers": list(TRIGGER_TYPES),
+                "triggerInfo": [{"type": k, "label": label, "description": text, **({"events": sorted(h.event_types) if h else []} if k == "event" else {})} for k, (label, text) in TRIGGER_TYPES.items()]}
 
     @app.post("/v1/automations/convert")
     async def convert(body: AutomationBody) -> Any:

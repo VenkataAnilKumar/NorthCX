@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 2, WP 2.4, 2026-11-19)
+- `GET /v1/catalog`: each tool has a new `connection` field (the MCP connection it comes from, otherwise `null`). `GET /v1/automations-catalog`: new `triggerInfo` (type, label, description; the event trigger also lists its events); `triggers` is unchanged. Studio's agent editor groups tools by source and connection; the Workspace routine editor describes the chosen trigger. See `docs/04-integrations/NorthCX_Integration-Catalogue.md`.
+
 ### Documentation (hybrid models, 2026-11-18)
 - The product is hybrid (decision 198): local and cloud models side by side, each qualified per agent; Claude is one cloud option. New `docs/09-models/NorthCX_Local-Models-Guide.md` (providers file, plain-http rule, qualification through the server; not yet run against a real local server). README, Product Definition (principle 6), Agent Platform design (decision 3, phases 0a and 0b), Models overview, Model-Providers (a stale "not built" line), Project Status, session prompts and CLAUDE.md updated.
 

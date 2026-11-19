@@ -53,7 +53,7 @@ Stages 1 to 4 are written in `../04-integrations/NorthCX_MCP-Integration.md` (re
 | 2.1 | `ToolSource` interface; YAML connectors as its first source; an MCP client on the official SDK, against the 2026-07-28 specification and the earlier handshake revisions | The conformance suite passes for the MCP source against a fake server; existing connector tests unchanged | The owner's exception to decision 199 (granted 2026-11-19) |
 | 2.2 | Trust rules: tools default to write unless the connection is trusted; a write needs approval; tool lists pinned by fingerprint, re-approval on change; output screened as untrusted | Injection and changed-tool-list scenarios pass | |
 | 2.3 | Stored connections; an operator screen for allowed hosts, servers and secrets (2.3a the backend, 2.3b the screen) | An operator adds a connection and approves its tools without editing files | |
-| 2.4 | One catalogue of tools and triggers, read by Studio and Automations | Catalogue API with tests | |
+| 2.4 | One catalogue of tools and triggers, read by Studio and Automations | Catalogue API with tests | Built 2026-11-19; connector-event triggers wait for 5.3 |
 | 2.5 | Connectors for the target market: helpdesk first, then commerce, then payments (vendor MCP servers where documented, otherwise YAML); writes need approval | Sandbox demonstration: ticket lookup, order lookup, a refund held for approval | **Vendor sandbox accounts (none; owner, 2026-11-19)** |
 | 2.6 | A network-needs page and residency entries for every connection | Every external host is listed | |
 
@@ -148,7 +148,7 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 2.2 trust rules for MCP tools | Done | Pinned tool list (added, changed or removed tools are not offered), instructions in descriptions never offered, results and error text always screened, including after an approval; 23 new tests; mutation checks (ignoring the pin, removing the default screen) fail them. Library level; the audit entries move to WP 2.3 |
 | 2.3a stored MCP connections and routes | Done | Migration 0057; service, gate, 8 routes with permissions and audit; 38 new tests, including the Postgres store and its tenant isolation (run locally against Postgres 16 and in CI); gate check 1.6 ms measured locally. Works through the API; not a screen yet. Default tenant only; agent files cannot name MCP tools |
 | 2.3b operator screen | In review | Studio Connections page (Build): 11 component tests (permissions, the add form with labelled fields, review and approve with the fingerprints shown, a tool changed in between, checks in plain words, switch off, two-step delete) plus an api-client test; a real-browser walkthrough (Chromium against the built Studio, the backend and a real MCP server over HTTP on localhost): add, review (a poisoned description was left out), approve 2 tools, check, switch off and on, no page errors. Not tested: a screen reader, other browsers, a narrow screen; the smoke test in CI only checks that the page loads |
-| Phases 2 (2.4, 2.6) to 7 | Not started | |
+| Phases 2 (2.6) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.
