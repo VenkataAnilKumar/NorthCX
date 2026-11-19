@@ -1,6 +1,6 @@
 # NorthCX Tool Gateway (Phase 1)
 
-Status: **Built** for WP 1.1, 1.2, 1.4 and 1.6a; WP 1.6b not started. Updated: 2026-11-19. Master for: how tools from any source reach agents, what the runtime already guarantees for every tool, and the work packages of Phase 1 of `../12-project/NorthCX_Agent-Platform-Plan.md`. Part of `../00-platform/NorthCX_Agent-Platform-Design.md` section 5.
+Status: **Built** for WP 1.1, 1.2, 1.4, 1.6a and 1.6b; WP 1.6c not started. Updated: 2026-11-19. Master for: how tools from any source reach agents, what the runtime already guarantees for every tool, and the work packages of Phase 1 of `../12-project/NorthCX_Agent-Platform-Plan.md`. Part of `../00-platform/NorthCX_Agent-Platform-Design.md` section 5.
 
 Phase 1 changes no behaviour a user can see. The existing test suite is its safety net.
 
@@ -50,6 +50,7 @@ Read in this repository on 2026-11-19.
 | 1.1 | G6: the Agent API contract, snapshot and test, and the stability rule in the API Design document | Test fails on a removed or retyped field in a contract route |
 | 1.5 | Deferred (section 2) | Recorded in the plan's progress table |
 | 1.6a | Type the responses of the conversation-time routes (chat, approvals, hand-offs, traces, outbox, tags, transcript, event types) so the stability rule covers them | The snapshot records their response schemas; a test calls each route and checks the answer against its model |
-| 1.6b | Type the rest (agents, versions, releases, rollouts, simulations, remaining sessions and events routes) | The same, for the remaining operations |
+| 1.6b | Type agents, versions, releases, rollouts, simulations, scenario drafts, feedback and review | The same (29 more operations; 48 of 61 typed) |
+| 1.6c | Type the 11 that need a configured service or a model (managed scenarios, qualifications, event feed and test, assist, improve, journey drafts) | The same; the streaming chat and the upload are not JSON and stay untyped |
 
-Order: 1.2, then 1.4, then 1.1, then 1.6a, then 1.6b.
+Order: 1.2, then 1.4, then 1.1, then 1.6a, 1.6b, 1.6c.

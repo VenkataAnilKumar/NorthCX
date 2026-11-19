@@ -17,6 +17,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added (Phase 1, WP 1.2, 2026-11-19)
 - Each tool records its source (`registry`, `connectors`, `verification`, `knowledge`, `memory` or `staff`), shown in the tool catalogue (`GET /v1/catalog`, new `source` field) and on each `tool_call` trace event. Tools register through `Registry.add_tools(source, tools)`, which refuses a taken name and names both sources. `tool_fingerprint(tool)` hashes a tool's definition (not its code or credentials). No other behaviour changes.
 
+### Added (Phase 1, WP 1.6b, 2026-11-19)
+- Response models for 29 more Agent API operations (agents, versions, releases, rollouts, simulation scenarios, gate and runs, scenario drafts, feedback, review): 48 of 61 are now typed and covered by the stability rule. Responses are unchanged.
+
 ### Added (Phase 1, WP 1.6a, 2026-11-19)
 - Response models for 19 Agent API operations (chat, approvals, hand-offs, traces, outbox, attachments list, tags, transcript, event types) in `northcx/api/responses.py`, shown in `docs/api/openapi.json` and recorded in the contract snapshot; the `/v1` stability rule now also covers these responses (no field removed, retyped or made optional). Responses are unchanged: the models describe them and do not filter them.
 

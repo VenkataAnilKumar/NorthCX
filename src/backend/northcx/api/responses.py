@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Response(BaseModel):
@@ -184,3 +184,222 @@ class Transcript(Response):
 class EventTypes(Response):
     enabled: bool
     types: list[dict[str, Any]]
+
+
+# ---- agents, versions and releases ----
+class AgentSummary(Response):
+    id: str
+    version: int | None
+    digest: str | None
+    instructions: str
+    model: str | None
+    maxSteps: int
+    tools: list[Any]
+    guardrails: list[str]
+    inputGuardrails: list[str]
+    outputGuardrails: list[str]
+    forcedTopics: list[str]
+
+
+class AgentList(Response):
+    agents: list[AgentSummary]
+
+
+class Version(Response):
+    id: str
+    agentId: str
+    number: int
+    digest: str
+    author: str
+    note: str | None
+    createdAt: float
+    live: bool
+    everReleased: bool
+
+
+class VersionList(Response):
+    versions: list[Version]
+
+
+class VersionDetail(Version):
+    spec: dict[str, Any]
+    specYaml: str
+
+
+class VersionPreview(Response):
+    valid: bool
+    problems: list[str]
+    digest: str | None = None
+    unchangedSinceLatest: bool | None = None
+    diffFromLive: dict[str, Any] | None = None
+
+
+class VersionDiff(Response):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    from_: int = Field(alias="from")  # `from` is a Python keyword
+    to: int
+    identical: bool
+
+
+class ChecklistItem(Response):
+    key: str
+    title: str
+    status: str
+    detail: str
+
+
+class Checklist(Response):
+    agent: str
+    version: int
+    environment: str
+    ready: bool
+    checks: list[ChecklistItem]
+    changes: dict[str, Any]
+    liveVersion: int | None
+
+
+class Release(Response):
+    id: str
+    agentId: str
+    environment: str
+    action: str
+    version: int | None
+    versionId: str | None
+    previousVersion: int | None
+    by: str
+    note: str | None
+    gate: dict[str, Any]
+    createdAt: float
+    toBaseline: bool
+
+
+class ReleaseList(Response):
+    releases: list[Release]
+
+
+class Environments(Response):
+    agentId: str
+    strictPromotion: bool
+    environments: dict[str, dict[str, Any]]
+
+
+class LiveAgent(Response):
+    agentId: str
+    environment: str
+    servedFrom: str
+    source: str
+    version: int | None
+    digest: str | None
+    release: Any
+    spec: dict[str, Any]
+    specYaml: str
+
+
+class Rollout(Response):
+    id: str
+    agentId: str
+    environment: str
+    candidateVersion: int
+    controlVersion: int | None
+    percent: int
+    state: str
+    startedBy: str
+    startedAt: float
+    endedBy: str | None
+    endedAt: float | None
+    note: str | None
+
+
+class RolloutList(Response):
+    rollouts: list[Rollout]
+
+
+class RolloutComparison(Response):
+    rollout: Rollout
+    arms: dict[str, dict[str, Any]]
+    enoughData: bool
+    note: str
+    versions: dict[str, int | None]
+
+
+# ---- simulations and conversation review ----
+class ScenarioSummary(Response):
+    name: str
+    agent: str
+    required: bool
+    description: str
+    steps: int
+    tags: list[str]
+    judge: bool
+    digest: str
+    source: str
+    editable: bool
+
+
+class ScenarioList(Response):
+    modes: list[str]
+    managedAvailable: bool
+    scenarios: list[ScenarioSummary]
+
+
+class ScenarioDetail(Response):
+    name: str
+    source: str
+    editable: bool
+    required: bool
+    digest: str
+    definition: dict[str, Any]
+    yaml: str
+    revision: int | None
+    updatedBy: str | None
+    updatedAt: float | None
+
+
+class ScenarioCheck(Response):
+    valid: bool
+    problems: list[str]
+
+
+class Gate(Response):
+    agent: str
+    agentDigest: str | None
+    satisfied: bool
+    required: int
+    covered: int
+    reasons: list[str]
+    runIds: list[str]
+
+
+class GateList(Response):
+    gates: list[Gate]
+
+
+class SimulationRun(Response):
+    id: str
+    createdAt: float
+    mode: str
+    source: str
+    passed: bool
+    counts: dict[str, int]
+    seconds: float
+    meta: dict[str, Any]
+    agentDigests: dict[str, str]
+
+
+class SimulationRunDetail(SimulationRun):
+    results: list[dict[str, Any]]
+
+
+class SimulationRunList(Response):
+    runs: list[SimulationRun]
+
+
+class ScenarioDraft(Response):
+    yaml: str
+    scenario: dict[str, Any]
+    warnings: list[str]
+
+
+class Saved(Response):
+    saved: bool
+    replaced: bool

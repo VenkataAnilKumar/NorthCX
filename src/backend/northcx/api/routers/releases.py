@@ -11,6 +11,7 @@ from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import PromoteBody, PublishBody, RequestDecisionBody, RollbackBody, VersionBody
+from northcx.api.responses import AgentList, Checklist, Environments, LiveAgent, Release, ReleaseList, VersionDetail, VersionDiff, VersionList, VersionPreview
 from northcx.release_requests import ApprovalError, principal
 from northcx.catalog import AgentUnavailable
 from northcx.spec import AgentSpec, parse_spec, SpecError
@@ -27,7 +28,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     rel_error = d.rel_error
     version_json = d.version_json
 
-    @app.get("/v1/agents")
+    @app.get("/v1/agents", responses={200: {"model": AgentList}})
     async def list_agents(request: Request) -> Any:
         try:
             live = await provider.all()
@@ -46,7 +47,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                 "versionId": r.version_id, "previousVersion": r.previous_number, "by": r.by, "note": r.note, "gate": r.gate,
                 "createdAt": r.created_at, "toBaseline": r.version_id is None}
 
-    @app.post("/v1/agents/{agent_id}/versions", status_code=201)
+    @app.post("/v1/agents/{agent_id}/versions", status_code=201, responses={201: {"model": VersionDetail}})
     async def create_version(agent_id: str, body: VersionBody, request: Request) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
@@ -75,7 +76,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         svc = need_rel()
         return svc if isinstance(svc, JSONResponse) else svc.registry.describe()
 
-    @app.post("/v1/agents/{agent_id}/versions/preview")
+    @app.post("/v1/agents/{agent_id}/versions/preview", responses={200: {"model": VersionPreview}})
     async def preview_version(agent_id: str, body: VersionBody) -> Any:
         """Check a spec without saving it (for editors): problems, digest, and what changed compared with production."""
         svc = need_rel()
@@ -85,7 +86,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(400, "bad_request", "Give the spec as 'spec'")
         return await svc.preview(agent_id, body.spec)
 
-    @app.get("/v1/agents/{agent_id}/versions")
+    @app.get("/v1/agents/{agent_id}/versions", responses={200: {"model": VersionList}})
     async def list_versions(agent_id: str) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
@@ -95,7 +96,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         released = {r.number for r in history if r.number is not None}
         return {"versions": [version_json(v, live_v.number if live_v else None, released) for v in await svc.versions.list(agent_id)]}
 
-    @app.get("/v1/agents/{agent_id}/versions/{number}")
+    @app.get("/v1/agents/{agent_id}/versions/{number}", responses={200: {"model": VersionDetail}})
     async def get_version(agent_id: str, number: int) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
@@ -106,7 +107,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         live_v, _ = await svc.live(agent_id)
         return version_json(v, live_v.number if live_v else None, {r.number for r in await svc.releases.list(agent_id) if r.number}, True)
 
-    @app.get("/v1/agents/{agent_id}/versions/{number}/checklist")
+    @app.get("/v1/agents/{agent_id}/versions/{number}/checklist", responses={200: {"model": Checklist}})
     async def version_checklist(agent_id: str, number: int, request: Request, environment: str = "production") -> Any:
         """The publish checklist: required checks and notes for releasing this version to an environment."""
         svc = need_rel()
@@ -121,7 +122,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         except (NotFound, ValueError) as e:
             return rel_error(e) if isinstance(e, (NotFound, Conflict)) else _err(400, "bad_request", str(e))
 
-    @app.get("/v1/agents/{agent_id}/versions/{a}/diff/{b}")
+    @app.get("/v1/agents/{agent_id}/versions/{a}/diff/{b}", responses={200: {"model": VersionDiff}})
     async def version_diff(agent_id: str, a: int, b: int) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
@@ -209,7 +210,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "release.cancel", f"{r.agent_id} ({r.environment})", requestId=r.id)
         return r.to_dict()
 
-    @app.post("/v1/agents/{agent_id}/releases")
+    @app.post("/v1/agents/{agent_id}/releases", responses={200: {"model": Release}})
     async def publish(agent_id: str, body: PublishBody, request: Request) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
@@ -230,7 +231,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "release.publish", target, previous=rel.previous_number, gate=rel.gate, note=bool(body.note), environment=body.environment)
         return release_json(rel)
 
-    @app.post("/v1/agents/{agent_id}/promote")
+    @app.post("/v1/agents/{agent_id}/promote", responses={200: {"model": Release}})
     async def promote(agent_id: str, body: PromoteBody, request: Request) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
@@ -250,7 +251,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "release.promote", f"{agent_id}@{rel.number} -> {body.to}", previous=rel.previous_number, gate=rel.gate, environment=body.to)
         return release_json(rel)
 
-    @app.post("/v1/agents/{agent_id}/rollback")
+    @app.post("/v1/agents/{agent_id}/rollback", responses={200: {"model": Release}})
     async def rollback(agent_id: str, body: RollbackBody, request: Request) -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
@@ -265,7 +266,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                      previous=rel.previous_number, note=bool(body.note), environment=body.environment)
         return release_json(rel)
 
-    @app.get("/v1/agents/{agent_id}/releases")
+    @app.get("/v1/agents/{agent_id}/releases", responses={200: {"model": ReleaseList}})
     async def release_history(agent_id: str, environment: str = "production") -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):
@@ -276,7 +277,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(400, "bad_request", str(e))
         return {"releases": [release_json(r) for r in await svc.releases.list(agent_id, environment)]}
 
-    @app.get("/v1/agents/{agent_id}/environments")
+    @app.get("/v1/agents/{agent_id}/environments", responses={200: {"model": Environments}})
     async def agent_environments(agent_id: str) -> Any:
         """What is live in dev, staging and production, and what each actually serves."""
         svc = need_rel()
@@ -291,7 +292,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                         "servedFrom": served, "servedVersion": v.number if v else None}
         return {"agentId": agent_id, "strictPromotion": svc.strict_promotion, "environments": out}
 
-    @app.get("/v1/agents/{agent_id}/live")
+    @app.get("/v1/agents/{agent_id}/live", responses={200: {"model": LiveAgent}})
     async def live(agent_id: str, environment: str = "production") -> Any:
         svc = need_rel()
         if isinstance(svc, JSONResponse):

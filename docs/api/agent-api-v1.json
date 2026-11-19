@@ -73,7 +73,106 @@
       "permission": "agents:read",
       "parameters": [],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "agents": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "digest": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "instructions": {
+                    "type": "string"
+                  },
+                  "model": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "maxSteps": {
+                    "type": "integer"
+                  },
+                  "tools": {
+                    "items": {},
+                    "type": "array"
+                  },
+                  "guardrails": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "inputGuardrails": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "outputGuardrails": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "forcedTopics": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "version",
+                  "digest",
+                  "instructions",
+                  "model",
+                  "maxSteps",
+                  "tools",
+                  "guardrails",
+                  "inputGuardrails",
+                  "outputGuardrails",
+                  "forcedTopics"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "agents"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/environments": {
       "permission": "versions:read",
@@ -88,7 +187,32 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "agentId": {
+              "type": "string"
+            },
+            "strictPromotion": {
+              "type": "boolean"
+            },
+            "environments": {
+              "additionalProperties": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "object"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "agentId",
+            "strictPromotion",
+            "environments"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/live": {
       "permission": "agents:read",
@@ -111,7 +235,65 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "agentId": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "servedFrom": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "version": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "digest": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "release": {},
+            "spec": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "specYaml": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "agentId",
+            "environment",
+            "servedFrom",
+            "source",
+            "version",
+            "digest",
+            "release",
+            "spec",
+            "specYaml"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/qualifications": {
       "permission": "versions:read",
@@ -149,7 +331,105 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "releases": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "environment": {
+                    "type": "string"
+                  },
+                  "action": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "versionId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "previousVersion": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "by": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "gate": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "createdAt": {
+                    "type": "number"
+                  },
+                  "toBaseline": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "agentId",
+                  "environment",
+                  "action",
+                  "version",
+                  "versionId",
+                  "previousVersion",
+                  "by",
+                  "note",
+                  "gate",
+                  "createdAt",
+                  "toBaseline"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "releases"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/rollouts": {
       "permission": "versions:read",
@@ -164,7 +444,104 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "rollouts": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "environment": {
+                    "type": "string"
+                  },
+                  "candidateVersion": {
+                    "type": "integer"
+                  },
+                  "controlVersion": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "percent": {
+                    "type": "integer"
+                  },
+                  "state": {
+                    "type": "string"
+                  },
+                  "startedBy": {
+                    "type": "string"
+                  },
+                  "startedAt": {
+                    "type": "number"
+                  },
+                  "endedBy": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "endedAt": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "agentId",
+                  "environment",
+                  "candidateVersion",
+                  "controlVersion",
+                  "percent",
+                  "state",
+                  "startedBy",
+                  "startedAt",
+                  "endedBy",
+                  "endedAt",
+                  "note"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "rollouts"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/rollouts/{rollout_id}/comparison": {
       "permission": "insights:read",
@@ -187,7 +564,131 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "rollout": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "agentId": {
+                  "type": "string"
+                },
+                "environment": {
+                  "type": "string"
+                },
+                "candidateVersion": {
+                  "type": "integer"
+                },
+                "controlVersion": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "percent": {
+                  "type": "integer"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "startedBy": {
+                  "type": "string"
+                },
+                "startedAt": {
+                  "type": "number"
+                },
+                "endedBy": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "endedAt": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "note": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": true,
+              "type": "object",
+              "required": [
+                "id",
+                "agentId",
+                "environment",
+                "candidateVersion",
+                "controlVersion",
+                "percent",
+                "state",
+                "startedBy",
+                "startedAt",
+                "endedBy",
+                "endedAt",
+                "note"
+              ]
+            },
+            "arms": {
+              "additionalProperties": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "object"
+            },
+            "enoughData": {
+              "type": "boolean"
+            },
+            "note": {
+              "type": "string"
+            },
+            "versions": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "object"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "rollout",
+            "arms",
+            "enoughData",
+            "note",
+            "versions"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/versions": {
       "permission": "versions:read",
@@ -202,7 +703,71 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "versions": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "number": {
+                    "type": "integer"
+                  },
+                  "digest": {
+                    "type": "string"
+                  },
+                  "author": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "number"
+                  },
+                  "live": {
+                    "type": "boolean"
+                  },
+                  "everReleased": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "agentId",
+                  "number",
+                  "digest",
+                  "author",
+                  "note",
+                  "createdAt",
+                  "live",
+                  "everReleased"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "versions"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/versions/{a}/diff/{b}": {
       "permission": "versions:read",
@@ -233,7 +798,28 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "from": {
+              "type": "integer"
+            },
+            "to": {
+              "type": "integer"
+            },
+            "identical": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "from",
+            "to",
+            "identical"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/versions/{number}": {
       "permission": "versions:read",
@@ -256,7 +842,68 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "number": {
+              "type": "integer"
+            },
+            "digest": {
+              "type": "string"
+            },
+            "author": {
+              "type": "string"
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "live": {
+              "type": "boolean"
+            },
+            "everReleased": {
+              "type": "boolean"
+            },
+            "spec": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "specYaml": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agentId",
+            "number",
+            "digest",
+            "author",
+            "note",
+            "createdAt",
+            "live",
+            "everReleased",
+            "spec",
+            "specYaml"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/versions/{number}/checklist": {
       "permission": "versions:read",
@@ -287,7 +934,73 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "agent": {
+              "type": "string"
+            },
+            "version": {
+              "type": "integer"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "ready": {
+              "type": "boolean"
+            },
+            "checks": {
+              "items": {
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "detail": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "key",
+                  "title",
+                  "status",
+                  "detail"
+                ]
+              },
+              "type": "array"
+            },
+            "changes": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "liveVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "agent",
+            "version",
+            "environment",
+            "ready",
+            "checks",
+            "changes",
+            "liveVersion"
+          ]
+        }
+      }
     },
     "GET /v1/approvals": {
       "permission": "approvals:read",
@@ -927,7 +1640,32 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "yaml": {
+              "type": "string"
+            },
+            "scenario": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "warnings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "yaml",
+            "scenario",
+            "warnings"
+          ]
+        }
+      }
     },
     "GET /v1/sessions/{session_id}/tags": {
       "permission": "traces:read",
@@ -1072,7 +1810,69 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "gates": {
+              "items": {
+                "properties": {
+                  "agent": {
+                    "type": "string"
+                  },
+                  "agentDigest": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "satisfied": {
+                    "type": "boolean"
+                  },
+                  "required": {
+                    "type": "integer"
+                  },
+                  "covered": {
+                    "type": "integer"
+                  },
+                  "reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "runIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "agent",
+                  "agentDigest",
+                  "satisfied",
+                  "required",
+                  "covered",
+                  "reasons",
+                  "runIds"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "gates"
+          ]
+        }
+      }
     },
     "GET /v1/simulations/runs": {
       "permission": "simulations:read",
@@ -1087,7 +1887,71 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "runs": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "number"
+                  },
+                  "mode": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "passed": {
+                    "type": "boolean"
+                  },
+                  "counts": {
+                    "additionalProperties": {
+                      "type": "integer"
+                    },
+                    "type": "object"
+                  },
+                  "seconds": {
+                    "type": "number"
+                  },
+                  "meta": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "agentDigests": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "createdAt",
+                  "mode",
+                  "source",
+                  "passed",
+                  "counts",
+                  "seconds",
+                  "meta",
+                  "agentDigests"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "runs"
+          ]
+        }
+      }
     },
     "GET /v1/simulations/runs/{run_id}": {
       "permission": "simulations:read",
@@ -1102,13 +1966,145 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "passed": {
+              "type": "boolean"
+            },
+            "counts": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "seconds": {
+              "type": "number"
+            },
+            "meta": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "agentDigests": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "results": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "createdAt",
+            "mode",
+            "source",
+            "passed",
+            "counts",
+            "seconds",
+            "meta",
+            "agentDigests",
+            "results"
+          ]
+        }
+      }
     },
     "GET /v1/simulations/scenarios": {
       "permission": "simulations:read",
       "parameters": [],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "modes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "managedAvailable": {
+              "type": "boolean"
+            },
+            "scenarios": {
+              "items": {
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "agent": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "steps": {
+                    "type": "integer"
+                  },
+                  "tags": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "judge": {
+                    "type": "boolean"
+                  },
+                  "digest": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "editable": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "name",
+                  "agent",
+                  "required",
+                  "description",
+                  "steps",
+                  "tags",
+                  "judge",
+                  "digest",
+                  "source",
+                  "editable"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "modes",
+            "managedAvailable",
+            "scenarios"
+          ]
+        }
+      }
     },
     "GET /v1/simulations/scenarios/{name}": {
       "permission": "simulations:read",
@@ -1123,7 +2119,78 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "editable": {
+              "type": "boolean"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "digest": {
+              "type": "string"
+            },
+            "definition": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "yaml": {
+              "type": "string"
+            },
+            "revision": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "updatedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "updatedAt": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "name",
+            "source",
+            "editable",
+            "required",
+            "digest",
+            "definition",
+            "yaml",
+            "revision",
+            "updatedBy",
+            "updatedAt"
+          ]
+        }
+      }
     },
     "GET /v1/traces": {
       "permission": "traces:read",
@@ -1704,7 +2771,93 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string"
+            },
+            "version": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "versionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "previousVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "by": {
+              "type": "string"
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gate": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "toBaseline": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agentId",
+            "environment",
+            "action",
+            "version",
+            "versionId",
+            "previousVersion",
+            "by",
+            "note",
+            "gate",
+            "createdAt",
+            "toBaseline"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/qualifications": {
       "permission": "scenarios:require",
@@ -1794,7 +2947,93 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string"
+            },
+            "version": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "versionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "previousVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "by": {
+              "type": "string"
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gate": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "toBaseline": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agentId",
+            "environment",
+            "action",
+            "version",
+            "versionId",
+            "previousVersion",
+            "by",
+            "note",
+            "gate",
+            "createdAt",
+            "toBaseline"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/rollback": {
       "permission": "versions:create",
@@ -1852,7 +3091,93 @@
           "type": "object"
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string"
+            },
+            "version": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "versionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "previousVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "by": {
+              "type": "string"
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gate": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "toBaseline": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agentId",
+            "environment",
+            "action",
+            "version",
+            "versionId",
+            "previousVersion",
+            "by",
+            "note",
+            "gate",
+            "createdAt",
+            "toBaseline"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/rollouts": {
       "permission": "versions:create",
@@ -1909,7 +3234,92 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "201": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "candidateVersion": {
+              "type": "integer"
+            },
+            "controlVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "percent": {
+              "type": "integer"
+            },
+            "state": {
+              "type": "string"
+            },
+            "startedBy": {
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "number"
+            },
+            "endedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "endedAt": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agentId",
+            "environment",
+            "candidateVersion",
+            "controlVersion",
+            "percent",
+            "state",
+            "startedBy",
+            "startedAt",
+            "endedBy",
+            "endedAt",
+            "note"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/rollouts/{rollout_id}/abort": {
       "permission": "versions:create",
@@ -1932,7 +3342,92 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "candidateVersion": {
+              "type": "integer"
+            },
+            "controlVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "percent": {
+              "type": "integer"
+            },
+            "state": {
+              "type": "string"
+            },
+            "startedBy": {
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "number"
+            },
+            "endedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "endedAt": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agentId",
+            "environment",
+            "candidateVersion",
+            "controlVersion",
+            "percent",
+            "state",
+            "startedBy",
+            "startedAt",
+            "endedBy",
+            "endedAt",
+            "note"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/rollouts/{rollout_id}/promote": {
       "permission": "versions:create",
@@ -1997,7 +3492,92 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "candidateVersion": {
+              "type": "integer"
+            },
+            "controlVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "percent": {
+              "type": "integer"
+            },
+            "state": {
+              "type": "string"
+            },
+            "startedBy": {
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "number"
+            },
+            "endedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "endedAt": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agentId",
+            "environment",
+            "candidateVersion",
+            "controlVersion",
+            "percent",
+            "state",
+            "startedBy",
+            "startedAt",
+            "endedBy",
+            "endedAt",
+            "note"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/versions": {
       "permission": "versions:create",
@@ -2066,7 +3646,68 @@
           "type": "object"
         }
       },
-      "responses": {}
+      "responses": {
+        "201": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "number": {
+              "type": "integer"
+            },
+            "digest": {
+              "type": "string"
+            },
+            "author": {
+              "type": "string"
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "live": {
+              "type": "boolean"
+            },
+            "everReleased": {
+              "type": "boolean"
+            },
+            "spec": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "specYaml": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agentId",
+            "number",
+            "digest",
+            "author",
+            "note",
+            "createdAt",
+            "live",
+            "everReleased",
+            "spec",
+            "specYaml"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/versions/preview": {
       "permission": "versions:create",
@@ -2135,7 +3776,58 @@
           "type": "object"
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "valid": {
+              "type": "boolean"
+            },
+            "problems": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "digest": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "unchangedSinceLatest": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "diffFromLive": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "valid",
+            "problems"
+          ]
+        }
+      }
     },
     "POST /v1/approvals/expire": {
       "permission": "approvals:decide",
@@ -2649,7 +4341,24 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "201": {
+          "properties": {
+            "saved": {
+              "type": "boolean"
+            },
+            "replaced": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "saved",
+            "replaced"
+          ]
+        }
+      }
     },
     "POST /v1/simulations/runs": {
       "permission": "simulations:run",
@@ -2711,7 +4420,59 @@
           "type": "object"
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "passed": {
+              "type": "boolean"
+            },
+            "counts": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "seconds": {
+              "type": "number"
+            },
+            "meta": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "agentDigests": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "createdAt",
+            "mode",
+            "source",
+            "passed",
+            "counts",
+            "seconds",
+            "meta",
+            "agentDigests"
+          ]
+        }
+      }
     },
     "POST /v1/simulations/scenarios": {
       "permission": "scenarios:write",
@@ -2781,7 +4542,27 @@
           "type": "object"
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "valid": {
+              "type": "boolean"
+            },
+            "problems": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "valid",
+            "problems"
+          ]
+        }
+      }
     },
     "PUT /v1/agents/{agent_id}/rollouts/{rollout_id}/percent": {
       "permission": "versions:create",
@@ -2817,7 +4598,92 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "candidateVersion": {
+              "type": "integer"
+            },
+            "controlVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "percent": {
+              "type": "integer"
+            },
+            "state": {
+              "type": "string"
+            },
+            "startedBy": {
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "number"
+            },
+            "endedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "endedAt": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agentId",
+            "environment",
+            "candidateVersion",
+            "controlVersion",
+            "percent",
+            "state",
+            "startedBy",
+            "startedAt",
+            "endedBy",
+            "endedAt",
+            "note"
+          ]
+        }
+      }
     },
     "PUT /v1/sessions/{session_id}/attachments": {
       "permission": "chat:send",
@@ -2889,7 +4755,24 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "saved": {
+              "type": "boolean"
+            },
+            "replaced": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "saved",
+            "replaced"
+          ]
+        }
+      }
     },
     "PUT /v1/sessions/{session_id}/tags/{tag}": {
       "permission": "conversations:tag",

@@ -12,6 +12,7 @@ from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import QualifyBody, ScenarioBody, SimRunBody
+from northcx.api.responses import GateList, ScenarioCheck, ScenarioDetail, ScenarioDraft, ScenarioList, SimulationRun, SimulationRunDetail, SimulationRunList
 from northcx.privacy import customer_ref
 from northcx.regression import scenario_from_traces
 from northcx.simulation import Busy, SimulationService
@@ -28,7 +29,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     runtime = d.runtime
     traces = d.traces
 
-    @app.get("/v1/sessions/{session_id}/scenario-draft")
+    @app.get("/v1/sessions/{session_id}/scenario-draft", responses={200: {"model": ScenarioDraft}})
     async def scenario_draft(session_id: str, request: Request) -> Any:
         """A scenario drafted from a real conversation (personal data masked), for a person to review and add to the scenario files."""
         found = [t for t in [await traces.get(s.id) for s in await traces.summaries(session_id, 200)] if t is not None]
@@ -49,7 +50,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             out["results"] = r.results
         return out
 
-    @app.get("/v1/simulations/scenarios")
+    @app.get("/v1/simulations/scenarios", responses={200: {"model": ScenarioList}})
     async def sim_scenarios() -> Any:
         sim = need_sim()
         if isinstance(sim, JSONResponse):
@@ -76,7 +77,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(403, "forbidden", f"The '{who.role}' role cannot {what} a required scenario (needs scenarios:require)")
         return None
 
-    @app.post("/v1/simulations/scenarios/validate")
+    @app.post("/v1/simulations/scenarios/validate", responses={200: {"model": ScenarioCheck}})
     async def validate_scenario(body: ScenarioBody) -> Any:
         """Check a scenario without saving it."""
         parsed = scenario_input(body)
@@ -85,7 +86,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         definition, sc = parsed
         return {"valid": True, "problems": [], "name": sc.name, "agent": sc.agent, "required": sc.required, "digest": sc.digest(), "steps": len(sc.turns)}
 
-    @app.get("/v1/simulations/scenarios/{name}")
+    @app.get("/v1/simulations/scenarios/{name}", responses={200: {"model": ScenarioDetail}})
     async def get_scenario(name: str) -> Any:
         sim = need_sim()
         if isinstance(sim, JSONResponse):
@@ -161,7 +162,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "scenario.delete", name, agent=old.agent, was_required=old.required)
         return {"deleted": True}
 
-    @app.post("/v1/simulations/runs")
+    @app.post("/v1/simulations/runs", responses={200: {"model": SimulationRun}})
     async def sim_run(body: SimRunBody, request: Request) -> Any:
         sim = need_sim()
         if isinstance(sim, JSONResponse):
@@ -218,14 +219,14 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "model.qualify", f"{agent_id}:{body.model}", "qualified" if out.qualified else "not_qualified", run=run.id, reasons=out.reasons[:5])
         return out.to_dict()
 
-    @app.get("/v1/simulations/runs")
+    @app.get("/v1/simulations/runs", responses={200: {"model": SimulationRunList}})
     async def sim_runs(limit: int = 50) -> Any:
         sim = need_sim()
         if isinstance(sim, JSONResponse):
             return sim
         return {"runs": [run_json(r) for r in await sim.runs.list(max(1, min(limit, 200)))]}
 
-    @app.get("/v1/simulations/runs/{run_id}")
+    @app.get("/v1/simulations/runs/{run_id}", responses={200: {"model": SimulationRunDetail}})
     async def sim_run_detail(run_id: str) -> Any:
         sim = need_sim()
         if isinstance(sim, JSONResponse):
@@ -233,7 +234,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         r = await sim.runs.get(run_id)
         return run_json(r, full=True) if r else _err(404, "not_found", "Unknown run")
 
-    @app.get("/v1/simulations/gate")
+    @app.get("/v1/simulations/gate", responses={200: {"model": GateList}})
     async def sim_gate(agent: str | None = None, version: int | None = None) -> Any:
         """Has each agent's current version passed every required scenario? (Used to gate releases.)"""
         sim = need_sim()
