@@ -68,7 +68,9 @@ async def test_runtime_moments_are_events_with_ids_and_no_message_text():
     await rt.run(support_agent(), "s-1", "please refund order 1042, secret-phrase-xyz", "cust-1")
     types = [e["type"] for e in await feed.listing()]
     assert "approval.requested" in types
-    blob = json.dumps(await feed.listing())
+    for m in ob.repo._items:
+        m.created_at = 1795104279.365  # an epoch that contains the digits of the order number: the check below must not depend on when the test runs
+    blob = json.dumps([{k: v for k, v in e.items() if k != "createdAt"} for e in await feed.listing()])  # a time is not content
     assert "secret-phrase-xyz" not in blob and "1042" not in blob.replace('"sessionId"', "")  # no conversation text or tool inputs
     rt2 = Runtime(ScriptedLLM([]), InMemoryStore(), TraceStore(), outbox=Outbox(InMemoryOutbox()))
     rt2.events = EventFeed(rt2.outbox)

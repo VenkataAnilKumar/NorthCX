@@ -468,6 +468,19 @@ export const removeGroupMember = (id: string, subject: string) => api<GroupInfo>
 export const setBudgets = (b: { dailyTokenLimit?: number | null; dailyMoneyLimit?: number | null; currency?: string }) => api<{ saved: boolean }>("/v1/budgets", { method: "PUT", body: JSON.stringify(b) });
 export const clearBudgets = () => api<{ cleared: boolean }>("/v1/budgets", { method: "DELETE" });
 
+// ---------- Connections to MCP servers (Phase 2) ----------
+export interface Connection { id: string; name: string; url: string; host: string | null; trusted: boolean; secret: string | null; enabled: boolean; approvedTools: string[]; createdBy: string; createdAt: number; updatedBy: string; updatedAt: number }
+export interface ConnectionTool { name: string; serverName: string; description: string; inputs: string[]; access: "reads" | "changes"; fingerprint: string; approved: boolean }
+export interface ConnectionReview { tools: ConnectionTool[]; skipped: { name: string; reason: string }[] }
+export interface ConnectionCheck { reachable: boolean; message: string | null; added: string[]; changed: string[]; removed: string[] }
+export const listConnections = () => api<{ connections: Connection[]; allowedHosts: string[] }>("/v1/connections");
+export const createConnection = (b: { name: string; url: string; secret?: string | null; trusted: boolean }) => api<Connection>("/v1/connections", { method: "POST", body: JSON.stringify(b) });
+export const updateConnection = (id: string, b: { trusted?: boolean; enabled?: boolean }) => api<Connection>(`/v1/connections/${id}`, { method: "PUT", body: JSON.stringify(b) });
+export const deleteConnection = (id: string) => api<{ deleted: boolean }>(`/v1/connections/${id}`, { method: "DELETE" });
+export const reviewConnection = (id: string) => api<ConnectionReview>(`/v1/connections/${id}/review`, { method: "POST" });
+export const approveConnectionTools = (id: string, tools: Record<string, string>) => api<Connection>(`/v1/connections/${id}/approve`, { method: "POST", body: JSON.stringify({ tools }) });
+export const checkConnection = (id: string) => api<ConnectionCheck>(`/v1/connections/${id}/check`, { method: "POST" });
+
 // ---------- Organization policies (E16) ----------
 export interface OrgPolicyCase { on: string; input: unknown; expected: "allowed" | "blocked" }
 export interface OrgPolicyProof { passed: boolean; problems: string[]; results: { ok: boolean; got?: string; expected?: string; note?: string }[] }

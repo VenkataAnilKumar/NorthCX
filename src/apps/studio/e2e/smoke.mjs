@@ -169,6 +169,9 @@ check((await page.locator("body").innerText()).includes("Data residency"), "trus
 await page.goto(`${WEB}/org`);
 await page.getByText("Requests per minute").waitFor();
 check(true, "org: shows limits");
+await page.goto(`${WEB}/connections`);
+await page.getByRole("heading", { name: "Connections" }).waitFor();
+check((await page.locator("body").innerText()).includes("Allowed hosts"), "connections: page shows the allowed hosts (none allowed in the smoke stack, so no form)");
 check(errors.length === 0, `no client errors${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
 await browser.close();
 if (failures.length) { console.log(`\n${failures.length} failed`); process.exit(1); }

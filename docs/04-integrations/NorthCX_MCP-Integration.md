@@ -1,6 +1,6 @@
 # NorthCX MCP integration (Phase 2)
 
-Status: **WP 2.1, 2.2 and 2.3a built** (stored connections and their routes; the operator screen is WP 2.3b); stages 1 to 4 done for the rest. Updated: 2026-11-19. Master for: how NorthCX uses tools from MCP servers, the trust rules that apply, and work packages 2.1 to 2.6 of `../12-project/NorthCX_Agent-Platform-Plan.md`. Builds on `NorthCX_Tool-Gateway.md` (every tool, from any source, already gets the runtime's checks) and part of `../00-platform/NorthCX_Agent-Platform-Design.md` section 5.
+Status: **WP 2.1, 2.2, 2.3a and 2.3b built** (library, stored connections and routes, and the Studio screen); stages 1 to 4 done for the rest. Updated: 2026-11-19. Master for: how NorthCX uses tools from MCP servers, the trust rules that apply, and work packages 2.1 to 2.6 of `../12-project/NorthCX_Agent-Platform-Plan.md`. Builds on `NorthCX_Tool-Gateway.md` (every tool, from any source, already gets the runtime's checks) and part of `../00-platform/NorthCX_Agent-Platform-Design.md` section 5.
 
 ## 1. Research
 Read on 2026-11-19. **How it was read:** the official site `modelcontextprotocol.io` does not resolve from this environment (it is not in the network allowlist), so the specification was read from its source files on GitHub (`modelcontextprotocol/modelcontextprotocol`, folder `docs/specification/2026-07-28`) through a page-summarising fetch tool, and the SDK from its published package. The statements below are what those showed; the exact MUST and SHOULD wording must be confirmed against the specification text before the code that depends on it is written (marked "confirm" in section 3).
@@ -48,7 +48,7 @@ For: **operator** (installs and administers), **author** (builds agents, picks t
 Not in Phase 2 (recorded, not dead requirements): OAuth authorization-code sign-in for servers that need a person's consent (needs a browser step and a stored refresh token; the first such server is a vendor's, which cannot be tested without a sandbox account); server-initiated requests (sampling, roots, elicitation); NorthCX as an MCP server; the Activepieces sidecar. Credentials in Phase 2 are a bearer token or API key held in the tenant's secret store.
 
 ## 4. Design
-**Operator** (WP 2.3 screen; the same fields are the programmatic configuration in WP 2.1)
+**Operator** (the Connections screen in Studio, Build, built in WP 2.3b; the same fields are the programmatic configuration in WP 2.1)
 1. Adds a connection: name, server address, which secret holds its credential, trusted or not (default not).
 2. NorthCX connects once and shows the tools it found, each with its description, its input fields, and "can change things" or "only reads". The operator ticks the ones agents may use and confirms. That list, with a fingerprint for each, is the pinned list.
 3. From then on NorthCX refreshes the list when the server says it is stale (`ttlMs`). If anything differs from the pinned list, the connection shows "changed since you approved it", the changed or new tools stay off, and the operator reviews old and new side by side.
@@ -81,14 +81,14 @@ Not in Phase 2 (recorded, not dead requirements): OAuth authorization-code sign-
 | 2.1 | `ToolSource` interface; YAML connectors as the first source; the client wrapper and `McpSource` on the SDK; the server's schema as the tool's input; M1 (library level), M2, M3, M6, M7, M9, M10, M12 against a fake server over HTTP in memory | The conformance suite passes for the MCP source; the three of its tests that need a small write to run unattended are skipped for it (an MCP write always waits for a person) and covered in `tests/test_mcp_source.py`; existing connector tests unchanged | **Built** (in review) |
 | 2.2 | Trust rules: M4 (`McpSource(approved=...)`: only approved and unchanged tools are offered; `changes` reports added, changed and removed), M5 (`Tool.untrusted_output`: results, approved-action results and error text always screened; descriptions and schema text that read as instructions are never offered), the threat-model row S13 | Injection and changed-tool-list scenarios pass | **Built** (in review). The audit entries of M8 move to WP 2.3 |
 | 2.3a | Stored connections (migration 0057), the service, the gate, the routes, audit, the allowed-hosts setting and its residency entry, M1, M8, M11 | An operator adds a connection, reviews, approves, checks and switches it off through the API, and agents use only what was approved | **Built** (in review) |
-| 2.3b | The operator screen in Studio (plain words, accessible), a browser test | An operator does the same in the screen without editing files | Not started |
+| 2.3b | The Connections screen in Studio (Build, Connections; shown to anyone who can read versions, controls only to an administrator): allowed hosts, add, review tools, approve ticked tools, check for changes, switch on or off, trust, delete, in plain words with labelled fields | An operator does the same in the screen without editing files; component tests and a real-browser walkthrough | **Built** (in review) |
 | 2.4 | One catalogue of tools and triggers read by Studio and Automations | Catalogue API with tests | Not started |
 | 2.5 | Connectors for the target market (helpdesk, commerce, payments) | A sandbox demonstration | **Blocked: no vendor sandbox accounts (owner, 2026-11-19).** Connectors written from vendor documentation alone would be unverified and are not claimed |
 | 2.6 | Network-needs page; residency entries for every connection | Every external host is listed | Not started |
 
 Not done in 2.1, on purpose: era caching (each call probes `server/discover` once, one extra request; measure before caching); a true older-only server in the tests (the fake is dual-era and the client is run in handshake mode, plus a wrapper that refuses `server/discover` the way an older server does); 
 
-Order: 2.1, 2.2, 2.3, 2.4, 2.6. WP 2.1 and 2.2 are library work. MCP connections count as built when WP 2.3b adds the screen; until then they work through the API only, and the plan's progress table says so.
+Order: 2.1, 2.2, 2.3, 2.4, 2.6. MCP connections are a feature an operator can use since WP 2.3b: add, review, approve, check and switch off in the Studio screen, for the default tenant.
 
 ## 7. Decisions to record
 200 adopt the `mcp` SDK behind a wrapper as a named exception to decision 199 (the owner approved it on 2026-11-19; new dependencies named in the decision); 201 an MCP write needs approval and trust is the operator's, per connection; 202 the server's schema as the tool's input without changing `Tool`, and `Tool.untrusted_output` (built in WP 2.2).
