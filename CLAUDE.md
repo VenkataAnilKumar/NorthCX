@@ -35,8 +35,9 @@ Open-source projects, specifications and product pages studied for the four modu
 | Product benchmark | `benchmarks/` (Sierra, Decagon, Intercom Fin pages) | Plain-language procedures, simulations, always-on quality checks |
 
 How to use them:
-- Read for ideas and patterns. Do not paste or port code. Record what you adopt as a decision-log entry, not as copied files. Anything copied needs provenance under the Code Reuse Policy, and `NOTICE` and `THIRD_PARTY.md` change with it.
-- Licences were not reviewed. Several are unclear or restrictive (for example LobeHub, Open WebUI, and any `ee` or enterprise directory), so check a LICENSE file before depending on anything, and never use `ee` code.
+- **Copy and rebrand is allowed; depending is not** (owner's decision 199, `docs/08-governance-safety/NorthCX_Code-Reuse-Policy.md`). Copy only what NorthCX uses, rename it to NorthCX names and structure, restyle with the NorthCX design system, and make it stand alone: nothing imports, installs or calls the source project.
+- Rebranding never removes the licence and copyright notice: every copied file keeps an attribution header (source, path, commit, licence) and gets an entry in `THIRD_PARTY.md` (and `NOTICE` where the source has one) in the same change.
+- Copy only from code whose licence you read in the project's own LICENSE file at that commit, and only permissive ones (MIT, Apache-2.0, BSD). Never copy AGPL or GPL code, source-available or custom licences (Elastic, n8n, Dify, LobeHub, Open WebUI), `ee` or `enterprise` directories, or anything unlicensed. When unsure, rewrite from the idea instead and record it in the decision log.
 - Competitor and project facts came from search summaries and vendor pages and are directional. Treat marketing claims as unverified. Specific points still to confirm before building: the AG-UI interrupt and resume shape, assistant-ui's AG-UI runtime, MCP tool annotations and the 2026-07-28 authorization changes, and Activepieces embedding.
 - Do not use OpenCode as an agent backend (decided): it is a coding agent with shell and file access, not a supervised customer agent.
 
@@ -64,7 +65,7 @@ Everything shipped must be real, specific and checkable. Each review stage appli
 
 ## Rules to keep
 - **The core safety model is not negotiable:** risky actions wait for a person, fail closed, every action audited. New tool sources (MCP, connectors) go through the gateway so approvals, scopes, dry-run, secrets and audit apply equally. Routines never write to customers.
-- **No third-party code is copied** (`NOTICE`, `THIRD_PARTY.md`). Reference projects are for reading; the rules for any exception are in `docs/08-governance-safety/NorthCX_Code-Reuse-Policy.md`. Reference material lives in a separate folder outside this repository (for example `northcx-sources/`); never commit it. The list of what to study is `docs/00-reference/NorthCX_Reference-Sources.md`.
+- **No dependency on a reference project, and every copy is recorded** (`NOTICE`, `THIRD_PARTY.md`, `docs/08-governance-safety/NorthCX_Code-Reuse-Policy.md`). Reference clones live in a separate folder outside this repository (for example `northcx-sources/`); never commit that folder, copy only the files you use into `src/`. The list of what to study is `docs/00-reference/NorthCX_Reference-Sources.md`.
 - **Every change ships complete:** tests (a bug fix comes with a test that failed before), the affected docs, `CHANGELOG.md`, a decision-log entry for non-obvious decisions, and settings added to `.env.example`. New endpoints need a route-permission entry (a test fails otherwise). Outbound calls must not follow redirects; SQL values are always bound.
 - **Sign commits** with `git commit -s` (see `CONTRIBUTING.md`).
 - **Next.js here is not the version you know.** Each app has an `AGENTS.md`; read the docs in `node_modules/next/dist/docs/` before writing Next.js code.

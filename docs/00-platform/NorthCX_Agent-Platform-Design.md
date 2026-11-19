@@ -32,7 +32,7 @@ The named research (protocols, reference projects, commercial products, with how
 
 ## 2a. Lessons adopted
 
-Each lesson came from reading other projects and products (named in the research note) for ideas only; no code was read into this repository or copied.
+Each lesson came from reading other projects and products (named in the research note); no code was copied when it was taken. Copying and rebranding permissively licensed code is allowed from now on, with no dependency on the source (`../08-governance-safety/NorthCX_Code-Reuse-Policy.md`).
 
 | Lesson | Decision it changes |
 |---|---|

@@ -2,9 +2,12 @@
 
 Provenance of code copied or adapted from other projects. Policy: `docs/08-governance-safety/NorthCX_Code-Reuse-Policy.md`.
 
-**Current state: no third-party source code is copied or adapted into NorthCX, and the product has no dependency on any reference project's SDK or library.** Copying or adapting reference code for a feature is allowed under the policy (permissive licences, attribution header, an entry in the table below), but nothing is copied at the moment. The only third-party packages the product installs are ordinary infrastructure libraries (web server, database driver, HTTP client, YAML, and the web framework), listed in `src/backend/pyproject.toml` and the `package.json` files under `src` (`apps/studio`, `packages/*`, `sdk`).
+**Current state: no third-party source code is copied or adapted into NorthCX, and the product has no dependency on any reference project's SDK or library.** Copying and rebranding reference code is allowed under the policy (decision 199: permissive licences read from the project's own LICENSE file, the licence and copyright notice kept in an attribution header, no dependency on the source), but nothing is copied at the moment. The only third-party packages the product installs are ordinary infrastructure libraries (web server, database driver, HTTP client, YAML, and the web framework), listed in `src/backend/pyproject.toml` and the `package.json` files under `src` (`apps/studio`, `packages/*`, `sdk`).
 
 History: two small input-screening files were once adapted from a reference project under Apache-2.0. They were rewritten from scratch in NorthCX style (`northcx/safety/pii.py`, `northcx/safety/prompt_injection.py`) and the copied originals and their licence file were removed from the repository.
+
+## Copied or adapted
+None yet. Each entry will give the source repository, path, commit, licence, the NorthCX files it became, and what was changed. Add it in the same pull request as the copy.
 
 ## Assessed and not copied
 | Source | Module | Reason |

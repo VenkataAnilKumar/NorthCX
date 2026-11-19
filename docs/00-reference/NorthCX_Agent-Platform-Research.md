@@ -19,7 +19,7 @@ Verification: **repo** means read in this repository; **vendor/search** means a 
 
 ## 2a. Lessons taken from the reference projects
 
-The projects below were read for ideas only (GitHub pages and search summaries; no code was read or copied). Each lesson names the design decision it changed. "Inferred" means the lesson is my reading of a feature list, not something confirmed in code.
+The projects below were read through GitHub pages and search summaries; no code was read or copied when these lessons were taken. Each lesson names the design decision it changed. "Inferred" means the lesson is my reading of a feature list, not something confirmed in code.
 
 | Reference | Lesson | Decision it changes |
 |---|---|---|

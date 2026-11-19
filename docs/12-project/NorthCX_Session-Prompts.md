@@ -75,7 +75,7 @@ use and what needs approval; validation messages in the author's terms; write to
 approval by default; test in place with the trace shown as steps in words and one-click
 "make this a test". YAML moves behind an Advanced view. The spec stays the source of truth.
 Read the Studio AGENTS.md and the Next.js docs in node_modules first; use the studio references in
-[ref] for layout ideas only. Add browser and accessibility tests in the existing style.
+[ref] for layout. Copy and rebrand only under the Code Reuse Policy (permissive licence read from its LICENSE file, attribution header, THIRD_PARTY.md entry, no dependency). Add browser and accessibility tests in the existing style.
 Write the script for the usability gate (a CX lead releases a template agent unaided).
 ```
 

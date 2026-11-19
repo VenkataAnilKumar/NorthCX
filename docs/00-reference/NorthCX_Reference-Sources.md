@@ -2,7 +2,7 @@
 
 Status: **Reference**. Updated: 2026-11-18. Master for: the list of external projects, specifications and product pages studied for the Agent Platform modules (Chat, Agent Studio, Integrations, Automations), with how to fetch them for reading. The design that uses them is `../00-platform/NorthCX_Agent-Platform-Design.md`.
 
-These are for **reading and ideas**. The project copies no third-party source (see `../../NOTICE`, `../../THIRD_PARTY.md` and `../08-governance-safety/NorthCX_Code-Reuse-Policy.md`). Keep fetched copies **outside this repository** (for example `~/northcx-sources/`) so nothing is copied in by accident. Licences were not reviewed here and some are unclear or restrictive; check each project's LICENSE file before depending on it. Facts about commercial products come from vendor pages and third-party reviews and are directional.
+These are for reading, and for **copying and rebranding where the licence allows, never depending** (decision 199; rules in `../08-governance-safety/NorthCX_Code-Reuse-Policy.md`). Nothing has been copied yet (`../../NOTICE`, `../../THIRD_PARTY.md`). Keep fetched copies **outside this repository** (for example `~/northcx-sources/`) and copy only the files you use into `src/`. Licences were not reviewed here and some are unclear or restrictive; read the project's own LICENSE file at the commit you copy from. Facts about commercial products come from vendor pages and third-party reviews and are directional.
 
 ## Folder layout
 ```
