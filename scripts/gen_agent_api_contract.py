@@ -2,7 +2,7 @@
 
 The contract is the part of /v1 that other software builds on: every operation tagged agents, sessions, simulations, handoffs,
 approvals, traces or events in docs/api/openapi.json. For each operation it records the permission, the parameters and the request body,
-references resolved. Responses are not covered: the routes return untyped JSON today, so there is no response schema to compare.
+references resolved. Responses are included only where a route declares a response model (northcx/api/responses.py); untyped responses are not covered.
 The stability rule (docs/04-integrations/NorthCX_API-Design.md): within /v1 a
 field may be added; a route, parameter or field is never removed, retyped or newly required.
     python scripts/gen_agent_api_contract.py            # rewrite the snapshot; refuses if the change is breaking
@@ -46,11 +46,14 @@ def build_contract(openapi: dict) -> dict:
             if op.get("tags", [""])[0] not in GROUPS:
                 continue
             body = _json_schema((op.get("requestBody") or {}).get("content"))
+            responses = {code: _resolve(sch, components) for code, r in op.get("responses", {}).items()
+                         if code.startswith("2") and (sch := _json_schema(r.get("content"))) and ({"$ref", "type", "properties", "items"} & sch.keys())}  # only typed responses
             ops[f"{method.upper()} {path}"] = {
                 "permission": op.get("x-required-permission"),
                 "parameters": [{"name": p["name"], "in": p["in"], "required": p.get("required", False), "schema": _resolve(p.get("schema", {}), components)}
                                for p in sorted(op.get("parameters", []), key=lambda p: (p["in"], p["name"]))],
-                "request": {"required": (op.get("requestBody") or {}).get("required", False), "schema": _resolve(body, components)} if body else None}
+                "request": {"required": (op.get("requestBody") or {}).get("required", False), "schema": _resolve(body, components)} if body else None,
+                "responses": responses}
     return {"contract": "NorthCX Agent API", "version": "v1", "groups": list(GROUPS), "operations": dict(sorted(ops.items()))}
 
 
@@ -58,26 +61,31 @@ def _kind(schema) -> str:
     return json.dumps({k: schema.get(k) for k in ("type", "anyOf", "oneOf", "$cycle") if k in schema}, sort_keys=True)
 
 
-def _schema_breaks(old, new, where: str) -> list[str]:
-    """Differences that break a client: `new` must accept everything `old` accepted."""
+def _schema_breaks(old, new, where: str, request: bool = True) -> list[str]:
+    """Differences that break a client. A request must still accept everything it accepted; a response must still give everything it gave."""
     if not isinstance(old, dict) or not isinstance(new, dict):
         return []
     out = []
     if _kind(old) != _kind(new):
         return [f"{where}: type changed"]
     if "enum" in old and "enum" in new:
-        gone = set(map(str, old["enum"])) - set(map(str, new["enum"]))
-        if gone:
-            out.append(f"{where}: no longer accepts {sorted(gone)}")
+        old_values, new_values = set(map(str, old["enum"])), set(map(str, new["enum"]))
+        if request and old_values - new_values:
+            out.append(f"{where}: no longer accepts {sorted(old_values - new_values)}")
+        if not request and new_values - old_values:
+            out.append(f"{where}: can now be {sorted(new_values - old_values)}")
     old_props, new_props = old.get("properties", {}), new.get("properties", {})
     for name, sub in old_props.items():
         if name not in new_props:
             out.append(f"{where}.{name}: removed")
         else:
-            out += _schema_breaks(sub, new_props[name], f"{where}.{name}")
-    out += [f"{where}.{n}: newly required" for n in new.get("required", []) if n not in old.get("required", [])]
+            out += _schema_breaks(sub, new_props[name], f"{where}.{name}", request)
+    if request:
+        out += [f"{where}.{n}: newly required" for n in new.get("required", []) if n not in old.get("required", [])]
+    else:
+        out += [f"{where}.{n}: no longer always present" for n in old.get("required", []) if n not in new.get("required", [])]
     if "items" in old and "items" in new:
-        out += _schema_breaks(old["items"], new["items"], f"{where}[]")
+        out += _schema_breaks(old["items"], new["items"], f"{where}[]", request)
     return out
 
 
@@ -104,6 +112,8 @@ def breaking_changes(old: dict, new: dict) -> list[str]:
             out += _schema_breaks(a["request"]["schema"], b["request"]["schema"], f"{key}: request")
         elif b["request"] and b["request"]["required"]:
             out.append(f"{key}: request body newly required")
+        for code, schema in a.get("responses", {}).items():
+            out += [f"{key}: response {code} removed"] if code not in b["responses"] else _schema_breaks(schema, b["responses"][code], f"{key}: response {code}", False)
     return out
 
 

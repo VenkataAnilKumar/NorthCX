@@ -61,3 +61,27 @@ def test_removing_a_parameter_or_an_accepted_value_is_breaking():
     old = {"operations": {"X": {"parameters": [], "request": {"required": True, "schema": {"type": "string", "enum": ["a", "b"]}}}}}
     new = {"operations": {"X": {"parameters": [], "request": {"required": True, "schema": {"type": "string", "enum": ["a"]}}}}}
     assert gen.breaking_changes(old, new) == ["X: request: no longer accepts ['b']"]
+
+
+APPROVALS = "GET /v1/approvals"
+
+
+def test_the_contract_includes_the_typed_responses():
+    ops = snapshot()["operations"]
+    assert "approvals" in ops[APPROVALS]["responses"]["200"]["properties"]
+    assert ops[CHAT]["responses"]["200"]["properties"]["pendingApprovals"]["type"] == "array"
+    assert ops["POST /v1/agents/{agent_id}/versions"]["responses"] == {}  # not typed yet (WP 1.6b)
+
+
+def test_removing_retyping_or_making_optional_a_response_field_is_breaking():
+    assert changed(lambda ops: ops[CHAT]["responses"]["200"]["properties"].pop("reply")) == [f"{CHAT}: response 200.reply: removed"]
+    assert changed(lambda ops: ops[CHAT]["responses"]["200"]["properties"].__setitem__("status", {"type": "integer"})) == [f"{CHAT}: response 200.status: type changed"]
+    assert changed(lambda ops: ops[CHAT]["responses"]["200"]["required"].remove("traceId")) == [f"{CHAT}: response 200.traceId: no longer always present"]
+    assert changed(lambda ops: ops.__setitem__(CHAT, {**ops[CHAT], "responses": {}})) == [f"{CHAT}: response 200 removed"]
+
+
+def test_adding_a_response_field_or_a_newly_typed_response_is_allowed():
+    def add(ops):
+        ops[CHAT]["responses"]["200"]["properties"]["language"] = {"type": "string"}
+        ops["POST /v1/agents/{agent_id}/versions"]["responses"] = {"200": {"type": "object"}}
+    assert changed(add) == []

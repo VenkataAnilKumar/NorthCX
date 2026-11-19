@@ -12,6 +12,7 @@ from northcx.access import Identity
 from northcx.api.common import _err, _pieces
 from northcx.api.deps import AppDeps
 from northcx.api.models import ChatBody
+from northcx.api.responses import Attachments, ChatResponse, Outbox
 from northcx.attachments import accept as accept_attachment, AttachmentError, check_accepted, MAX_BYTES
 from northcx.catalog import AgentUnavailable
 from northcx.idempotency import request_hash, scope_hash, valid_key
@@ -84,7 +85,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "attachment.upload", customer_ref(session_id), kind=a.kind, size=a.size, sha256=a.sha256[:16])
         return a.meta()
 
-    @app.get("/v1/sessions/{session_id}/attachments")
+    @app.get("/v1/sessions/{session_id}/attachments", responses={200: {"model": Attachments}})
     async def list_attachments(session_id: str) -> Any:
         return {"attachments": [a.meta() for a in await attachment_repo.for_session(session_id)]}
 
@@ -182,7 +183,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         return StreamingResponse(events(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
-    @app.post("/v1/agents/{agent_id}/chat")
+    @app.post("/v1/agents/{agent_id}/chat", responses={200: {"model": ChatResponse}})
     async def chat(agent_id: str, body: ChatBody, request: Request) -> Any:
         who: Identity = request.state.identity
         customer_id = body.customer_id
@@ -242,7 +243,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             await idem.complete(scope, result)
         return result
 
-    @app.get("/v1/sessions/{session_id}/outbox")
+    @app.get("/v1/sessions/{session_id}/outbox", responses={200: {"model": Outbox}})
     async def outbox(session_id: str, request: Request, after: int = 0) -> Any:
         who: Identity = request.state.identity
         if who.session_id is not None and session_id != who.session_id:

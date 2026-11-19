@@ -10,6 +10,7 @@ from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import ReplyBody, ResolveBody
+from northcx.api.responses import Handoff, HandoffDetail, HandoffInbox, HandoffList, HandoffReply
 from northcx.assist import AssistError
 from northcx.decision_teams import note_team
 from northcx.handoffs import PERSON_PREFIX, return_note
@@ -38,12 +39,12 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """Queues, their hours and whether each is open right now."""
         return runtime.router.describe()
 
-    @app.get("/v1/handoffs")
+    @app.get("/v1/handoffs", responses={200: {"model": HandoffList}})
     async def list_handoffs(state: str | None = None, sessionId: str | None = None, limit: int = 200, queue: str | None = None) -> Any:
         items = await runtime.handoffs.list(state, sessionId, max(1, min(limit, 1000)), queue)
         return {"handoffs": [handoff_json(h) for h in items]}
 
-    @app.get("/v1/handoffs/{handoff_id}/inbox")
+    @app.get("/v1/handoffs/{handoff_id}/inbox", responses={200: {"model": HandoffInbox}})
     async def handoff_inbox(handoff_id: str) -> Any:
         """Where this hand-off has been sent (helpdesk reference, attempts, last error)."""
         if await runtime.handoffs.get(handoff_id) is None:
@@ -51,12 +52,12 @@ def register(app: FastAPI, d: AppDeps) -> None:
         events = await runtime.inbox.repo.for_handoff(handoff_id) if runtime.inbox is not None else []
         return {"configured": runtime.inbox is not None, "deliveries": [e.to_dict() for e in events]}
 
-    @app.get("/v1/handoffs/{handoff_id}")
+    @app.get("/v1/handoffs/{handoff_id}", responses={200: {"model": HandoffDetail}})
     async def get_handoff(handoff_id: str) -> Any:
         h = await runtime.handoffs.get(handoff_id)
         return handoff_json(h, full=True) if h else _err(404, "not_found", "Unknown handoff")
 
-    @app.post("/v1/handoffs/{handoff_id}/resolve")
+    @app.post("/v1/handoffs/{handoff_id}/resolve", responses={200: {"model": Handoff}})
     async def resolve_handoff(handoff_id: str, body: ResolveBody, request: Request) -> Any:
         try:
             who = actor(request, body.by)
@@ -78,7 +79,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         except ValueError as e:
             return _err(409, "conflict", str(e))
 
-    @app.post("/v1/handoffs/{handoff_id}/reply")
+    @app.post("/v1/handoffs/{handoff_id}/reply", responses={200: {"model": HandoffReply}})
     async def handoff_reply(handoff_id: str, body: ReplyBody, request: Request) -> Any:
         """A person's message to the customer. It joins the conversation and reaches the customer through the outbox (web chat and apps poll or are
         pushed it); conversations on email and text are answered from the helpdesk instead."""

@@ -1,6 +1,6 @@
 # NorthCX Tool Gateway (Phase 1)
 
-Status: **Built** for WP 1.1, 1.2 and 1.4; WP 1.6 not started. Updated: 2026-11-19. Master for: how tools from any source reach agents, what the runtime already guarantees for every tool, and the work packages of Phase 1 of `../12-project/NorthCX_Agent-Platform-Plan.md`. Part of `../00-platform/NorthCX_Agent-Platform-Design.md` section 5.
+Status: **Built** for WP 1.1, 1.2, 1.4 and 1.6a; WP 1.6b not started. Updated: 2026-11-19. Master for: how tools from any source reach agents, what the runtime already guarantees for every tool, and the work packages of Phase 1 of `../12-project/NorthCX_Agent-Platform-Plan.md`. Part of `../00-platform/NorthCX_Agent-Platform-Design.md` section 5.
 
 Phase 1 changes no behaviour a user can see. The existing test suite is its safety net.
 
@@ -27,7 +27,7 @@ Read in this repository on 2026-11-19.
 | G3 | A security reviewer | A tool has a fingerprint that changes when its name, description, input schema, effect, audience, permission or whether it needs approval changes | Tests change each in turn and see a different fingerprint; the same definition gives the same fingerprint across processes |
 | G4 | Everyone | No visible behaviour change | The whole existing backend suite passes with no edits to existing tests |
 | G5 | The MCP work (WP 2.1) | A conformance suite proves the runtime's guarantees for the tools of any source: input validated, scope blocks, approval held, dry-run in simulation, a duplicate write runs once, secrets redacted, output screened, the idempotency key unchanged from the request to the approved execution | It runs against the YAML connector source and against a second source defined in the test. Safety that belongs to one source (the connector's host allowlist and redirect refusal) stays in that source's own tests; the MCP source (WP 2.1) needs its own |
-| G6 | Developers building on the API | The Agent API is a stated set of routes with a stability rule: within `/v1` fields may be added, never removed or retyped | A test compares those routes' parameters and request bodies with a checked-in snapshot; the comparison reports a removal, a type change or a newly required field and not an addition (responses are untyped today and are not covered) |
+| G6 | Developers building on the API | The Agent API is a stated set of routes with a stability rule: within `/v1` fields may be added, never removed or retyped | A test compares those routes' parameters and request bodies with a checked-in snapshot; the comparison reports a removal, a type change or a newly required field and not an addition (responses only where typed, WP 1.6a and 1.6b) |
 
 ## 4. Design
 - **Operators:** no new setting and no new screen. A duplicate tool name stops start-up as it does today, now saying which two sources clash (for example "Tool 'lookup_order' from connectors:/etc/northcx/connectors is already registered by the registry function").
@@ -49,6 +49,7 @@ Read in this repository on 2026-11-19.
 | 1.4 | G5: the conformance suite (this absorbs the old WP 1.3) | Green for the YAML connectors and a second in-test source |
 | 1.1 | G6: the Agent API contract, snapshot and test, and the stability rule in the API Design document | Test fails on a removed or retyped field in a contract route |
 | 1.5 | Deferred (section 2) | Recorded in the plan's progress table |
-| 1.6 | Type the responses of the contract routes so the stability rule covers them too | The snapshot records response schemas; the test fails on a removed or retyped response field |
+| 1.6a | Type the responses of the conversation-time routes (chat, approvals, hand-offs, traces, outbox, tags, transcript, event types) so the stability rule covers them | The snapshot records their response schemas; a test calls each route and checks the answer against its model |
+| 1.6b | Type the rest (agents, versions, releases, rollouts, simulations, remaining sessions and events routes) | The same, for the remaining operations |
 
-Order: 1.2, then 1.4, then 1.1, then 1.6.
+Order: 1.2, then 1.4, then 1.1, then 1.6a, then 1.6b.
