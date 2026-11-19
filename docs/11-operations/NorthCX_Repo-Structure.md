@@ -52,7 +52,7 @@ src/
 - **Later splits into separate repositories**, if needed: native mobile SDKs, vendor-store apps, the back office (if the project goes open core), and the marketing site (if non-engineers will edit it often).
 
 ## Reuse layout
-`NOTICE`, `THIRD_PARTY.md` and `third_party/<source>/` (LICENSE, NOTICE and MANIFEST.md per source) hold licences and provenance for copied code (see the Code Reuse Policy). No code is copied today, so `third_party/` does not exist. Adapted files live in the owning module and carry attribution headers.
+`NOTICE`, `THIRD_PARTY.md` and `third_party/<source>/` (LICENSE and NOTICE per source) hold licences and provenance for copied code (see the Code Reuse Policy). No code is copied today, so `third_party/` does not exist. Adapted files live in the owning module and carry attribution headers.
 
 ## Conventions
 Backend in Python with typed models and pytest; web apps in strict TypeScript; no network in unit tests; every route that needs a key appears in the generated route reference; every setting appears in the Deployment Guide and `.env.example`.
