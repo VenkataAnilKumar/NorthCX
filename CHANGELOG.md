@@ -17,6 +17,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added (Phase 1, WP 1.2, 2026-11-19)
 - Each tool records its source (`registry`, `connectors`, `verification`, `knowledge`, `memory` or `staff`), shown in the tool catalogue (`GET /v1/catalog`, new `source` field) and on each `tool_call` trace event. Tools register through `Registry.add_tools(source, tools)`, which refuses a taken name and names both sources. `tool_fingerprint(tool)` hashes a tool's definition (not its code or credentials). No other behaviour changes.
 
+### Added (Phase 2, WP 2.1, 2026-11-19)
+- The MCP client and source (library level; nothing is wired to the server or configurable yet, that is WP 2.3): `northcx/mcp_client.py` wraps the official MCP Python SDK and applies the operator's rules (https, allowed hosts, no redirects, timeout, result size cap, rate limit, credential looked up per call); `northcx/mcp_source.py` turns a server's tools into NorthCX tools named `<connection>__<tool>` that check arguments against the server's own schema, and treats every tool as a write that waits for a person unless the connection is trusted and the server says the tool only reads. `northcx/tool_source.py` adds the `ToolSource` interface with the YAML connectors as its first source. New source label `mcp`. New dependencies: `mcp`, `mcp-types` and their packages (see `THIRD_PARTY.md`), an exception to decision 199 granted by the owner.
+
 ### Documentation (Phase 2 design, 2026-11-19)
 - `docs/04-integrations/NorthCX_MCP-Integration.md`: Phase 2 research (the MCP 2026-07-28 revision and the official Python SDK), requirements M1 to M12, design, architecture and work packages. Decisions 200 to 202. WP 2.5 (vendor connectors) recorded as blocked: no vendor sandbox accounts. The MCP annotation and authorization points are no longer "not confirmed" in the research notes (read from the specification source; the wording is to be confirmed before use).
 
