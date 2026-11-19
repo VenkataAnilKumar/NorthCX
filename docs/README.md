@@ -59,6 +59,7 @@ The documents are organised by **platform area**. Each area folder starts with a
 | Finishing 1.0 | `10-releases/NorthCX_Release-Checklist.md` |
 | Deployment and every setting | `11-operations/NorthCX_Deployment-Guide.md` (checked by a test) |
 | Database tables | `11-operations/NorthCX_Database-Schema.md` (checked by a test) |
+| Phases, work packages and the seven-stage process | `12-project/NorthCX_Agent-Platform-Plan.md` |
 | Epic designs and plan decisions D1 to D11 | `12-project/NorthCX_Gap-Closure-Plan.md` |
 | Prompts for Claude Code sessions | `12-project/NorthCX_Session-Prompts.md` |
 | Terms | `12-project/NorthCX_Glossary.md` |
@@ -79,7 +80,7 @@ The documents are organised by **platform area**. Each area folder starts with a
 | `09-models/` | Models-Overview, Model-Providers, Hybrid-Model-Selection, Local-Models-Guide |
 | `10-releases/` | Releases-Overview, Release-Management, Release-Checklist |
 | `11-operations/` | Operations-Overview, Deployment-Guide, Owner-Runbooks, Performance, Database-Schema, Repo-Structure |
-| `12-project/` | Project-Status, Roadmap, Implementation-Plan, Gap-Closure-Plan, Feature-Catalog, Feature-Spec, User-Stories, User-Journey, Non-Functional-Requirements, Tech-Stack-Decisions, Build-vs-Adopt, Decision-Log, Glossary, Docs-Completion-Checklist, Session-Prompts, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |
+| `12-project/` | Project-Status, Roadmap, Agent-Platform-Plan, Implementation-Plan, Gap-Closure-Plan, Feature-Catalog, Feature-Spec, User-Stories, User-Journey, Non-Functional-Requirements, Tech-Stack-Decisions, Build-vs-Adopt, Decision-Log, Glossary, Docs-Completion-Checklist, Session-Prompts, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |
 | `13-workspace/` | The later staff product: Workspace-Spec, Pilot-Spec, Personal-Intelligence-Spec, Staff-Platform-Architecture |
 | `99-archive/` | Superseded documents, each with a pointer to its replacement: the finished 1.0 phase, sprint and next-features plans, the 1.0 implementation checklist, the capability matrix, the memory design, simulation testing, the Studio UI spec and the Admin design rounds |
 | `api/` | Generated API reference: `openapi.json` and `index.html` (do not edit; run `python scripts/gen_api_reference.py`) |

@@ -2,7 +2,7 @@
 
 Status: **Plan**. Updated: 2026-11-18. Master for: the one-page order of releases.
 
-**Update (2026-11-18).** The order of work after 1.0 now follows `../00-platform/NorthCX_Agent-Platform-Design.md` (phasing in section 10, priorities in section 13): the tool gateway and MCP with the first connectors, then guided Studio for non-engineers and shadow mode, then operator experience. The table below is the plan of 2026-11-09 and has not been re-sequenced yet.
+**Update (2026-11-18).** The order of work after 1.0 now follows `../00-platform/NorthCX_Agent-Platform-Design.md` (phasing in section 10, priorities in section 13): the tool gateway and MCP with the first connectors, then guided Studio for non-engineers and shadow mode, then operator experience. Phases and work packages: `NorthCX_Agent-Platform-Plan.md`. The table below is the plan of 2026-11-09 and has not been re-sequenced yet.
 
 | Horizon | Release | Themes | State |
 |---|---|---|---|
