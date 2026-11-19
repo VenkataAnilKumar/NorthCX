@@ -42,7 +42,7 @@ No behaviour change; the existing suite is the safety net.
 | 1.5 | Deferred: no staff tool needs approval today; returns with the Phase 5 `tool` step | Recorded below |
 | 1.6a | Type the responses of the conversation-time routes (chat, approvals, hand-offs, traces, outbox, tags, transcript, event types) and add them to the snapshot | A test calls each typed route and checks the answer against its model; the snapshot test fails on a removed or retyped response field |
 | 1.6b | Type agents, versions, releases, rollouts, simulations, scenario drafts, feedback and review | The same: 48 of 61 operations typed |
-| 1.6c | Type the 11 that need a configured service or a model (managed scenarios, qualifications, event feed and test, assist, improve, journey drafts) | The same; the streaming chat and the upload are not JSON and stay untyped |
+| 1.6c | Type the 12 that need a configured service or a model (managed scenarios, qualifications, event feed and test, assist, improve, journey drafts) and the file upload | The same: 60 of 61 typed; the streaming chat sends server-sent events and stays untyped |
 
 Details and research: `../04-integrations/NorthCX_Tool-Gateway.md`. Order: 1.2, 1.4, 1.1, 1.6a, 1.6b, 1.6c. The `ToolSource` interface is designed with the MCP client (WP 2.1).
 
@@ -137,6 +137,6 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 1.1 Agent API contract | Done | Snapshot of 61 operations, stability rule, 7 tests (a removed route, a removed or retyped or newly required request field or parameter, and a lost enum value each fail; additions pass). Responses: WP 1.6a and 1.6b. The original exit "screens use only it" is dropped: the Studio also uses admin routes (keys, routing, policies) that are not part of the Agent API |
 | 1.5 acting identity | Deferred | No staff tool needs approval; returns with Phase 5 |
 | 1.6a typed responses, conversation-time routes | Done | 19 of 61 operations typed; a test calls each and checks the real answer; mutation check: a model that promises a missing field fails it |
-| 1.6b typed responses: agents, versions, releases, rollouts, simulations | In review | 48 of 61 operations typed; the same test calls each |
-| 1.6c typed responses: the 11 that need a configured service or a model | Not started | |
+| 1.6b typed responses: agents, versions, releases, rollouts, simulations | Done | 48 of 61 operations typed; the same test calls each |
+| 1.6c typed responses: the 12 that need a configured service or a model, and the upload | In review | 60 of 61 operations typed through the harnesses of the tests that already cover them; the streaming chat stays untyped (server-sent events) |
 | Phases 2 to 7 | Not started | |

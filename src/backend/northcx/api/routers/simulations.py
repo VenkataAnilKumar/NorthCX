@@ -12,7 +12,7 @@ from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import QualifyBody, ScenarioBody, SimRunBody
-from northcx.api.responses import GateList, ScenarioCheck, ScenarioDetail, ScenarioDraft, ScenarioList, SimulationRun, SimulationRunDetail, SimulationRunList
+from northcx.api.responses import GateList, Qualification, QualificationList, ScenarioCheck, ScenarioDeleted, ScenarioDetail, ScenarioDraft, ScenarioList, ScenarioSaved, SimulationRun, SimulationRunDetail, SimulationRunList
 from northcx.privacy import customer_ref
 from northcx.regression import scenario_from_traces
 from northcx.simulation import Busy, SimulationService
@@ -101,7 +101,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                 "definition": definition, "yaml": yaml.safe_dump(definition, sort_keys=False, allow_unicode=True, width=100),
                 "revision": m.revision if m else None, "updatedBy": m.updated_by if m else None, "updatedAt": m.updated_at if m else None}
 
-    @app.post("/v1/simulations/scenarios", status_code=201)
+    @app.post("/v1/simulations/scenarios", status_code=201, responses={201: {"model": ScenarioSaved}})
     async def create_scenario(body: ScenarioBody, request: Request) -> Any:
         sim = need_sim()
         if isinstance(sim, JSONResponse):
@@ -120,7 +120,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "scenario.create", sc.name, agent=sc.agent, required=sc.required, digest=sc.digest()[:12])
         return JSONResponse({"name": m.name, "revision": m.revision, "digest": sc.digest(), "required": sc.required}, status_code=201)
 
-    @app.put("/v1/simulations/scenarios/{name}")
+    @app.put("/v1/simulations/scenarios/{name}", responses={200: {"model": ScenarioSaved}})
     async def update_scenario(name: str, body: ScenarioBody, request: Request) -> Any:
         sim = need_sim()
         if isinstance(sim, JSONResponse):
@@ -144,7 +144,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "scenario.update", name, agent=sc.agent, required=sc.required, was_required=old.required, digest=sc.digest()[:12], revision=m.revision)
         return {"name": m.name, "revision": m.revision, "digest": sc.digest(), "required": sc.required}
 
-    @app.delete("/v1/simulations/scenarios/{name}")
+    @app.delete("/v1/simulations/scenarios/{name}", responses={200: {"model": ScenarioDeleted}})
     async def delete_scenario(name: str, request: Request) -> Any:
         sim = need_sim()
         if isinstance(sim, JSONResponse):
@@ -197,14 +197,14 @@ def register(app: FastAPI, d: AppDeps) -> None:
                      agent=body.agent, version=body.version)
         return run_json(run)
 
-    @app.get("/v1/agents/{agent_id}/qualifications")
+    @app.get("/v1/agents/{agent_id}/qualifications", responses={200: {"model": QualificationList}})
     async def list_qualifications(agent_id: str) -> Any:
         q = getattr(runtime, "qualifications", None)
         if q is None:
             return _err(501, "not_configured", "Model qualification is not configured on this server")
         return {"qualifications": [x.to_dict() for x in await q.list(agent_id)]}
 
-    @app.post("/v1/agents/{agent_id}/qualifications", status_code=201)
+    @app.post("/v1/agents/{agent_id}/qualifications", status_code=201, responses={201: {"model": Qualification}})
     async def qualify_model(agent_id: str, body: QualifyBody, request: Request) -> Any:
         """Judge a finished live run made against a candidate model, and record whether that model may serve this agent."""
         q, sim = getattr(runtime, "qualifications", None), need_sim()

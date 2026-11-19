@@ -67,7 +67,20 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "deleted": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "deleted"
+          ]
+        }
+      }
     },
     "GET /v1/agents": {
       "permission": "agents:read",
@@ -308,7 +321,73 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "qualifications": {
+              "items": {
+                "properties": {
+                  "agent": {
+                    "type": "string"
+                  },
+                  "model": {
+                    "type": "string"
+                  },
+                  "agentDigest": {
+                    "type": "string"
+                  },
+                  "qualified": {
+                    "type": "boolean"
+                  },
+                  "required": {
+                    "additionalProperties": {
+                      "type": "integer"
+                    },
+                    "type": "object"
+                  },
+                  "other": {
+                    "additionalProperties": {
+                      "type": "integer"
+                    },
+                    "type": "object"
+                  },
+                  "runId": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "number"
+                  },
+                  "reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "agent",
+                  "model",
+                  "agentDigest",
+                  "qualified",
+                  "required",
+                  "other",
+                  "runId",
+                  "createdAt",
+                  "reasons"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "qualifications"
+          ]
+        }
+      }
     },
     "GET /v1/agents/{agent_id}/releases": {
       "permission": "versions:read",
@@ -1146,7 +1225,67 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "events": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sessionId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "number"
+                  },
+                  "data": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "delivered": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "type",
+                  "sessionId",
+                  "createdAt",
+                  "data",
+                  "delivered"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "events"
+          ]
+        }
+      }
     },
     "GET /v1/events/types": {
       "permission": "audit:read",
@@ -1557,8 +1696,40 @@
           "properties": {
             "attachments": {
               "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "mediaType": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "integer"
+                  },
+                  "sha256": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "number"
+                  }
+                },
                 "additionalProperties": true,
-                "type": "object"
+                "type": "object",
+                "required": [
+                  "id",
+                  "name",
+                  "kind",
+                  "mediaType",
+                  "size",
+                  "sha256",
+                  "createdAt"
+                ]
               },
               "type": "array"
             }
@@ -2668,7 +2839,46 @@
           "type": "object"
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "findings": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "proposal": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "tests": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "draftVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "findings",
+            "proposal",
+            "tests",
+            "draftVersion",
+            "note"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/journeys/draft": {
       "permission": "versions:create",
@@ -2692,7 +2902,36 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "journey": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "yaml": {
+              "type": "string"
+            },
+            "warnings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "note": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "journey",
+            "yaml",
+            "warnings",
+            "note"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/journeys/scenarios": {
       "permission": "simulations:run",
@@ -2721,7 +2960,28 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "scenarios": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "yaml": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "scenarios",
+            "yaml"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/promote": {
       "permission": "versions:create",
@@ -2893,7 +3153,61 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "201": {
+          "properties": {
+            "agent": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "agentDigest": {
+              "type": "string"
+            },
+            "qualified": {
+              "type": "boolean"
+            },
+            "required": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "other": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "runId": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "reasons": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "agent",
+            "model",
+            "agentDigest",
+            "qualified",
+            "required",
+            "other",
+            "runId",
+            "createdAt",
+            "reasons"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/releases": {
       "permission": "versions:create",
@@ -4069,7 +4383,24 @@
           ]
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "type",
+            "status"
+          ]
+        }
+      }
     },
     "POST /v1/handoffs/{handoff_id}/assist": {
       "permission": "handoffs:resolve",
@@ -4084,7 +4415,21 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "assist": {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "assist"
+          ]
+        }
+      }
     },
     "POST /v1/handoffs/{handoff_id}/reply": {
       "permission": "handoffs:resolve",
@@ -4507,7 +4852,32 @@
           "type": "object"
         }
       },
-      "responses": {}
+      "responses": {
+        "201": {
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "revision": {
+              "type": "integer"
+            },
+            "digest": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "name",
+            "revision",
+            "digest",
+            "required"
+          ]
+        }
+      }
     },
     "POST /v1/simulations/scenarios/validate": {
       "permission": "scenarios:write",
@@ -4713,7 +5083,44 @@
         }
       ],
       "request": null,
-      "responses": {}
+      "responses": {
+        "201": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "mediaType": {
+              "type": "string"
+            },
+            "size": {
+              "type": "integer"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "name",
+            "kind",
+            "mediaType",
+            "size",
+            "sha256",
+            "createdAt"
+          ]
+        }
+      }
     },
     "PUT /v1/sessions/{session_id}/review": {
       "permission": "reviews:write",
@@ -4867,7 +5274,32 @@
           "type": "object"
         }
       },
-      "responses": {}
+      "responses": {
+        "200": {
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "revision": {
+              "type": "integer"
+            },
+            "digest": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "name",
+            "revision",
+            "digest",
+            "required"
+          ]
+        }
+      }
     }
   }
 }

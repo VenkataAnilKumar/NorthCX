@@ -1012,7 +1012,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Improve Agent V1 Agents  Agent Id  Improve Post"
+                  "title": "Response Improve Agent V1 Agents  Agent Id  Improve Post",
+                  "$ref": "#/components/schemas/AgentImprovement"
                 }
               }
             }
@@ -1066,7 +1067,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Journey Draft V1 Agents  Agent Id  Journeys Draft Post"
+                  "title": "Response Journey Draft V1 Agents  Agent Id  Journeys Draft Post",
+                  "$ref": "#/components/schemas/JourneyDraft"
                 }
               }
             }
@@ -1120,7 +1122,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Journey Scenarios V1 Agents  Agent Id  Journeys Scenarios Post"
+                  "title": "Response Journey Scenarios V1 Agents  Agent Id  Journeys Scenarios Post",
+                  "$ref": "#/components/schemas/JourneyScenarios"
                 }
               }
             }
@@ -1271,7 +1274,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Qualifications V1 Agents  Agent Id  Qualifications Get"
+                  "title": "Response List Qualifications V1 Agents  Agent Id  Qualifications Get",
+                  "$ref": "#/components/schemas/QualificationList"
                 }
               }
             }
@@ -1323,7 +1327,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Qualify Model V1 Agents  Agent Id  Qualifications Post"
+                  "title": "Response Qualify Model V1 Agents  Agent Id  Qualifications Post",
+                  "$ref": "#/components/schemas/Qualification"
                 }
               }
             }
@@ -4443,7 +4448,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Event Feed V1 Events Get"
+                  "title": "Response Event Feed V1 Events Get",
+                  "$ref": "#/components/schemas/EventFeed"
                 }
               }
             }
@@ -4486,6 +4492,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/EventTestResult",
                   "title": "Response Event Test V1 Events Test Post"
                 }
               }
@@ -4951,7 +4958,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Handoff Assist V1 Handoffs  Handoff Id  Assist Post"
+                  "title": "Response Handoff Assist V1 Handoffs  Handoff Id  Assist Post",
+                  "$ref": "#/components/schemas/HandoffAssist"
                 }
               }
             }
@@ -8738,7 +8746,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Upload Attachment V1 Sessions  Session Id  Attachments Put"
+                  "title": "Response Upload Attachment V1 Sessions  Session Id  Attachments Put",
+                  "$ref": "#/components/schemas/Attachment"
                 }
               }
             }
@@ -9442,6 +9451,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/ScenarioSaved",
                   "title": "Response Create Scenario V1 Simulations Scenarios Post"
                 }
               }
@@ -9581,7 +9591,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Update Scenario V1 Simulations Scenarios  Name  Put"
+                  "title": "Response Update Scenario V1 Simulations Scenarios  Name  Put",
+                  "$ref": "#/components/schemas/ScenarioSaved"
                 }
               }
             }
@@ -9622,7 +9633,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Delete Scenario V1 Simulations Scenarios  Name  Delete"
+                  "title": "Response Delete Scenario V1 Simulations Scenarios  Name  Delete",
+                  "$ref": "#/components/schemas/ScenarioDeleted"
                 }
               }
             }
@@ -12404,6 +12416,50 @@
   },
   "components": {
     "schemas": {
+      "AgentImprovement": {
+        "properties": {
+          "findings": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Findings"
+          },
+          "proposal": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Proposal"
+          },
+          "tests": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Tests"
+          },
+          "draftVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draftversion"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "findings",
+          "proposal",
+          "tests",
+          "draftVersion",
+          "note"
+        ],
+        "title": "AgentImprovement"
+      },
       "AgentList": {
         "properties": {
           "agents": {
@@ -12853,12 +12909,55 @@
         ],
         "title": "AskBody"
       },
+      "Attachment": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "mediaType": {
+            "type": "string",
+            "title": "Mediatype"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "mediaType",
+          "size",
+          "sha256",
+          "createdAt"
+        ],
+        "title": "Attachment"
+      },
       "Attachments": {
         "properties": {
           "attachments": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/Attachment"
             },
             "type": "array",
             "title": "Attachments"
@@ -13621,6 +13720,23 @@
         ],
         "title": "Environments"
       },
+      "EventFeed": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/StatusEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "EventFeed"
+      },
       "EventTestBody": {
         "properties": {
           "type": {
@@ -13634,6 +13750,25 @@
           "type"
         ],
         "title": "EventTestBody"
+      },
+      "EventTestResult": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "status"
+        ],
+        "title": "EventTestResult"
       },
       "EventTypes": {
         "properties": {
@@ -14000,6 +14135,21 @@
         ],
         "title": "Handoff"
       },
+      "HandoffAssist": {
+        "properties": {
+          "assist": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Assist"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "assist"
+        ],
+        "title": "HandoffAssist"
+      },
       "HandoffDetail": {
         "properties": {
           "id": {
@@ -14273,6 +14423,39 @@
         "type": "object",
         "title": "ImproveBody"
       },
+      "JourneyDraft": {
+        "properties": {
+          "journey": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Journey"
+          },
+          "yaml": {
+            "type": "string",
+            "title": "Yaml"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "journey",
+          "yaml",
+          "warnings",
+          "note"
+        ],
+        "title": "JourneyDraft"
+      },
       "JourneyDraftBody": {
         "properties": {
           "description": {
@@ -14287,6 +14470,29 @@
           "description"
         ],
         "title": "JourneyDraftBody"
+      },
+      "JourneyScenarios": {
+        "properties": {
+          "scenarios": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Scenarios"
+          },
+          "yaml": {
+            "type": "string",
+            "title": "Yaml"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "scenarios",
+          "yaml"
+        ],
+        "title": "JourneyScenarios"
       },
       "JourneyScenariosBody": {
         "properties": {
@@ -15048,6 +15254,86 @@
         ],
         "title": "PublishBody"
       },
+      "Qualification": {
+        "properties": {
+          "agent": {
+            "type": "string",
+            "title": "Agent"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "agentDigest": {
+            "type": "string",
+            "title": "Agentdigest"
+          },
+          "qualified": {
+            "type": "boolean",
+            "title": "Qualified"
+          },
+          "required": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Required"
+          },
+          "other": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Other"
+          },
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "agent",
+          "model",
+          "agentDigest",
+          "qualified",
+          "required",
+          "other",
+          "runId",
+          "createdAt",
+          "reasons"
+        ],
+        "title": "Qualification"
+      },
+      "QualificationList": {
+        "properties": {
+          "qualifications": {
+            "items": {
+              "$ref": "#/components/schemas/Qualification"
+            },
+            "type": "array",
+            "title": "Qualifications"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "qualifications"
+        ],
+        "title": "QualificationList"
+      },
       "QualifyBody": {
         "properties": {
           "model": {
@@ -15693,6 +15979,20 @@
         ],
         "title": "ScenarioCheck"
       },
+      "ScenarioDeleted": {
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "title": "Deleted"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "deleted"
+        ],
+        "title": "ScenarioDeleted"
+      },
       "ScenarioDetail": {
         "properties": {
           "name": {
@@ -15854,6 +16154,35 @@
           "scenarios"
         ],
         "title": "ScenarioList"
+      },
+      "ScenarioSaved": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name",
+          "revision",
+          "digest",
+          "required"
+        ],
+        "title": "ScenarioSaved"
       },
       "ScenarioSummary": {
         "properties": {
@@ -16365,6 +16694,60 @@
           "name"
         ],
         "title": "SpaceFileBody"
+      },
+      "StatusEvent": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          },
+          "delivered": {
+            "type": "boolean",
+            "title": "Delivered"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "sessionId",
+          "createdAt",
+          "data",
+          "delivered"
+        ],
+        "title": "StatusEvent"
       },
       "TagAdded": {
         "properties": {

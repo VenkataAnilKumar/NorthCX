@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import EventTestBody
-from northcx.api.responses import EventTypes, Trace, TraceExports, TraceList
+from northcx.api.responses import EventFeed, EventTestResult, EventTypes, Trace, TraceExports, TraceList
 from northcx.events import EVENTS
 
 
@@ -39,7 +39,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     async def event_types() -> Any:
         return {"enabled": events is not None, "types": [{"type": k, "description": v, "subscribed": events is not None and k in events.types} for k, v in EVENTS.items()]}
 
-    @app.post("/v1/events/test")
+    @app.post("/v1/events/test", responses={200: {"model": EventTestResult}})
     async def event_test(body: EventTestBody, request: Request) -> Any:
         """Sends one signed sample event of the given type to the configured events webhook and reports whether the receiver accepted it.
         Nothing is stored or retried, and the sample is marked `test`."""
@@ -55,7 +55,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "events.test", body.type, outcome="success" if result["status"] == "sent" else "failure", delivery=result["status"])
         return {"type": body.type, **result}
 
-    @app.get("/v1/events")
+    @app.get("/v1/events", responses={200: {"model": EventFeed}})
     async def event_feed(after: int = 0, limit: int = 100) -> Any:
         """The same events the webhook sends, for receivers that would rather poll. `after` is the id of the last event already seen."""
         if events is None:

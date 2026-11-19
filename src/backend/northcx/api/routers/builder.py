@@ -13,6 +13,7 @@ from northcx.access import Identity
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import BuilderBody, ImproveBody, JourneyDraftBody, JourneyScenariosBody, RefineBody, ScenarioDraftBody
+from northcx.api.responses import AgentImprovement, JourneyDraft, JourneyScenarios
 from northcx.builder import BuildError, draft_agent, refine_agent
 from northcx.catalog import AgentUnavailable
 from northcx.journeys import draft_prompt, DraftError, JourneySpec, parse_draft, scenarios as journey_scenarios_list, scenarios_yaml as journey_scenarios_yaml, SYSTEM as JOURNEY_SYSTEM
@@ -97,7 +98,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "builder.refine", out["spec"]["id"], changes=len(out["changes"]), warnings=len(out["warnings"]))
         return out
 
-    @app.post("/v1/agents/{agent_id}/improve")
+    @app.post("/v1/agents/{agent_id}/improve", responses={200: {"model": AgentImprovement}})
     async def improve_agent(agent_id: str, body: ImproveBody, request: Request) -> Any:
         """Investigate how the live agent is failing, propose a change, test it against the agent's own scenarios next to the live version, and optionally save it as a draft for a reviewer."""
         from northcx.improve import investigate, propose, run_pair
@@ -163,7 +164,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "builder.transcribe", "recording", size=len(data))
         return {"text": text_, "characters": len(text_), "note": "Read it before using it: transcripts can contain mistakes. Personal details are masked when it is used to draft an agent."}
 
-    @app.post("/v1/agents/{agent_id}/journeys/draft")
+    @app.post("/v1/agents/{agent_id}/journeys/draft", responses={200: {"model": JourneyDraft}})
     async def journey_draft(agent_id: str, body: JourneyDraftBody, request: Request) -> Any:
         """A journey drafted from a plain-language description by the model. Checked against the agent's real tools; never saved by itself."""
         who: Identity = request.state.identity
@@ -190,7 +191,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         return {"journey": data, "yaml": yaml.safe_dump(data, sort_keys=False, allow_unicode=True), "warnings": warnings,
                 "note": "A draft for a person to review. Nothing is saved until it is added to the agent and a version is created."}
 
-    @app.post("/v1/agents/{agent_id}/journeys/scenarios")
+    @app.post("/v1/agents/{agent_id}/journeys/scenarios", responses={200: {"model": JourneyScenarios}})
     async def journey_scenarios(agent_id: str, body: JourneyScenariosBody) -> Any:
         """Test scenario drafts for a journey, one per sample opening message (not required until someone relies on them)."""
         try:

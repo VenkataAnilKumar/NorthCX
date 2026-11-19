@@ -51,6 +51,7 @@ def conversation_flow(call):
     call("GET", f"/v1/traces/{chat['traceId']}", "/v1/traces/{trace_id}")
     call("GET", f"/v1/traces/{chat['traceId']}/exports", "/v1/traces/{trace_id}/exports")
     call("GET", "/v1/events/types")
+    call("PUT", "/v1/sessions/s1/attachments", "/v1/sessions/{session_id}/attachments", params={"filename": "note.txt"}, content=b"hello", headers={"content-type": "text/plain"})
     for leaf in ("outbox", "attachments", "tags", "transcript", "scenario-draft"):
         call("GET", f"/v1/sessions/s1/{leaf}", f"/v1/sessions/{{session_id}}/{leaf}")
     call("PUT", "/v1/sessions/s1/tags/vip", "/v1/sessions/{session_id}/tags/{tag}")
@@ -92,6 +93,51 @@ def release_flow(call):
     call("PUT", "/v1/sessions/s1/review", "/v1/sessions/{session_id}/review", json={"verdict": "correct"})
 
 
+def configured_service_flows(models, seen):
+    """The routes that answer only when a service or a model is configured, driven through the harnesses of the tests that already cover them."""
+    import httpx
+    from tests import test_collab, test_events, test_improve, test_journeys, test_qualification, test_scenario_editor
+
+    client, _, _, _ = test_scenario_editor.api()
+    client.headers.update(test_scenario_editor.H)
+    call = make_caller(client, models, seen)
+    call("POST", "/v1/simulations/scenarios", json={"yaml": test_scenario_editor.GOOD})
+    name = next(x["name"] for x in client.get("/v1/simulations/scenarios").json()["scenarios"] if x["source"] == "managed")
+    call("PUT", f"/v1/simulations/scenarios/{name}", "/v1/simulations/scenarios/{name}", json={"yaml": test_scenario_editor.GOOD})
+    call("DELETE", f"/v1/simulations/scenarios/{name}", "/v1/simulations/scenarios/{name}")
+
+    stored = {"r1": test_qualification.run([test_qualification.result("r", True, True)])}
+    stored["r1"].id = "r1"
+    client, _ = test_qualification.client(stored)
+    client.headers.update({"authorization": f"Bearer {test_qualification.KEY}"})
+    call = make_caller(client, models, seen)
+    call("POST", "/v1/agents/support/qualifications", "/v1/agents/{agent_id}/qualifications", json={"model": test_qualification.M, "runId": "r1"})
+    call("GET", "/v1/agents/support/qualifications", "/v1/agents/{agent_id}/qualifications")
+
+    client, _ = test_events.api_with_webhook(lambda req: httpx.Response(200))
+    client.headers.update(test_events.H)
+    call = make_caller(client, models, seen)
+    client.post("/v1/agents/support/chat", json={"sessionId": "s9", "message": "hello"})
+    client.post("/v1/sessions/s9/feedback", json={"rating": 4})
+    call("GET", "/v1/events")
+    call("POST", "/v1/events/test", json={"type": "handoff.created"})
+
+    client, _, _ = test_collab.api(assist_script=[test_collab.text(json.dumps(test_collab.SUGGESTION))])
+    client.headers.update(test_collab.H)
+    handoff_id = test_collab.chat(client)["handoffId"]
+    make_caller(client, models, seen)("POST", f"/v1/handoffs/{handoff_id}/assist", "/v1/handoffs/{handoff_id}/assist")
+
+    client, _, _, key, _ = test_improve.world([test_improve.text(test_improve.revised())])
+    client.headers.update(key("dev", "developer"))
+    make_caller(client, models, seen)("POST", "/v1/agents/acme/improve", "/v1/agents/{agent_id}/improve", json={"focus": "Stop promising delivery dates", "createDraft": True})
+
+    client, _ = test_journeys.api(test_journeys.text("```json\n" + json.dumps(test_journeys.REFUND) + "\n```"))
+    client.headers.update(test_journeys.H)
+    call = make_caller(client, models, seen)
+    call("POST", "/v1/agents/support/journeys/draft", "/v1/agents/{agent_id}/journeys/draft", json={"description": "When someone wants their money back, find the order, then refund it."})
+    call("POST", "/v1/agents/support/journeys/scenarios", "/v1/agents/{agent_id}/journeys/scenarios", json={"journey": test_journeys.REFUND})
+
+
 def test_every_typed_route_answers_with_its_declared_shape():
     from tests.test_rollout import H, api
     script = [tool_call("issue_refund", {"order_id": "A-1042", "amount": 500, "reason": "late"}, "t1"),
@@ -104,6 +150,7 @@ def test_every_typed_route_answers_with_its_declared_shape():
     client.headers.update(H)
     client.post("/v1/agents/support/chat", json={"sessionId": "s1", "message": "hi"})  # a conversation for the review and draft routes
     release_flow(make_caller(client, models, seen))
+    configured_service_flows(models, seen)
     assert seen == set(models), f"routes with a response model that this test did not call: {sorted(set(models) - seen)}"
 
 

@@ -152,8 +152,18 @@ class Outbox(Response):
     messages: list[OutboxMessage]
 
 
+class Attachment(Response):
+    id: str
+    name: str
+    kind: str
+    mediaType: str
+    size: int
+    sha256: str
+    createdAt: float
+
+
 class Attachments(Response):
-    attachments: list[dict[str, Any]]
+    attachments: list[Attachment]
 
 
 class SessionTags(Response):
@@ -403,3 +413,73 @@ class ScenarioDraft(Response):
 class Saved(Response):
     saved: bool
     replaced: bool
+
+
+# ---- routes that answer only when a service or a model is configured ----
+class ScenarioSaved(Response):
+    name: str
+    revision: int
+    digest: str
+    required: bool
+
+
+class ScenarioDeleted(Response):
+    deleted: bool
+
+
+class Qualification(Response):
+    agent: str
+    model: str
+    agentDigest: str
+    qualified: bool
+    required: dict[str, int]
+    other: dict[str, int]
+    runId: str
+    createdAt: float
+    reasons: list[str]
+
+
+class QualificationList(Response):
+    qualifications: list[Qualification]
+
+
+class StatusEvent(Response):
+    id: int
+    type: str | None
+    sessionId: str | None
+    createdAt: float
+    data: dict[str, Any]
+    delivered: bool
+
+
+class EventFeed(Response):
+    events: list[StatusEvent]
+
+
+class EventTestResult(Response):
+    type: str
+    status: str
+
+
+class HandoffAssist(Response):
+    assist: dict[str, Any]
+
+
+class AgentImprovement(Response):
+    findings: dict[str, Any]
+    proposal: dict[str, Any]
+    tests: dict[str, Any]
+    draftVersion: int | None
+    note: str
+
+
+class JourneyDraft(Response):
+    journey: dict[str, Any]
+    yaml: str
+    warnings: list[str]
+    note: str
+
+
+class JourneyScenarios(Response):
+    scenarios: list[dict[str, Any]]
+    yaml: str
