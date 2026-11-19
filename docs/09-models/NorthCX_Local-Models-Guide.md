@@ -42,7 +42,7 @@ A model should serve an agent's customers only after it has passed that agent's 
 2. Record the qualification from that run: `POST /v1/agents/{agent}/qualifications` with `model` and `runId`. It holds only for that exact agent definition; changing the prompt or tools needs a new run.
 3. List them: `GET /v1/agents/{agent}/qualifications`.
 
-The command-line runner (`python -m northcx.simulation --model live`) uses Claude only today, so local qualification goes through the server.
+The command-line runner uses the same configured models: with `NORTHCX_PROVIDERS_FILE` set, `python -m northcx.simulation examples/scenarios --specs examples --registry examples.support_agent:registry --model live` runs the scenarios on the default provider (a local one in the example above). Recording a qualification still goes through the server (step 2).
 
 ## 5. What to expect
 - Small local models are usually close to large cloud models on single, simple tool calls and fall behind on multi-step tool chains, which are common in support work (the research summary is in `NorthCX_Hybrid-Model-Selection.md`, section 6). Qualification is how you find out for your agents; do not assume.
@@ -52,5 +52,4 @@ The command-line runner (`python -m northcx.simulation --model live`) uses Claud
 ## 6. Not yet done
 - An end-to-end run of this guide against a real local server (the first local-model pass).
 - A list of local models known to pass the shipped scenarios.
-- Live mode in the command-line simulation runner for configured providers.
 - A Studio screen where a non-engineer picks models per tier and sees qualification results.

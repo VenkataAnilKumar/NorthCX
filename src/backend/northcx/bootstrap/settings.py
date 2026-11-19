@@ -3,8 +3,6 @@ import sys
 from pathlib import Path
 from northcx.config import load_registry
 from northcx.reliability import ReliableLLM
-from northcx.llm import DEFAULT_MODEL, AnthropicHttpLLM, AnthropicLLM
-from northcx.providers import ProviderRegistry
 from northcx.secrets import SecretStore, env_or_file
 from types import SimpleNamespace
 
@@ -30,38 +28,13 @@ def load_settings(c: SimpleNamespace) -> None:
 
         llm = DemoLLM()
     else:
-        kind = os.environ.get("NORTHCX_ANTHROPIC_CLIENT", "sdk").strip() or "sdk"
-        if kind not in ("sdk", "http"):
-            sys.exit("NORTHCX_ANTHROPIC_CLIENT must be sdk or http")
-        providers = ProviderRegistry()  # bare model names go to the default provider
-        entries = []
+        from northcx.providers.setup import build_providers
+        from northcx.secrets import ConfigError
 
-        def make_claude(name: str = "anthropic", model: str | None = None, prices: dict | None = None):
-            if name != "anthropic":
-                raise ValueError("the anthropic provider must be named 'anthropic'")
-            if not anthropic_key:
-                raise ValueError("needs ANTHROPIC_API_KEY (or ANTHROPIC_API_KEY_FILE)")
-            args = dict(model=model or DEFAULT_MODEL, prices=prices)
-            return AnthropicHttpLLM(anthropic_key, **args) if kind == "http" else AnthropicLLM(**args)
-        if providers_file:
-            from northcx.providers.config import parse_providers
-            from northcx.secrets import ConfigError
-
-            try:
-                entries = parse_providers(Path(providers_file).read_text(), anthropic_factory=make_claude)
-            except (OSError, ConfigError, ValueError) as e:
-                sys.exit(f"Configuration error: NORTHCX_PROVIDERS_FILE: {e}")
-        if anthropic_key and not any(e.provider.name == "anthropic" for e in entries):
-            try:
-                providers.register(make_claude(), default=not any(e.default for e in entries))
-            except ValueError as e:
-                sys.exit(f"Configuration error: {e}")
-        for e in entries:
-            try:
-                providers.register(e.provider, default=e.default)
-            except ValueError as err:
-                sys.exit(f"Configuration error: NORTHCX_PROVIDERS_FILE: {err}")
-        c.provider_where = {"anthropic": "public-cloud", **{e.provider.name: e.where for e in entries}}
+        try:
+            providers, c.provider_where = build_providers(providers_file, anthropic_key, os.environ.get("NORTHCX_ANTHROPIC_CLIENT", "sdk").strip() or "sdk")
+        except ConfigError as e:
+            sys.exit(f"Configuration error: {e}")
         c.providers = providers
         llm = providers
         fallbacks = [m.strip() for m in os.environ.get("NORTHCX_MODEL_FALLBACKS", "").split(",") if m.strip()]

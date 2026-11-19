@@ -314,3 +314,69 @@ def test_cli_exit_codes_and_json(tmp_path, capsys):
     assert cli(ARGS[:1] + ["--specs", "/nonexistent", "--registry", "examples.support_agent:registry"]) == 2
     assert cli(ARGS[:1] + ["--specs", str(ROOT / "examples"), "--registry", "no.such.module:fn"]) == 2
     assert cli(ARGS[:1] + ["--specs", str(ROOT / "examples"), "--registry", "examples.support_agent:registry", "--model", "live"]) == 2  # no API key
+
+
+class _FakeChatServer:
+    """A local server speaking the OpenAI chat-completions format, standing in for a local model server such as Ollama."""
+
+    def __init__(self):
+        import http.server
+        import threading
+
+        self.requests: list[dict] = []
+        outer = self
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["content-length"])))
+                outer.requests.append({"path": self.path, "model": body.get("model")})
+                reply = {"choices": [{"message": {"role": "assistant", "content": "Your order 1042 is on its way."}, "finish_reason": "stop"}],
+                         "usage": {"prompt_tokens": 10, "completion_tokens": 8}, "model": body.get("model")}
+                data = json.dumps(reply).encode()
+                self.send_response(200)
+                self.send_header("content-type", "application/json")
+                self.send_header("content-length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def log_message(self, *args):
+                pass
+
+        self.httpd = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        self.port = self.httpd.server_address[1]
+        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.httpd.shutdown()
+
+
+def test_cli_live_mode_uses_the_configured_providers(tmp_path, monkeypatch, capsys):
+    # Live mode runs on whatever the operator configured (here a local model), the same way the server does; no Claude key needed.
+    server = _FakeChatServer()
+    try:
+        providers = tmp_path / "providers.yaml"
+        providers.write_text(f"""providers:
+  - name: local
+    type: openai-compatible
+    baseUrl: http://127.0.0.1:{server.port}/v1
+    defaultModel: tiny-local
+    default: true
+    where: local
+    prices: {{tiny-local: {{inputPerMillion: 0, outputPerMillion: 0, currency: USD}}}}
+""")
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.setenv("NORTHCX_PROVIDERS_FILE", str(providers))
+        code = cli([str(SCENARIOS), "--specs", str(ROOT / "examples"), "--registry", "examples.support_agent:registry",
+                    "--model", "live", "--only", "order-lookup"])
+        assert code in (0, 1)  # the scenario ran; whether a scripted reply passes its checks is not the point here
+        assert server.requests and all(r["path"] == "/v1/chat/completions" and r["model"] == "tiny-local" for r in server.requests)
+    finally:
+        server.close()
+
+
+def test_cli_live_mode_says_how_to_configure_a_model(monkeypatch, capsys):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("NORTHCX_PROVIDERS_FILE", raising=False)
+    assert cli([str(SCENARIOS), "--specs", str(ROOT / "examples"), "--registry", "examples.support_agent:registry", "--model", "live"]) == 2
+    err = capsys.readouterr().err
+    assert "NORTHCX_PROVIDERS_FILE" in err and "ANTHROPIC_API_KEY" in err

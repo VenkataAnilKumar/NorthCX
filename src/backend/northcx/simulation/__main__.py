@@ -1,5 +1,7 @@
 """Command line: python -m northcx.simulation SCENARIOS --registry module:function --specs DIR [--model scripted|demo|live]
 
+Live mode uses the configured models: NORTHCX_PROVIDERS_FILE (local and cloud) and, if set, ANTHROPIC_API_KEY.
+
 Exits 1 if any required scenario fails, 2 on a usage or loading error, so it can gate a CI build."""
 from __future__ import annotations
 
@@ -70,12 +72,22 @@ def main(argv: list[str] | None = None) -> int:
 
     live = judge = None
     if a.model == "live" or a.judge_model == "live":
-        if not os.environ.get("ANTHROPIC_API_KEY"):
-            print("error: live mode needs ANTHROPIC_API_KEY", file=sys.stderr)
-            return 2
-        from ..llm import AnthropicLLM
+        # The same models the server would use: the providers file (local and cloud side by side) and, if set, Claude.
+        from ..providers.setup import build_providers
+        from ..secrets import ConfigError, env_or_file
 
-        live = AnthropicLLM()
+        key = env_or_file("ANTHROPIC_API_KEY")
+        providers_file = os.environ.get("NORTHCX_PROVIDERS_FILE", "").strip()
+        if not key and not providers_file:
+            print("error: live mode needs a model: set NORTHCX_PROVIDERS_FILE (local or cloud models) or ANTHROPIC_API_KEY", file=sys.stderr)
+            return 2
+        if key:
+            os.environ["ANTHROPIC_API_KEY"] = key  # the Claude SDK reads it from the environment
+        try:
+            live, _ = build_providers(providers_file, key, os.environ.get("NORTHCX_ANTHROPIC_CLIENT", "sdk").strip() or "sdk")
+        except ConfigError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 2
         judge = live if a.judge_model == "live" else None
     digests = {i: s.digest() for i, s in specs.items()}
     suite = asyncio.run(SimulationRunner(agent_factory, SimConfig(a.model, live, judge, a.skip_judge, not a.allow_side_effects), digests).run_suite(scenarios))
