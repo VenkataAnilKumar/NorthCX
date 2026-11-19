@@ -7,13 +7,15 @@ from __future__ import annotations
 
 import copy
 import re
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from .agent import Tool, ToolContext
+from .agent import Tool, ToolContext, tool_fingerprint
 from .mcp_client import McpClient, McpToolInfo
+from .safety.tool_output import ToolOutputInjection
 from .secrets import NO_SECRETS, SecretStore
 
 CONNECTION_NAME = re.compile(r"[a-z0-9-]{1,24}")
@@ -45,25 +47,74 @@ def arguments_model(schema: dict[str, Any]) -> type[BaseModel]:
     return Arguments
 
 
+def _strings(node: Any):
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for k, v in node.items():
+            yield k
+            yield from _strings(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _strings(v)
+
+
+@dataclass
+class ToolListChanges:
+    """How what the server offers now differs from the list the operator approved. Nothing here is callable until the operator approves it again."""
+
+    added: list[str] = field(default_factory=list)
+    changed: list[str] = field(default_factory=list)  # a name, description, input schema or read or write class differs from what was approved
+    removed: list[str] = field(default_factory=list)
+
+    def __bool__(self) -> bool:
+        return bool(self.added or self.changed or self.removed)
+
+
 class McpSource:
     label = "mcp"
 
-    def __init__(self, connection: str, client: McpClient, *, trusted: bool = False, secrets: SecretStore = NO_SECRETS):
+    def __init__(self, connection: str, client: McpClient, *, trusted: bool = False, secrets: SecretStore = NO_SECRETS,
+                 approved: Mapping[str, str] | None = None):
+        """`approved` is the operator's pinned list: our tool name to its fingerprint. `discover` offers only tools that are on it and unchanged;
+        with no list nothing is offered (a connection nobody has reviewed offers nothing), and `review` shows the operator what the server has."""
         if not CONNECTION_NAME.fullmatch(connection):
             raise ValueError("A connection name is 1 to 24 lowercase letters, digits or hyphens")
-        self.connection, self.client, self.trusted, self.secrets = connection, client, trusted, secrets
+        self.connection, self.client, self.trusted, self.secrets, self.approved = connection, client, trusted, secrets, dict(approved or {})
         self.skipped: list[tuple[str, str]] = []  # (the server's tool name, why it is not offered)
+        self.changes = ToolListChanges()
 
-    async def discover(self) -> list[Tool]:
+    async def review(self) -> list[Tool]:
+        """Everything the server offers now that could be used, for the operator to look at. None of it is callable until approved."""
         self.skipped = []
         tools = []
+        screen = ToolOutputInjection()
         for info in await self.client.list_tools(self.secrets):
             name = f"{self.connection}__{info.name}"
             if not TOOL_NAME.fullmatch(name):
                 self.skipped.append((info.name, "its name does not fit (letters, digits, _ and - up to 64 characters with the connection name)"))
-                continue
-            tools.append(self._tool(name, info))
+            elif not await self._clean(screen, name, info):
+                self.skipped.append((info.name, "its description or input fields contain instructions to the model"))
+            else:
+                tools.append(self._tool(name, info))
         return tools
+
+    @staticmethod
+    async def _clean(screen: ToolOutputInjection, name: str, info: McpToolInfo) -> bool:
+        """False when the description or any text in the input schema reads as an instruction to the model."""
+        for text in _strings([info.description, info.input_schema]):
+            if not (await screen.check_output(name, text)).allow:
+                return False
+        return True
+
+    async def discover(self) -> list[Tool]:
+        offered = {t.name: t for t in await self.review()}
+        gone = {f"{self.connection}__{name}" for name, _ in self.skipped}  # on the server but no longer usable
+        self.changes = ToolListChanges(
+            added=sorted(n for n in offered if n not in self.approved),
+            changed=sorted({n for n, t in offered.items() if n in self.approved and tool_fingerprint(t) != self.approved[n]} | (gone & set(self.approved))),
+            removed=sorted(n for n in self.approved if n not in offered and n not in gone))
+        return [t for n, t in offered.items() if self.approved.get(n) == tool_fingerprint(t)]
 
     def _tool(self, name: str, info: McpToolInfo) -> Tool:
         reads = self.trusted and info.read_only_hint is True
@@ -72,4 +123,5 @@ class McpSource:
             return await self.client.call_tool(info.name, data.model_dump(), ctx.secrets)
 
         approval = None if reads else (lambda d, n=name, c=self.connection: f"{n} can change things in {c}")
-        return Tool(name, info.description[:MAX_DESCRIPTION] or name, arguments_model(info.input_schema), run, requires_approval=approval, effect="read" if reads else "write")
+        return Tool(name, info.description[:MAX_DESCRIPTION] or name, arguments_model(info.input_schema), run, requires_approval=approval, effect="read" if reads else "write",
+                    untrusted_output=True)

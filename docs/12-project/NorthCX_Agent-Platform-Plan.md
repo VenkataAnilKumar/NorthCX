@@ -144,8 +144,9 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | Phase 1 exit check | Met, except WP 1.5 (deferred) | Existing backend suite unchanged and green: 1,636 passed, 201 skipped (Postgres, run in CI) |
 | 2.x stages 1 to 4 (research to architecture) | Done | `NorthCX_MCP-Integration.md`. The official MCP site does not resolve from this environment, so the specification was read from its GitHub source through a summarising fetch; the MUST and SHOULD wording is to be confirmed before the code that depends on it |
 | 2.5 vendor connectors | Blocked | No vendor sandbox accounts; connectors from documentation alone would be unverified |
-| 2.1 MCP client, `ToolSource`, `McpSource` | In review | 62 new tests (client wrapper over HTTP in memory, source and trust rule, the conformance suite for MCP: 6 of 9 tests run, 3 skipped because an MCP write always waits for a person). Mutation check: removing the redirect hook or the size cap fails its tests. Library level: not a feature until WP 2.3. Not verified: any real MCP server |
-| Phases 2 (2.2 to 2.4, 2.6) to 7 | Not started | |
+| 2.1 MCP client, `ToolSource`, `McpSource` | Done | 62 new tests (client wrapper over HTTP in memory, source and trust rule, the conformance suite for MCP: 6 of 9 tests run, 3 skipped because an MCP write always waits for a person). Mutation check: removing the redirect hook or the size cap fails its tests. Library level: not a feature until WP 2.3. Not verified: any real MCP server |
+| 2.2 trust rules for MCP tools | In review | Pinned tool list (added, changed or removed tools are not offered), instructions in descriptions never offered, results and error text always screened, including after an approval; 23 new tests; mutation checks (ignoring the pin, removing the default screen) fail them. Library level; the audit entries move to WP 2.3 |
+| Phases 2 (2.3, 2.4, 2.6) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.

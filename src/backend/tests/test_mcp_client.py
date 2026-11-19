@@ -26,7 +26,7 @@ def client(fake, **kw):
 async def test_lists_tools_with_their_schema_and_the_servers_read_only_claim(fake):
     async with fake.running():
         tools = {t.name: t for t in await client(fake).list_tools(SECRETS)}
-        assert set(tools) == {"orders_lookup", "orders_refund", "asks_a_question"}
+        assert {"orders_lookup", "orders_refund", "asks_a_question"} <= set(tools)
         assert tools["orders_lookup"].read_only_hint is True and tools["orders_refund"].read_only_hint is None
         assert tools["orders_refund"].input_schema["properties"]["amount"]["type"] == "number" and tools["orders_refund"].description == "Refund an order."
 

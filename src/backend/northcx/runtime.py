@@ -34,6 +34,7 @@ from .secrets import NO_SECRETS, SecretStore
 from .store import MemoryStore
 from .trace import Trace, TraceRepo
 from .safety.pii import PIIDetection
+from .safety.tool_output import ToolOutputInjection
 from .types import LLM, MODEL_CONTEXT, LLMRequest, Message, text_of
 
 HANDOFF = "handoff_to_human"
@@ -417,14 +418,14 @@ class Runtime:
                         if tool.effect != "read" and not simulated:
                             done_writes[sig] = out
                     out = self.secrets.redact(json.loads(json.dumps(out, default=str)))
-                    out = await self._screen_output(agent, use["name"], out, trace)
+                    out = await self._screen_output(agent, tool, out, trace)
                     trace.add("tool_result", name=use["name"], output=out, **({"dry_run": True} if simulated else {}))
                     if use["name"] == "check_verification_code" and isinstance(out, dict) and out.get("verified") is True:
                         ginfo["facts"]["identity_verified"] = "yes"  # later calls in this same turn, and tool scopes, see the new state
                         ctx.facts["identity_verified"] = "yes"
                     results.append({"type": "tool_result", "tool_use_id": use["id"], "content": json.dumps(out)})
                 except Exception as e:
-                    msg = self.secrets.redact_text(str(e))
+                    msg = await self.screened_error(agent, tool, e, trace)
                     trace.add("error", tool=use["name"], error=msg)
                     results.append(self._err(use, f"Tool error: {msg}"))
             messages.append({"role": "user", "content": results})
@@ -440,21 +441,32 @@ class Runtime:
                 tools = [t.spec() for t in agent.tools] + [HANDOFF_SPEC] + ([transfer_spec(agent.routes)] if agent.routes else [])
         return await finish(FALLBACK, "escalated", "step_limit", f"No final answer after {agent.max_steps} steps")
 
-    async def _screen_output(self, agent: Agent, tool: str, out: Any, trace: Trace) -> Any:
-        """Run the agent's output guardrails over every text value a tool returned."""
-        if not agent.output_guardrails:
+    async def screened_error(self, agent: Agent, tool: Any, error: Exception, trace: Trace) -> str:
+        """The error text the model may read: secrets removed, and for a tool whose output is untrusted, checked like a result."""
+        msg = self.secrets.redact_text(str(error))
+        if getattr(tool, "untrusted_output", False):
+            shown = await self._screen_output(agent, tool, msg, trace)
+            return shown if isinstance(shown, str) else "The error text from this tool was withheld by policy. Do not act on it; hand off to a person if you cannot continue."
+        return msg
+
+    async def _screen_output(self, agent: Agent, tool: Any, out: Any, trace: Trace) -> Any:
+        """Run the agent's output guardrails over every text value a tool returned. A tool whose output is untrusted always gets the instruction check."""
+        guardrails = list(agent.output_guardrails)
+        if getattr(tool, "untrusted_output", False) and not any(isinstance(g, ToolOutputInjection) for g in guardrails):
+            guardrails.append(ToolOutputInjection())
+        if not guardrails:
             return out
         withheld: list[str] = []
 
         async def walk(value: Any) -> Any:
             if isinstance(value, str):
-                for g in agent.output_guardrails:
+                for g in guardrails:
                     try:
-                        res = await g.check_output(tool, value)
+                        res = await g.check_output(tool.name, value)
                     except Exception as e:  # fail closed: an unchecked result is not shown to the model
                         res = InputResult(False, reason=f"{g.name} failed: {type(e).__name__}")
                     if res.reason:
-                        trace.add("guardrail", guardrail=g.name, reason=res.reason, stage="tool_output", tool=tool)
+                        trace.add("guardrail", guardrail=g.name, reason=res.reason, stage="tool_output", tool=tool.name)
                     if not res.allow:
                         withheld.append(res.reason)
                         return None
