@@ -86,7 +86,7 @@ Built since this section was first written: server-sent events for streaming and
 | GET | `/templates`, `/templates/{id}` | Agent templates and their parameters (built) |
 | POST | `/templates/{id}/render` | `{agentId, params}`: the filled-in spec YAML, scenario YAML, missing tools and warnings; saves nothing (`versions:create`) (built) |
 | POST | `/templates/{id}/create-version` | Render and save as a new version of `agentId`; refused when the deployment lacks a tool the template needs (built) |
-| GET | `/catalog` | The building blocks an editor can offer: tools (effect, approval, inputs), guardrails with an example setting, input and output checks, skills (built) |
+| GET | `/catalog` | The building blocks an editor can offer: tools (effect, source, approval, inputs), guardrails with an example setting, input and output checks, skills (built) |
 | POST | `/agents/{id}/versions/preview` | `{spec}`: every problem found, the digest, whether it equals the latest version, and what differs from production; saves nothing (`versions:create`) (built) |
 | GET | `/simulations/scenarios`, `/simulations/scenarios/{name}` | All scenarios (files and saved), with `source` (`file` or `managed`), `editable`, tags and digest; the detail includes the definition and its YAML (built) |
 | POST | `/simulations/scenarios/validate` | `{yaml}` or `{scenario}`: check a scenario without saving (`scenarios:write`) (built) |

@@ -87,10 +87,7 @@ def register_staff_tools(registry: Any, ws: "WorkspaceService") -> None:
     """Make the staff tools known to the agent registry so a staff assistant (a Hub template with audience: staff) can name them. A customer agent still cannot use them."""
     from dataclasses import replace
     have = set(registry.tool_names())
-    for tool in ws.tools():
-        name = STAFF_KNOWLEDGE_ALIAS if tool.name == "search_knowledge" else tool.name
-        if name not in have:
-            registry.tool(replace(tool, name=name))
+    registry.add_tools("staff", [t for t in (replace(tool, name=STAFF_KNOWLEDGE_ALIAS) if tool.name == "search_knowledge" else tool for tool in ws.tools()) if t.name not in have])
 
 
 class WorkspaceService:

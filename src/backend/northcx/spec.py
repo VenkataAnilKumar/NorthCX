@@ -8,8 +8,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Iterable, Literal
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
@@ -202,6 +203,9 @@ class BuildContext:
         self.llm = llm
 
 
+TOOL_SOURCES = ("registry", "connectors", "verification", "knowledge", "memory", "staff")  # where a tool can come from; shown on each tool
+
+
 class Registry:
     def __init__(self) -> None:
         self._tools: dict[str, Tool] = {}
@@ -215,6 +219,18 @@ class Registry:
             raise SpecError(f"Tool '{tool.name}' is already registered")
         self._tools[tool.name] = tool
         return tool
+
+    def add_tools(self, source: str, tools: Iterable[Tool]) -> None:
+        """Register the tools of one source. A name that is already registered is refused, naming both sources, and nothing from the batch is added."""
+        if source not in TOOL_SOURCES:
+            raise SpecError(f"Unknown tool source '{source}' (known: {', '.join(TOOL_SOURCES)})")
+        batch: dict[str, Tool] = {}
+        for t in tools:
+            have = self._tools.get(t.name) or batch.get(t.name)
+            if have is not None:
+                raise SpecError(f"Tool '{t.name}' from {source} is already registered by {have.source}")
+            batch[t.name] = replace(t, source=source)
+        self._tools.update(batch)
 
     def guardrail(self, name: str, factory: GuardrailFactory) -> None:
         self._guardrails[name] = factory
@@ -271,7 +287,7 @@ class Registry:
         tools = []
         for n in self.tool_names():
             t = self._tools[n]
-            tools.append({"name": n, "description": t.description, "effect": t.effect, "approval": t.requires_approval is not None,
+            tools.append({"name": n, "description": t.description, "effect": t.effect, "source": t.source, "approval": t.requires_approval is not None,
                           "inputs": list(t.input_model.model_json_schema().get("properties", {}))})
         return {"tools": tools,
                 "guardrails": [{"name": n, "description": DESCRIPTIONS.get(n, ""), "example": examples.get(n)} for n in self.guardrail_names()],
