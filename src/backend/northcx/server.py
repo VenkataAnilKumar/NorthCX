@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import asyncio
 import logging
 import re
 import secrets
@@ -68,6 +69,7 @@ from .api.routers import groups as _groups_router
 from .api.routers import scim as _scim_router
 from .api.routers import workspace as _workspace_router
 from .api.routers import hub as _hub_router
+from .api.routers import connections as _connections_router
 from .api.routers import org_policies as _org_policies_router
 from .api.routers import org_templates as _org_templates_router
 from .api.routers import quality as _quality_router
@@ -174,6 +176,11 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("PUT", r"/v1/org-templates/[^/]+", "versions:create"),
     ("POST", r"/v1/org-templates/[^/]+/propose", "versions:create"),
     ("POST", r"/v1/org-templates/[^/]+/(approve|reject|withdraw)", "releases:publish"),
+    ("GET", r"/v1/connections(/[^/]+)?", "versions:read"),
+    ("POST", r"/v1/connections", "keys:manage"),
+    ("PUT", r"/v1/connections/[^/]+", "keys:manage"),
+    ("DELETE", r"/v1/connections/[^/]+", "keys:manage"),
+    ("POST", r"/v1/connections/[^/]+/(review|approve|check)", "keys:manage"),
     ("GET", r"/v1/org-policies", "agents:read"),
     ("POST", r"/v1/org-policies", "versions:create"),
     ("POST", r"/v1/org-policies/prove", "versions:create"),
@@ -408,7 +415,10 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     async def lifespan(_: FastAPI):
         stop = start_background(role, leases, tenants=access.tenants, runtime=runtime, traces=traces, flow=flow, agents=agents, approval_ttl_seconds=approval_ttl_seconds,
                                 alerts=alerts, privacy=privacy, audit=audit, retention_days=retention_days, kb=kb, crawl_scheduler=crawl_scheduler, automations=getattr(runtime, "automations", None))
+        mcp_task = asyncio.create_task(runtime.mcp.keep_current()) if getattr(runtime, "mcp", None) is not None else None  # registers the approved MCP tools, then keeps them current
         yield
+        if mcp_task is not None:
+            mcp_task.cancel()
         await stop()
 
     # The interactive API docs are off: they would describe the API to anyone who can reach the server.
@@ -502,6 +512,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _workspace_router.register(app, deps)
     _hub_router.register(app, deps)
     _org_policies_router.register(app, deps)
+    _connections_router.register(app, deps)
     _org_templates_router.register(app, deps)
     _quality_router.register(app, deps)
     _customers_router.register(app, deps)

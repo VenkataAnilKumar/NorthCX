@@ -8,7 +8,7 @@ from __future__ import annotations
 import copy
 import re
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any, Awaitable, Callable, Mapping
 
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -75,21 +75,33 @@ class McpSource:
     label = "mcp"
 
     def __init__(self, connection: str, client: McpClient, *, trusted: bool = False, secrets: SecretStore = NO_SECRETS,
-                 approved: Mapping[str, str] | None = None):
+                 approved: Mapping[str, str] | None = None, gate: Callable[[str, McpToolInfo, bool], Awaitable[None]] | None = None):
         """`approved` is the operator's pinned list: our tool name to its fingerprint. `discover` offers only tools that are on it and unchanged;
-        with no list nothing is offered (a connection nobody has reviewed offers nothing), and `review` shows the operator what the server has."""
+        with no list nothing is offered (a connection nobody has reviewed offers nothing), and `review` shows the operator what the server has.
+        `gate`, when given, is awaited before every call with the tool's name, definition and trust, and refuses the call by raising `McpError`
+        (a connection switched off, or a tool that is no longer the one approved, must stop agents that were built earlier)."""
         if not CONNECTION_NAME.fullmatch(connection):
             raise ValueError("A connection name is 1 to 24 lowercase letters, digits or hyphens")
         self.connection, self.client, self.trusted, self.secrets, self.approved = connection, client, trusted, secrets, dict(approved or {})
         self.skipped: list[tuple[str, str]] = []  # (the server's tool name, why it is not offered)
         self.changes = ToolListChanges()
+        self.offered: dict[str, McpToolInfo] = {}  # our tool name to the server's definition of it, as of the last `review`
+        self.gate = gate
 
     async def review(self) -> list[Tool]:
         """Everything the server offers now that could be used, for the operator to look at. None of it is callable until approved."""
+        infos = await self.client.list_tools(self.secrets)
+        tools = await self.tools_from(infos)
+        offered = {t.name for t in tools}
+        self.offered = {f"{self.connection}__{i.name}": i for i in infos if f"{self.connection}__{i.name}" in offered}
+        return tools
+
+    async def tools_from(self, infos: list[McpToolInfo]) -> list[Tool]:
+        """Tools for these definitions, without asking the server (the operator's approved definitions are stored, so start-up needs no network)."""
         self.skipped = []
         tools = []
         screen = ToolOutputInjection()
-        for info in await self.client.list_tools(self.secrets):
+        for info in infos:
             name = f"{self.connection}__{info.name}"
             if not TOOL_NAME.fullmatch(name):
                 self.skipped.append((info.name, "its name does not fit (letters, digits, _ and - up to 64 characters with the connection name)"))
@@ -120,6 +132,8 @@ class McpSource:
         reads = self.trusted and info.read_only_hint is True
 
         async def run(data: BaseModel, ctx: ToolContext) -> Any:
+            if self.gate is not None:
+                await self.gate(name, info, self.trusted)
             return await self.client.call_tool(info.name, data.model_dump(), ctx.secrets)
 
         approval = None if reads else (lambda d, n=name, c=self.connection: f"{n} can change things in {c}")

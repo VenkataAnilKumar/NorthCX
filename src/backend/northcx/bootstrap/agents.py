@@ -44,6 +44,9 @@ def build_agents(c: SimpleNamespace) -> None:
         reg.add_tools("knowledge", [t for t in [knowledge_tool(knowledge_repo)] if t.name not in reg.tool_names()])
         if runtime.memories is not None:
             reg.add_tools("memory", [t for t in memory_tools(runtime.memories) if t.name not in reg.tool_names()])
+        from northcx.db import PgMcpConnections
+        from northcx.mcp_connections import McpConnections
+        runtime.mcp = McpConnections(PgMcpConnections(c.engine) if c.db_url else None, reg, allowed_hosts_from(os.environ.get("NORTHCX_MCP_HOSTS"), "NORTHCX_MCP_HOSTS"), secrets)
         print(f"Tool secrets available: {', '.join(secrets.names()) or 'none'}")
         specs = {s.id: reg.pin_skills(s, overwrite=True) for s in load_specs(specs_dir)}  # spec files follow the skill files; the digest includes them
         baseline = {}

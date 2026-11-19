@@ -233,6 +233,12 @@ class Registry:
             batch[t.name] = replace(t, source=source)
         self._tools.update(batch)
 
+    def remove_tools(self, source: str, prefix: str) -> None:
+        """Take out the tools of one source whose names start with `prefix` (a connection's tools, before they are registered again)."""
+        for name in [n for n, t in self._tools.items() if t.source == source and n.startswith(prefix)]:
+            del self._tools[name]
+            self._catalog.pop(name, None)
+
     def guardrail(self, name: str, factory: GuardrailFactory) -> None:
         self._guardrails[name] = factory
 
