@@ -13,7 +13,7 @@ from northcx.analytics_qa import ask as ask_insights
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import AskBody, FeedbackBody, ReviewBody
-from northcx.api.responses import SessionTags, TagAdded, TagRemoved, Transcript
+from northcx.api.responses import Saved, SessionTags, TagAdded, TagRemoved, Transcript
 from northcx.handoffs import transcript
 from northcx.insights import TAG
 from northcx.privacy import customer_ref
@@ -84,7 +84,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         w = window(from_, to)
         return w if isinstance(w, JSONResponse) else await insight.intent_gaps(w[0], w[1], agent, environment)
 
-    @app.post("/v1/sessions/{session_id}/feedback", status_code=201)
+    @app.post("/v1/sessions/{session_id}/feedback", status_code=201, responses={201: {"model": Saved}})
     async def post_feedback(session_id: str, body: FeedbackBody, request: Request) -> Any:
         """A customer's rating of a conversation (1 to 5). A chat token can rate only its own conversation; a second rating replaces the first."""
         who: Identity = request.state.identity
@@ -126,7 +126,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                 "handoffs": [{"id": h.id, "trigger": h.trigger, "state": h.state, "queue": h.queue, "reason": h.reason} for h in hs],
                 "rating": fbk.rating if fbk else None, "review": review_json(rev) if rev else None}
 
-    @app.put("/v1/sessions/{session_id}/review")
+    @app.put("/v1/sessions/{session_id}/review", responses={200: {"model": Saved}})
     async def put_review(session_id: str, body: ReviewBody, request: Request) -> Any:
         if not await traces.summaries(session_id, 1):
             return _err(404, "not_found", "Unknown conversation")

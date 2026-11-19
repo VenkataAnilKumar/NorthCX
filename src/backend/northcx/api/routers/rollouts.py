@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import PercentBody, PromoteBody, RolloutBody
+from northcx.api.responses import Rollout, RolloutComparison, RolloutList
 from northcx.rollout import CANDIDATE, compare as compare_arms, CONTROL, rollout_json, RolloutService
 from northcx.versions import Conflict, GateBlocked, NotFound
 
@@ -38,7 +39,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(400, "bad_request", str(e))
         return rel_error(e)
 
-    @app.post("/v1/agents/{agent_id}/rollouts", status_code=201)
+    @app.post("/v1/agents/{agent_id}/rollouts", status_code=201, responses={201: {"model": Rollout}})
     async def start_rollout(agent_id: str, body: RolloutBody, request: Request) -> Any:
         svc = need_rollouts()
         if isinstance(svc, JSONResponse):
@@ -57,7 +58,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "rollout.start", f"{agent_id}@{r.candidate_number}", percent=r.percent, environment=r.environment, control=r.control_number)
         return rollout_json(r)
 
-    @app.get("/v1/agents/{agent_id}/rollouts")
+    @app.get("/v1/agents/{agent_id}/rollouts", responses={200: {"model": RolloutList}})
     async def list_rollouts(agent_id: str) -> Any:
         svc = need_rollouts()
         if isinstance(svc, JSONResponse):
@@ -68,7 +69,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         r = await svc.repo.get(rollout_id)
         return r if r is not None and r.agent_id == agent_id else None
 
-    @app.put("/v1/agents/{agent_id}/rollouts/{rollout_id}/percent")
+    @app.put("/v1/agents/{agent_id}/rollouts/{rollout_id}/percent", responses={200: {"model": Rollout}})
     async def rollout_percent(agent_id: str, rollout_id: str, body: PercentBody, request: Request) -> Any:
         svc = need_rollouts()
         if isinstance(svc, JSONResponse):
@@ -85,7 +86,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "rollout.percent", f"{agent_id}@{r.candidate_number}", percent=r.percent, environment=r.environment)
         return rollout_json(r)
 
-    @app.post("/v1/agents/{agent_id}/rollouts/{rollout_id}/promote")
+    @app.post("/v1/agents/{agent_id}/rollouts/{rollout_id}/promote", responses={200: {"model": Rollout}})
     async def rollout_promote(agent_id: str, rollout_id: str, request: Request, body: PromoteBody | None = None) -> Any:
         svc = need_rollouts()
         if isinstance(svc, JSONResponse):
@@ -107,7 +108,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "rollout.promote", f"{agent_id}@{r.candidate_number}", environment=r.environment, percent=r.percent)
         return rollout_json(r)
 
-    @app.post("/v1/agents/{agent_id}/rollouts/{rollout_id}/abort")
+    @app.post("/v1/agents/{agent_id}/rollouts/{rollout_id}/abort", responses={200: {"model": Rollout}})
     async def rollout_abort(agent_id: str, rollout_id: str, request: Request) -> Any:
         svc = need_rollouts()
         if isinstance(svc, JSONResponse):
@@ -124,7 +125,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await record(request, "rollout.abort", f"{agent_id}@{r.candidate_number}", environment=r.environment)
         return rollout_json(r)
 
-    @app.get("/v1/agents/{agent_id}/rollouts/{rollout_id}/comparison")
+    @app.get("/v1/agents/{agent_id}/rollouts/{rollout_id}/comparison", responses={200: {"model": RolloutComparison}})
     async def rollout_comparison(agent_id: str, rollout_id: str) -> Any:
         """Control and candidate measured the same way, over the conversations assigned to each."""
         svc = need_rollouts()

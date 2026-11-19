@@ -41,9 +41,10 @@ No behaviour change; the existing suite is the safety net.
 | 1.1 | The Agent API contract: a stated set of routes, a checked-in snapshot and a stability rule (add fields only within `/v1`) | Test fails on a removed or retyped field in a contract route |
 | 1.5 | Deferred: no staff tool needs approval today; returns with the Phase 5 `tool` step | Recorded below |
 | 1.6a | Type the responses of the conversation-time routes (chat, approvals, hand-offs, traces, outbox, tags, transcript, event types) and add them to the snapshot | A test calls each typed route and checks the answer against its model; the snapshot test fails on a removed or retyped response field |
-| 1.6b | Type the remaining contract routes (agents, versions, releases, rollouts, simulations, rest of sessions and events) | The same |
+| 1.6b | Type agents, versions, releases, rollouts, simulations, scenario drafts, feedback and review | The same: 48 of 61 operations typed |
+| 1.6c | Type the 11 that need a configured service or a model (managed scenarios, qualifications, event feed and test, assist, improve, journey drafts) | The same; the streaming chat and the upload are not JSON and stay untyped |
 
-Details and research: `../04-integrations/NorthCX_Tool-Gateway.md`. Order: 1.2, 1.4, 1.1, 1.6a, 1.6b. The `ToolSource` interface is designed with the MCP client (WP 2.1).
+Details and research: `../04-integrations/NorthCX_Tool-Gateway.md`. Order: 1.2, 1.4, 1.1, 1.6a, 1.6b, 1.6c. The `ToolSource` interface is designed with the MCP client (WP 2.1).
 
 ### Phase 2: Integrations (L)
 | WP | Work | Exit check | Needs |
@@ -135,6 +136,7 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 1.4 conformance suite | Done | `tests/test_tool_conformance.py`: 9 guarantees on the YAML connector source and a Python source (18 tests); removing the secret redaction, dry-run or duplicate-write protection from the runtime makes 6 of them fail |
 | 1.1 Agent API contract | Done | Snapshot of 61 operations, stability rule, 7 tests (a removed route, a removed or retyped or newly required request field or parameter, and a lost enum value each fail; additions pass). Responses: WP 1.6a and 1.6b. The original exit "screens use only it" is dropped: the Studio also uses admin routes (keys, routing, policies) that are not part of the Agent API |
 | 1.5 acting identity | Deferred | No staff tool needs approval; returns with Phase 5 |
-| 1.6a typed responses, conversation-time routes | In review | 19 of 61 operations typed; a test calls each and checks the real answer; mutation check: a model that promises a missing field fails it |
-| 1.6b typed responses, the other 42 operations | Not started | |
+| 1.6a typed responses, conversation-time routes | Done | 19 of 61 operations typed; a test calls each and checks the real answer; mutation check: a model that promises a missing field fails it |
+| 1.6b typed responses: agents, versions, releases, rollouts, simulations | In review | 48 of 61 operations typed; the same test calls each |
+| 1.6c typed responses: the 11 that need a configured service or a model | Not started | |
 | Phases 2 to 7 | Not started | |

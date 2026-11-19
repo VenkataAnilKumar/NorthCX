@@ -814,6 +814,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/AgentList",
                   "title": "Response List Agents V1 Agents Get"
                 }
               }
@@ -956,7 +957,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Agent Environments V1 Agents  Agent Id  Environments Get"
+                  "title": "Response Agent Environments V1 Agents  Agent Id  Environments Get",
+                  "$ref": "#/components/schemas/Environments"
                 }
               }
             }
@@ -1171,7 +1173,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Live V1 Agents  Agent Id  Live Get"
+                  "title": "Response Live V1 Agents  Agent Id  Live Get",
+                  "$ref": "#/components/schemas/LiveAgent"
                 }
               }
             }
@@ -1224,7 +1227,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Promote V1 Agents  Agent Id  Promote Post"
+                  "title": "Response Promote V1 Agents  Agent Id  Promote Post",
+                  "$ref": "#/components/schemas/Release"
                 }
               }
             }
@@ -1372,7 +1376,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Publish V1 Agents  Agent Id  Releases Post"
+                  "title": "Response Publish V1 Agents  Agent Id  Releases Post",
+                  "$ref": "#/components/schemas/Release"
                 }
               }
             }
@@ -1423,7 +1428,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Release History V1 Agents  Agent Id  Releases Get"
+                  "title": "Response Release History V1 Agents  Agent Id  Releases Get",
+                  "$ref": "#/components/schemas/ReleaseList"
                 }
               }
             }
@@ -1476,7 +1482,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Rollback V1 Agents  Agent Id  Rollback Post"
+                  "title": "Response Rollback V1 Agents  Agent Id  Rollback Post",
+                  "$ref": "#/components/schemas/Release"
                 }
               }
             }
@@ -1529,7 +1536,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Start Rollout V1 Agents  Agent Id  Rollouts Post"
+                  "title": "Response Start Rollout V1 Agents  Agent Id  Rollouts Post",
+                  "$ref": "#/components/schemas/Rollout"
                 }
               }
             }
@@ -1570,7 +1578,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Rollouts V1 Agents  Agent Id  Rollouts Get"
+                  "title": "Response List Rollouts V1 Agents  Agent Id  Rollouts Get",
+                  "$ref": "#/components/schemas/RolloutList"
                 }
               }
             }
@@ -1622,7 +1631,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Rollout Abort V1 Agents  Agent Id  Rollouts  Rollout Id  Abort Post"
+                  "title": "Response Rollout Abort V1 Agents  Agent Id  Rollouts  Rollout Id  Abort Post",
+                  "$ref": "#/components/schemas/Rollout"
                 }
               }
             }
@@ -1675,7 +1685,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Rollout Comparison V1 Agents  Agent Id  Rollouts  Rollout Id  Comparison Get"
+                  "title": "Response Rollout Comparison V1 Agents  Agent Id  Rollouts  Rollout Id  Comparison Get",
+                  "$ref": "#/components/schemas/RolloutComparison"
                 }
               }
             }
@@ -1737,7 +1748,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Rollout Percent V1 Agents  Agent Id  Rollouts  Rollout Id  Percent Put"
+                  "title": "Response Rollout Percent V1 Agents  Agent Id  Rollouts  Rollout Id  Percent Put",
+                  "$ref": "#/components/schemas/Rollout"
                 }
               }
             }
@@ -1806,7 +1818,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Rollout Promote V1 Agents  Agent Id  Rollouts  Rollout Id  Promote Post"
+                  "title": "Response Rollout Promote V1 Agents  Agent Id  Rollouts  Rollout Id  Promote Post",
+                  "$ref": "#/components/schemas/Rollout"
                 }
               }
             }
@@ -1859,7 +1872,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Create Version V1 Agents  Agent Id  Versions Post"
+                  "title": "Response Create Version V1 Agents  Agent Id  Versions Post",
+                  "$ref": "#/components/schemas/VersionDetail"
                 }
               }
             }
@@ -1900,7 +1914,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Versions V1 Agents  Agent Id  Versions Get"
+                  "title": "Response List Versions V1 Agents  Agent Id  Versions Get",
+                  "$ref": "#/components/schemas/VersionList"
                 }
               }
             }
@@ -1954,7 +1969,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Preview Version V1 Agents  Agent Id  Versions Preview Post"
+                  "title": "Response Preview Version V1 Agents  Agent Id  Versions Preview Post",
+                  "$ref": "#/components/schemas/VersionPreview"
                 }
               }
             }
@@ -2015,7 +2031,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Version Diff V1 Agents  Agent Id  Versions  A  Diff  B  Get"
+                  "title": "Response Version Diff V1 Agents  Agent Id  Versions  A  Diff  B  Get",
+                  "$ref": "#/components/schemas/VersionDiff"
                 }
               }
             }
@@ -2067,7 +2084,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Get Version V1 Agents  Agent Id  Versions  Number  Get"
+                  "title": "Response Get Version V1 Agents  Agent Id  Versions  Number  Get",
+                  "$ref": "#/components/schemas/VersionDetail"
                 }
               }
             }
@@ -2130,7 +2148,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Version Checklist V1 Agents  Agent Id  Versions  Number  Checklist Get"
+                  "title": "Response Version Checklist V1 Agents  Agent Id  Versions  Number  Checklist Get",
+                  "$ref": "#/components/schemas/Checklist"
                 }
               }
             }
@@ -8815,7 +8834,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Post Feedback V1 Sessions  Session Id  Feedback Post"
+                  "title": "Response Post Feedback V1 Sessions  Session Id  Feedback Post",
+                  "$ref": "#/components/schemas/Saved"
                 }
               }
             }
@@ -8922,7 +8942,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Put Review V1 Sessions  Session Id  Review Put"
+                  "title": "Response Put Review V1 Sessions  Session Id  Review Put",
+                  "$ref": "#/components/schemas/Saved"
                 }
               }
             }
@@ -8966,7 +8987,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Scenario Draft V1 Sessions  Session Id  Scenario Draft Get"
+                  "title": "Response Scenario Draft V1 Sessions  Session Id  Scenario Draft Get",
+                  "$ref": "#/components/schemas/ScenarioDraft"
                 }
               }
             }
@@ -9226,7 +9248,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Sim Gate V1 Simulations Gate Get"
+                  "title": "Response Sim Gate V1 Simulations Gate Get",
+                  "$ref": "#/components/schemas/GateList"
                 }
               }
             }
@@ -9268,7 +9291,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Sim Run V1 Simulations Runs Post"
+                  "title": "Response Sim Run V1 Simulations Runs Post",
+                  "$ref": "#/components/schemas/SimulationRun"
                 }
               }
             }
@@ -9310,7 +9334,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Sim Runs V1 Simulations Runs Get"
+                  "title": "Response Sim Runs V1 Simulations Runs Get",
+                  "$ref": "#/components/schemas/SimulationRunList"
                 }
               }
             }
@@ -9353,7 +9378,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Sim Run Detail V1 Simulations Runs  Run Id  Get"
+                  "title": "Response Sim Run Detail V1 Simulations Runs  Run Id  Get",
+                  "$ref": "#/components/schemas/SimulationRunDetail"
                 }
               }
             }
@@ -9385,6 +9411,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/ScenarioList",
                   "title": "Response Sim Scenarios V1 Simulations Scenarios Get"
                 }
               }
@@ -9458,6 +9485,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/ScenarioCheck",
                   "title": "Response Validate Scenario V1 Simulations Scenarios Validate Post"
                 }
               }
@@ -9501,7 +9529,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Get Scenario V1 Simulations Scenarios  Name  Get"
+                  "title": "Response Get Scenario V1 Simulations Scenarios  Name  Get",
+                  "$ref": "#/components/schemas/ScenarioDetail"
                 }
               }
             }
@@ -12375,6 +12404,121 @@
   },
   "components": {
     "schemas": {
+      "AgentList": {
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentSummary"
+            },
+            "type": "array",
+            "title": "Agents"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "agents"
+        ],
+        "title": "AgentList"
+      },
+      "AgentSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest"
+          },
+          "instructions": {
+            "type": "string",
+            "title": "Instructions"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "maxSteps": {
+            "type": "integer",
+            "title": "Maxsteps"
+          },
+          "tools": {
+            "items": {},
+            "type": "array",
+            "title": "Tools"
+          },
+          "guardrails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Guardrails"
+          },
+          "inputGuardrails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Inputguardrails"
+          },
+          "outputGuardrails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Outputguardrails"
+          },
+          "forcedTopics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Forcedtopics"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "digest",
+          "instructions",
+          "model",
+          "maxSteps",
+          "tools",
+          "guardrails",
+          "inputGuardrails",
+          "outputGuardrails",
+          "forcedTopics"
+        ],
+        "title": "AgentSummary"
+      },
       "AnswersBody": {
         "properties": {
           "answers": {
@@ -13003,6 +13147,90 @@
         ],
         "title": "ChatResponse"
       },
+      "Checklist": {
+        "properties": {
+          "agent": {
+            "type": "string",
+            "title": "Agent"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItem"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "changes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Changes"
+          },
+          "liveVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Liveversion"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "agent",
+          "version",
+          "environment",
+          "ready",
+          "checks",
+          "changes",
+          "liveVersion"
+        ],
+        "title": "Checklist"
+      },
+      "ChecklistItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "status",
+          "detail"
+        ],
+        "title": "ChecklistItem"
+      },
       "CoachingBody": {
         "properties": {
           "sessionId": {
@@ -13365,6 +13593,34 @@
         ],
         "title": "EnabledBody"
       },
+      "Environments": {
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "title": "Agentid"
+          },
+          "strictPromotion": {
+            "type": "boolean",
+            "title": "Strictpromotion"
+          },
+          "environments": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Environments"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "agentId",
+          "strictPromotion",
+          "environments"
+        ],
+        "title": "Environments"
+      },
       "EventTestBody": {
         "properties": {
           "type": {
@@ -13436,6 +13692,80 @@
           "rating"
         ],
         "title": "FeedbackBody"
+      },
+      "Gate": {
+        "properties": {
+          "agent": {
+            "type": "string",
+            "title": "Agent"
+          },
+          "agentDigest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agentdigest"
+          },
+          "satisfied": {
+            "type": "boolean",
+            "title": "Satisfied"
+          },
+          "required": {
+            "type": "integer",
+            "title": "Required"
+          },
+          "covered": {
+            "type": "integer",
+            "title": "Covered"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "runIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Runids"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "agent",
+          "agentDigest",
+          "satisfied",
+          "required",
+          "covered",
+          "reasons",
+          "runIds"
+        ],
+        "title": "Gate"
+      },
+      "GateList": {
+        "properties": {
+          "gates": {
+            "items": {
+              "$ref": "#/components/schemas/Gate"
+            },
+            "type": "array",
+            "title": "Gates"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "gates"
+        ],
+        "title": "GateList"
       },
       "GroupBody": {
         "properties": {
@@ -14164,6 +14494,74 @@
         ],
         "title": "LibrarySuggestBody"
       },
+      "LiveAgent": {
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "title": "Agentid"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "servedFrom": {
+            "type": "string",
+            "title": "Servedfrom"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest"
+          },
+          "release": {
+            "title": "Release"
+          },
+          "spec": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Spec"
+          },
+          "specYaml": {
+            "type": "string",
+            "title": "Specyaml"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "agentId",
+          "environment",
+          "servedFrom",
+          "source",
+          "version",
+          "digest",
+          "release",
+          "spec",
+          "specYaml"
+        ],
+        "title": "LiveAgent"
+      },
       "MemberBody": {
         "properties": {
           "subject": {
@@ -14694,6 +15092,121 @@
         ],
         "title": "RefineBody"
       },
+      "Release": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "agentId": {
+            "type": "string",
+            "title": "Agentid"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "versionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Versionid"
+          },
+          "previousVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previousversion"
+          },
+          "by": {
+            "type": "string",
+            "title": "By"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "gate": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Gate"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "toBaseline": {
+            "type": "boolean",
+            "title": "Tobaseline"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "agentId",
+          "environment",
+          "action",
+          "version",
+          "versionId",
+          "previousVersion",
+          "by",
+          "note",
+          "gate",
+          "createdAt",
+          "toBaseline"
+        ],
+        "title": "Release"
+      },
+      "ReleaseList": {
+        "properties": {
+          "releases": {
+            "items": {
+              "$ref": "#/components/schemas/Release"
+            },
+            "type": "array",
+            "title": "Releases"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "releases"
+        ],
+        "title": "ReleaseList"
+      },
       "ReplyBody": {
         "properties": {
           "text": {
@@ -14868,6 +15381,103 @@
         "type": "object",
         "title": "RollbackBody"
       },
+      "Rollout": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "agentId": {
+            "type": "string",
+            "title": "Agentid"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "candidateVersion": {
+            "type": "integer",
+            "title": "Candidateversion"
+          },
+          "controlVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Controlversion"
+          },
+          "percent": {
+            "type": "integer",
+            "title": "Percent"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "startedBy": {
+            "type": "string",
+            "title": "Startedby"
+          },
+          "startedAt": {
+            "type": "number",
+            "title": "Startedat"
+          },
+          "endedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endedby"
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endedat"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "agentId",
+          "environment",
+          "candidateVersion",
+          "controlVersion",
+          "percent",
+          "state",
+          "startedBy",
+          "startedAt",
+          "endedBy",
+          "endedAt",
+          "note"
+        ],
+        "title": "Rollout"
+      },
       "RolloutBody": {
         "properties": {
           "version": {
@@ -14915,6 +15525,70 @@
         ],
         "title": "RolloutBody"
       },
+      "RolloutComparison": {
+        "properties": {
+          "rollout": {
+            "$ref": "#/components/schemas/Rollout"
+          },
+          "arms": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Arms"
+          },
+          "enoughData": {
+            "type": "boolean",
+            "title": "Enoughdata"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "versions": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Versions"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "rollout",
+          "arms",
+          "enoughData",
+          "note",
+          "versions"
+        ],
+        "title": "RolloutComparison"
+      },
+      "RolloutList": {
+        "properties": {
+          "rollouts": {
+            "items": {
+              "$ref": "#/components/schemas/Rollout"
+            },
+            "type": "array",
+            "title": "Rollouts"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "rollouts"
+        ],
+        "title": "RolloutList"
+      },
       "RubricBody": {
         "properties": {
           "criteria": {
@@ -14948,6 +15622,25 @@
         ],
         "title": "RubricBody"
       },
+      "Saved": {
+        "properties": {
+          "saved": {
+            "type": "boolean",
+            "title": "Saved"
+          },
+          "replaced": {
+            "type": "boolean",
+            "title": "Replaced"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "saved",
+          "replaced"
+        ],
+        "title": "Saved"
+      },
       "ScenarioBody": {
         "properties": {
           "yaml": {
@@ -14978,6 +15671,137 @@
         "type": "object",
         "title": "ScenarioBody"
       },
+      "ScenarioCheck": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "problems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Problems"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "valid",
+          "problems"
+        ],
+        "title": "ScenarioCheck"
+      },
+      "ScenarioDetail": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "editable": {
+            "type": "boolean",
+            "title": "Editable"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "definition": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Definition"
+          },
+          "yaml": {
+            "type": "string",
+            "title": "Yaml"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatedby"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatedat"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name",
+          "source",
+          "editable",
+          "required",
+          "digest",
+          "definition",
+          "yaml",
+          "revision",
+          "updatedBy",
+          "updatedAt"
+        ],
+        "title": "ScenarioDetail"
+      },
+      "ScenarioDraft": {
+        "properties": {
+          "yaml": {
+            "type": "string",
+            "title": "Yaml"
+          },
+          "scenario": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Scenario"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "yaml",
+          "scenario",
+          "warnings"
+        ],
+        "title": "ScenarioDraft"
+      },
       "ScenarioDraftBody": {
         "properties": {
           "spec": {
@@ -15000,6 +15824,98 @@
           "spec"
         ],
         "title": "ScenarioDraftBody"
+      },
+      "ScenarioList": {
+        "properties": {
+          "modes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Modes"
+          },
+          "managedAvailable": {
+            "type": "boolean",
+            "title": "Managedavailable"
+          },
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioSummary"
+            },
+            "type": "array",
+            "title": "Scenarios"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "modes",
+          "managedAvailable",
+          "scenarios"
+        ],
+        "title": "ScenarioList"
+      },
+      "ScenarioSummary": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "agent": {
+            "type": "string",
+            "title": "Agent"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "steps": {
+            "type": "integer",
+            "title": "Steps"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "judge": {
+            "type": "boolean",
+            "title": "Judge"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "editable": {
+            "type": "boolean",
+            "title": "Editable"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name",
+          "agent",
+          "required",
+          "description",
+          "steps",
+          "tags",
+          "judge",
+          "digest",
+          "source",
+          "editable"
+        ],
+        "title": "ScenarioSummary"
       },
       "ScheduleBody": {
         "properties": {
@@ -15144,6 +16060,154 @@
         },
         "type": "object",
         "title": "SimRunBody"
+      },
+      "SimulationRun": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "seconds": {
+            "type": "number",
+            "title": "Seconds"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Meta"
+          },
+          "agentDigests": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Agentdigests"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "createdAt",
+          "mode",
+          "source",
+          "passed",
+          "counts",
+          "seconds",
+          "meta",
+          "agentDigests"
+        ],
+        "title": "SimulationRun"
+      },
+      "SimulationRunDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "seconds": {
+            "type": "number",
+            "title": "Seconds"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Meta"
+          },
+          "agentDigests": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Agentdigests"
+          },
+          "results": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "createdAt",
+          "mode",
+          "source",
+          "passed",
+          "counts",
+          "seconds",
+          "meta",
+          "agentDigests",
+          "results"
+        ],
+        "title": "SimulationRunDetail"
+      },
+      "SimulationRunList": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/SimulationRun"
+            },
+            "type": "array",
+            "title": "Runs"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "runs"
+        ],
+        "title": "SimulationRunList"
       },
       "SourceBody": {
         "properties": {
@@ -15808,6 +16872,67 @@
         ],
         "title": "ValidationError"
       },
+      "Version": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "agentId": {
+            "type": "string",
+            "title": "Agentid"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "live": {
+            "type": "boolean",
+            "title": "Live"
+          },
+          "everReleased": {
+            "type": "boolean",
+            "title": "Everreleased"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "agentId",
+          "number",
+          "digest",
+          "author",
+          "note",
+          "createdAt",
+          "live",
+          "everReleased"
+        ],
+        "title": "Version"
+      },
       "VersionBody": {
         "properties": {
           "spec": {
@@ -15866,6 +16991,175 @@
         },
         "type": "object",
         "title": "VersionBody"
+      },
+      "VersionDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "agentId": {
+            "type": "string",
+            "title": "Agentid"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "live": {
+            "type": "boolean",
+            "title": "Live"
+          },
+          "everReleased": {
+            "type": "boolean",
+            "title": "Everreleased"
+          },
+          "spec": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Spec"
+          },
+          "specYaml": {
+            "type": "string",
+            "title": "Specyaml"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "agentId",
+          "number",
+          "digest",
+          "author",
+          "note",
+          "createdAt",
+          "live",
+          "everReleased",
+          "spec",
+          "specYaml"
+        ],
+        "title": "VersionDetail"
+      },
+      "VersionDiff": {
+        "properties": {
+          "from": {
+            "type": "integer",
+            "title": "From"
+          },
+          "to": {
+            "type": "integer",
+            "title": "To"
+          },
+          "identical": {
+            "type": "boolean",
+            "title": "Identical"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "identical"
+        ],
+        "title": "VersionDiff"
+      },
+      "VersionList": {
+        "properties": {
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/Version"
+            },
+            "type": "array",
+            "title": "Versions"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "versions"
+        ],
+        "title": "VersionList"
+      },
+      "VersionPreview": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "problems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Problems"
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest"
+          },
+          "unchangedSinceLatest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unchangedsincelatest"
+          },
+          "diffFromLive": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difffromlive"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "valid",
+          "problems"
+        ],
+        "title": "VersionPreview"
       },
       "WorkspaceChatBody": {
         "properties": {
