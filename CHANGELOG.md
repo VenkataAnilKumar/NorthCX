@@ -14,6 +14,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Quality bar in `CLAUDE.md` and the plan (owner's instruction): no vague or dead requirements, no dead code or placeholders, no fake behaviour or invented figures, no filler; a feature is built only when it works end to end with tests; every pull request says what was verified.
 - Engineering rules in `CLAUDE.md`: one work package per pull request; additive or versioned changes and tested upgrades; no single-provider assumptions; privacy, observability and measurement in every change; justified dependencies; plain, accessible screens; blocked work recorded, never faked.
 
+### Changed (2026-11-19)
+- Simulations: `python -m northcx.simulation --model live` (and `--judge-model live`) now uses the configured models, local and cloud, from `NORTHCX_PROVIDERS_FILE` and, if set, `ANTHROPIC_API_KEY`, as the server does; before, it used Claude only. The server and the command line share one provider setup (`northcx/providers/setup.py`). Server start-up messages are unchanged, except that a wrong `NORTHCX_ANTHROPIC_CLIENT` now starts with "Configuration error:" like the others.
+
 ### Fixed (2026-11-19)
 - Tenancy preview: chat tokens minted by a suspended tenant's keys kept working until they expired; they are now refused at once, as the keys are. The tenant isolation threat model said this already held; it now does, with a test.
 - Approvals: why an approved action ran or not was kept only on the approval record; the outcome and the execution-time checks' events are now added to the trace of the turn that asked. A turn's length in Insights now ends at its reply, so the later record does not change latency figures.

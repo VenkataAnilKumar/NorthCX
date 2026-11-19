@@ -12,7 +12,6 @@ Status: **Reference**. Updated: 2026-11-18. Master for: the one-page overview of
 
 ## Gaps and next steps
 - The first local-model pass (for example on Ollama), then cloud-model passes when keys are available; a published list of models that pass the shipped scenarios
-- Live mode for configured providers in the command-line simulation runner (today it uses Claude only)
 - Prompts tuned per model where needed; a Studio screen for choosing models per tier and seeing qualification
 - Routing simple tasks to cheaper models
 
