@@ -199,3 +199,54 @@ async def test_an_approval_decided_just_before_expiry_is_not_expired(env):
     await flow.resolve(agents, aid, True, "rae")
     assert await flow.expire_stale(agents, 1, now=created + 1000) == []
     assert (await rt.approvals.get(aid)).state == "executed"
+
+
+class _Verified:
+    """A stand-in for the one-time-code service: says whether this conversation's customer is verified right now."""
+    def __init__(self, verified: bool):
+        self.verified = verified
+
+    async def is_verified(self, session_id, customer_id):
+        return self.verified
+
+
+async def test_a_channel_scoped_tool_still_runs_after_approval(env):
+    # The re-check at execution must see the channel of the turn that asked for the action, not none.
+    from northcx.skills import ToolScope, ToolScopeRule
+    make, calls, _ = env
+    _, rt, agent, flow, agents = make([tool_call("refund", {"amount": 500}, "t1"), text("Done.")],
+                                      [ToolScope({"refund": ToolScopeRule(channels=["web"])})])
+    r = await rt.run(agent, "s", "refund 500", "cust", channel="web")
+    assert r.status == "needs_approval"
+    res = await flow.resolve(agents, r.pending_approvals[0]["id"], True, "rae")
+    a = await rt.approvals.get(r.pending_approvals[0]["id"])
+    assert a.state == "executed" and len(calls.keys) == 1, a.result
+    assert res.error is None
+
+
+async def test_a_verified_only_tool_still_runs_after_approval(env):
+    # Verified identity is worked out live by the runtime (a stored claim is ignored), so the re-check must work it out too.
+    from northcx.skills import ToolScope, ToolScopeRule
+    make, calls, _ = env
+    _, rt, agent, flow, agents = make([tool_call("refund", {"amount": 500}, "t1"), text("Done.")],
+                                      [ToolScope({"refund": ToolScopeRule(facts={"identity_verified": ["yes"]})})])
+    rt.verification = _Verified(True)
+    r = await rt.run(agent, "s", "refund 500", "cust")
+    assert r.status == "needs_approval"
+    await flow.resolve(agents, r.pending_approvals[0]["id"], True, "rae")
+    a = await rt.approvals.get(r.pending_approvals[0]["id"])
+    assert a.state == "executed" and len(calls.keys) == 1, a.result
+
+
+async def test_verification_that_lapsed_before_approval_blocks_execution(env):
+    # Fail closed: the re-check uses the state at execution time, so an identity that is no longer verified stops the action.
+    from northcx.skills import ToolScope, ToolScopeRule
+    make, calls, _ = env
+    _, rt, agent, flow, agents = make([tool_call("refund", {"amount": 500}, "t1"), text("Sorry.")],
+                                      [ToolScope({"refund": ToolScopeRule(facts={"identity_verified": ["yes"]})})])
+    rt.verification = _Verified(True)
+    r = await rt.run(agent, "s", "refund 500", "cust")
+    rt.verification.verified = False
+    await flow.resolve(agents, r.pending_approvals[0]["id"], True, "rae")
+    a = await rt.approvals.get(r.pending_approvals[0]["id"])
+    assert a.state == "failed" and calls.keys == [] and "not available for this customer" in a.result["error"]
