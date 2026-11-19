@@ -15,7 +15,7 @@ from northcx.spec import Registry
 from northcx.store import InMemoryStore
 from northcx.tool_source import YamlConnectorSource
 from northcx.trace import TraceStore
-from tests.mcp_fake import SECRET, URL, FakeMcp
+from tests.mcp_fake import SECRET, URL, FakeMcp, approved
 
 SCHEMA = {"type": "object", "properties": {"order_id": {"type": "string", "pattern": "^A-[0-9]+$"}, "amount": {"type": "number", "maximum": 1000}}, "required": ["order_id"]}
 
@@ -38,7 +38,8 @@ def info(name="orders_get", hint=None, schema=SCHEMA, description="Get an order.
 
 
 async def tools_of(*infos, trusted=False, connection="orders"):
-    return {t.name: t for t in await McpSource(connection, Stub(*infos), trusted=trusted).discover()}
+    source = await approved(McpSource(connection, Stub(*infos), trusted=trusted))
+    return {t.name: t for t in await source.discover()}
 
 
 async def test_a_tool_is_named_after_its_connection_so_two_servers_can_offer_the_same_tool():
@@ -50,7 +51,7 @@ async def test_a_tool_is_named_after_its_connection_so_two_servers_can_offer_the
 
 async def test_a_tool_whose_name_does_not_fit_the_model_api_is_left_out_with_the_reason():
     source = McpSource("orders", Stub(info("get"), info("not allowed!"), info("x" * 70)))
-    assert [t.name for t in await source.discover()] == ["orders__get"]
+    assert [t.name for t in await source.review()] == ["orders__get"]
     assert [name for name, _ in source.skipped] == ["not allowed!", "x" * 70] and "letters, digits" in source.skipped[0][1]
 
 
@@ -104,9 +105,14 @@ def world(fake, trusted):
     return McpSource("orders", client, trusted=trusted, secrets=secrets), secrets
 
 
+async def approved_world(fake, trusted):
+    source, secrets = world(fake, trusted)
+    return await approved(source), secrets
+
+
 async def test_a_server_that_claims_every_tool_only_reads_is_still_held_on_an_untrusted_connection():
     async with FakeMcp().running() as fake:
-        source, secrets = world(fake, trusted=False)
+        source, secrets = await approved_world(fake, trusted=False)
         tools = [t for t in await source.discover() if t.name == "orders__orders_lookup"]
         assert tools[0].effect == "write"  # the fake says read-only; nobody trusted it
         llm = ScriptedLLM([tool_call("orders__orders_lookup", {"order_id": "A-1"}, "t1"), text("ok")])
@@ -117,7 +123,7 @@ async def test_a_server_that_claims_every_tool_only_reads_is_still_held_on_an_un
 
 async def test_a_small_write_on_a_trusted_connection_is_held_then_runs_once_after_approval_with_the_servers_answer_reaching_the_agent():
     async with FakeMcp().running() as fake:
-        source, secrets = world(fake, trusted=True)
+        source, secrets = await approved_world(fake, trusted=True)
         tools = await source.discover()
         llm = ScriptedLLM([tool_call("orders__orders_refund", {"order_id": "A-1", "amount": 5}, "t1"), text("Refunded 5.")])
         rt = Runtime(llm, InMemoryStore(), TraceStore(), secrets=secrets)
@@ -130,7 +136,7 @@ async def test_a_small_write_on_a_trusted_connection_is_held_then_runs_once_afte
 
 async def test_a_write_in_a_simulation_is_still_held_for_a_person():
     async with FakeMcp().running() as fake:
-        source, secrets = world(fake, trusted=True)
+        source, secrets = await approved_world(fake, trusted=True)
         llm = ScriptedLLM([tool_call("orders__orders_refund", {"order_id": "A-1", "amount": 5}, "t1"), text("ok")])
         rt = Runtime(llm, InMemoryStore(), TraceStore(), secrets=secrets, dry_run=True)
         run = await rt.run(Agent(id="a", instructions="x", tools=await source.discover()), "s", "refund 5", "c")
@@ -139,7 +145,7 @@ async def test_a_write_in_a_simulation_is_still_held_for_a_person():
 
 async def test_a_failing_call_reaches_the_agent_as_a_plain_tool_error_without_the_address_or_credential():
     async with FakeMcp().running() as fake:
-        source, secrets = world(fake, trusted=True)
+        source, secrets = await approved_world(fake, trusted=True)
         tools = [t for t in await source.discover() if t.name == "orders__orders_lookup"]
         fake.mode = "redirect"
         llm = ScriptedLLM([tool_call("orders__orders_lookup", {"order_id": "A-1"}, "t1"), text("sorry")])

@@ -123,8 +123,8 @@ class McpFixture(Source):
     async def start(self):
         await self.fake.start()
         client = McpClient("orders", mcp_fake.URL, {"localhost"}, secret="orders", transport=self.fake.transport())
-        self.tools = await McpSource("orders", client, trusted=True, secrets=SecretStore(self.secrets)).discover()
-        self.tools = [t for t in self.tools if t.name in (self.lookup, self.refund)]
+        source = await mcp_fake.approved(McpSource("orders", client, trusted=True, secrets=SecretStore(self.secrets)), {self.lookup, self.refund})
+        self.tools = await source.discover()
 
     async def stop(self):
         await self.fake.stop()

@@ -48,6 +48,9 @@ class Tool:
     permission: str | None = None
     # Where the tool was registered from (see `Registry.add_tools`); shown in the catalogue and on each tool_call trace event.
     source: str = "registry"
+    # True for a tool whose results and error text come from a system NorthCX does not control (an MCP server): the runtime then screens them for
+    # instructions to the model even when the agent configured no output guardrail.
+    untrusted_output: bool = False
 
     def __post_init__(self) -> None:
         if self.effect not in ("read", "write"):

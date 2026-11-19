@@ -99,8 +99,11 @@ class ApprovalFlow:
                 claimed.session_id, claimed.customer_id, self.rt.store, idempotency_key=claimed.id,
                 dry_run=self.rt.dry_run, secrets=self.rt.secrets, facts=dict(facts)))
         except Exception as e:
-            return await done(False, {"error": self.rt.secrets.redact_text(str(e))})
-        result = {"result": self.rt.secrets.redact(json.loads(json.dumps(out, default=str)))}
+            return await done(False, {"error": await self.rt.screened_error(agent, tool, e, trace)})
+        out = self.rt.secrets.redact(json.loads(json.dumps(out, default=str)))
+        if tool.untrusted_output:  # the agent's own output guardrails are not applied to an approved action's result today (unchanged); an untrusted tool's always is
+            out = await self.rt._screen_output(agent, tool, out, trace)
+        result = {"result": out}
         return await done(True, {**result, "dry_run": True} if simulated else result)
 
     async def _turn_context(self, a: Approval) -> tuple[dict[str, str], str | None]:
