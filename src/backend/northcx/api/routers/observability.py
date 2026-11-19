@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import EventTestBody
+from northcx.api.responses import EventTypes, Trace, TraceExports, TraceList
 from northcx.events import EVENTS
 
 
@@ -34,7 +35,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """Whether simulations re-run when the knowledge changes, and how the last re-run went."""
         return regression.status() if regression is not None else {"enabled": False}
 
-    @app.get("/v1/events/types")
+    @app.get("/v1/events/types", responses={200: {"model": EventTypes}})
     async def event_types() -> Any:
         return {"enabled": events is not None, "types": [{"type": k, "description": v, "subscribed": events is not None and k in events.types} for k, v in EVENTS.items()]}
 
@@ -75,14 +76,14 @@ def register(app: FastAPI, d: AppDeps) -> None:
         return {"configured": True, "exporters": sorted(x.exporters), "content": x.redactor.mode, "sample": x.sample, "environment": x.environment,
                 **await x.repo.counts()}
 
-    @app.get("/v1/traces/{trace_id}/exports")
+    @app.get("/v1/traces/{trace_id}/exports", responses={200: {"model": TraceExports}})
     async def trace_exports(trace_id: str) -> Any:
         if await traces.get(trace_id) is None:
             return _err(404, "not_found", "Unknown trace")
         jobs = await runtime.exports.repo.for_trace(trace_id) if runtime.exports is not None else []
         return {"configured": runtime.exports is not None, "deliveries": [j.to_dict() for j in jobs]}
 
-    @app.get("/v1/traces/{trace_id}")
+    @app.get("/v1/traces/{trace_id}", responses={200: {"model": Trace}})
     async def get_trace(trace_id: str) -> Any:
         t = await traces.get(trace_id)
         return t.to_dict() if t else _err(404, "not_found", "Unknown trace")
@@ -109,7 +110,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         return {"rules": sorted(runtime.monitor.rules), "counts": counts,
                 "total": sum(n for by in counts.values() for n in by.values())}
 
-    @app.get("/v1/traces")
+    @app.get("/v1/traces", responses={200: {"model": TraceList}})
     async def list_traces(sessionId: str | None = None, limit: int = 200) -> Any:
         items = await traces.summaries(sessionId, max(1, min(limit, 1000)))
         return {"traces": [{"id": t.id, "agentId": t.agent_id, "sessionId": t.session_id, "events": t.events,

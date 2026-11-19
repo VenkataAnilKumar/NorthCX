@@ -857,7 +857,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Chat V1 Agents  Agent Id  Chat Post"
+                  "title": "Response Chat V1 Agents  Agent Id  Chat Post",
+                  "$ref": "#/components/schemas/ChatResponse"
                 }
               }
             }
@@ -2225,7 +2226,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Approvals V1 Approvals Get"
+                  "title": "Response List Approvals V1 Approvals Get",
+                  "$ref": "#/components/schemas/ApprovalList"
                 }
               }
             }
@@ -2267,6 +2269,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/ApprovalExpiry",
                   "title": "Response Expire V1 Approvals Expire Post"
                 }
               }
@@ -2321,7 +2324,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Decide V1 Approvals  Approval Id  Decision Post"
+                  "title": "Response Decide V1 Approvals  Approval Id  Decision Post",
+                  "$ref": "#/components/schemas/ApprovalDecision"
                 }
               }
             }
@@ -4495,6 +4499,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/EventTypes",
                   "title": "Response Event Types V1 Events Types Get"
                 }
               }
@@ -4838,7 +4843,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Handoffs V1 Handoffs Get"
+                  "title": "Response List Handoffs V1 Handoffs Get",
+                  "$ref": "#/components/schemas/HandoffList"
                 }
               }
             }
@@ -4881,7 +4887,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Get Handoff V1 Handoffs  Handoff Id  Get"
+                  "title": "Response Get Handoff V1 Handoffs  Handoff Id  Get",
+                  "$ref": "#/components/schemas/HandoffDetail"
                 }
               }
             }
@@ -4969,7 +4976,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Handoff Inbox V1 Handoffs  Handoff Id  Inbox Get"
+                  "title": "Response Handoff Inbox V1 Handoffs  Handoff Id  Inbox Get",
+                  "$ref": "#/components/schemas/HandoffInbox"
                 }
               }
             }
@@ -5023,7 +5031,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Handoff Reply V1 Handoffs  Handoff Id  Reply Post"
+                  "title": "Response Handoff Reply V1 Handoffs  Handoff Id  Reply Post",
+                  "$ref": "#/components/schemas/HandoffReply"
                 }
               }
             }
@@ -5076,7 +5085,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Resolve Handoff V1 Handoffs  Handoff Id  Resolve Post"
+                  "title": "Response Resolve Handoff V1 Handoffs  Handoff Id  Resolve Post",
+                  "$ref": "#/components/schemas/Handoff"
                 }
               }
             }
@@ -8750,7 +8760,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Attachments V1 Sessions  Session Id  Attachments Get"
+                  "title": "Response List Attachments V1 Sessions  Session Id  Attachments Get",
+                  "$ref": "#/components/schemas/Attachments"
                 }
               }
             }
@@ -8857,7 +8868,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Outbox V1 Sessions  Session Id  Outbox Get"
+                  "title": "Response Outbox V1 Sessions  Session Id  Outbox Get",
+                  "$ref": "#/components/schemas/Outbox"
                 }
               }
             }
@@ -8997,7 +9009,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Get Tags V1 Sessions  Session Id  Tags Get"
+                  "title": "Response Get Tags V1 Sessions  Session Id  Tags Get",
+                  "$ref": "#/components/schemas/SessionTags"
                 }
               }
             }
@@ -9049,7 +9062,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Add Tag V1 Sessions  Session Id  Tags  Tag  Put"
+                  "title": "Response Add Tag V1 Sessions  Session Id  Tags  Tag  Put",
+                  "$ref": "#/components/schemas/TagAdded"
                 }
               }
             }
@@ -9099,7 +9113,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Remove Tag V1 Sessions  Session Id  Tags  Tag  Delete"
+                  "title": "Response Remove Tag V1 Sessions  Session Id  Tags  Tag  Delete",
+                  "$ref": "#/components/schemas/TagRemoved"
                 }
               }
             }
@@ -9143,7 +9158,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Session Transcript V1 Sessions  Session Id  Transcript Get"
+                  "title": "Response Session Transcript V1 Sessions  Session Id  Transcript Get",
+                  "$ref": "#/components/schemas/Transcript"
                 }
               }
             }
@@ -10117,7 +10133,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Traces V1 Traces Get"
+                  "title": "Response List Traces V1 Traces Get",
+                  "$ref": "#/components/schemas/TraceList"
                 }
               }
             }
@@ -10160,7 +10177,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Get Trace V1 Traces  Trace Id  Get"
+                  "title": "Response Get Trace V1 Traces  Trace Id  Get",
+                  "$ref": "#/components/schemas/Trace"
                 }
               }
             }
@@ -10203,7 +10221,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Trace Exports V1 Traces  Trace Id  Exports Get"
+                  "title": "Response Trace Exports V1 Traces  Trace Id  Exports Get",
+                  "$ref": "#/components/schemas/TraceExports"
                 }
               }
             }
@@ -12370,6 +12389,306 @@
         "type": "object",
         "title": "AnswersBody"
       },
+      "Approval": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "tool": {
+            "type": "string",
+            "title": "Tool"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "result": {
+            "title": "Result"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "trace_id",
+          "session_id",
+          "tool",
+          "input",
+          "reason",
+          "agent_id",
+          "customer_id",
+          "state",
+          "created_at",
+          "decided_by",
+          "decided_at",
+          "note",
+          "result"
+        ],
+        "title": "Approval",
+        "description": "Field names here are snake_case, as the route has always sent them."
+      },
+      "ApprovalDecision": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "tool": {
+            "type": "string",
+            "title": "Tool"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "result": {
+            "title": "Result"
+          },
+          "resume": {
+            "$ref": "#/components/schemas/ApprovalResume"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "trace_id",
+          "session_id",
+          "tool",
+          "input",
+          "reason",
+          "agent_id",
+          "customer_id",
+          "state",
+          "created_at",
+          "decided_by",
+          "decided_at",
+          "note",
+          "result",
+          "resume"
+        ],
+        "title": "ApprovalDecision"
+      },
+      "ApprovalExpiry": {
+        "properties": {
+          "expired": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expired"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "expired"
+        ],
+        "title": "ApprovalExpiry"
+      },
+      "ApprovalList": {
+        "properties": {
+          "approvals": {
+            "items": {
+              "$ref": "#/components/schemas/Approval"
+            },
+            "type": "array",
+            "title": "Approvals"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "approvals"
+        ],
+        "title": "ApprovalList"
+      },
+      "ApprovalResume": {
+        "properties": {
+          "reply": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "traceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traceid"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "ApprovalResume"
+      },
       "AskBody": {
         "properties": {
           "question": {
@@ -12389,6 +12708,24 @@
           "question"
         ],
         "title": "AskBody"
+      },
+      "Attachments": {
+        "properties": {
+          "attachments": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Attachments"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "attachments"
+        ],
+        "title": "Attachments"
       },
       "AutomationBody": {
         "properties": {
@@ -12609,6 +12946,62 @@
           "message"
         ],
         "title": "ChatBody"
+      },
+      "ChatResponse": {
+        "properties": {
+          "reply": {
+            "type": "string",
+            "title": "Reply"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "traceId": {
+            "type": "string",
+            "title": "Traceid"
+          },
+          "pendingApprovals": {
+            "items": {
+              "$ref": "#/components/schemas/PendingApproval"
+            },
+            "type": "array",
+            "title": "Pendingapprovals"
+          },
+          "handoffId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handoffid"
+          },
+          "agentVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agentversion"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "reply",
+          "status",
+          "traceId",
+          "pendingApprovals",
+          "handoffId",
+          "agentVersion"
+        ],
+        "title": "ChatResponse"
       },
       "CoachingBody": {
         "properties": {
@@ -12986,6 +13379,29 @@
         ],
         "title": "EventTestBody"
       },
+      "EventTypes": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "types": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Types"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "enabled",
+          "types"
+        ],
+        "title": "EventTypes"
+      },
       "ExpireBody": {
         "properties": {
           "olderThanSeconds": {
@@ -13119,6 +13535,339 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "Handoff": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "sessionId": {
+            "type": "string",
+            "title": "Sessionid"
+          },
+          "traceId": {
+            "type": "string",
+            "title": "Traceid"
+          },
+          "agentId": {
+            "type": "string",
+            "title": "Agentid"
+          },
+          "customerId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customerid"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "resolvedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolvedby"
+          },
+          "resolvedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolvedat"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "queue": {
+            "type": "string",
+            "title": "Queue"
+          },
+          "afterHours": {
+            "type": "boolean",
+            "title": "Afterhours"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "sessionId",
+          "traceId",
+          "agentId",
+          "customerId",
+          "trigger",
+          "reason",
+          "topics",
+          "state",
+          "createdAt",
+          "resolvedBy",
+          "resolvedAt",
+          "note",
+          "summary",
+          "queue",
+          "afterHours"
+        ],
+        "title": "Handoff"
+      },
+      "HandoffDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "sessionId": {
+            "type": "string",
+            "title": "Sessionid"
+          },
+          "traceId": {
+            "type": "string",
+            "title": "Traceid"
+          },
+          "agentId": {
+            "type": "string",
+            "title": "Agentid"
+          },
+          "customerId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customerid"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "resolvedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolvedby"
+          },
+          "resolvedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolvedat"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "queue": {
+            "type": "string",
+            "title": "Queue"
+          },
+          "afterHours": {
+            "type": "boolean",
+            "title": "Afterhours"
+          },
+          "package": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Package"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "sessionId",
+          "traceId",
+          "agentId",
+          "customerId",
+          "trigger",
+          "reason",
+          "topics",
+          "state",
+          "createdAt",
+          "resolvedBy",
+          "resolvedAt",
+          "note",
+          "summary",
+          "queue",
+          "afterHours",
+          "package"
+        ],
+        "title": "HandoffDetail"
+      },
+      "HandoffInbox": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "deliveries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Deliveries"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "configured",
+          "deliveries"
+        ],
+        "title": "HandoffInbox"
+      },
+      "HandoffList": {
+        "properties": {
+          "handoffs": {
+            "items": {
+              "$ref": "#/components/schemas/Handoff"
+            },
+            "type": "array",
+            "title": "Handoffs"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "handoffs"
+        ],
+        "title": "HandoffList"
+      },
+      "HandoffReply": {
+        "properties": {
+          "sent": {
+            "type": "boolean",
+            "title": "Sent"
+          },
+          "messageId": {
+            "type": "integer",
+            "title": "Messageid"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "sent",
+          "messageId"
+        ],
+        "title": "HandoffReply"
       },
       "HubBody": {
         "properties": {
@@ -13622,6 +14371,47 @@
         "type": "object",
         "title": "OrgTemplateBody"
       },
+      "Outbox": {
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/OutboxMessage"
+            },
+            "type": "array",
+            "title": "Messages"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "messages"
+        ],
+        "title": "Outbox"
+      },
+      "OutboxMessage": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "createdAt"
+        ],
+        "title": "OutboxMessage"
+      },
       "OutputBody": {
         "properties": {
           "title": {
@@ -13719,6 +14509,34 @@
         },
         "type": "object",
         "title": "OutputEditBody"
+      },
+      "PendingApproval": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "tool": {
+            "type": "string",
+            "title": "Tool"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "tool",
+          "input",
+          "reason"
+        ],
+        "title": "PendingApproval"
       },
       "PercentBody": {
         "properties": {
@@ -14242,6 +15060,28 @@
         ],
         "title": "ScheduleBody"
       },
+      "SessionTags": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "title": "Sessionid"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "sessionId",
+          "tags"
+        ],
+        "title": "SessionTags"
+      },
       "SimRunBody": {
         "properties": {
           "mode": {
@@ -14462,6 +15302,60 @@
         ],
         "title": "SpaceFileBody"
       },
+      "TagAdded": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "title": "Sessionid"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "tag": {
+            "type": "string",
+            "title": "Tag"
+          },
+          "added": {
+            "type": "boolean",
+            "title": "Added"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "sessionId",
+          "tags",
+          "tag",
+          "added"
+        ],
+        "title": "TagAdded"
+      },
+      "TagRemoved": {
+        "properties": {
+          "removed": {
+            "type": "boolean",
+            "title": "Removed"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "removed",
+          "tags"
+        ],
+        "title": "TagRemoved"
+      },
       "TaskBody": {
         "properties": {
           "prompt": {
@@ -14621,6 +15515,258 @@
         },
         "type": "object",
         "title": "TokenBody"
+      },
+      "Trace": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TraceEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "agent_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Version"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "agent_id",
+          "session_id",
+          "events",
+          "agent_version",
+          "environment"
+        ],
+        "title": "Trace",
+        "description": "The full record of one turn. Field names are snake_case, as the route has always sent them."
+      },
+      "TraceEvent": {
+        "properties": {
+          "t": {
+            "type": "number",
+            "title": "T"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "t",
+          "type",
+          "data"
+        ],
+        "title": "TraceEvent"
+      },
+      "TraceExports": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "deliveries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Deliveries"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "configured",
+          "deliveries"
+        ],
+        "title": "TraceExports"
+      },
+      "TraceList": {
+        "properties": {
+          "traces": {
+            "items": {
+              "$ref": "#/components/schemas/TraceSummary"
+            },
+            "type": "array",
+            "title": "Traces"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "traces"
+        ],
+        "title": "TraceList"
+      },
+      "TraceSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "agentId": {
+            "type": "string",
+            "title": "Agentid"
+          },
+          "sessionId": {
+            "type": "string",
+            "title": "Sessionid"
+          },
+          "events": {
+            "type": "integer",
+            "title": "Events"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tools"
+          },
+          "agentVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agentversion"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "agentId",
+          "sessionId",
+          "events",
+          "status",
+          "startedAt",
+          "tools",
+          "agentVersion",
+          "environment"
+        ],
+        "title": "TraceSummary"
+      },
+      "Transcript": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "title": "Sessionid"
+          },
+          "transcript": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Transcript"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "traces": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Traces"
+          },
+          "handoffs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Handoffs"
+          },
+          "rating": {
+            "title": "Rating"
+          },
+          "review": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "sessionId",
+          "transcript",
+          "tags",
+          "traces",
+          "handoffs",
+          "rating",
+          "review"
+        ],
+        "title": "Transcript"
       },
       "ValidationError": {
         "properties": {

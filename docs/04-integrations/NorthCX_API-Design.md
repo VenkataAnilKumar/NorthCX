@@ -62,13 +62,13 @@ Base path `/v1`. JSON. `Authorization: Bearer <key>` (required once any key exis
 
 ## Later
 ## Agent API contract and stability within /v1
-The **Agent API** is every operation tagged `agents`, `sessions`, `simulations`, `handoffs`, `approvals`, `traces` or `events` in `api/openapi.json` (61 operations: chat and streaming chat, sessions, approvals, hand-offs, versions, releases, rollouts, simulation runs, traces, events). Its snapshot is `api/agent-api-v1.json`: for each operation, the permission, the parameters and the request body.
+The **Agent API** is every operation tagged `agents`, `sessions`, `simulations`, `handoffs`, `approvals`, `traces` or `events` in `api/openapi.json` (61 operations: chat and streaming chat, sessions, approvals, hand-offs, versions, releases, rollouts, simulation runs, traces, events). Its snapshot is `api/agent-api-v1.json`: for each operation, the permission, the parameters, the request body and, where typed, the response.
 
 **Rule.** Within `/v1` a route, parameter or request field may be added. It is never removed, retyped, newly required, or stripped of an accepted value. A change that needs that is a new version (`/v2`) with the old one kept for a stated period.
 
 **Checked by** `tests/test_agent_api_contract.py`: it fails on a breaking change and when the snapshot is out of date. `python scripts/gen_agent_api_contract.py` rewrites the snapshot and refuses when the change is breaking.
 
-**Not covered.** Responses: the routes return untyped JSON today, so there is no response schema to compare. Typing them is WP 1.6 in the plan.
+**Responses.** For the routes that declare a response model (`northcx/api/responses.py`: 19 of the 61 operations so far: chat, approvals, hand-offs except assist, traces, the conversation outbox, attachments list, tags and transcript, and the event types) the snapshot records the response, and the rule also holds for it: a field is never removed, retyped or made optional. The other operations are untyped and not covered until they are typed (WP 1.6b). The models describe responses in the reference and do not filter them; `tests/test_agent_api_responses.py` calls every typed route and checks the real answer against its model. Field names keep the style each route already used (approvals and traces are snake_case, hand-offs and chat are camelCase); `/v1` does not rename them.
 
 Built since this section was first written: server-sent events for streaming and signed webhooks for status events. Still open: consistent pagination across every list (most lists take `limit` and some `before` or `after`). The staff platform adds `/v1/workspace/*`, `/v1/hub/*` and policy routes (designed, `../13-workspace/NorthCX_Staff-Platform-Architecture.md`).
 

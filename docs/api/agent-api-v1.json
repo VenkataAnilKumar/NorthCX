@@ -31,7 +31,28 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "removed": {
+              "type": "boolean"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "removed",
+            "tags"
+          ]
+        }
+      }
     },
     "DELETE /v1/simulations/scenarios/{name}": {
       "permission": "scenarios:write",
@@ -45,12 +66,14 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents": {
       "permission": "agents:read",
       "parameters": [],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/environments": {
       "permission": "versions:read",
@@ -64,7 +87,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/live": {
       "permission": "agents:read",
@@ -86,7 +110,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/qualifications": {
       "permission": "versions:read",
@@ -100,7 +125,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/releases": {
       "permission": "versions:read",
@@ -122,7 +148,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/rollouts": {
       "permission": "versions:read",
@@ -136,7 +163,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/rollouts/{rollout_id}/comparison": {
       "permission": "insights:read",
@@ -158,7 +186,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/versions": {
       "permission": "versions:read",
@@ -172,7 +201,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/versions/{a}/diff/{b}": {
       "permission": "versions:read",
@@ -202,7 +232,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/versions/{number}": {
       "permission": "versions:read",
@@ -224,7 +255,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/agents/{agent_id}/versions/{number}/checklist": {
       "permission": "versions:read",
@@ -254,7 +286,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/approvals": {
       "permission": "approvals:read",
@@ -275,7 +308,109 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "approvals": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "trace_id": {
+                    "type": "string"
+                  },
+                  "session_id": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "input": {},
+                  "reason": {
+                    "type": "string"
+                  },
+                  "agent_id": {
+                    "type": "string"
+                  },
+                  "customer_id": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "state": {
+                    "type": "string"
+                  },
+                  "created_at": {
+                    "type": "number"
+                  },
+                  "decided_by": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "decided_at": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "result": {}
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "trace_id",
+                  "session_id",
+                  "tool",
+                  "input",
+                  "reason",
+                  "agent_id",
+                  "customer_id",
+                  "state",
+                  "created_at",
+                  "decided_by",
+                  "decided_at",
+                  "note",
+                  "result"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "approvals"
+          ]
+        }
+      }
     },
     "GET /v1/events": {
       "permission": "audit:read",
@@ -297,12 +432,35 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/events/types": {
       "permission": "audit:read",
       "parameters": [],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "types": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "enabled",
+            "types"
+          ]
+        }
+      }
     },
     "GET /v1/handoffs": {
       "permission": "handoffs:read",
@@ -361,7 +519,138 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "handoffs": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "traceId": {
+                    "type": "string"
+                  },
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "customerId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "trigger": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "topics": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "state": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "number"
+                  },
+                  "resolvedBy": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "resolvedAt": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "summary": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "queue": {
+                    "type": "string"
+                  },
+                  "afterHours": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "sessionId",
+                  "traceId",
+                  "agentId",
+                  "customerId",
+                  "trigger",
+                  "reason",
+                  "topics",
+                  "state",
+                  "createdAt",
+                  "resolvedBy",
+                  "resolvedAt",
+                  "note",
+                  "summary",
+                  "queue",
+                  "afterHours"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "handoffs"
+          ]
+        }
+      }
     },
     "GET /v1/handoffs/{handoff_id}": {
       "permission": "handoffs:read",
@@ -375,7 +664,131 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "sessionId": {
+              "type": "string"
+            },
+            "traceId": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "customerId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "trigger": {
+              "type": "string"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "topics": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "state": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "resolvedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "summary": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "queue": {
+              "type": "string"
+            },
+            "afterHours": {
+              "type": "boolean"
+            },
+            "package": {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "sessionId",
+            "traceId",
+            "agentId",
+            "customerId",
+            "trigger",
+            "reason",
+            "topics",
+            "state",
+            "createdAt",
+            "resolvedBy",
+            "resolvedAt",
+            "note",
+            "summary",
+            "queue",
+            "afterHours",
+            "package"
+          ]
+        }
+      }
     },
     "GET /v1/handoffs/{handoff_id}/inbox": {
       "permission": "handoffs:read",
@@ -389,7 +802,29 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "configured": {
+              "type": "boolean"
+            },
+            "deliveries": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "configured",
+            "deliveries"
+          ]
+        }
+      }
     },
     "GET /v1/sessions/{session_id}/attachments": {
       "permission": "traces:read",
@@ -403,7 +838,25 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "attachments": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "attachments"
+          ]
+        }
+      }
     },
     "GET /v1/sessions/{session_id}/outbox": {
       "permission": "outbox:read",
@@ -425,7 +878,41 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "messages": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "kind",
+                  "createdAt"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "messages"
+          ]
+        }
+      }
     },
     "GET /v1/sessions/{session_id}/scenario-draft": {
       "permission": "simulations:run",
@@ -439,7 +926,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/sessions/{session_id}/tags": {
       "permission": "traces:read",
@@ -453,7 +941,28 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "sessionId": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "sessionId",
+            "tags"
+          ]
+        }
+      }
     },
     "GET /v1/sessions/{session_id}/transcript": {
       "permission": "traces:read",
@@ -467,7 +976,66 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "sessionId": {
+              "type": "string"
+            },
+            "transcript": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "traces": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "handoffs": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "rating": {},
+            "review": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "sessionId",
+            "transcript",
+            "tags",
+            "traces",
+            "handoffs",
+            "rating",
+            "review"
+          ]
+        }
+      }
     },
     "GET /v1/simulations/gate": {
       "permission": "simulations:read",
@@ -503,7 +1071,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/simulations/runs": {
       "permission": "simulations:read",
@@ -517,7 +1086,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/simulations/runs/{run_id}": {
       "permission": "simulations:read",
@@ -531,12 +1101,14 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/simulations/scenarios": {
       "permission": "simulations:read",
       "parameters": [],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/simulations/scenarios/{name}": {
       "permission": "simulations:read",
@@ -550,7 +1122,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "GET /v1/traces": {
       "permission": "traces:read",
@@ -579,7 +1152,82 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "traces": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "events": {
+                    "type": "integer"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "startedAt": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tools": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "agentVersion": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "environment": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "agentId",
+                  "sessionId",
+                  "events",
+                  "status",
+                  "startedAt",
+                  "tools",
+                  "agentVersion",
+                  "environment"
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "traces"
+          ]
+        }
+      }
     },
     "GET /v1/traces/{trace_id}": {
       "permission": "traces:read",
@@ -593,7 +1241,69 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "agent_id": {
+              "type": "string"
+            },
+            "session_id": {
+              "type": "string"
+            },
+            "events": {
+              "items": {
+                "properties": {
+                  "t": {
+                    "type": "number"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "data": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "t",
+                  "type",
+                  "data"
+                ]
+              },
+              "type": "array"
+            },
+            "agent_version": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "environment": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "agent_id",
+            "session_id",
+            "events",
+            "agent_version",
+            "environment"
+          ]
+        }
+      }
     },
     "GET /v1/traces/{trace_id}/exports": {
       "permission": "traces:read",
@@ -607,7 +1317,29 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "configured": {
+              "type": "boolean"
+            },
+            "deliveries": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "configured",
+            "deliveries"
+          ]
+        }
+      }
     },
     "POST /v1/agents/{agent_id}/chat": {
       "permission": "chat:send",
@@ -680,6 +1412,76 @@
           "required": [
             "sessionId",
             "message"
+          ]
+        }
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "reply": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "traceId": {
+              "type": "string"
+            },
+            "pendingApprovals": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "type": "string"
+                  },
+                  "input": {},
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true,
+                "type": "object",
+                "required": [
+                  "id",
+                  "tool",
+                  "input",
+                  "reason"
+                ]
+              },
+              "type": "array"
+            },
+            "handoffId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "agentVersion": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "reply",
+            "status",
+            "traceId",
+            "pendingApprovals",
+            "handoffId",
+            "agentVersion"
           ]
         }
       }
@@ -757,7 +1559,8 @@
             "message"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/improve": {
       "permission": "versions:create",
@@ -797,7 +1600,8 @@
           },
           "type": "object"
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/journeys/draft": {
       "permission": "versions:create",
@@ -820,7 +1624,8 @@
             "description"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/journeys/scenarios": {
       "permission": "simulations:run",
@@ -848,7 +1653,8 @@
             "journey"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/promote": {
       "permission": "versions:create",
@@ -897,7 +1703,8 @@
             "to"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/qualifications": {
       "permission": "scenarios:require",
@@ -932,7 +1739,8 @@
             "runId"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/releases": {
       "permission": "versions:create",
@@ -985,7 +1793,8 @@
             "version"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/rollback": {
       "permission": "versions:create",
@@ -1042,7 +1851,8 @@
           },
           "type": "object"
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/rollouts": {
       "permission": "versions:create",
@@ -1098,7 +1908,8 @@
             "percent"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/rollouts/{rollout_id}/abort": {
       "permission": "versions:create",
@@ -1120,7 +1931,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/rollouts/{rollout_id}/promote": {
       "permission": "versions:create",
@@ -1184,7 +1996,8 @@
             }
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/versions": {
       "permission": "versions:create",
@@ -1252,7 +2065,8 @@
           },
           "type": "object"
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/agents/{agent_id}/versions/preview": {
       "permission": "versions:create",
@@ -1320,7 +2134,8 @@
           },
           "type": "object"
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/approvals/expire": {
       "permission": "approvals:decide",
@@ -1337,6 +2152,23 @@
           "type": "object",
           "required": [
             "olderThanSeconds"
+          ]
+        }
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "expired": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "expired"
           ]
         }
       }
@@ -1388,6 +2220,143 @@
             "approved"
           ]
         }
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "trace_id": {
+              "type": "string"
+            },
+            "session_id": {
+              "type": "string"
+            },
+            "tool": {
+              "type": "string"
+            },
+            "input": {},
+            "reason": {
+              "type": "string"
+            },
+            "agent_id": {
+              "type": "string"
+            },
+            "customer_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "state": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "number"
+            },
+            "decided_by": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "decided_at": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "result": {},
+            "resume": {
+              "properties": {
+                "reply": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "traceId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "error": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": true,
+              "type": "object"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "trace_id",
+            "session_id",
+            "tool",
+            "input",
+            "reason",
+            "agent_id",
+            "customer_id",
+            "state",
+            "created_at",
+            "decided_by",
+            "decided_at",
+            "note",
+            "result",
+            "resume"
+          ]
+        }
       }
     },
     "POST /v1/events/test": {
@@ -1407,7 +2376,8 @@
             "type"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/handoffs/{handoff_id}/assist": {
       "permission": "handoffs:resolve",
@@ -1421,7 +2391,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "POST /v1/handoffs/{handoff_id}/reply": {
       "permission": "handoffs:resolve",
@@ -1459,6 +2430,24 @@
           "type": "object",
           "required": [
             "text"
+          ]
+        }
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "sent": {
+              "type": "boolean"
+            },
+            "messageId": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "sent",
+            "messageId"
           ]
         }
       }
@@ -1507,6 +2496,125 @@
           },
           "type": "object"
         }
+      },
+      "responses": {
+        "200": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "sessionId": {
+              "type": "string"
+            },
+            "traceId": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "customerId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "trigger": {
+              "type": "string"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "topics": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "state": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "number"
+            },
+            "resolvedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "summary": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "queue": {
+              "type": "string"
+            },
+            "afterHours": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "id",
+            "sessionId",
+            "traceId",
+            "agentId",
+            "customerId",
+            "trigger",
+            "reason",
+            "topics",
+            "state",
+            "createdAt",
+            "resolvedBy",
+            "resolvedAt",
+            "note",
+            "summary",
+            "queue",
+            "afterHours"
+          ]
+        }
       }
     },
     "POST /v1/sessions/{session_id}/feedback": {
@@ -1540,7 +2648,8 @@
             "rating"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/simulations/runs": {
       "permission": "simulations:run",
@@ -1601,7 +2710,8 @@
           },
           "type": "object"
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/simulations/scenarios": {
       "permission": "scenarios:write",
@@ -1635,7 +2745,8 @@
           },
           "type": "object"
         }
-      }
+      },
+      "responses": {}
     },
     "POST /v1/simulations/scenarios/validate": {
       "permission": "scenarios:write",
@@ -1669,7 +2780,8 @@
           },
           "type": "object"
         }
-      }
+      },
+      "responses": {}
     },
     "PUT /v1/agents/{agent_id}/rollouts/{rollout_id}/percent": {
       "permission": "versions:create",
@@ -1704,7 +2816,8 @@
             "percent"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "PUT /v1/sessions/{session_id}/attachments": {
       "permission": "chat:send",
@@ -1733,7 +2846,8 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {}
     },
     "PUT /v1/sessions/{session_id}/review": {
       "permission": "reviews:write",
@@ -1774,7 +2888,8 @@
             "verdict"
           ]
         }
-      }
+      },
+      "responses": {}
     },
     "PUT /v1/sessions/{session_id}/tags/{tag}": {
       "permission": "conversations:tag",
@@ -1796,7 +2911,36 @@
           }
         }
       ],
-      "request": null
+      "request": null,
+      "responses": {
+        "200": {
+          "properties": {
+            "sessionId": {
+              "type": "string"
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "added": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true,
+          "type": "object",
+          "required": [
+            "sessionId",
+            "tags",
+            "tag",
+            "added"
+          ]
+        }
+      }
     },
     "PUT /v1/simulations/scenarios/{name}": {
       "permission": "scenarios:write",
@@ -1839,7 +2983,8 @@
           },
           "type": "object"
         }
-      }
+      },
+      "responses": {}
     }
   }
 }

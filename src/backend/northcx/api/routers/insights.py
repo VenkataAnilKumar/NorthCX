@@ -13,6 +13,7 @@ from northcx.analytics_qa import ask as ask_insights
 from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import AskBody, FeedbackBody, ReviewBody
+from northcx.api.responses import SessionTags, TagAdded, TagRemoved, Transcript
 from northcx.handoffs import transcript
 from northcx.insights import TAG
 from northcx.privacy import customer_ref
@@ -109,7 +110,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         reviewed = await review_repo.for_sessions(list({t.session_id for t in turns}))
         return {"queue": review_queue_rows(turns, handoffs, feedback, reviewed, includeReviewed, sample, max(1, min(limit, 200)))}
 
-    @app.get("/v1/sessions/{session_id}/transcript")
+    @app.get("/v1/sessions/{session_id}/transcript", responses={200: {"model": Transcript}})
     async def session_transcript(session_id: str) -> Any:
         """Everything a reviewer needs to judge one conversation."""
         summaries = await traces.summaries(session_id, 200)
@@ -157,11 +158,11 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return _err(400, "bad_request", "'from' must be before 'to', the period at most 366 days, and the search at most 200 characters")
         return {"conversations": await insight.search(start, end, tag_repo, q, status, tag, handedOff, agent, environment, max(1, min(limit, 200)), language)}
 
-    @app.get("/v1/sessions/{session_id}/tags")
+    @app.get("/v1/sessions/{session_id}/tags", responses={200: {"model": SessionTags}})
     async def get_tags(session_id: str) -> Any:
         return {"sessionId": session_id, "tags": await tag_repo.all_for(session_id)}
 
-    @app.put("/v1/sessions/{session_id}/tags/{tag}")
+    @app.put("/v1/sessions/{session_id}/tags/{tag}", responses={200: {"model": TagAdded}})
     async def add_tag(session_id: str, tag: str, request: Request) -> Any:
         if not TAG.match(tag):
             return _err(400, "bad_request", "A tag is 1-40 lowercase letters, digits, - or _")
@@ -175,7 +176,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             await record(request, "conversation.tag", customer_ref(session_id), tag=tag)
         return {"sessionId": session_id, "tag": tag, "added": new, "tags": await tag_repo.all_for(session_id)}
 
-    @app.delete("/v1/sessions/{session_id}/tags/{tag}")
+    @app.delete("/v1/sessions/{session_id}/tags/{tag}", responses={200: {"model": TagRemoved}})
     async def remove_tag(session_id: str, tag: str, request: Request) -> Any:
         if not await tag_repo.remove(session_id, tag):
             return _err(404, "not_found", "That conversation does not have that tag")
