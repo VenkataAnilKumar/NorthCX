@@ -105,6 +105,8 @@ Two new pieces, everything else exists:
 
 ## 5. Integrations module (the tool gateway)
 
+Phase 1 findings and the revised work packages: `../04-integrations/NorthCX_Tool-Gateway.md` (the runtime already is the gateway; the `ToolSource` interface is designed with the MCP client in WP 2.1).
+
 **Goal.** An agent can use tools from any system through one path, with no source getting a back door around safety.
 
 **Design.**

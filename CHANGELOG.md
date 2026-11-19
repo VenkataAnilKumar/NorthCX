@@ -14,6 +14,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Quality bar in `CLAUDE.md` and the plan (owner's instruction): no vague or dead requirements, no dead code or placeholders, no fake behaviour or invented figures, no filler; a feature is built only when it works end to end with tests; every pull request says what was verified.
 - Engineering rules in `CLAUDE.md`: one work package per pull request; additive or versioned changes and tested upgrades; no single-provider assumptions; privacy, observability and measurement in every change; justified dependencies; plain, accessible screens; blocked work recorded, never faked.
 
+### Documentation (Phase 1, 2026-11-19)
+- `docs/04-integrations/NorthCX_Tool-Gateway.md`: Phase 1 research, requirements G1 to G6, design and architecture. The runtime already applies approvals, scopes, dry-run, secrets and output screening to every tool, so a separate gateway layer is dropped (WP 1.3 folded into the conformance suite, WP 1.4); WP 1.5 deferred; the plan's Phase 1 table revised.
+
 ### Documentation (code reuse, 2026-11-19)
 - Decision 199: reference code may be copied and rebranded for NorthCX, with no dependency on the source project. Rebranding keeps the licence and copyright notices, in one folder per source project, `third_party/<source>/` (LICENSE, NOTICE) with one "Adapted from" line in `THIRD_PARTY.md`, not in a header in every file and not listing files or features; only permissively licensed code read from the project's own LICENSE file may be copied, never AGPL or GPL, source-available or custom licences, or `ee` and `enterprise` directories. Updated: Code Reuse Policy, `CLAUDE.md`, `CONTRIBUTING.md`, `THIRD_PARTY.md`, `NOTICE`, the reference documents and the session prompts. Files copied from Apache-2.0 projects get one short "Modified from" line; existing notices inside source files stay. Nothing has been copied yet.
 

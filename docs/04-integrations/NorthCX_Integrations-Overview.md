@@ -20,4 +20,5 @@ Plan: [`Agent Platform design`](../00-platform/NorthCX_Agent-Platform-Design.md)
 | Document | What it is |
 |---|---|
 | [`NorthCX_Integrations.md`](NorthCX_Integrations.md) | Connectors and integrations (master) |
+| [`NorthCX_Tool-Gateway.md`](NorthCX_Tool-Gateway.md) | What the runtime guarantees for every tool; Phase 1 work packages |
 | [`NorthCX_API-Design.md`](NorthCX_API-Design.md) | HTTP API (route table generated from code) |

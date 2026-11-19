@@ -1,6 +1,6 @@
 # NorthCX Agent Platform Plan
 
-Status: **Plan**. Updated: 2026-11-18. Master for: the phases, work packages and exit checks for building the Agent Platform (`../00-platform/NorthCX_Agent-Platform-Design.md`), and the seven-stage process every phase follows. Progress is recorded in the table at the end and in `NorthCX_Project-Status.md`.
+Status: **Plan**. Updated: 2026-11-19. Master for: the phases, work packages and exit checks for building the Agent Platform (`../00-platform/NorthCX_Agent-Platform-Design.md`), and the seven-stage process every phase follows. Progress is recorded in the table at the end and in `NorthCX_Project-Status.md`.
 
 ## 1. How every phase is run
 Every phase, and every work package inside it, goes through the same seven stages. Small changes (a bug fix) compress the first four stages into a paragraph in the pull request; large ones get a written result per stage. The owner decided (2026-11-18) that stages run without waiting for approval and that each work package merges into `main` when CI is green.
@@ -36,11 +36,12 @@ Sizes are rough: S days, M one to two weeks, L several weeks.
 No behaviour change; the existing suite is the safety net.
 | WP | Work | Exit check |
 |---|---|---|
-| 1.1 | The Agent API contract (sessions, runs, events, approvals, versions), documented and versioned from the existing routes | The contract is published; screens use only it |
-| 1.2 | A `ToolSource` interface; the YAML connectors become the first source | Existing connector tests pass unchanged |
-| 1.3 | The gateway applies approvals, scopes, dry-run, secrets, audit and output screening for every source | The existing suite passes unchanged |
-| 1.4 | A conformance suite every source must pass (reads run; writes held or dry-run; no secret in results; disallowed hosts and redirects refused) | Green for the YAML source |
-| 1.5 | The acting identity carried on every tool call (a staff tool acts with that person's rights) | A staff tool runs only with the permission |
+| 1.2 | `Tool.source`, one registration function that refuses duplicate names, a tool fingerprint, `source` in the catalogue and the `tool_call` trace event | New tests pass; existing suite unchanged |
+| 1.4 | A conformance suite for the runtime's guarantees on any tool source (this absorbs the old WP 1.3: the runtime already applies them to every tool) | Green for the YAML connectors and a second in-test source |
+| 1.1 | The Agent API contract: a stated set of routes, a checked-in snapshot and a stability rule (add fields only within `/v1`) | Test fails on a removed or retyped field in a contract route |
+| 1.5 | Deferred: no staff tool needs approval today; returns with the Phase 5 `tool` step | Recorded below |
+
+Details and research: `../04-integrations/NorthCX_Tool-Gateway.md`. Order: 1.2, 1.4, 1.1. The `ToolSource` interface is designed with the MCP client (WP 2.1).
 
 ### Phase 2: Integrations (L)
 | WP | Work | Exit check | Needs |
@@ -127,4 +128,5 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 0.2 local-model pass | Blocked here | This environment's network policy refuses registry.ollama.ai, ollama.com and huggingface.co, so no model weights can be fetched. Needs those hosts allowed, or a run in the owner's local environment (session prompt 1a) |
 | 0.4 cloud-model pass | Blocked | Needs cloud model keys |
 | 0.5 D1 and penetration test | Blocked | Needs the owner's decision and an outside tester |
-| Phases 1 to 7 | Not started | |
+| 1.x stages 1 to 4 (research to architecture) | Done | `NorthCX_Tool-Gateway.md`; WP 1.3 folded into 1.4, WP 1.5 deferred |
+| Phases 1 to 7 (work packages 1.1, 1.2, 1.4 and later) | Not started | |
