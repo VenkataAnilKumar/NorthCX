@@ -46,18 +46,6 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
   );
 }
 
-/** For a tab whose backend is not built yet: say what it will do and what it waits for, instead of showing made-up data. */
-export function ComingSoon({ title, what, needs }: { title: string; what: string; needs: string }) {
-  return (
-    <div className="glass mx-auto max-w-2xl p-8 text-center">
-      <span className="pill mb-3">Not available yet</span>
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <p className="mt-3 text-sm text-muted">{what}</p>
-      <p className="mt-4 text-xs text-muted">Waiting for: {needs}</p>
-    </div>
-  );
-}
-
 export function Tabs({ items, active, Link }: { items: { href: string; label: string }[]; active: string; Link: React.ComponentType<{ href: string; className?: string; children?: ReactNode; "aria-current"?: "page" | undefined }> }) {
   return (
     <nav aria-label="Sections" className="mb-4 flex gap-1 overflow-x-auto border-b border-border">

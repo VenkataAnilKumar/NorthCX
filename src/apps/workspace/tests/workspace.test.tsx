@@ -1,28 +1,21 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { activeItem, AppShell, applyPrefs, ComingSoon, DEFAULT_PREFS, StatTile } from "@northcx/ui";
+import { activeItem, AppShell, applyPrefs, DEFAULT_PREFS, StatTile } from "@northcx/ui";
 
 const Link = ({ href, children, className, ...rest }: { href: string; children?: React.ReactNode; className?: string }) => createElement("a", { href, className, ...rest }, children);
 
 describe("shared glass shell", () => {
-  it("marks the current page, shows badges and flags tabs that are not built yet", () => {
+  it("marks the current page and shows badges", () => {
     const html = renderToStaticMarkup(createElement(AppShell, {
       appName: "Workspace", path: "/inbox", Link,
-      nav: [{ href: "/inbox", label: "Work", icon: "Work", children: [{ href: "/inbox", label: "Inbox", badge: 3 }, { href: "/customers", label: "Customers", soon: true }] }],
+      nav: [{ href: "/inbox", label: "Work", icon: "Work", children: [{ href: "/inbox", label: "Inbox", badge: 3 }, { href: "/customers", label: "Customers" }] }],
       switcher: [{ label: "Workspace", href: "/", current: true }, { label: "Admin", href: "http://localhost:3001" }],
       children: createElement("p", null, "body"),
     }));
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('aria-label="3 waiting"');
-    expect(html).toContain("soon");
     expect(html).toContain("Switch app");
-  });
-
-  it("says what a missing tab will do and what it waits for, with no made-up data", () => {
-    const html = renderToStaticMarkup(createElement(ComingSoon, { title: "Workflows", what: "Multi-step work.", needs: "automations (E8)" }));
-    expect(html).toContain("Not available yet");
-    expect(html).toContain("Waiting for: automations (E8)");
   });
 
   it("renders a stat tile with its hint", () => {

@@ -15,6 +15,7 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 - Engineering rules in `CLAUDE.md`: one work package per pull request; additive or versioned changes and tested upgrades; no single-provider assumptions; privacy, observability and measurement in every change; justified dependencies; plain, accessible screens; blocked work recorded, never faked.
 
 ### Changed (2026-11-19)
+- Studio: the six placeholder pages (Systems, Connectors, MCP servers, Notifications, Usage and limits, Security and sessions) are gone from navigation, with the `/soon` route, the Profile page's placeholder for personal intelligence, the unused `ComingSoon` component and the navigation's "soon" badge. Each returns when its work package ships (plan WP 0.6).
 - Simulations: `python -m northcx.simulation --model live` (and `--judge-model live`) now uses the configured models, local and cloud, from `NORTHCX_PROVIDERS_FILE` and, if set, `ANTHROPIC_API_KEY`, as the server does; before, it used Claude only. The server and the command line share one provider setup (`northcx/providers/setup.py`). Server start-up messages are unchanged, except that a wrong `NORTHCX_ANTHROPIC_CLIENT` now starts with "Configuration error:" like the others.
 
 ### Fixed (2026-11-19)

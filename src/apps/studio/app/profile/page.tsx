@@ -1,6 +1,6 @@
 "use client";
 import { useMe } from "@northcx/api-client";
-import { ComingSoon, GlassCard, Loading, PageHeader } from "@northcx/ui";
+import { GlassCard, Loading, PageHeader } from "@northcx/ui";
 
 export default function Profile() {
   const { me, failed } = useMe();
@@ -23,9 +23,6 @@ export default function Profile() {
           <p className="mt-3 text-xs text-muted">Roles come from your key or your identity provider and cannot be edited here.</p>
         </GlassCard>
       </div>
-      <div className="mt-4"><ComingSoon title="Instructions, persona, personal context, skills and assistants"
-        what="Standing instructions, a writing style, personal context, reusable skills and assistants you build for your own work, with memory and an activity log."
-        needs="the staff assistant backend (E5); see the Admin platform design" /></div>
     </>
   );
 }

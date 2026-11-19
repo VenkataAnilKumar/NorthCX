@@ -123,5 +123,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 0.1 staff tools that need approval | No change | No staff tool requires approval today (staff tools are read-only; the Pilot's Do uses its own proposals), so the gap is not reachable; covered by WP 1.5 |
 | 0.1 tool error text | No change, documented | Connectors already return safe messages; other tools are the company's code. The rule is written in the Agent Runtime doc |
 | 0.3 live mode for configured providers in the CLI | Done | Two tests failed first (one runs scenarios on a local OpenAI-compatible server); the server and the CLI share one provider setup |
-| 0.2, 0.4, 0.5, 0.6 | Not started | 0.2 needs a machine that can run a local model; 0.4 needs cloud keys; 0.5 needs the owner and a tester |
+| 0.6 placeholder pages and dead plans | Done | Six "soon" pages removed from Studio navigation with the `/soon` route, the Profile placeholder box, the unused `ComingSoon` component and the "soon" badge; the old Implementation Plan no longer claims to be the master plan. Studio and Workspace tests, type-check and the Studio production build pass |
+| 0.2 local-model pass | Blocked here | This environment's network policy refuses registry.ollama.ai, ollama.com and huggingface.co, so no model weights can be fetched. Needs those hosts allowed, or a run in the owner's local environment (session prompt 1a) |
+| 0.4 cloud-model pass | Blocked | Needs cloud model keys |
+| 0.5 D1 and penetration test | Blocked | Needs the owner's decision and an outside tester |
 | Phases 1 to 7 | Not started | |
