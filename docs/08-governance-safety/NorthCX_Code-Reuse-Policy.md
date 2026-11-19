@@ -5,9 +5,9 @@ Status: **Reference**. Updated: 2026-11-19. Master for: the code reuse policy (i
 ## Copy and rebrand, never depend (decision 199, 2026-11-19)
 The owner decided that code from reference projects may be copied and rebranded for NorthCX, and that NorthCX must never depend on those projects.
 
-- **Rebrand means** renaming to NorthCX names and structure, restyling screens with the NorthCX design system, and removing the source project's product name, logo and marketing text from anything a user sees. It does **not** mean removing the licence and copyright notices. Apache-2.0, MIT and BSD all require them to stay, so every copied file keeps its original notice in an attribution header, with the source, path, commit and licence, and `THIRD_PARTY.md` (and `NOTICE`, where the source has one) lists it. CI already checks that `THIRD_PARTY.md`, `NOTICE` and `LICENSE` exist and that no `ee` or `enterprise` path is committed.
+- **Rebrand means** renaming to NorthCX names and structure, restyling screens with the NorthCX design system, and removing the source project's product name, logo and marketing text from anything a user sees. It does **not** mean removing the licence and copyright notices. Apache-2.0, MIT and BSD all require them to stay, so they are kept in one place (the next point) and are never deleted from where they already are. CI already checks that `THIRD_PARTY.md`, `NOTICE` and `LICENSE` exist and that no `ee` or `enterprise` path is committed.
 - **No dependency means** nothing in NorthCX imports, installs, vendors as a submodule, or calls a reference project as a package, a hosted API or a service it needs to run. Copied code lives in NorthCX's own `src/` tree and is changed until it stands alone. The only packages NorthCX installs are ordinary infrastructure libraries (web server, database driver, YAML, HTTP client, the web framework), which stay listed in the package manifests; adopting a library such as an MCP SDK or a canvas library is a dependency decision recorded in the decision log, not a copy.
-- **The licence is copied with the code.** For each source project, copy its LICENSE file verbatim, and its NOTICE file if it has one, into `third_party/<source>/` (for example `third_party/<owner>-<project>/LICENSE`), once per project, in the same change as the first copy. The copied code itself goes into `src/`, and each file's attribution header names the project, path, commit and licence and points to that licence file. CI already fails a `third_party/<source>/` folder that has no licence file. Apache-2.0 also requires saying what was changed in a modified file, so each header states that the file was modified and `THIRD_PARTY.md` lists the changes.
+- **All licence information lives in one folder, `third_party/<source>/`, one folder per source project, not in every copied file.** It holds the project's LICENSE file verbatim, its NOTICE file if it has one, and a `MANIFEST.md` that lists each copied file (the source path, the NorthCX path, the commit) and what was changed. It is created in the same change as the first copy. The copied code itself goes into `src/` with NorthCX names and no long header. Two things stay in the files: a notice that is already inside a source file is not deleted, and a file copied from an **Apache-2.0** project gets one short line, for example `// Modified from <project> (Apache-2.0); see third_party/<source>/`, because Apache-2.0 requires modified files to say they were changed. MIT and BSD files need nothing beyond the folder. `THIRD_PARTY.md` has one line per source project pointing to its folder. CI already fails a `third_party/<source>/` folder that has no licence file.
 - **Which sources.** Only code whose licence was read from the project's own LICENSE file at the commit being copied, and only if that licence is on the allowed list below. Licences named in blog posts or comparisons do not count. Not copyable, whatever the project's popularity: AGPL and GPL code (it cannot be distributed inside an Apache-2.0 project), source-available or custom licences (for example the Elastic License, n8n's Sustainable Use License, Dify's licence, LobeHub's community licence, Open WebUI's branding clause), anything under `ee` or `enterprise` directories, and anything with no licence. Buying a commercial licence from a project would be a separate written agreement recorded in `THIRD_PARTY.md`; none exists.
 - **Quality bar applies to copied code.** Copy only what NorthCX uses and delete the rest of the file; copied code carries the same tests, no dead code and no foreign naming as anything else (see `CLAUDE.md`). A copied component that drags in a dependency is rewritten to use NorthCX's own parts or not copied.
 
@@ -32,8 +32,8 @@ The owner decided that code from reference projects may be copied and rebranded 
 1. **Select:** name the feature (catalog ID) and the candidate source path.
 2. **Check licence:** confirm the file's licence, including directory-level licences and third-party notices.
 3. **Assess fit:** read the code; record dependencies it drags in, size, and tests available.
-4. **Import:** copy the project's LICENSE (and NOTICE) file into `third_party/<source>/`, and the code into the owning module under `src/`, with an attribution header that names the source, path, commit and licence.
-5. **Record:** add an entry to `THIRD_PARTY.md` (source, path, commit, licence, files, local changes) and update `NOTICE`.
+4. **Import:** put the project's LICENSE (and NOTICE) file and a `MANIFEST.md` into `third_party/<source>/`, and the code into the owning module under `src/`.
+5. **Record:** list each file and its changes in the folder's `MANIFEST.md`, add the project's line to `THIRD_PARTY.md`, and update `NOTICE` if the source has a NOTICE file.
 6. **Adapt:** wire to NorthCX interfaces; keep changes in separate commits so upstream diffs remain readable.
 7. **Test:** port or write tests; the feature must pass its scenarios.
 8. **Review:** a second person confirms licence handling.
@@ -42,12 +42,12 @@ The owner decided that code from reference projects may be copied and rebranded 
 ```
 NOTICE                    attribution for copied code
 THIRD_PARTY.md            provenance table (source, path, commit, licence, local changes)
-third_party/<source>/     the source project's LICENSE (and NOTICE) file, verbatim; the copied code itself lives under src/
+third_party/<source>/     LICENSE and NOTICE verbatim, plus MANIFEST.md (copied files, commit, changes); the copied code lives under src/
 ```
 
 ## Do not
 - Copy files from `ee` or `enterprise` directories or from any restricted licence.
-- Strip licence headers or copyright lines.
+- Delete a licence or copyright notice that is already inside a source file, or leave out the folder that holds the licences.
 - Copy generated, vendored or large binary assets without checking their licences.
 - Merge code whose licence is incompatible with the NorthCX licence (Apache-2.0).
 
@@ -65,7 +65,7 @@ Apache-2.0, MIT and BSD code can be included in an Apache-2.0 project. NorthCX i
 
 
 ## Current rule
-- **Copying or adapting reference code for a feature is allowed**, under the licence rules above: permissive licences only (MIT, Apache-2.0, BSD), never from `ee`/enterprise directories or from projects under restrictive licences, with the licence kept, an attribution header in each file and an entry in `THIRD_PARTY.md`. Adapted code lives inside NorthCX's own source tree under `src/` and follows NorthCX naming and structure.
+- **Copying or adapting reference code for a feature is allowed**, under the licence rules above: permissive licences only (MIT, Apache-2.0, BSD), never from `ee`/enterprise directories or from projects under restrictive licences, with the licences kept in `third_party/<source>/` and a line in `THIRD_PARTY.md`. Adapted code lives inside NorthCX's own source tree under `src/` and follows NorthCX naming and structure.
 - **NorthCX never depends on a reference project's SDK or library.** Nothing in the product imports or installs a reference project's package, and no reference project is a runtime service the product needs. If a feature is wanted from a reference project, its code is copied and adapted, or the idea is rewritten; the project itself is not added as a dependency.
 - Ordinary infrastructure libraries (web server, database driver, YAML, the web framework) are dependencies, not references, and are listed in the package manifests.
 - State today (2026-11-19): no third-party source code is currently copied. The two small guardrails that were once adapted were rewritten independently (a fresh implementation is fine, and so would an adapted copy have been); the earlier copies were removed.
