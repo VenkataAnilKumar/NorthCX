@@ -50,7 +50,7 @@ Details and research: `../04-integrations/NorthCX_Tool-Gateway.md`. Order: 1.2, 
 Stages 1 to 4 are written in `../04-integrations/NorthCX_MCP-Integration.md` (requirements M1 to M12 and the design). WP 2.1 and 2.2 are library work; MCP connections count as built when WP 2.3 wires them through the API, storage and screen.
 | WP | Work | Exit check | Needs |
 |---|---|---|---|
-| 2.1 | `ToolSource` interface; YAML connectors as its first source; an MCP client on the official SDK, against the 2026-07-28 specification and the earlier handshake revisions | The conformance suite passes for the MCP source in both protocol modes against a fake server; existing connector tests unchanged | The `mcp` dependencies' licences read |
+| 2.1 | `ToolSource` interface; YAML connectors as its first source; an MCP client on the official SDK, against the 2026-07-28 specification and the earlier handshake revisions | The conformance suite passes for the MCP source against a fake server; existing connector tests unchanged | The owner's exception to decision 199 (granted 2026-11-19) |
 | 2.2 | Trust rules: tools default to write unless the connection is trusted; a write needs approval; tool lists pinned by fingerprint, re-approval on change; output screened as untrusted | Injection and changed-tool-list scenarios pass | |
 | 2.3 | Tenant-scoped connections; an operator screen for allowed hosts, servers and secrets | An operator adds a connection and approves its tools without editing files | |
 | 2.4 | One catalogue of tools and triggers, read by Studio and Automations | Catalogue API with tests | |
@@ -144,7 +144,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | Phase 1 exit check | Met, except WP 1.5 (deferred) | Existing backend suite unchanged and green: 1,636 passed, 201 skipped (Postgres, run in CI) |
 | 2.x stages 1 to 4 (research to architecture) | Done | `NorthCX_MCP-Integration.md`. The official MCP site does not resolve from this environment, so the specification was read from its GitHub source through a summarising fetch; the MUST and SHOULD wording is to be confirmed before the code that depends on it |
 | 2.5 vendor connectors | Blocked | No vendor sandbox accounts; connectors from documentation alone would be unverified |
-| Phases 2 (2.1 to 2.4, 2.6) to 7 | Not started | |
+| 2.1 MCP client, `ToolSource`, `McpSource` | In review | 62 new tests (client wrapper over HTTP in memory, source and trust rule, the conformance suite for MCP: 6 of 9 tests run, 3 skipped because an MCP write always waits for a person). Mutation check: removing the redirect hook or the size cap fails its tests. Library level: not a feature until WP 2.3. Not verified: any real MCP server |
+| Phases 2 (2.2 to 2.4, 2.6) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.

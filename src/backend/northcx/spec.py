@@ -203,7 +203,7 @@ class BuildContext:
         self.llm = llm
 
 
-TOOL_SOURCES = ("registry", "connectors", "verification", "knowledge", "memory", "staff")  # where a tool can come from; shown on each tool
+TOOL_SOURCES = ("registry", "connectors", "mcp", "verification", "knowledge", "memory", "staff")  # where a tool can come from; shown on each tool
 
 
 class Registry:
