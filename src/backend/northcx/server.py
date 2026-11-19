@@ -95,6 +95,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/channels/email/inbound", "channel:inbound"),
     ("POST", r"/v1/agents/[^/]+/chat", "chat:send"),
     ("POST", r"/v1/agents/[^/]+/chat/stream", "chat:send"),
+    ("POST", r"/v1/agents/[^/]+/agui", "chat:send"),
     ("GET", r"/v1/sessions/[^/]+/outbox", "outbox:read"),
     ("GET", r"/v1/memories", "memory:read"),
     ("DELETE", r"/v1/memories", "memory:manage"),

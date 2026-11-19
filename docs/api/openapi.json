@@ -827,6 +827,60 @@
         ]
       }
     },
+    "/v1/agents/{agent_id}/agui": {
+      "post": {
+        "summary": "Agui Run",
+        "description": "AG-UI events for one run: the same run as `chat/stream`. A held action ends the run with an `interrupt` outcome;\nstaff answer it by sending the next run with `resume`, which makes the same decision as `POST /v1/approvals/{id}/decision`.",
+        "operationId": "agui_run_v1_agents__agent_id__agui_post",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AguiRunBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Agui Run V1 Agents  Agent Id  Agui Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "chat:send",
+        "tags": [
+          "agents"
+        ]
+      }
+    },
     "/v1/agents/{agent_id}/chat": {
       "post": {
         "summary": "Chat",
@@ -12913,6 +12967,118 @@
           "forcedTopics"
         ],
         "title": "AgentSummary"
+      },
+      "AguiAnswer": {
+        "properties": {
+          "interruptId": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Interruptid"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "interruptId",
+          "approved"
+        ],
+        "title": "AguiAnswer"
+      },
+      "AguiMessage": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "role": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Role"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "title": "AguiMessage"
+      },
+      "AguiRunBody": {
+        "properties": {
+          "threadId": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Threadid"
+          },
+          "runId": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Runid"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/AguiMessage"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Messages"
+          },
+          "resume": {
+            "items": {
+              "$ref": "#/components/schemas/AguiAnswer"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Resume"
+          }
+        },
+        "type": "object",
+        "required": [
+          "threadId",
+          "runId"
+        ],
+        "title": "AguiRunBody",
+        "description": "AG-UI's run input. `state`, `tools`, `context` and `forwardedProps` are accepted and not used."
       },
       "AnswersBody": {
         "properties": {

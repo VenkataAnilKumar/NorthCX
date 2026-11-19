@@ -2579,6 +2579,115 @@
         }
       }
     },
+    "POST /v1/agents/{agent_id}/agui": {
+      "permission": "chat:send",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "threadId": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "runId": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "messages": {
+              "items": {
+                "properties": {
+                  "id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "role": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "content": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "items": {},
+                        "type": "array"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "role"
+                ]
+              },
+              "type": "array",
+              "maxItems": 200
+            },
+            "resume": {
+              "items": {
+                "properties": {
+                  "interruptId": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1
+                  },
+                  "approved": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "interruptId",
+                  "approved"
+                ]
+              },
+              "type": "array",
+              "maxItems": 20
+            }
+          },
+          "type": "object",
+          "required": [
+            "threadId",
+            "runId"
+          ]
+        }
+      },
+      "responses": {}
+    },
     "POST /v1/agents/{agent_id}/chat": {
       "permission": "chat:send",
       "parameters": [

@@ -18,6 +18,28 @@ class ChatBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class AguiMessage(BaseModel):
+    id: str | None = Field(default=None, max_length=200)
+    role: str = Field(max_length=20)
+    content: str | list[Any] | None = None
+
+
+class AguiAnswer(BaseModel):
+    interrupt_id: str = Field(alias="interruptId", min_length=1, max_length=200)
+    approved: bool
+    note: str | None = Field(default=None, max_length=1000)
+    model_config = {"populate_by_name": True}
+
+
+class AguiRunBody(BaseModel):
+    """AG-UI's run input. `state`, `tools`, `context` and `forwardedProps` are accepted and not used."""
+    thread_id: str = Field(alias="threadId", min_length=1, max_length=200)
+    run_id: str = Field(alias="runId", min_length=1, max_length=200)
+    messages: list[AguiMessage] = Field(default_factory=list, max_length=200)
+    resume: list[AguiAnswer] = Field(default_factory=list, max_length=20)
+    model_config = {"populate_by_name": True}
+
+
 class SourceBody(BaseModel):
     id: str = Field(min_length=1, max_length=200)
     name: str = Field(min_length=1, max_length=200)

@@ -11,16 +11,19 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from northcx.access import Identity
 from northcx.api.common import _err, _pieces
 from northcx.api.deps import AppDeps
-from northcx.api.models import ChatBody
+from northcx.api import agui
+from northcx.api.models import AguiRunBody, ChatBody
 from northcx.api.responses import Attachment, Attachments, ChatResponse, Outbox
 from northcx.attachments import accept as accept_attachment, AttachmentError, check_accepted, MAX_BYTES
 from northcx.catalog import AgentUnavailable
+from northcx.decision_teams import note_team
 from northcx.idempotency import request_hash, scope_hash, valid_key
 from northcx.privacy import customer_ref
 
 
 def register(app: FastAPI, d: AppDeps) -> None:
     access = d.access
+    actor, agents, flow = d.actor, d.agents, d.flow
     attachment_repo = d.attachment_repo
     attachment_scanner = d.attachment_scanner
     idem = d.idem
@@ -100,20 +103,17 @@ def register(app: FastAPI, d: AppDeps) -> None:
             "Content-Disposition": f'attachment; filename="{a.name}"', "X-Content-Type-Options": "nosniff",
             "Content-Security-Policy": "sandbox; default-src 'none'", "Cache-Control": "no-store"})
 
-    @app.post("/v1/agents/{agent_id}/chat/stream")
-    async def chat_stream(agent_id: str, body: ChatBody, request: Request) -> Any:
-        """Server-sent events: `progress` while tools run, then the reply in `delta` pieces, then `done`.
-
-        The reply is released only after every supervisor has approved it, so the customer never sees text that a
-        check could still reject; `delta` pieces are the approved reply, delivered progressively.
-        """
+    async def open_run(agent_id: str, body: ChatBody, request: Request, path: str) -> JSONResponse | tuple[Any, Any]:
+        """The checks every streamed run starts with, then the run itself: returns an error answer, or the agent and an async
+        iterator of ("progress", event), ("result", RunResult) or ("error", payload). The customer's message is always handled
+        and saved, even if the client disconnects."""
         who: Identity = request.state.identity
         customer_id = body.customer_id
         if request.headers.get("idempotency-key"):
-            return _err(400, "unsupported", "Idempotency-Key is not supported on the streaming endpoint; use /chat")
+            return _err(400, "unsupported", "Idempotency-Key is not supported on the streaming endpoints; use /chat")
         if who.session_id is not None:
             if body.session_id != who.session_id or (who.agent and agent_id != who.agent):
-                await record(request, "auth.denied", f"POST /v1/agents/{agent_id}/chat/stream", "denied", reason="outside the token's scope")
+                await record(request, "auth.denied", f"POST {path}", "denied", reason="outside the token's scope")
                 return _err(403, "forbidden", "This chat token cannot be used for that conversation or agent")
             customer_id = who.customer_id
         if limits:
@@ -155,33 +155,132 @@ def register(app: FastAPI, d: AppDeps) -> None:
             except Exception:
                 queue.put_nowait(("error", {"code": "internal", "message": "Run failed"}))
 
+        async def items() -> Any:
+            task = asyncio.create_task(work())
+            try:
+                while True:
+                    kind, payload = await queue.get()
+                    yield kind, payload
+                    if kind != "progress":
+                        return
+            finally:
+                if not task.done():
+                    await task
+
+        return agent, items()
+
+    @app.post("/v1/agents/{agent_id}/chat/stream")
+    async def chat_stream(agent_id: str, body: ChatBody, request: Request) -> Any:
+        """Server-sent events: `progress` while tools run, then the reply in `delta` pieces, then `done`.
+
+        The reply is released only after every supervisor has approved it, so the customer never sees text that a
+        check could still reject; `delta` pieces are the approved reply, delivered progressively.
+        """
+        opened = await open_run(agent_id, body, request, f"/v1/agents/{agent_id}/chat/stream")
+        if isinstance(opened, JSONResponse):
+            return opened
+        agent, items = opened
+
         def sse(event: str, data: Any) -> str:
             return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
         async def events() -> Any:
-            task = asyncio.create_task(work())
-            try:
-                yield sse("started", {"agent": agent_id})
-                while True:
-                    kind, payload = await queue.get()
-                    if kind == "progress":
-                        yield sse("progress", payload)
-                    elif kind == "error":
-                        yield sse("error", payload)
-                        return
-                    else:
-                        for piece in _pieces(payload.reply):
-                            yield sse("delta", {"text": piece})
-                        yield sse("done", {"reply": payload.reply, "status": payload.status, "traceId": payload.trace_id,
-                                           "pendingApprovals": payload.pending_approvals, "handoffId": payload.handoff_id,
-                                           "agentVersion": agent.version})
-                        return
-            finally:
-                if not task.done():
-                    await task  # the customer's message is always handled and saved, even if the client disconnects
+            yield sse("started", {"agent": agent_id})
+            async for kind, payload in items:
+                if kind == "progress":
+                    yield sse("progress", payload)
+                elif kind == "error":
+                    yield sse("error", payload)
+                else:
+                    for piece in _pieces(payload.reply):
+                        yield sse("delta", {"text": piece})
+                    yield sse("done", {"reply": payload.reply, "status": payload.status, "traceId": payload.trace_id,
+                                       "pendingApprovals": payload.pending_approvals, "handoffId": payload.handoff_id,
+                                       "agentVersion": agent.version})
 
         return StreamingResponse(events(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+
+    @app.post("/v1/agents/{agent_id}/agui")
+    async def agui_run(agent_id: str, body: AguiRunBody, request: Request) -> Any:
+        """AG-UI events for one run: the same run as `chat/stream`. A held action ends the run with an `interrupt` outcome;
+        staff answer it by sending the next run with `resume`, which makes the same decision as `POST /v1/approvals/{id}/decision`."""
+        who: Identity = request.state.identity
+        headers = {"Cache-Control": "no-store", "X-Accel-Buffering": "no"}
+        if body.resume:
+            return await agui_resume(agent_id, body, request, who, headers)
+        said = next((m.content for m in reversed(body.messages) if m.role == "user" and isinstance(m.content, str) and m.content.strip()), None)
+        if said is None:
+            return _err(400, "bad_request", "Send a user message (messages with a user entry that has text) or a resume answer")
+        if len(said) > 8000:
+            return _err(400, "bad_request", "The message is longer than 8000 characters")
+        opened = await open_run(agent_id, ChatBody(sessionId=body.thread_id, message=said), request, f"/v1/agents/{agent_id}/agui")
+        if isinstance(opened, JSONResponse):
+            return opened
+        agent, items = opened
+
+        async def events() -> Any:
+            yield agui.sse(agui.started(body.thread_id, body.run_id))
+            async for kind, payload in items:
+                if kind == "progress":
+                    if payload.get("type") == "tool":
+                        for e in agui.tool_call(payload["name"]):
+                            yield agui.sse(e)
+                elif kind == "error":
+                    yield agui.sse(agui.error(payload["message"], payload["code"]))
+                else:
+                    for e in agui.message(payload.reply):
+                        yield agui.sse(e)
+                    yield agui.sse(agui.finished(body.thread_id, body.run_id, payload.pending_approvals,
+                                                 {"status": payload.status, "traceId": payload.trace_id, "handoffId": payload.handoff_id, "agentVersion": agent.version}))
+
+        return StreamingResponse(events(), media_type="text/event-stream", headers=headers)
+
+    async def agui_resume(agent_id: str, body: AguiRunBody, request: Request, who: Identity, headers: dict[str, str]) -> Any:
+        if body.messages and any(m.role == "user" for m in body.messages):
+            return _err(400, "bad_request", "A run is either a message or an answer to what is waiting; send one of them")
+        if who.session_id is not None or not who.can("approvals:decide"):
+            await record(request, "auth.denied", f"POST /v1/agents/{agent_id}/agui", "denied", permission="approvals:decide")
+            return _err(403, "forbidden", "Only a person who may decide approvals can answer what is waiting (needs approvals:decide)")
+        if request.headers.get("idempotency-key"):
+            return _err(400, "unsupported", "Idempotency-Key is not supported on the streaming endpoints; a decision can be made once")
+        open_ = [a for a in await runtime.approvals.list("pending") if a.session_id == body.thread_id and a.agent_id == agent_id]
+        if not open_:
+            return _err(409, "conflict", "Nothing is waiting for an answer in this conversation")
+        answers = [a.interrupt_id for a in body.resume]
+        wanted = {a.id for a in open_}
+        unknown = sorted(set(answers) - wanted)
+        if unknown:
+            return _err(400, "bad_request", f"Not waiting for an answer: {', '.join(unknown)}")
+        if len(set(answers)) != len(answers):
+            return _err(400, "bad_request", "Each waiting action is answered once")
+        missing = sorted(wanted - set(answers))
+        if missing:
+            return _err(400, "bad_request", f"Answer every waiting action in one run; still waiting: {', '.join(missing)}")
+
+        async def events() -> Any:
+            yield agui.sse(agui.started(body.thread_id, body.run_id))
+            last = None
+            for ans in body.resume:
+                try:
+                    res = await flow.resolve(agents, ans.interrupt_id, ans.approved, actor(request, None), ans.note)
+                except (KeyError, ValueError) as e:
+                    yield agui.sse(agui.error(str(e.args[0]) if e.args else "That action was already decided", "conflict"))
+                    return
+                await note_team(runtime, request, "approval", ans.interrupt_id)
+                await record(request, "approval.decide", ans.interrupt_id, tool=res.approval.tool, approved=ans.approved, state=res.approval.state, note=bool(ans.note),
+                             follow_up=res.run.status if res.run else "none")
+                if res.run is not None:
+                    for e in agui.message(res.run.reply):
+                        yield agui.sse(e)
+                    last = res.run
+                elif res.error:
+                    yield agui.sse(agui.error(res.error, "follow_up_failed"))
+                    return
+            result = {"status": last.status, "traceId": last.trace_id, "handoffId": last.handoff_id} if last else {"status": "decided"}
+            yield agui.sse(agui.finished(body.thread_id, body.run_id, last.pending_approvals if last else [], result))
+
+        return StreamingResponse(events(), media_type="text/event-stream", headers=headers)
 
     @app.post("/v1/agents/{agent_id}/chat", responses={200: {"model": ChatResponse}})
     async def chat(agent_id: str, body: ChatBody, request: Request) -> Any:
