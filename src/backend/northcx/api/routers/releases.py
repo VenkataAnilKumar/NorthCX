@@ -12,6 +12,7 @@ from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import PromoteBody, PublishBody, RequestDecisionBody, RollbackBody, VersionBody
 from northcx.api.responses import AgentList, Checklist, Environments, LiveAgent, Release, ReleaseList, VersionDetail, VersionDiff, VersionList, VersionPreview
+from northcx.mcp_connections import visible_catalog
 from northcx.release_requests import ApprovalError, principal
 from northcx.catalog import AgentUnavailable
 from northcx.spec import AgentSpec, parse_spec, SpecError
@@ -74,7 +75,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     async def catalog() -> Any:
         """The building blocks an editor can offer: tools, guardrails, policies, skills."""
         svc = need_rel()
-        return svc if isinstance(svc, JSONResponse) else svc.registry.describe()
+        return svc if isinstance(svc, JSONResponse) else visible_catalog(svc.registry.describe())
 
     @app.post("/v1/agents/{agent_id}/versions/preview", responses={200: {"model": VersionPreview}})
     async def preview_version(agent_id: str, body: VersionBody) -> Any:

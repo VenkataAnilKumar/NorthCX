@@ -74,6 +74,25 @@ class EventTestBody(BaseModel):
     type: str = Field(max_length=60)
 
 
+class ConnectionBody(BaseModel):
+    name: str = Field(max_length=24)
+    url: str = Field(max_length=500)
+    secret: str | None = Field(default=None, max_length=40)
+    trusted: bool = False
+
+
+class ConnectionUpdateBody(BaseModel):
+    trusted: bool | None = None
+    enabled: bool | None = None
+    secret: str | None = Field(default=None, max_length=40)  # a new credential name; send `clearSecret` to remove it
+    clear_secret: bool = Field(default=False, alias="clearSecret")
+    model_config = {"populate_by_name": True}
+
+
+class ApproveBody(BaseModel):
+    tools: dict[str, str] = Field(max_length=200)  # tool name to the fingerprint the operator saw in the review
+
+
 class EnabledBody(BaseModel):
     enabled: bool
 

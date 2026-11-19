@@ -152,6 +152,8 @@ def build_report(env: Mapping[str, str], policy: Policy | None) -> dict[str, Any
         flows.append(_flow(name, "outbound", host, data, policy))
     for h in [x.strip().lower() for x in env.get("NORTHCX_CONNECTOR_HOSTS", "").split(",") if x.strip()]:
         flows.append(_flow(f"Business system ({h})", "outbound", h.split(":")[0], "Tool inputs and results for the connectors that use this host", policy))
+    for h in [x.strip().lower() for x in env.get("NORTHCX_MCP_HOSTS", "").split(",") if x.strip()]:
+        flows.append(_flow(f"MCP server ({h})", "outbound", h.split(":")[0], "Tool inputs and results for the connections that use this host", policy))
     problems = [f for f in flows if f["status"] in ("unmapped", "not_allowed")]
     return {"configured": policy is not None, "region": policy.region if policy else None, "allowedRegions": policy.allowed if policy else [], "strict": bool(policy and policy.strict),
             "flows": flows, "compliant": policy is not None and not problems, "problems": [_describe(f, policy) for f in problems],

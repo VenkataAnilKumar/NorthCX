@@ -91,6 +91,7 @@ class Runtime:
         self.decision_teams: Any = None  # northcx.decision_teams: which team answered a hand-off or approval
         self.tenant_limits: Any = None  # northcx.tenant_limits.TenantLimits: ceilings the platform operator sets per tenant
         self.org_templates: Any = None  # northcx.org_templates.OrgTemplateService: this organization's own Hub entries
+        self.mcp: Any = None  # northcx.mcp_connections.McpConnections: the operator's connections to MCP servers
         self.org_policies: Any = None  # northcx.org_policies.OrgPolicyService: locked organization policies applied to every customer agent
         self.pricing: Any = None  # (provider, model) -> Price | None; with a money budget every answer is costed from the operator's prices
         self.shared_limiter: Any = None  # set when limits are shared between server processes

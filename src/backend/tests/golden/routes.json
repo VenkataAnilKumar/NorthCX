@@ -3,6 +3,7 @@
   "DELETE /scim/v2/Groups/x": "/scim/v2/Groups/{group_id} -> delete_group",
   "DELETE /scim/v2/Users/x": "/scim/v2/Users/{user_id} -> delete_user",
   "DELETE /v1/budgets": "/v1/budgets -> clear_budgets",
+  "DELETE /v1/connections/x": "/v1/connections/{connection_id} -> delete_connection",
   "DELETE /v1/groups/x": "/v1/groups/{group_id} -> delete_group",
   "DELETE /v1/groups/x/members/x": "/v1/groups/{group_id}/members/{subject} -> remove_member",
   "DELETE /v1/knowledge/schedules/x": "/v1/knowledge/schedules/{schedule_id} -> kb_schedule_delete",
@@ -63,6 +64,8 @@
   "GET /v1/automations/x/runs": "/v1/automations/{automation_id}/runs -> runs",
   "GET /v1/catalog": "/v1/catalog -> catalog",
   "GET /v1/channels": "/v1/channels -> channels_status",
+  "GET /v1/connections": "/v1/connections -> list_connections",
+  "GET /v1/connections/x": "/v1/connections/{connection_id} -> get_connection",
   "GET /v1/conversations/search": "/v1/conversations/search -> conversation_search",
   "GET /v1/customers/settings": "/v1/customers/settings -> get_settings",
   "GET /v1/events": "/v1/events -> event_feed",
@@ -186,6 +189,10 @@
   "POST /v1/channels/email/inbound": "/v1/channels/email/inbound -> email_inbound",
   "POST /v1/channels/whatsapp/templates/send": "/v1/channels/whatsapp/templates/send -> whatsapp_template",
   "POST /v1/chat-tokens": "/v1/chat-tokens -> mint_chat_token",
+  "POST /v1/connections": "/v1/connections -> create_connection",
+  "POST /v1/connections/x/approve": "/v1/connections/{connection_id}/approve -> approve_tools",
+  "POST /v1/connections/x/check": "/v1/connections/{connection_id}/check -> check_connection",
+  "POST /v1/connections/x/review": "/v1/connections/{connection_id}/review -> review_connection",
   "POST /v1/customers/facts/x/remove": "/v1/customers/facts/{fact_id}/remove -> remove_fact",
   "POST /v1/customers/find": "/v1/customers/find -> find",
   "POST /v1/customers/lookup": "/v1/customers/lookup -> lookup",
@@ -258,6 +265,7 @@
   "PUT /v1/automation-settings": "/v1/automation-settings -> put_settings",
   "PUT /v1/automations/x": "/v1/automations/{automation_id} -> revise",
   "PUT /v1/budgets": "/v1/budgets -> set_budgets",
+  "PUT /v1/connections/x": "/v1/connections/{connection_id} -> update_connection",
   "PUT /v1/customers/settings": "/v1/customers/settings -> put_settings",
   "PUT /v1/groups/x": "/v1/groups/{group_id} -> update_group",
   "PUT /v1/knowledge/sources/x/documents/a/b": "/v1/knowledge/sources/{source_id}/documents/{external_id:path} -> kb_put_document",
@@ -290,6 +298,11 @@
    "DELETE",
    "/v1/budgets",
    "clear_budgets"
+  ],
+  [
+   "DELETE",
+   "/v1/connections/{connection_id}",
+   "delete_connection"
   ],
   [
    "DELETE",
@@ -590,6 +603,16 @@
    "GET",
    "/v1/channels",
    "channels_status"
+  ],
+  [
+   "GET",
+   "/v1/connections",
+   "list_connections"
+  ],
+  [
+   "GET",
+   "/v1/connections/{connection_id}",
+   "get_connection"
   ],
   [
    "GET",
@@ -1208,6 +1231,26 @@
   ],
   [
    "POST",
+   "/v1/connections",
+   "create_connection"
+  ],
+  [
+   "POST",
+   "/v1/connections/{connection_id}/approve",
+   "approve_tools"
+  ],
+  [
+   "POST",
+   "/v1/connections/{connection_id}/check",
+   "check_connection"
+  ],
+  [
+   "POST",
+   "/v1/connections/{connection_id}/review",
+   "review_connection"
+  ],
+  [
+   "POST",
    "/v1/customers/facts/{fact_id}/remove",
    "remove_fact"
   ],
@@ -1565,6 +1608,11 @@
    "PUT",
    "/v1/budgets",
    "set_budgets"
+  ],
+  [
+   "PUT",
+   "/v1/connections/{connection_id}",
+   "update_connection"
   ],
   [
    "PUT",

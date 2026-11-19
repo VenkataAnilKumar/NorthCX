@@ -16,6 +16,7 @@ from .tenants import PgTenants
 from .tasks import PgTasks
 from .hub import PgInstalls
 from .settings import PgSettings
+from .mcp_connections import PgMcpConnections
 from .org_policies import PgOrgPolicies
 from .org_templates import PgOrgTemplates
 from .coaching import PgCoaching

@@ -47,11 +47,11 @@ class CallFailed(RuntimeError):
     """A call to the external system failed. The message is safe to show the model: no URL, no credentials, no response body."""
 
 
-def allowed_hosts_from(value: str | None) -> set[str]:
+def allowed_hosts_from(value: str | None, setting: str = "NORTHCX_CONNECTOR_HOSTS") -> set[str]:
     hosts = {h.strip().lower() for h in (value or "").split(",") if h.strip()}
     for h in hosts:
         if not _HOST_OK.match(h):
-            raise ConnectorError(f"NORTHCX_CONNECTOR_HOSTS: '{h}' is not a host name (use names like api.shop.example.com, optionally with :port)")
+            raise ConnectorError(f"{setting}: '{h}' is not a host name (use names like api.shop.example.com, optionally with :port)")
     return hosts
 
 

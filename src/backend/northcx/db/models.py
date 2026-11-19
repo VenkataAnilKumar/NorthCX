@@ -828,6 +828,24 @@ class TenantSecretRow(TenantScoped, Base):
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+class McpConnectionRow(TenantScoped, Base):
+    """A connection to an MCP server and the tool definitions the operator approved (northcx/mcp_connections.py)."""
+    __tablename__ = "mcp_connections"
+    __table_args__ = (UniqueConstraint("tenant_id", "name", name="uq_mcp_connections_name"),)
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    name: Mapped[str] = mapped_column(String(24), nullable=False)
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    trusted: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    secret: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    approved: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    created_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+    updated_by: Mapped[str] = mapped_column(String(200), nullable=False)
+    updated_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"
