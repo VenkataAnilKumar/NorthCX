@@ -142,3 +142,17 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | Phase 1 review (stage 6) | Done | A separate review pass over the whole Phase 1 diff found 7 issues (permission changes and tighter request limits not caught by the stability check; a documented error message that differed; the catalogue building each schema twice; a duplicate lookup in the runtime; responses checked only on in-memory stores; a conformance test using private state). All fixed. The Postgres check is verified only in CI |
 | Phase 1 exit check | Met, except WP 1.5 (deferred) | Existing backend suite unchanged and green: 1,636 passed, 201 skipped (Postgres, run in CI) |
 | Phases 2 to 7 | Not started | |
+
+## 5. Open issues carried from Phase 1
+Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.
+
+| Issue | What it means | Resumes in |
+|---|---|---|
+| Acting identity (WP 1.5) | Approvals do not store who a staff tool acts for, so a staff tool that needed approval would fail at execution. No staff tool needs approval today. | Phase 5, the `tool` step (WP 5.1) |
+| `ToolSource` interface | Tools register through `Registry.add_tools` with a source label and a fingerprint, but there is no interface for discovering or refreshing a source's tools. One implementation does not justify one. | WP 2.1, with the MCP client |
+| Streaming chat response | `POST /agents/{id}/chat/stream` sends server-sent events, so the stability rule does not cover its events. The 60 JSON operations are covered. | Not scheduled; needs a contract for the event stream |
+| Stability check limits | It does not read constraints inside `anyOf` branches; it reports some harmless changes as breaking (a nullable field made non-nullable in a response, a request field widened to accept null, a renamed path parameter, a relaxed permission). It errs on the side of reporting. | When a false report costs more than it saves |
+| Response models are descriptive | They document responses and do not filter or validate them in production; the drift test catches a mismatch only for the routes and data it exercises. | Not planned; validating in production would change failure behaviour |
+| Review by a person | Stage 6 was done by a separate model review pass, not by a person; no security review beyond the threat-model check (no new input, store or network call). | Before 1.0 (the penetration test, WP 0.5 and 7.1) |
+
+Blocked from Phase 0 and still open: WP 0.2 (local-model pass: needs the Ollama and Hugging Face hosts allowed or a run on the owner's machine), WP 0.4 (cloud keys), WP 0.5 (the owner's D1 decision and a tester).
