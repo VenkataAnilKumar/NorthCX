@@ -213,6 +213,7 @@ class Registry:
         self._input_guardrails: dict[str, InputFactory] = {}
         self._output_guardrails: dict[str, OutputFactory] = {}
         self._skills: dict[str, Skill] = {}
+        self._catalog: dict[str, tuple[Tool, list[str], str]] = {}  # per tool: its input names and fingerprint, worked out once (building a schema is slow)
 
     def tool(self, tool: Tool) -> Tool:
         if tool.name in self._tools:
@@ -287,8 +288,11 @@ class Registry:
         tools = []
         for n in self.tool_names():
             t = self._tools[n]
-            tools.append({"name": n, "description": t.description, "effect": t.effect, "source": t.source, "fingerprint": tool_fingerprint(t), "approval": t.requires_approval is not None,
-                          "inputs": list(t.input_model.model_json_schema().get("properties", {}))})
+            cached = self._catalog.get(n)
+            if cached is None or cached[0] is not t:
+                cached = self._catalog[n] = (t, list(t.input_model.model_json_schema().get("properties", {})), tool_fingerprint(t))
+            tools.append({"name": n, "description": t.description, "effect": t.effect, "source": t.source, "fingerprint": cached[2], "approval": t.requires_approval is not None,
+                          "inputs": cached[1]})
         return {"tools": tools,
                 "guardrails": [{"name": n, "description": DESCRIPTIONS.get(n, ""), "example": examples.get(n)} for n in self.guardrail_names()],
                 "inputGuardrails": [{"name": n} for n in self.input_guardrail_names()],

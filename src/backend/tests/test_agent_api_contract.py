@@ -58,8 +58,8 @@ def test_a_newly_required_request_field_or_parameter_is_breaking():
 
 def test_removing_a_parameter_or_an_accepted_value_is_breaking():
     assert changed(lambda ops: ops["GET /v1/handoffs"]["parameters"].clear())[0].startswith("GET /v1/handoffs: parameter ")
-    old = {"operations": {"X": {"parameters": [], "request": {"required": True, "schema": {"type": "string", "enum": ["a", "b"]}}}}}
-    new = {"operations": {"X": {"parameters": [], "request": {"required": True, "schema": {"type": "string", "enum": ["a"]}}}}}
+    old = {"operations": {"X": {"permission": "p", "parameters": [], "request": {"required": True, "schema": {"type": "string", "enum": ["a", "b"]}}}}}
+    new = {"operations": {"X": {"permission": "p", "parameters": [], "request": {"required": True, "schema": {"type": "string", "enum": ["a"]}}}}}
     assert gen.breaking_changes(old, new) == ["X: request: no longer accepts ['b']"]
 
 
@@ -86,3 +86,20 @@ def test_adding_a_response_field_or_a_newly_typed_response_is_allowed():
         ops[CHAT]["responses"]["200"]["properties"]["language"] = {"type": "string"}
         ops["POST /v1/agents/{agent_id}/chat/stream"]["responses"] = {"200": {"type": "object"}}
     assert changed(add) == []
+
+
+def test_a_route_that_needs_another_permission_is_breaking():
+    assert changed(lambda ops: ops[CHAT].__setitem__("permission", "keys:manage")) == [f"{CHAT}: permission changed from chat:send to keys:manage"]
+
+
+def test_a_request_that_enforces_a_new_or_stricter_limit_is_breaking_and_a_looser_one_is_not():
+    def limit(schema):
+        return {"operations": {"X": {"permission": "p", "parameters": [], "request": {"required": True, "schema": schema}, "responses": {}}}}
+    base = {"type": "object", "properties": {"m": {"type": "string", "maxLength": 8000, "minLength": 1}}}
+    for field, value in (("maxLength", 2000), ("minLength", 5), ("pattern", "^a")):
+        tighter = {"type": "object", "properties": {"m": {**base["properties"]["m"], field: value}}}
+        assert gen.breaking_changes(limit(base), limit(tighter)) == [f"X: request.m: {field} is now {value}"]
+    looser = {"type": "object", "properties": {"m": {"type": "string", "maxLength": 9000}}}
+    assert gen.breaking_changes(limit(base), limit(looser)) == []
+    unlimited = {"type": "object", "properties": {"m": {"type": "string"}}}
+    assert gen.breaking_changes(limit(unlimited), limit(base)) == ["X: request.m: maxLength is now 8000", "X: request.m: minLength is now 1"]

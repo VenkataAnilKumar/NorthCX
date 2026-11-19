@@ -348,8 +348,8 @@ class Runtime:
             results: list[dict] = []
             pending_transfer = None
             for use in uses:
-                called = next((t for t in agent.tools if t.name == use["name"]), None)
-                trace.add("tool_call", name=use["name"], input={"code": "******"} if use["name"] == "check_verification_code" else use["input"], **({"source": called.source} if called else {}))  # (a one-time code is not kept in traces)
+                tool = next((t for t in agent.tools if t.name == use["name"]), None)
+                trace.add("tool_call", name=use["name"], input={"code": "******"} if use["name"] == "check_verification_code" else use["input"], **({"source": tool.source} if tool else {}))  # (a one-time code is not kept in traces)
                 if progress:
                     try:
                         out = progress({"type": "tool", "name": use["name"]})
@@ -381,7 +381,6 @@ class Runtime:
                     results.append({"type": "tool_result", "tool_use_id": use["id"], "content": f"Passed to the {target.id} agent, who now continues the conversation."})
                     pending_transfer = (target, reason)
                     continue
-                tool = next((t for t in agent.tools if t.name == use["name"]), None)
                 if tool is None:
                     results.append(self._err(use, f"Unknown tool {use['name']}"))
                     continue

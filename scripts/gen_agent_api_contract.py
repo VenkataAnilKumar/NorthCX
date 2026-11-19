@@ -61,6 +61,19 @@ def _kind(schema) -> str:
     return json.dumps({k: schema.get(k) for k in ("type", "anyOf", "oneOf", "$cycle") if k in schema}, sort_keys=True)
 
 
+LIMITS_UPPER = ("maxLength", "maxItems", "maxProperties", "maximum", "exclusiveMaximum")  # a lower value rejects input that was accepted
+LIMITS_LOWER = ("minLength", "minItems", "minProperties", "minimum", "exclusiveMinimum")  # a higher value does
+
+
+def _tighter_limits(old: dict, new: dict, where: str) -> list[str]:
+    """A request that now enforces a limit it did not enforce, or a stricter one, rejects input a client could send before."""
+    out = [f"{where}: {k} is now {new[k]}" for k in LIMITS_UPPER if k in new and (k not in old or new[k] < old[k])]
+    out += [f"{where}: {k} is now {new[k]}" for k in LIMITS_LOWER if k in new and (k not in old or new[k] > old[k])]
+    if "pattern" in new and new["pattern"] != old.get("pattern"):
+        out.append(f"{where}: pattern is now {new['pattern']}")
+    return out
+
+
 def _schema_breaks(old, new, where: str, request: bool = True) -> list[str]:
     """Differences that break a client. A request must still accept everything it accepted; a response must still give everything it gave."""
     if not isinstance(old, dict) or not isinstance(new, dict):
@@ -81,6 +94,7 @@ def _schema_breaks(old, new, where: str, request: bool = True) -> list[str]:
         else:
             out += _schema_breaks(sub, new_props[name], f"{where}.{name}", request)
     if request:
+        out += _tighter_limits(old, new, where)
         out += [f"{where}.{n}: newly required" for n in new.get("required", []) if n not in old.get("required", [])]
     else:
         out += [f"{where}.{n}: no longer always present" for n in old.get("required", []) if n not in new.get("required", [])]
@@ -97,6 +111,8 @@ def breaking_changes(old: dict, new: dict) -> list[str]:
         if b is None:
             out.append(f"{key}: removed")
             continue
+        if a["permission"] != b["permission"]:
+            out.append(f"{key}: permission changed from {a['permission']} to {b['permission']}")
         new_params = {(p["name"], p["in"]): p for p in b["parameters"]}
         for p in a["parameters"]:
             q = new_params.get((p["name"], p["in"]))

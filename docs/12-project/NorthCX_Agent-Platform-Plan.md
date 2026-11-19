@@ -138,5 +138,7 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 1.5 acting identity | Deferred | No staff tool needs approval; returns with Phase 5 |
 | 1.6a typed responses, conversation-time routes | Done | 19 of 61 operations typed; a test calls each and checks the real answer; mutation check: a model that promises a missing field fails it |
 | 1.6b typed responses: agents, versions, releases, rollouts, simulations | Done | 48 of 61 operations typed; the same test calls each |
-| 1.6c typed responses: the 12 that need a configured service or a model, and the upload | In review | 60 of 61 operations typed through the harnesses of the tests that already cover them; the streaming chat stays untyped (server-sent events) |
+| 1.6c typed responses: the 12 that need a configured service or a model, and the upload | Done | 60 of 61 operations typed through the harnesses of the tests that already cover them; the streaming chat stays untyped (server-sent events) |
+| Phase 1 review (stage 6) | Done | A separate review pass over the whole Phase 1 diff found 7 issues (permission changes and tighter request limits not caught by the stability check; a documented error message that differed; the catalogue building each schema twice; a duplicate lookup in the runtime; responses checked only on in-memory stores; a conformance test using private state). All fixed. The Postgres check is verified only in CI |
+| Phase 1 exit check | Met, except WP 1.5 (deferred) | Existing backend suite unchanged and green: 1,636 passed, 201 skipped (Postgres, run in CI) |
 | Phases 2 to 7 | Not started | |
