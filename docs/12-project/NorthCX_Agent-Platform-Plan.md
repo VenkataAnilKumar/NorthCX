@@ -142,3 +142,27 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | Phase 1 review (stage 6) | Done | A separate review pass over the whole Phase 1 diff found 7 issues (permission changes and tighter request limits not caught by the stability check; a documented error message that differed; the catalogue building each schema twice; a duplicate lookup in the runtime; responses checked only on in-memory stores; a conformance test using private state). All fixed. The Postgres check is verified only in CI |
 | Phase 1 exit check | Met, except WP 1.5 (deferred) | Existing backend suite unchanged and green: 1,636 passed, 201 skipped (Postgres, run in CI) |
 | Phases 2 to 7 | Not started | |
+
+## 5. Open issues carried from Phase 1
+Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.
+
+| Issue | What it means | Resumes in |
+|---|---|---|
+| Acting identity (WP 1.5) | Approvals do not store who a staff tool acts for, so a staff tool that needed approval would fail at execution. No staff tool needs approval today. | Phase 5, the `tool` step (WP 5.1) |
+| `ToolSource` interface | Tools register through `Registry.add_tools` with a source label and a fingerprint, but there is no interface for discovering or refreshing a source's tools. One implementation does not justify one. | WP 2.1, with the MCP client |
+| Streaming chat response | `POST /agents/{id}/chat/stream` sends server-sent events, so the stability rule does not cover its events. The 60 JSON operations are covered. | Not scheduled; needs a contract for the event stream |
+| Stability check limits | It does not read constraints inside `anyOf` branches; it reports some harmless changes as breaking (a nullable field made non-nullable in a response, a request field widened to accept null, a renamed path parameter, a relaxed permission). It errs on the side of reporting. | When a false report costs more than it saves |
+| Response models are descriptive | They document responses and do not filter or validate them in production; the drift test catches a mismatch only for the routes and data it exercises. | Not planned; validating in production would change failure behaviour |
+| Review by a person | Stage 6 was done by a separate model review pass, not by a person; no security review beyond the threat-model check (no new input, store or network call). | Before 1.0 (the penetration test, WP 0.5 and 7.1) |
+
+
+## 6. Open issues carried from Phase 0
+Recorded 2026-11-19. Phase 0 is done except the three work packages that need an outside party, and what they leave unverified.
+
+| Issue | What it means | Needs | Resumes |
+|---|---|---|---|
+| WP 0.2 local-model pass | No real local model has run NorthCX yet. This container's network refuses `registry.ollama.ai`, `ollama.com` and `huggingface.co`, so no weights can be fetched. `../09-models/NorthCX_Local-Models-Guide.md` is written from the code and not corrected by a run; any claim about how a local model behaves is unverified. | The three hosts allowed for this environment, or a run on the owner's machine (session prompt 1a in `NorthCX_Session-Prompts.md`) | When a machine and a model are available |
+| WP 0.4 cloud-model pass | No cloud model (Claude or another) has run the shipped scenarios live; the judge is not calibrated, so judge-based checks (Phase 5.5) stay marked unverified. | Cloud model keys (session prompt 1b) | When keys exist |
+| WP 0.5 D1 and penetration test | Open versus commercial is undecided (affects licences, pricing and the managed offering); no independent penetration test is booked. | The owner's decision; an outside tester | Before 1.0 (WP 7.1) |
+| Staff tools that need approval (WP 0.1) | Not reachable today, so no fix was made; it is the same gap as acting identity (WP 1.5). | Phase 5 | WP 5.1 |
+| Tool error text (WP 0.1) | Connectors return safe messages; a deployment's own tools can put internal detail in an error the model reads. The rule is written in the Agent Runtime document and not enforced in code. | Not planned | If a deployment reports a leak |

@@ -17,6 +17,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added (Phase 1, WP 1.2, 2026-11-19)
 - Each tool records its source (`registry`, `connectors`, `verification`, `knowledge`, `memory` or `staff`), shown in the tool catalogue (`GET /v1/catalog`, new `source` field) and on each `tool_call` trace event. Tools register through `Registry.add_tools(source, tools)`, which refuses a taken name and names both sources. `tool_fingerprint(tool)` hashes a tool's definition (not its code or credentials). No other behaviour changes.
 
+### Documentation (Phase 1 open issues, 2026-11-19)
+- `docs/12-project/NorthCX_Agent-Platform-Plan.md` sections 5 and 6 record what Phases 1 and 0 left open (Phase 1: acting identity, the `ToolSource` interface, the streaming chat contract, limits of the stability check, descriptive response models, review by a person; Phase 0: the local-model pass, the cloud-model pass, D1 and the penetration test, staff tools that need approval, tool error text) and where each resumes.
+
 ### Fixed (Phase 1 review, 2026-11-19)
 - The API stability check now also reports a route that needs another permission and a request that enforces a new or stricter limit (maximum or minimum length, count or value, or a pattern); `GET /v1/catalog` works out each tool's input names and fingerprint once instead of on every request (about half the cost of building it for 300 tools); the runtime looks a tool up once per call; the typed responses are also checked against Postgres-backed stores in CI.
 
