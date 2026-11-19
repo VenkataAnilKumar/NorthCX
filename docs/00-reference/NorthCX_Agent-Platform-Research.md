@@ -10,7 +10,7 @@ Verification: **repo** means read in this repository; **vendor/search** means a 
 
 | Topic | Finding | Source quality |
 |---|---|---|
-| MCP | Spec revision 2026-07-28 is final. It is stateless (no initialize handshake or session header, so any server instance can serve a request), hardens authorization (issuer validation), and formalises extensions (Tasks, MCP Apps). Tool annotations and elicitation were not confirmed. | search of MCP blog and spec pages |
+| MCP | Spec revision 2026-07-28 is final. It is stateless (no initialize handshake or session header, so any server instance can serve a request), hardens authorization (issuer validation), and formalises extensions (Tasks, MCP Apps). Tool annotations: confirmed 2026-11-19 (from the specification source on GitHub, through a summarising fetch): clients must treat them as untrusted unless the server is trusted. Elicitation is replaced by multi round-trip requests (`input_required`). | search of MCP blog and spec pages |
 | AG-UI | Typed event stream. Human approval is an **interrupt**: the run ends with `RUN_FINISHED` carrying an `interrupt` outcome (id, reason, message; reason `tool_call` references a prior tool call), and the client starts a new run with a `resume` array answering every open interrupt. | search of AG-UI docs |
 | assistant-ui | MIT React chat library with tool UI and inline approvals; works with AG-UI and custom data-stream backends. Its own AG-UI runtime docs could not be reached. | GitHub page |
 | Activepieces | Integrations ("pieces") are TypeScript packages with one auth definition, actions and triggers; action and trigger names are permanent because flows store them. Embedding and multi-tenant details were not confirmed. | docs via search |

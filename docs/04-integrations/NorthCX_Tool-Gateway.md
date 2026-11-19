@@ -17,7 +17,7 @@ Read in this repository on 2026-11-19.
 ## 2. What this changes in the plan
 - **WP 1.3 is already true.** The runtime applies approvals, scopes, dry-run, secrets and output screening to every `Tool`. A second "gateway" layer in front of it would repeat those checks and could drift from them; it would be dead code. WP 1.3 is folded into WP 1.4, which proves the guarantees for every source.
 - **WP 1.5 (acting identity) is deferred.** `ToolContext.actor` exists and staff tools use it. Approvals do not store the actor, so a staff tool that needed approval would fail at execution, but no staff tool needs approval (the Pilot's Do style uses its own confirmation). It returns with the first work package that needs it (Phase 5, the `tool` step).
-- **The `ToolSource` interface waits for MCP.** One implementation of an interface is not an abstraction yet. Phase 1 adds what every source needs now (a source label on each tool, one registration function, a fingerprint). The interface, with discovery and refresh, is designed with the MCP client in WP 2.1, when its second real use exists.
+- **The `ToolSource` interface waits for MCP (designed in `NorthCX_MCP-Integration.md`, built in WP 2.1).** One implementation of an interface is not an abstraction yet. Phase 1 adds what every source needs now (a source label on each tool, one registration function, a fingerprint). The interface, with discovery and refresh, is designed with the MCP client in WP 2.1, when its second real use exists.
 
 ## 3. Requirements
 | ID | For whom | What | Acceptance check |

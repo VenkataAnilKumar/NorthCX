@@ -47,13 +47,14 @@ No behaviour change; the existing suite is the safety net.
 Details and research: `../04-integrations/NorthCX_Tool-Gateway.md`. Order: 1.2, 1.4, 1.1, 1.6a, 1.6b, 1.6c. The `ToolSource` interface is designed with the MCP client (WP 2.1).
 
 ### Phase 2: Integrations (L)
+Stages 1 to 4 are written in `../04-integrations/NorthCX_MCP-Integration.md` (requirements M1 to M12 and the design). WP 2.1 and 2.2 are library work; MCP connections count as built when WP 2.3 wires them through the API, storage and screen.
 | WP | Work | Exit check | Needs |
 |---|---|---|---|
-| 2.1 | An MCP client on the official SDK, against the 2026-07-28 specification (read first) | Passes the conformance suite against a fake MCP server | |
-| 2.2 | Trust rules: tools default to write unless the server is trusted; tool lists pinned and hashed, re-approval on change; output screened as untrusted | Injection and changed-tool-list scenarios pass | |
-| 2.3 | Tenant-scoped connections; an operator screen for allowed hosts, servers and secrets | An operator adds a connection without editing files | |
+| 2.1 | `ToolSource` interface; YAML connectors as its first source; an MCP client on the official SDK, against the 2026-07-28 specification and the earlier handshake revisions | The conformance suite passes for the MCP source in both protocol modes against a fake server; existing connector tests unchanged | The `mcp` dependencies' licences read |
+| 2.2 | Trust rules: tools default to write unless the connection is trusted; a write needs approval; tool lists pinned by fingerprint, re-approval on change; output screened as untrusted | Injection and changed-tool-list scenarios pass | |
+| 2.3 | Tenant-scoped connections; an operator screen for allowed hosts, servers and secrets | An operator adds a connection and approves its tools without editing files | |
 | 2.4 | One catalogue of tools and triggers, read by Studio and Automations | Catalogue API with tests | |
-| 2.5 | Connectors for the target market: helpdesk first, then commerce, then payments (vendor MCP servers where documented, otherwise YAML); writes need approval | Sandbox demonstration: ticket lookup, order lookup, a refund held for approval | Vendor sandbox accounts |
+| 2.5 | Connectors for the target market: helpdesk first, then commerce, then payments (vendor MCP servers where documented, otherwise YAML); writes need approval | Sandbox demonstration: ticket lookup, order lookup, a refund held for approval | **Vendor sandbox accounts (none; owner, 2026-11-19)** |
 | 2.6 | A network-needs page and residency entries for every connection | Every external host is listed | |
 
 ### Phase 3: Chat (M to L)
@@ -141,7 +142,9 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 1.6c typed responses: the 12 that need a configured service or a model, and the upload | Done | 60 of 61 operations typed through the harnesses of the tests that already cover them; the streaming chat stays untyped (server-sent events) |
 | Phase 1 review (stage 6) | Done | A separate review pass over the whole Phase 1 diff found 7 issues (permission changes and tighter request limits not caught by the stability check; a documented error message that differed; the catalogue building each schema twice; a duplicate lookup in the runtime; responses checked only on in-memory stores; a conformance test using private state). All fixed. The Postgres check is verified only in CI |
 | Phase 1 exit check | Met, except WP 1.5 (deferred) | Existing backend suite unchanged and green: 1,636 passed, 201 skipped (Postgres, run in CI) |
-| Phases 2 to 7 | Not started | |
+| 2.x stages 1 to 4 (research to architecture) | Done | `NorthCX_MCP-Integration.md`. The official MCP site does not resolve from this environment, so the specification was read from its GitHub source through a summarising fetch; the MUST and SHOULD wording is to be confirmed before the code that depends on it |
+| 2.5 vendor connectors | Blocked | No vendor sandbox accounts; connectors from documentation alone would be unverified |
+| Phases 2 (2.1 to 2.4, 2.6) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.
