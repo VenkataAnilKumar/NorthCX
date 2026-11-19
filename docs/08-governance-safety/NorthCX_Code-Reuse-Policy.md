@@ -7,6 +7,7 @@ The owner decided that code from reference projects may be copied and rebranded 
 
 - **Rebrand means** renaming to NorthCX names and structure, restyling screens with the NorthCX design system, and removing the source project's product name, logo and marketing text from anything a user sees. It does **not** mean removing the licence and copyright notices. Apache-2.0, MIT and BSD all require them to stay, so every copied file keeps its original notice in an attribution header, with the source, path, commit and licence, and `THIRD_PARTY.md` (and `NOTICE`, where the source has one) lists it. CI already checks that `THIRD_PARTY.md`, `NOTICE` and `LICENSE` exist and that no `ee` or `enterprise` path is committed.
 - **No dependency means** nothing in NorthCX imports, installs, vendors as a submodule, or calls a reference project as a package, a hosted API or a service it needs to run. Copied code lives in NorthCX's own `src/` tree and is changed until it stands alone. The only packages NorthCX installs are ordinary infrastructure libraries (web server, database driver, YAML, HTTP client, the web framework), which stay listed in the package manifests; adopting a library such as an MCP SDK or a canvas library is a dependency decision recorded in the decision log, not a copy.
+- **The licence is copied with the code.** For each source project, copy its LICENSE file verbatim, and its NOTICE file if it has one, into `third_party/<source>/` (for example `third_party/<owner>-<project>/LICENSE`), once per project, in the same change as the first copy. The copied code itself goes into `src/`, and each file's attribution header names the project, path, commit and licence and points to that licence file. CI already fails a `third_party/<source>/` folder that has no licence file. Apache-2.0 also requires saying what was changed in a modified file, so each header states that the file was modified and `THIRD_PARTY.md` lists the changes.
 - **Which sources.** Only code whose licence was read from the project's own LICENSE file at the commit being copied, and only if that licence is on the allowed list below. Licences named in blog posts or comparisons do not count. Not copyable, whatever the project's popularity: AGPL and GPL code (it cannot be distributed inside an Apache-2.0 project), source-available or custom licences (for example the Elastic License, n8n's Sustainable Use License, Dify's licence, LobeHub's community licence, Open WebUI's branding clause), anything under `ee` or `enterprise` directories, and anything with no licence. Buying a commercial licence from a project would be a separate written agreement recorded in `THIRD_PARTY.md`; none exists.
 - **Quality bar applies to copied code.** Copy only what NorthCX uses and delete the rest of the file; copied code carries the same tests, no dead code and no foreign naming as anything else (see `CLAUDE.md`). A copied component that drags in a dependency is rewritten to use NorthCX's own parts or not copied.
 
@@ -31,7 +32,7 @@ The owner decided that code from reference projects may be copied and rebranded 
 1. **Select:** name the feature (catalog ID) and the candidate source path.
 2. **Check licence:** confirm the file's licence, including directory-level licences and third-party notices.
 3. **Assess fit:** read the code; record dependencies it drags in, size, and tests available.
-4. **Import:** copy into `third_party/<source>/` or directly into the owning module, preserving headers.
+4. **Import:** copy the project's LICENSE (and NOTICE) file into `third_party/<source>/`, and the code into the owning module under `src/`, with an attribution header that names the source, path, commit and licence.
 5. **Record:** add an entry to `THIRD_PARTY.md` (source, path, commit, licence, files, local changes) and update `NOTICE`.
 6. **Adapt:** wire to NorthCX interfaces; keep changes in separate commits so upstream diffs remain readable.
 7. **Test:** port or write tests; the feature must pass its scenarios.
@@ -41,7 +42,7 @@ The owner decided that code from reference projects may be copied and rebranded 
 ```
 NOTICE                    attribution for copied code
 THIRD_PARTY.md            provenance table (source, path, commit, licence, local changes)
-third_party/<source>/     unmodified or lightly modified imports with original licence files
+third_party/<source>/     the source project's LICENSE (and NOTICE) file, verbatim; the copied code itself lives under src/
 ```
 
 ## Do not

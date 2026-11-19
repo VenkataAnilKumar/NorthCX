@@ -7,7 +7,7 @@ Provenance of code copied or adapted from other projects. Policy: `docs/08-gover
 History: two small input-screening files were once adapted from a reference project under Apache-2.0. They were rewritten from scratch in NorthCX style (`northcx/safety/pii.py`, `northcx/safety/prompt_injection.py`) and the copied originals and their licence file were removed from the repository.
 
 ## Copied or adapted
-None yet. Each entry will give the source repository, path, commit, licence, the NorthCX files it became, and what was changed. Add it in the same pull request as the copy.
+None yet. Each entry will give the source repository, path, commit, licence, the NorthCX files it became, and what was changed; the project's LICENSE (and NOTICE) file sits in `third_party/<source>/`. Add it in the same pull request as the copy.
 
 ## Assessed and not copied
 | Source | Module | Reason |
