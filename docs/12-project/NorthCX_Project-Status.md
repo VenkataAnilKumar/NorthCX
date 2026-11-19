@@ -7,6 +7,7 @@ Status: **Reference**. Updated: 2026-11-18. Master for: a one-page snapshot of w
 - **Documentation.** Reorganised by platform area (decision 197): one folder and a one-page overview per area. Named research moved to `../00-reference/`.
 - **CI.** The compose stack job had failed on `main` since 2026-11-09 (each app image ran the build for both apps). Fixed on 2026-11-18; CI on `main` is green again for all seven jobs.
 - **Models.** The product is hybrid: local and cloud models side by side, each qualified per agent (decision 198). Validation starts with a local-model pass (`../09-models/NorthCX_Local-Models-Guide.md`).
+- **Plan.** Phases 0 to 7, each run through research, requirements, design, architecture, implementation, review and test: `NorthCX_Agent-Platform-Plan.md` (progress table at its end).
 - **Still open.** The local-model pass, then cloud-model passes (no cloud key yet), the independent penetration test, the `v1.0.0-rc.1` tag and the 1.0.0 release (owner actions); nothing in the Agent Platform design is built yet.
 
 The sections below are the snapshot of 2026-11-09 and have not been re-checked.

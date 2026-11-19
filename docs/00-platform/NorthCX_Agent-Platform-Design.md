@@ -208,6 +208,8 @@ Two new pieces, everything else exists:
 
 ## 10. Phasing
 
+The detailed phases, work packages, exit checks and the seven-stage process each phase follows are in `../12-project/NorthCX_Agent-Platform-Plan.md` (the master for the plan); the table below is the summary.
+
 | Step | Work | Exit check |
 |---|---|---|
 | 0a | Local-model pass: run the shipped scenarios live through the server on a local model (`../09-models/NorthCX_Local-Models-Guide.md`), qualify it per agent, fix integration bugs; decide D1 | Scenarios run live on a local model; differences recorded |
