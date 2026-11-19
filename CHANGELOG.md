@@ -17,6 +17,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added (Phase 1, WP 1.2, 2026-11-19)
 - Each tool records its source (`registry`, `connectors`, `verification`, `knowledge`, `memory` or `staff`), shown in the tool catalogue (`GET /v1/catalog`, new `source` field) and on each `tool_call` trace event. Tools register through `Registry.add_tools(source, tools)`, which refuses a taken name and names both sources. `tool_fingerprint(tool)` hashes a tool's definition (not its code or credentials). No other behaviour changes.
 
+### Tests (2026-11-19)
+- `test_runtime_moments_are_events_with_ids_and_no_message_text` failed in CI for a few minutes while the clock's epoch contained the digits of the test order number ("1042") in an event's `createdAt`. The check now leaves the time out and the test pins an epoch in that window, so it no longer depends on when it runs.
+
 ### Added (Phase 2, WP 2.3b, 2026-11-19)
 - Studio: a Connections screen (Build, Connections) for MCP connections. Anyone who can read versions sees the allowed hosts and each connection's state; an administrator can add a connection (labelled fields with help text), review a server's tools (each marked "Only reads" or "Can change things: waits for a person", with what was left out and why), approve the ticked tools, check for changes (in plain sentences), switch a connection off or on, change trust, and delete it after a second click. When no host is allowed the screen says what to ask for instead of showing a form that cannot work. New `@northcx/api-client` functions for the connection routes.
 
