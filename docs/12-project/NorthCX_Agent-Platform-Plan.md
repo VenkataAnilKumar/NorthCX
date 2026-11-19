@@ -155,4 +155,14 @@ Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in 
 | Response models are descriptive | They document responses and do not filter or validate them in production; the drift test catches a mismatch only for the routes and data it exercises. | Not planned; validating in production would change failure behaviour |
 | Review by a person | Stage 6 was done by a separate model review pass, not by a person; no security review beyond the threat-model check (no new input, store or network call). | Before 1.0 (the penetration test, WP 0.5 and 7.1) |
 
-Blocked from Phase 0 and still open: WP 0.2 (local-model pass: needs the Ollama and Hugging Face hosts allowed or a run on the owner's machine), WP 0.4 (cloud keys), WP 0.5 (the owner's D1 decision and a tester).
+
+## 6. Open issues carried from Phase 0
+Recorded 2026-11-19. Phase 0 is done except the three work packages that need an outside party, and what they leave unverified.
+
+| Issue | What it means | Needs | Resumes |
+|---|---|---|---|
+| WP 0.2 local-model pass | No real local model has run NorthCX yet. This container's network refuses `registry.ollama.ai`, `ollama.com` and `huggingface.co`, so no weights can be fetched. `../09-models/NorthCX_Local-Models-Guide.md` is written from the code and not corrected by a run; any claim about how a local model behaves is unverified. | The three hosts allowed for this environment, or a run on the owner's machine (session prompt 1a in `NorthCX_Session-Prompts.md`) | When a machine and a model are available |
+| WP 0.4 cloud-model pass | No cloud model (Claude or another) has run the shipped scenarios live; the judge is not calibrated, so judge-based checks (Phase 5.5) stay marked unverified. | Cloud model keys (session prompt 1b) | When keys exist |
+| WP 0.5 D1 and penetration test | Open versus commercial is undecided (affects licences, pricing and the managed offering); no independent penetration test is booked. | The owner's decision; an outside tester | Before 1.0 (WP 7.1) |
+| Staff tools that need approval (WP 0.1) | Not reachable today, so no fix was made; it is the same gap as acting identity (WP 1.5). | Phase 5 | WP 5.1 |
+| Tool error text (WP 0.1) | Connectors return safe messages; a deployment's own tools can put internal detail in an error the model reads. The rule is written in the Agent Runtime document and not enforced in code. | Not planned | If a deployment reports a leak |
