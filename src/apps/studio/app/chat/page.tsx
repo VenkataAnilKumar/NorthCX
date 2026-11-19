@@ -1,10 +1,12 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { type AttachmentInfo, chatStream, type EnvName, getTrace, listAgents, listOutbox, statusLabel, type Trace, uploadAttachment, useLoad, useMe } from "@northcx/api-client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ApiError, type AttachmentInfo, chatStream, decideApproval, type EnvName, getTrace, listAgents, listApprovals, listOutbox, statusLabel, type Trace, uploadAttachment, useLoad, useMe } from "@northcx/api-client";
 import { ErrorBox, Loading, PageHeader, StatusBadge, TraceTimeline } from "@northcx/ui";
+import { ApprovalCard, type Decision, type HeldAction, ToolCard } from "@/components/console-cards";
+import { plainSteps, type ToolCardData, toolCards } from "@/lib/console-steps";
 
-interface Turn { from: "user" | "agent"; text: string; status?: string; late?: boolean; handoffId?: string | null }
+interface Turn { from: "user" | "agent"; text: string; status?: string; late?: boolean; handoffId?: string | null; cards?: ToolCardData[]; held?: HeldAction[] }
 
 export default function TestConsole() {
   const agents = useLoad(listAgents);
@@ -34,21 +36,47 @@ export default function TestConsole() {
   // Messages that arrive later (for example after a reviewer decides an approval) appear in the conversation.
   const lastOutbox = useRef(0);
   useEffect(() => { lastOutbox.current = 0; }, [sessionId]);
+  const [decisions, setDecisions] = useState<Record<string, Decision>>({});
+  const [deciding, setDeciding] = useState<string | null>(null);
+  const waiting = Object.entries(decisions).filter(([, d]) => d.state === "waiting").map(([id]) => id);
+  const checkOutbox = useCallback(async () => {
+    const msgs = await listOutbox(sessionId, lastOutbox.current);
+    if (!msgs.length) return;
+    lastOutbox.current = msgs[msgs.length - 1].id;
+    setTurns((t) => [...t, ...msgs.map((m) => ({ from: "agent" as const, text: m.reply, status: m.status, late: true }))]);
+    const last = msgs[msgs.length - 1];
+    if (last.traceId) setTrace(await getTrace(last.traceId));
+  }, [sessionId]);
+  const canRef = useRef(can);
+  canRef.current = can;
+  const waitingKey = waiting.join(",");
   useEffect(() => {
     let stop = false;
     const tick = async () => {
       try {
-        const msgs = await listOutbox(sessionId, lastOutbox.current);
-        if (stop || !msgs.length) return;
-        lastOutbox.current = msgs[msgs.length - 1].id;
-        setTurns((t) => [...t, ...msgs.map((m) => ({ from: "agent" as const, text: m.reply, status: m.status, late: true }))]);
-        const last = msgs[msgs.length - 1];
-        if (last.traceId) setTrace(await getTrace(last.traceId));
+        await checkOutbox();
+        if (stop || !waitingKey || !canRef.current("approvals:read")) return;
+        const still = new Set((await listApprovals("pending")).map((a) => a.id));  // a held action that is no longer pending was decided elsewhere or has expired
+        if (!stop) setDecisions((d) => Object.fromEntries(Object.entries(d).map(([id, x]) => [id, x.state === "waiting" && !still.has(id) ? { state: "gone" as const } : x])));
       } catch { /* the next tick retries */ }
     };
     const id = setInterval(tick, 2000);
     return () => { stop = true; clearInterval(id); };
-  }, [sessionId]);
+  }, [checkOutbox, waitingKey]);
+
+  async function decide(a: HeldAction, approved: boolean) {
+    setDeciding(a.id); setError(null);
+    try {
+      const r = await decideApproval(a.id, approved);
+      setDecisions((d) => ({ ...d, [a.id]: { state: approved ? "approved" : "rejected", by: r.decided_by } }));
+      if (r.resume?.traceId) setTrace(await getTrace(r.resume.traceId));
+      await checkOutbox();
+      if (r.resume?.error) setError(r.resume.error);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) setDecisions((d) => ({ ...d, [a.id]: { state: "gone" } }));
+      else setError((err as Error).message);
+    } finally { setDeciding(null); }
+  }
 
   const [pending, setPending] = useState<AttachmentInfo[]>([]);
   async function attach(list: FileList | null) {
@@ -78,18 +106,22 @@ export default function TestConsole() {
           started = true;
         },
       }, environment, files.map((f) => f.id));
+      const done = await getTrace(r.traceId);
+      const cards = toolCards(done.events);
+      const held: HeldAction[] = r.pendingApprovals.map((a) => ({ id: a.id, tool: a.tool, reason: a.reason, input: [...cards].reverse().find((c) => c.outcome === "held")?.input ?? "no inputs" }));
       setTurns((t) => {
-        const turn: Turn = { from: "agent", text: r.reply, status: r.status, handoffId: r.handoffId };
+        const turn: Turn = { from: "agent", text: r.reply, status: r.status, handoffId: r.handoffId, cards, held };
         return started ? [...t.slice(0, -1), turn] : [...t, turn];
       });
-      setTrace(await getTrace(r.traceId));
+      setDecisions((d) => ({ ...d, ...Object.fromEntries(held.map((h) => [h.id, { state: "waiting" as const }])) }));
+      setTrace(done);
       setVersion(r.agentVersion);
     } catch (err) {
       setError((err as Error).message);
     } finally { setBusy(false); setWorking(null); }
   }
 
-  function reset() { setTurns([]); setTrace(null); setError(null); setSessionId(crypto.randomUUID()); }
+  function reset() { setTurns([]); setTrace(null); setDecisions({}); setError(null); setSessionId(crypto.randomUUID()); }
 
   if (agents.loading && !agents.data) return <Loading />;
   if (agents.error) return <ErrorBox message={agents.error} onRetry={agents.reload} />;
@@ -119,7 +151,9 @@ export default function TestConsole() {
             {turns.map((t, i) => (
               <div key={i} className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${t.from === "user" ? "ml-auto bg-primary text-primary-text" : "border border-border"}`}>
                 {t.late && <p className="mb-1 text-xs text-muted">Update from the team</p>}
+                {t.cards?.length ? <div className="mb-2 space-y-1">{t.cards.map((c, k) => <ToolCard key={k} card={c} />)}</div> : null}
                 <p className="whitespace-pre-wrap">{t.text}</p>
+                {t.held?.map((h) => <div key={h.id} className="mt-2"><ApprovalCard action={h} decision={decisions[h.id] ?? { state: "gone" }} canDecide={can("approvals:decide")} busy={deciding === h.id} onDecide={(ok) => void decide(h, ok)} /></div>)}
                 {t.status && t.status !== "completed" && (
                   <div className="mt-1 flex items-center gap-2"><StatusBadge status={t.status} />
                     {t.handoffId && <Link href={`/handoffs?open=${t.handoffId}`} className="text-xs text-primary underline">View handoff</Link>}</div>)}
@@ -142,7 +176,11 @@ export default function TestConsole() {
         </section>
         <section aria-label="Trace">
           <h2 className="mb-2 text-sm font-medium text-muted">Latest trace {trace && <span>· {statusLabel[trace.events.at(-1)?.data.status as string] ?? ""}{version !== undefined && ` · agent ${version ? `version ${version}` : "from spec file"}`}</span>}</h2>
-          {trace ? <TraceTimeline events={trace.events} /> : <p className="text-sm text-muted">The trace for the latest reply appears here.</p>}
+          {trace ? (<>
+            <h3 className="mb-1 text-sm font-medium">What happened</h3>
+            <ol className="mb-3 list-decimal space-y-1 pl-5 text-sm" aria-label="What happened, in words">{plainSteps(trace.events).map((x, i) => <li key={i}>{x}</li>)}</ol>
+            <details><summary className="cursor-pointer text-sm text-muted">Every event</summary><div className="mt-2"><TraceTimeline events={trace.events} /></div></details>
+          </>) : <p className="text-sm text-muted">The trace for the latest reply appears here.</p>}
         </section>
       </div>
     </>

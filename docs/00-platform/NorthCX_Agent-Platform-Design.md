@@ -144,7 +144,7 @@ Phase 1 findings and the revised work packages: `../04-integrations/NorthCX_Tool
 
 **Design.**
 - **AG-UI adapter**: a new endpoint (for example `POST /v1/agents/{id}/agui`) that maps the runtime's events to AG-UI. `started` to run start, `delta` to text message content, tool activity to tool call events, `done` to run finished, and a held action to `RUN_FINISHED` with an `interrupt` outcome (reason `tool_call`). Resuming after a decision is a new run carrying `resume`. The existing SSE endpoint stays for compatibility.
-- **Renderers**: adopt assistant-ui for the Studio test console and Pilot (tool cards, inline approvals, attachments). Keep the dependency-free `<northcx-chat>` widget and teach it the subset of AG-UI it needs.
+- **Renderers**: the Studio test console was built with Studio's own components (decision 204); assistant-ui stays an option for Pilot (tool cards, inline approvals, attachments). Keep the dependency-free `<northcx-chat>` widget and teach it the subset of AG-UI it needs.
 - **Session model** unchanged (sessions, traces, tokens, idempotency keys); add the missing channel features listed as not built (media and buttons on messaging channels) as a separate work item.
 - **Trace link**: every message shows its trace so a reviewer can jump from a conversation to the steps.
 - **Staff-surface extras** (Studio console, Pilot only): edit a turn and re-run from it, and replay a stored session from its trace events. Customer conversations are never edited.
