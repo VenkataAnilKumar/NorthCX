@@ -17,6 +17,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Added (Phase 1, WP 1.2, 2026-11-19)
 - Each tool records its source (`registry`, `connectors`, `verification`, `knowledge`, `memory` or `staff`), shown in the tool catalogue (`GET /v1/catalog`, new `source` field) and on each `tool_call` trace event. Tools register through `Registry.add_tools(source, tools)`, which refuses a taken name and names both sources. `tool_fingerprint(tool)` hashes a tool's definition (not its code or credentials). No other behaviour changes.
 
+### Documentation (Phase 2 design, 2026-11-19)
+- `docs/04-integrations/NorthCX_MCP-Integration.md`: Phase 2 research (the MCP 2026-07-28 revision and the official Python SDK), requirements M1 to M12, design, architecture and work packages. Decisions 200 to 202. WP 2.5 (vendor connectors) recorded as blocked: no vendor sandbox accounts. The MCP annotation and authorization points are no longer "not confirmed" in the research notes (read from the specification source; the wording is to be confirmed before use).
+
 ### Documentation (Phase 1 open issues, 2026-11-19)
 - `docs/12-project/NorthCX_Agent-Platform-Plan.md` sections 5 and 6 record what Phases 1 and 0 left open (Phase 1: acting identity, the `ToolSource` interface, the streaming chat contract, limits of the stability check, descriptive response models, review by a person; Phase 0: the local-model pass, the cloud-model pass, D1 and the penetration test, staff tools that need approval, tool error text) and where each resumes.
 
