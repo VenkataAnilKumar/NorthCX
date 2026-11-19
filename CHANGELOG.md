@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Documentation (Phase 3, WP 3.1, 2026-11-19)
+- `docs/01-chat/NorthCX_AG-UI-Check.md`: what the AG-UI interrupt and resume model says, where it differs from our design and from how approvals work today, and five requirements for the AG-UI endpoint (WP 3.2). Directional only: the specification site could not be reached, and the wire shape differs between the sources.
+
 ### Added (Phase 2, WP 2.6, 2026-11-19)
 - The residency report (`GET /v1/residency`, Studio's Data residency screen) now also lists every model in the providers file with its own address (a local or private-cloud model is a destination too) and every routine destination. The Claude entry is not listed twice when the providers file names it. New `docs/11-operations/NorthCX_Network-Needs.md`: every address a server may contact and the setting that controls it, checked by a test against the report.
 
