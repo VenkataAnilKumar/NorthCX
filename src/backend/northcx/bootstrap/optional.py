@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 from northcx.crawler import Crawler, hosts_from as crawl_hosts_from
 from northcx.voice import VoiceConfig
 from northcx.attachments import HttpScanner
@@ -71,7 +72,8 @@ def build_optional(c: SimpleNamespace) -> None:
             residency_policy = parse_policy(open(os.environ["NORTHCX_RESIDENCY_FILE"], encoding="utf-8").read())
         except (OSError, ResidencyError) as e:
             sys.exit(f"Residency: {e}")
-    residency = build_report(os.environ, residency_policy)
+    providers_file = os.environ.get("NORTHCX_PROVIDERS_FILE")
+    residency = build_report(os.environ, residency_policy, Path(providers_file).read_text() if providers_file else None)
     if residency_policy is not None:
         for p_ in residency["problems"]:
             print(f"Residency {'ERROR' if residency_policy.strict else 'warning'}: {p_}")

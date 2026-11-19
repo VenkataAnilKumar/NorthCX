@@ -88,3 +88,38 @@ def test_the_endpoint_reports_for_auditors_only():
     assert r.status_code == 200 and r.json()["compliant"] and r.json()["flows"][0]["region"] == "eu"
     assert c.get("/v1/residency").status_code == 401
     assert api(None)[0].get("/v1/residency", headers=h).json()["configured"] is False
+
+
+PROVIDERS = """providers:
+  - {name: local, type: openai-compatible, baseUrl: 'http://ollama:11434/v1', allowInsecureHttp: true, where: local}
+  - {name: eu-cloud, type: openai-compatible, baseUrl: 'https://llm.eu.example.com/v1', where: public-cloud}
+  - {name: claude, type: anthropic, where: public-cloud}
+"""
+
+
+def test_every_model_in_the_providers_file_is_a_flow_with_its_own_address():
+    r = build_report({"ANTHROPIC_API_KEY": "k"}, parse_policy(POLICY), PROVIDERS)
+    f = by_name(r)
+    assert f["Language model: eu-cloud"]["host"] == "llm.eu.example.com" and f["Language model: eu-cloud"]["status"] == "ok"
+    assert f["Language model: local"]["host"] == "ollama" and f["Language model: local"]["status"] == "unmapped"   # a private host name still has to be declared
+    assert f["Language model: claude"]["host"] == "api.anthropic.com"
+    assert "Language model" not in f                                                                                  # the file lists the Claude provider, so it is not listed twice
+
+
+def test_a_routine_destination_is_a_flow_but_a_mail_address_is_not_an_address_to_check():
+    r = report({"NORTHCX_AUTOMATION_DESTINATIONS": "ops=https://hooks.eu.example.com/x,boss=mailto:boss@example.com,bad=ftp://x"})
+    f = by_name(r)
+    assert f["Routine destination (ops)"]["host"] == "hooks.eu.example.com" and f["Routine destination (ops)"]["status"] == "ok"
+    assert list(f) == ["Routine destination (ops)"]
+
+
+def test_the_network_page_lists_every_destination_the_report_can_show():
+    import re
+    from pathlib import Path
+
+    from northcx.residency import FLOWS
+    page = (Path(__file__).parents[3] / "docs" / "11-operations" / "NorthCX_Network-Needs.md").read_text()
+    missing = [var for _, var, _, _ in FLOWS if var not in page]
+    missing += [s for s in ("NORTHCX_DATABASE_URL", "NORTHCX_CONNECTOR_HOSTS", "NORTHCX_MCP_HOSTS", "NORTHCX_AUTOMATION_DESTINATIONS", "NORTHCX_PROVIDERS_FILE", "NORTHCX_CRAWL_HOSTS") if s not in page]
+    assert not missing, f"Network-Needs.md does not mention: {missing}"
+    assert re.search(r"api\.twilio\.com", page) and "graph.facebook.com" in page and "api.telegram.org" in page and "api.anthropic.com" in page

@@ -25,7 +25,7 @@ The documents are organised by **platform area**. Each area folder starts with a
 | `08-governance-safety/` | Guardrails, approvals, access, audit, data controls, tenancy, security | [`NorthCX_Governance-Overview.md`](08-governance-safety/NorthCX_Governance-Overview.md) |
 | `09-models/` | Providers, fallbacks, budgets, model selection | [`NorthCX_Models-Overview.md`](09-models/NorthCX_Models-Overview.md) |
 | `10-releases/` | Agent versions and rollouts; releasing NorthCX itself | [`NorthCX_Releases-Overview.md`](10-releases/NorthCX_Releases-Overview.md) |
-| `11-operations/` | Deployment, settings, runbooks, database, performance | [`NorthCX_Operations-Overview.md`](11-operations/NorthCX_Operations-Overview.md) |
+| `11-operations/` | Deployment, network needs, settings, runbooks, database, performance | [`NorthCX_Operations-Overview.md`](11-operations/NorthCX_Operations-Overview.md) |
 | `12-project/` | Status, roadmap, plans, catalog, stories, decisions, glossary | [`NorthCX_Project-Status.md`](12-project/NorthCX_Project-Status.md) |
 | `13-workspace/` | The later staff product (Workspace, Pilot, personal intelligence) | [`NorthCX_Workspace-Spec.md`](13-workspace/NorthCX_Workspace-Spec.md) |
 | `00-reference/` | Named research: other companies' products and reference projects | [`NorthCX_Reference.md`](00-reference/NorthCX_Reference.md), [`NorthCX_Agent-Platform-Research.md`](00-reference/NorthCX_Agent-Platform-Research.md) |
@@ -79,7 +79,7 @@ The documents are organised by **platform area**. Each area folder starts with a
 | `08-governance-safety/` | Governance-Overview, Guardrails-and-Supervisors, Data-Flow, Tenancy-ADR, Code-Reuse-Policy, Threat-Model, Security-and-Compliance, Security-Review, Tenant-Isolation-Threat-Model, Penetration-Test-Brief, Licenses |
 | `09-models/` | Models-Overview, Model-Providers, Hybrid-Model-Selection, Local-Models-Guide |
 | `10-releases/` | Releases-Overview, Release-Management, Release-Checklist |
-| `11-operations/` | Operations-Overview, Deployment-Guide, Owner-Runbooks, Performance, Database-Schema, Repo-Structure |
+| `11-operations/` | Operations-Overview, Deployment-Guide, Owner-Runbooks, Network-Needs, Performance, Database-Schema, Repo-Structure |
 | `12-project/` | Project-Status, Roadmap, Agent-Platform-Plan, Implementation-Plan, Gap-Closure-Plan, Feature-Catalog, Feature-Spec, User-Stories, User-Journey, Non-Functional-Requirements, Tech-Stack-Decisions, Build-vs-Adopt, Decision-Log, Glossary, Docs-Completion-Checklist, Session-Prompts, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |
 | `13-workspace/` | The later staff product: Workspace-Spec, Pilot-Spec, Personal-Intelligence-Spec, Staff-Platform-Architecture |
 | `99-archive/` | Superseded documents, each with a pointer to its replacement: the finished 1.0 phase, sprint and next-features plans, the 1.0 implementation checklist, the capability matrix, the memory design, simulation testing, the Studio UI spec and the Admin design rounds |

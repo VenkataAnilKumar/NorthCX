@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 2, WP 2.6, 2026-11-19)
+- The residency report (`GET /v1/residency`, Studio's Data residency screen) now also lists every model in the providers file with its own address (a local or private-cloud model is a destination too) and every routine destination. The Claude entry is not listed twice when the providers file names it. New `docs/11-operations/NorthCX_Network-Needs.md`: every address a server may contact and the setting that controls it, checked by a test against the report.
+
 ### Added (Phase 2, WP 2.4, 2026-11-19)
 - `GET /v1/catalog`: each tool has a new `connection` field (the MCP connection it comes from, otherwise `null`). `GET /v1/automations-catalog`: new `triggerInfo` (type, label, description; the event trigger also lists its events); `triggers` is unchanged. Studio's agent editor groups tools by source and connection; the Workspace routine editor describes the chosen trigger. See `docs/04-integrations/NorthCX_Integration-Catalogue.md`.
 
