@@ -28,4 +28,4 @@ Status: **Plan**. Updated: 2026-11-09. Master for: finishing 1.0. Items marked *
 - The real-model path has been exercised with scripted and offline models only until the real-model pass is done.
 - No independent penetration test until that is done.
 - One region per deployment; no multi-tenancy, metering or billing.
-- Not built: sending media or buttons on messaging channels, automatic template fall-back, Telegram groups, Office files in the website crawler, analytics groupings and forecasts, speaker separation in recordings.
+- Not built: sending media on messaging channels; buttons (choices) on messaging channels are tested against mock WhatsApp and Telegram servers only, automatic template fall-back, Telegram groups, Office files in the website crawler, analytics groupings and forecasts, speaker separation in recordings.
