@@ -20,6 +20,7 @@ from .context import CachedContext
 from .attachments import build_content
 from .inbox import InboxDispatcher
 from .transfers import MAX_TRANSFERS_PER_TURN, TRANSFER, InMemorySessionRoutes, handover_note, transfer_spec
+from .choices import OFFER_CHOICES, history_note
 from .shadow import InMemoryShadowDrafts, REASON as SHADOW_REASON
 from .journeys import progress as journey_progress, used_tools as journey_tools
 from .language import choose as choose_language, conversation_language, instruction as language_instruction
@@ -56,6 +57,7 @@ class RunResult:
     trace: Trace
     pending_approvals: list[dict[str, Any]] = field(default_factory=list)
     handoff_id: str | None = None
+    choices: list[str] = field(default_factory=list)  # options the agent offered with this reply (choices.py)
 
     @property
     def trace_id(self) -> str:
@@ -159,6 +161,7 @@ class Runtime:
                                "effect": "write" if any(t.effect == "write" for t in agent.tools) else "read"})
         ctx = ToolContext(session_id, customer_id, self.store, dry_run=self.dry_run, secrets=self.secrets, facts=dict(facts), actor=actor)
         pending: list[dict[str, Any]] = []
+        offered: list[str] = []  # options the agent offered this turn (the last call wins)
         shadowing = agent.shadow and agent.audience != "staff" and not self.dry_run  # a person sends every reply; simulations answer as the agent will live
 
         facts_block = (
@@ -192,7 +195,7 @@ class Runtime:
         transfers = 0
 
         async def finish(reply: str, status: str, trigger: str | None = None, reason: str = "",
-                         topics: list[str] | None = None) -> RunResult:
+                         topics: list[str] | None = None, choices: list[str] | None = None) -> RunResult:
             route: Route | None = None
             if status == "escalated":
                 route = self.router.route(topics or [], trigger or "agent_handoff")
@@ -207,6 +210,11 @@ class Runtime:
                     messages[i]["content"] = kept
             if messages and messages[-1]["role"] == "assistant" and isinstance(messages[-1]["content"], str):
                 messages[-1]["content"] = reply
+            options = [self.secrets.redact_text(c) for c in (choices or [])] if status == "completed" and not shadowing else []
+            if options and messages and messages[-1]["role"] == "assistant":  # the conversation keeps what was offered, so "2" or a tap is understood next turn
+                note = history_note(options)
+                last = messages[-1]
+                last["content"] = f"{last['content']}\n{note}" if isinstance(last["content"], str) else [*last["content"], {"type": "text", "text": note}]
             if agent.journeys:
                 used = journey_tools(messages)
                 for j in agent.journeys:
@@ -235,7 +243,7 @@ class Runtime:
                     trigger=trigger or "agent_handoff", reason=reason, topics=topics or [],
                     extra_facts=company_context, route=route)).id
             await self.monitor.observe(trace, status, trigger)
-            return RunResult("", "in_review", trace, [], handoff_id) if shadowing else RunResult(reply, status, trace, pending, handoff_id)
+            return RunResult("", "in_review", trace, [], handoff_id) if shadowing else RunResult(reply, status, trace, pending, handoff_id, options)
 
         # Input guardrails run before the agent sees the message.
         earlier = [m["content"] for m in messages if m["role"] == "user" and isinstance(m["content"], str) and not m["content"].startswith("[")] if any(
@@ -340,11 +348,11 @@ class Runtime:
 
             if not uses:
                 reply = text_of(res.content)
-                blocked = await self._check(agent, "reply", reply, session_id, messages, trace, ginfo)
+                blocked = await self._check(agent, "reply", reply + ("\n" + "\n".join(offered) if offered else ""), session_id, messages, trace, ginfo)  # the options are customer-facing words too
                 if blocked is None:
                     if rewrite_from >= 0:  # drop rejected drafts and supervisor feedback
                         del messages[rewrite_from : len(messages) - 1]
-                    return await finish(reply, "completed")
+                    return await finish(reply, "completed", choices=offered)
                 if rewrite_from < 0:
                     rewrite_from = len(messages) - 1
                 rewrites += 1
@@ -430,6 +438,8 @@ class Runtime:
                     out = self.secrets.redact(json.loads(json.dumps(out, default=str)))
                     out = await self._screen_output(agent, tool, out, trace)
                     trace.add("tool_result", name=use["name"], output=out, **({"dry_run": True} if simulated else {}))
+                    if use["name"] == OFFER_CHOICES:
+                        offered = list(data.options)
                     if use["name"] == "check_verification_code" and isinstance(out, dict) and out.get("verified") is True:
                         ginfo["facts"]["identity_verified"] = "yes"  # later calls in this same turn, and tool scopes, see the new state
                         ctx.facts["identity_verified"] = "yes"

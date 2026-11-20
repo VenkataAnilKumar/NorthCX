@@ -14,6 +14,7 @@ from typing import Any
 
 import httpx
 
+from ..choices import telegram_keyboard
 from .email import InboundResult
 from .sms import PermanentSendError, SmsChannel, SmsConfig, SmsNotifier, SmsSendError, phone_hash
 
@@ -56,6 +57,39 @@ class TelegramProvider:
             return ""
 
 
+async def _send_choices(self: TelegramProvider, to: str, from_: str, body: str, choices: list[str]) -> str:
+    """The reply with its options as an inline keyboard, one button per row."""
+    chat = to.removeprefix("tg:")
+    if not _ID.match(chat):
+        raise ValueError("invalid Telegram chat id")
+    try:
+        r = await self._client.post(f"{self.base}/bot{self._token}/sendMessage", json={"chat_id": int(chat), "text": body, "disable_web_page_preview": True, "reply_markup": telegram_keyboard(choices)})
+    except httpx.HTTPError as e:
+        raise SmsSendError(f"could not send message: {type(e).__name__}") from None
+    if 400 <= r.status_code < 500 and r.status_code != 429:
+        raise PermanentSendError(f"the message was refused by Telegram ({r.status_code})")
+    if r.status_code >= 300:
+        raise SmsSendError(f"could not send message: provider returned {r.status_code}")
+    try:
+        return str(r.json()["result"]["message_id"])
+    except (ValueError, KeyError, TypeError):
+        return ""
+
+
+async def _answer_callback(self: TelegramProvider, callback_id: str) -> None:
+    """Tell Telegram the tap was received, so the button stops showing a spinner."""
+    try:
+        r = await self._client.post(f"{self.base}/bot{self._token}/answerCallbackQuery", json={"callback_query_id": callback_id})
+    except httpx.HTTPError as e:
+        raise SmsSendError(f"could not answer the tap: {type(e).__name__}") from None
+    if r.status_code >= 300:
+        raise SmsSendError(f"could not answer the tap: provider returned {r.status_code}")
+
+
+TelegramProvider.send_choices = _send_choices  # type: ignore[attr-defined]
+TelegramProvider.answer_callback = _answer_callback  # type: ignore[attr-defined]
+
+
 def parse_update(raw: bytes) -> dict[str, Any] | None:
     """The message in an update, or None if there is nothing to answer (edits, groups, channel posts, bots, other update kinds)."""
     try:
@@ -64,6 +98,17 @@ def parse_update(raw: bytes) -> dict[str, Any] | None:
         raise ValueError("unreadable request") from None
     if not isinstance(data, dict) or not isinstance(data.get("update_id"), int):
         raise ValueError("not a Telegram update")
+    tap = data.get("callback_query")
+    if isinstance(tap, dict):  # a button the customer tapped: its data is the option's own words
+        m, callback = tap.get("message"), tap.get("id") if isinstance(tap.get("id"), str) else None
+        sender, text = tap.get("from"), tap.get("data") if isinstance(tap.get("data"), str) else ""
+        chat = m.get("chat") if isinstance(m, dict) else None
+        if callback is None or not isinstance(chat, dict) or chat.get("type") != "private" or not isinstance(sender, dict) or sender.get("is_bot"):
+            return None
+        uid = sender.get("id")
+        if not isinstance(uid, int) or isinstance(uid, bool) or uid <= 0 or chat.get("id") != uid:
+            return None
+        return {"id": f"tg:{data['update_id']}", "user": f"tg:{uid}", "text": text, "media": 0, "callback": callback}
     m = data.get("message")
     if not isinstance(m, dict):
         return None
@@ -95,6 +140,11 @@ class TelegramChannel(SmsChannel):
         m = parse_update(raw)
         if m is None:
             return []
+        if m.get("callback"):
+            try:
+                await self.provider.answer_callback(m["callback"])
+            except SmsSendError:
+                pass  # the spinner may stay, but the tap is still the customer's answer and is handled below
         async with self._lock(f"msg:{m['id']}"):
             if await self.repo.has_message(m["id"]):
                 return [InboundResult("duplicate", reason="already handled")]

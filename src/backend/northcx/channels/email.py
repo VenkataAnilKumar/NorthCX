@@ -26,6 +26,7 @@ from typing import Any, Protocol
 from urllib.parse import unquote, urlparse
 
 from ..catalog import AgentUnavailable, as_provider
+from ..choices import numbered
 from ..outbox import OutboxMessage
 from ..runtime import Runtime
 
@@ -328,7 +329,7 @@ class EmailNotifier:
         if await self.repo.has_message(mid):
             return  # already sent on an earlier attempt
         reply_to = message.payload.get("inReplyTo") or session.last_message_id
-        msg = build_reply(self.config, session, body, mid, reply_to)
+        msg = build_reply(self.config, session, numbered(body, message.payload.get("choices") or []), mid, reply_to)
         await self.sender.send(msg)  # raises on failure, so the outbox retries later
         await self.repo.record_message(mid, session.session_id, "out", "sent", session.sender)
         session.last_message_id = mid
@@ -407,7 +408,7 @@ class EmailChannel:
                 text += f"\n\n[The email had {len(mail.attachments)} attachment(s) that were not read.]"
             run = await self.rt.run(agent, session.session_id, text, session.customer_id, channel="email")
             await self.rt.outbox.publish(session.session_id, "email_reply", {
-                "reply": run.reply, "status": run.status, "traceId": run.trace_id, "handoffId": run.handoff_id,
+                "reply": run.reply, "status": run.status, "traceId": run.trace_id, "handoffId": run.handoff_id, "choices": run.choices,
                 "inReplyTo": mail.message_id})
             status = {"completed": "replied"}.get(run.status, run.status)
             return InboundResult(status, session.session_id, trace_id=run.trace_id, handoff_id=run.handoff_id)

@@ -7,6 +7,7 @@ from northcx.templates import TemplateError
 from northcx.skills import SkillError, load_skills
 from northcx.memory import memory_tools
 from northcx.verification import verification_tools
+from northcx.choices import offer_choices_tool
 from northcx.knowledge import knowledge_tool
 from northcx.simulation import ScenarioError, SimulationService, load_scenarios
 from northcx.spec import BuildContext, SpecError, load_specs
@@ -42,6 +43,8 @@ def build_agents(c: SimpleNamespace) -> None:
         if verify_service is not None:
             reg.add_tools("verification", [t for t in verification_tools(verify_service) if t.name not in reg.tool_names()])  # the built-in tools yield to a deployment's own tool of the same name
         reg.add_tools("knowledge", [t for t in [knowledge_tool(knowledge_repo)] if t.name not in reg.tool_names()])
+        if "offer_choices" not in reg.tool_names():
+            reg.add_tools("registry", [offer_choices_tool()])
         if runtime.memories is not None:
             reg.add_tools("memory", [t for t in memory_tools(runtime.memories) if t.name not in reg.tool_names()])
         from northcx.db import PgMcpConnections

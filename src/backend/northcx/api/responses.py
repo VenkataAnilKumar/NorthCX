@@ -27,6 +27,7 @@ class ChatResponse(Response):
     status: str
     traceId: str
     pendingApprovals: list[PendingApproval]
+    choices: list[str] = []
     handoffId: str | None
     agentVersion: int | None
 

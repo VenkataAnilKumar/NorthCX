@@ -36,7 +36,7 @@ Channels follow the same hours and queue rules; outside hours the agent sets exp
 Embeddable client with streaming, attachments and handoff status.
 
 ## Open questions
-All three earlier questions are settled and built: streaming replies on the API (`/chat/stream`), identity verification by one-time code (below), and per-channel style (`channel_styles`). Open: sending media and buttons on messaging channels, and a latency budget for voice.
+All three earlier questions are settled and built: streaming replies on the API (`/chat/stream`), identity verification by one-time code (below), and per-channel style (`channel_styles`). Buttons on messaging channels are built as choices (WP 3.6a); sending media is not (decision 207). Open: a latency budget for voice.
 
 
 ## Email channel — as built
@@ -80,14 +80,16 @@ Limits: fixed platform messages (the model-failure fallback, after-hours notices
 - **Several numbers.** `NORTHCX_WHATSAPP_PHONE_ID` can list up to ten phone number ids; `NORTHCX_WHATSAPP_AGENTS` gives each its own agent. A conversation belongs to the number it came in on and replies leave from it. Calls for a number that is not listed are ignored.
 - **Pictures and documents.** If the agent accepts attachments (`attachments` in its spec) a picture or document the customer sends goes through the same checks as a web upload (content-sniffed, size-limited, optionally scanned, kept with the conversation and erased with it). The file is looked up through the Graph API and fetched only from a WhatsApp/Meta host; any other address is refused. If the agent does not accept attachments, or the file fails a check, the agent is told a file arrived and was not used. Audio, video and stickers are not read.
 - **Templates.** `POST /v1/channels/whatsapp/templates/send` with `{phoneId, to, template, params}` (role: channel or admin) sends one of the approved templates listed in `NORTHCX_WHATSAPP_TEMPLATES`. It is refused unless the person has already messaged that number or is on `NORTHCX_WHATSAPP_OPTIN_FILE`, refused for anyone who opted out (STOP), and counts toward the hourly limit per person. The call is audited with a one-way reference to the number, not the number.
-- Not built: sending media, interactive messages (buttons and lists) from the agent, automatic fall-back to a template when the 24-hour window has closed (the reply is recorded as undeliverable; send a template explicitly).
+- **Choices.** An agent that lists the tool `offer_choices` can offer 2 to 10 options with its reply: 1 to 3 are sent as WhatsApp reply buttons, more as a list; a reply too long for a button message goes first as text. A tap arrives as the customer's message (`button_reply` and `list_reply` were already read). Tested against a mock server only (no Meta account); see `NorthCX_Choices-and-Media.md`.
+- Not built: sending media, automatic fall-back to a template when the 24-hour window has closed (the reply is recorded as undeliverable; send a template explicitly).
 
 ## Telegram channel — as built (C4)
 `POST /channels/telegram/webhook` receives Bot API updates. Telegram signs nothing, so a secret you choose is registered with `setWebhook` as `secret_token` and every call must carry it in `X-Telegram-Bot-Api-Secret-Token` (constant-time comparison; failures are throttled and audited like the other webhooks). Only private chats are answered; groups, channels, edits and messages from bots are ignored (and acknowledged, so Telegram does not retry).
 
 - It runs on the same engine as SMS and WhatsApp. The customer is the Telegram user (`tg:<id>`), with no phone number involved; `/stop` and `/start` (with or without `@botname`) work as opt-out and opt-in; the hourly reply limit, duplicate handling, hand-offs, privacy export/erase and `channel_styles` (key `telegram`) all apply.
 - Photos and files are not read; the agent is told a file arrived. Replies are split at 3,500 characters. A blocked bot or deleted chat (4xx) is recorded as undeliverable and not retried; rate limits and 5xx errors are retried. The bot token is part of Telegram's request address, so it is never included in an error message or log line.
-- Not built: groups, inline mode, buttons, sending files.
+- **Choices.** `offer_choices` options are sent as an inline keyboard, one button per row; a tap (`callback_query`) is acknowledged with `answerCallbackQuery` and read as the customer's message; a repeated delivery of the same tap does nothing. Option text up to 64 bytes is the button's data (cut at a character boundary). Tested against a mock server only.
+- Not built: groups, inline mode, sending files.
 
 ## One-time-code identity check — as built (C9)
 
