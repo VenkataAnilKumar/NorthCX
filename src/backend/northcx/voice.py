@@ -21,6 +21,13 @@ from typing import Any, Awaitable, Callable, Protocol
 
 from .language import NAMES, conversation_language, detect
 
+
+def refuse_shadow(agent: Any) -> None:
+    """A caller hears the answer as it is spoken, so a person cannot approve it first: shadow mode is not available on voice. The caller is passed to a person."""
+    if getattr(agent, "shadow", False):
+        raise RuntimeError(f"Agent '{agent.id}' is in shadow mode, which cannot take voice calls; turn shadow mode off or use another agent for voice")
+
+
 KEEPS = "keypad"
 RECORDING_MODES = ("off", "consent")
 
@@ -376,6 +383,7 @@ class CallSession:
             if agent is None:
                 raise RuntimeError("voice agent is not available")
             agent = await self.rt.active_agent(agent, self.session_id)
+            refuse_shadow(agent)
             styles = {"voice": DEFAULT_STYLE, **agent.channel_styles}
             run = await self.rt.run(dataclasses.replace(agent, channel_styles=styles), self.session_id, text, self.customer_id, channel="voice")
         except Exception:

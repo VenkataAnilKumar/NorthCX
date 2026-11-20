@@ -153,7 +153,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 3.2 AG-UI endpoint | Done, wire shape unverified | `POST /v1/agents/{id}/agui`; 9 tests (same text and tool calls as the existing stream, interrupt, resume by staff only, refusals); the stream's setup was moved into one function both endpoints use (its 7 tests unchanged). Agent API contract: 62 operations, additions only. No real AG-UI client has been tried |
 | 3.3 test console | Done | Tool cards, inline approve and reject, expiry noticed, trace in words: 13 new unit and component tests, plus a real-browser run of approve and reject added to the smoke test (passes against the demo stack with an API key). Decision 204: assistant-ui not adopted |
 | 3.4 stages 1 to 4 | Done | `docs/01-chat/NorthCX_Shadow-Mode.md`: 14 requirements with checks, the design, four architecture decisions. Split into 3.4a (backend) and 3.4b (Workspace screen and widget) |
-| Phases 3 (3.4 to 3.6) to 7 | Not started | |
+| 3.4a shadow mode backend | Done | Spec flag; runtime keeps replies as drafts and holds every non-read tool; drafts store (migration 0058, tenant-isolated, memory and Postgres); send, edit and reject with edits checked by the agent's reply checks; expiry to a hand-off; agreement summary; `shadow:review` permission; privacy export and erasure; voice refuses a shadow agent. 25 tests (19 run without a database; the database ones were run locally against Postgres 16 and in CI): no path returns the draft (chat, stream, AG-UI, SMS), a write never runs, one send, concurrent decisions send once. 3.4b (Workspace screen, widget) next |
+| Phases 3 (3.4b to 3.6) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.

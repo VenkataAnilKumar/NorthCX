@@ -56,6 +56,7 @@ class PgPrivacy(_Base):
                 "traces": traces,
                 "outbox": await q("select id, kind, payload, created_at from outbox where session_id = :s_ order by id"),
                 "approvals": await q("select * from approvals where session_id = :s_ order by created_at"),
+                "shadow_drafts": await q("select * from shadow_drafts where session_id = :s_ order by created_at"),
                 "handoffs": await q("select * from handoffs where session_id = :s_ order by created_at"),
                 "findings": await q("select * from monitor_findings where session_id = :s_ order by created_at"),
                 "email": {"session": email_s[0], "messages": await q("select * from email_messages where session_id = :s_")} if email_s else None,
@@ -71,6 +72,7 @@ class PgPrivacy(_Base):
                 "traces": (await s.execute(text("delete from traces where session_id = :s"), p)).rowcount,  # events cascade
                 "outbox": (await s.execute(text("delete from outbox where session_id = :s"), p)).rowcount,
                 "approvals": (await s.execute(text("delete from approvals where session_id = :s"), p)).rowcount,
+                "shadow_drafts": (await s.execute(text("delete from shadow_drafts where session_id = :s"), p)).rowcount,
                 "handoffs": (await s.execute(text("delete from handoffs where session_id = :s"), p)).rowcount,
                 "findings": (await s.execute(text("delete from monitor_findings where session_id = :s"), p)).rowcount,
                 "replies": (await s.execute(text("delete from idempotency_keys where session_id = :s"), p)).rowcount,

@@ -91,6 +91,9 @@ def build_runtime(c: SimpleNamespace) -> None:
                       ledger=(PgUsageLedger if limits_backend == "postgres" else UsageLedger)(*(([engine] if limits_backend == "postgres" else [])
                               + [int(os.environ["NORTHCX_DAILY_TOKEN_BUDGET"]) if os.environ.get("NORTHCX_DAILY_TOKEN_BUDGET") else None,
                                  money_limit, currency])))
+    if c.db_url:  # drafts waiting for a person (shadow mode) must survive a restart
+        from northcx.db import PgShadowDrafts
+        runtime.shadow = PgShadowDrafts(c.engine)
     from northcx.providers.qualification import Qualifications
     from northcx.db import PgQualifications
     policy_file = os.environ.get("NORTHCX_WORKSPACE_POLICY_FILE", "").strip()

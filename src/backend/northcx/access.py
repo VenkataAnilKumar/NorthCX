@@ -18,11 +18,11 @@ from .tokens import PREFIX as TOKEN_PREFIX, TokenError, TokenSigner
 VIEW = {"workspace:use", "agents:read", "traces:read", "handoffs:read", "approvals:read", "simulations:read", "versions:read", "monitor:read", "knowledge:read", "insights:read"}
 DEVELOP = VIEW | {"automations:run", "reviews:write", "scenarios:write", "conversations:tag", "feedback:send", "knowledge:write", "versions:create", "simulations:run", "chat:send", "outbox:read"}
 ROLES: dict[str, frozenset[str]] = {
-    "admin": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "approvals:decide", "handoffs:resolve",
+    "admin": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "approvals:decide", "shadow:review", "handoffs:resolve",
                                   "keys:manage", "audit:read", "chat:mint", "channel:inbound", "privacy:manage", "memory:read", "memory:manage", "scenarios:require", "customers:read", "customers:write"}),
     "release_manager": frozenset(DEVELOP | {"releases:publish", "releases:rollback", "memory:read", "scenarios:require", "customers:read", "customers:write"}),
     "developer": frozenset(DEVELOP | {"memory:read"}),
-    "reviewer": frozenset(VIEW | {"automations:run", "approvals:decide", "handoffs:resolve", "memory:read", "conversations:tag", "reviews:write", "customers:read", "customers:write"}),
+    "reviewer": frozenset(VIEW | {"automations:run", "approvals:decide", "shadow:review", "handoffs:resolve", "memory:read", "conversations:tag", "reviews:write", "customers:read", "customers:write"}),
     "auditor": frozenset(VIEW | {"audit:read"}),
     "viewer": frozenset(VIEW),
     "trigger": frozenset({"automations:run"}),  # for a company system that starts a routine through its signed webhook, and nothing else

@@ -80,6 +80,7 @@ class InMemoryPrivacy:
             "traces": [t.to_dict() for t in getattr(rt.traces, "_traces", {}).values() if t.session_id == session_id],
             "outbox": [{"id": m.id, "kind": m.kind, "payload": m.payload, "createdAt": m.created_at} for m in await rt.outbox.repo.list(session_id, 0, 100000)],
             "approvals": [_plain(a) for a in getattr(rt.approvals, "_items", {}).values() if a.session_id == session_id],
+            "shadow_drafts": [_plain(d) for d in await rt.shadow.list(session_id=session_id, limit=100000)],
             "handoffs": [_plain(h) for h in getattr(rt.handoffs, "_items", {}).values() if h.session_id == session_id],
             "findings": [_plain(f) for f in await rt.monitor.repo.list(session_id=session_id, limit=100000)],
         }
@@ -143,6 +144,7 @@ class InMemoryPrivacy:
         if getattr(rt, "inbox", None) is not None:
             ids = [h.id for h in getattr(rt.handoffs, "_items", {}).values() if h.session_id == session_id]
             n["inbox"] = await rt.inbox.repo.erase_handoffs(ids)
+        n["shadow_drafts"] = await rt.shadow.erase_session(session_id)
         for name, store in (("approvals", rt.approvals), ("handoffs", rt.handoffs)):
             d_ = getattr(store, "_items", {})
             ids_ = [k for k, v in d_.items() if v.session_id == session_id]

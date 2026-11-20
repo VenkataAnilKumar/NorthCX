@@ -9605,6 +9605,198 @@
         ]
       }
     },
+    "/v1/shadow/drafts": {
+      "get": {
+        "summary": "List Drafts",
+        "description": "Replies waiting for a person, oldest first. `state` is pending, sent, edited, rejected or expired.",
+        "operationId": "list_drafts_v1_shadow_drafts_get",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Drafts V1 Shadow Drafts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "shadow:review",
+        "tags": [
+          "shadow"
+        ]
+      }
+    },
+    "/v1/shadow/drafts/{draft_id}/decision": {
+      "post": {
+        "summary": "Decide",
+        "description": "Send the draft as written, send the person's own text, or send nothing. A send reaches the customer once, through the outbox.",
+        "operationId": "decide_v1_shadow_drafts__draft_id__decision_post",
+        "parameters": [
+          {
+            "name": "draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Draft Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShadowDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Decide V1 Shadow Drafts  Draft Id  Decision Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "shadow:review",
+        "tags": [
+          "shadow"
+        ]
+      }
+    },
+    "/v1/shadow/summary": {
+      "get": {
+        "summary": "Summary",
+        "description": "Counts of sent, edited, rejected and expired drafts over the last `days` days, with the agreement ratio and its denominator.",
+        "operationId": "summary_v1_shadow_summary_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 30,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Summary V1 Shadow Summary Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "shadow:review",
+        "tags": [
+          "shadow"
+        ]
+      }
+    },
     "/v1/simulations/gate": {
       "get": {
         "summary": "Sim Gate",
@@ -16930,6 +17122,68 @@
           "tags"
         ],
         "title": "SessionTags"
+      },
+      "ShadowDecisionBody": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "send",
+              "edit",
+              "reject"
+            ],
+            "title": "Action"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Reasons"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "ShadowDecisionBody"
       },
       "SimRunBody": {
         "properties": {
