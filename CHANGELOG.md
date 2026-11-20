@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Documentation (Phase 3, WP 3.4 design, 2026-11-20)
+- `docs/01-chat/NorthCX_Shadow-Mode.md`: shadow mode (the agent drafts, a person sends) for customer agents: what exists in the code and what it implies, 14 requirements with checks, the design and four decisions. Nothing is built yet.
+
 ### Added (Phase 3, WP 3.3, 2026-11-19)
 - Studio's test console shows each tool the agent used as a card, a held action as a card with Approve and Reject (one click decides it through the existing approvals route; a decision made elsewhere or an expiry is noticed and the buttons go away), and the trace as numbered sentences with the full event list one click away. No backend change. See `docs/01-chat/NorthCX_Test-Console.md`.
 
