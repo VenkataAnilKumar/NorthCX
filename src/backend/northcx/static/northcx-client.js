@@ -167,7 +167,7 @@ var e = class extends Error {
 	close() {
 		for (let e of [...this.watchers]) e();
 	}
-}, i, a = "\n:host{--p:var(--northcx-primary,#2f5bea);--bg:var(--northcx-bg,#fff);--tx:var(--northcx-text,#1b1f2a);--mu:#667085;--bd:#d8dce5;--r:var(--northcx-radius,12px);display:block;font:14px/1.45 var(--northcx-font,system-ui,sans-serif);color:var(--tx);max-width:100%}\n@media (prefers-color-scheme:dark){:host{--bg:var(--northcx-bg,#171a21);--tx:var(--northcx-text,#e8eaf0);--bd:#333948;--mu:#9aa3b5}}\n.box{display:flex;flex-direction:column;height:var(--northcx-height,480px);max-height:100vh;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}\nheader{padding:10px 14px;border-bottom:1px solid var(--bd);font-weight:600}\n.log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}\n.m{max-width:85%;padding:8px 12px;border-radius:var(--r);white-space:pre-wrap;overflow-wrap:anywhere}\n.m.me{align-self:flex-end;background:var(--p);color:#fff}.m.bot{align-self:flex-start;border:1px solid var(--bd)}.m.person{align-self:flex-start;border:1px solid var(--p)}\n.m small{display:block;color:var(--mu);font-size:11px}.me small{color:#e8edff}\n.note{align-self:center;color:var(--mu);font-size:12px}\n.err{align-self:stretch;color:#b42318;font-size:13px}\nform{display:flex;gap:6px;padding:8px;border-top:1px solid var(--bd);align-items:flex-end}\ntextarea{flex:1;resize:none;border:1px solid var(--bd);border-radius:8px;padding:8px;font:inherit;color:inherit;background:transparent;min-height:38px;max-height:120px}\nbutton{font:inherit;border:1px solid var(--bd);background:transparent;color:inherit;border-radius:8px;padding:8px 12px;cursor:pointer}\nbutton.go{background:var(--p);border-color:var(--p);color:#fff}button:disabled{opacity:.5;cursor:default}\n:focus-visible{outline:2px solid var(--p);outline-offset:2px}\n.rate{display:flex;gap:4px;justify-content:center;padding:6px;border-top:1px solid var(--bd);align-items:center;font-size:12px;color:var(--mu)}\n.files{padding:0 12px 4px;font-size:12px;color:var(--mu)}\ninput[type=file]{position:absolute;width:1px;height:1px;opacity:0}\n", o = class extends HTMLElement {
+}, i, a = "\n:host{--p:var(--northcx-primary,#2f5bea);--bg:var(--northcx-bg,#fff);--tx:var(--northcx-text,#1b1f2a);--mu:#667085;--bd:#d8dce5;--r:var(--northcx-radius,12px);display:block;font:14px/1.45 var(--northcx-font,system-ui,sans-serif);color:var(--tx);max-width:100%}\n@media (prefers-color-scheme:dark){:host{--bg:var(--northcx-bg,#171a21);--tx:var(--northcx-text,#e8eaf0);--bd:#333948;--mu:#9aa3b5}}\n.box{display:flex;flex-direction:column;height:var(--northcx-height,480px);max-height:100vh;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}\nheader{padding:10px 14px;border-bottom:1px solid var(--bd);font-weight:600}\n.log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}\n.m{max-width:85%;padding:8px 12px;border-radius:var(--r);white-space:pre-wrap;overflow-wrap:anywhere}\n.m.me{align-self:flex-end;background:var(--p);color:#fff}.m.bot{align-self:flex-start;border:1px solid var(--bd)}.m.person{align-self:flex-start;border:1px solid var(--p)}\n.m small{display:block;color:var(--mu);font-size:11px}.me small{color:#e8edff}\n.note{align-self:center;color:var(--mu);font-size:12px}\n.err{align-self:stretch;color:#b42318;font-size:13px}\nform{display:flex;gap:6px;padding:8px;border-top:1px solid var(--bd);align-items:flex-end}\ntextarea{flex:1;resize:none;border:1px solid var(--bd);border-radius:8px;padding:8px;font:inherit;color:inherit;background:transparent;min-height:38px;max-height:120px}\nbutton{font:inherit;border:1px solid var(--bd);background:transparent;color:inherit;border-radius:8px;padding:8px 12px;cursor:pointer}\nbutton.go{background:var(--p);border-color:var(--p);color:#fff}button:disabled{opacity:.5;cursor:default}\n:focus-visible{outline:2px solid var(--p);outline-offset:2px}\n.rate{display:flex;gap:4px;justify-content:center;padding:6px;border-top:1px solid var(--bd);align-items:center;font-size:12px;color:var(--mu)}\n.files{padding:0 12px 4px;font-size:12px;color:var(--mu)}\n.opts{align-self:flex-start;display:flex;flex-wrap:wrap;gap:6px}.opts button{border-radius:999px;border-color:var(--p);color:var(--p)}\ninput[type=file]{position:absolute;width:1px;height:1px;opacity:0}\n", o = class extends HTMLElement {
 	constructor(...e) {
 		super(...e), this.pending = [], this.busy = !1, this.rated = !1;
 	}
@@ -237,6 +237,17 @@ var e = class extends Error {
 		}
 		return r.append(document.createTextNode(t)), this.log.append(r), this.log.scrollTop = this.log.scrollHeight, r;
 	}
+	offer(e) {
+		let t = document.createElement("div");
+		t.className = "opts", t.setAttribute("role", "group"), t.setAttribute("aria-label", "Quick answers");
+		for (let n of e) {
+			let e = document.createElement("button");
+			e.type = "button", e.textContent = n, e.addEventListener("click", () => {
+				this.input.value = n, this.submit();
+			}), t.append(e);
+		}
+		this.log.append(t), this.log.scrollTop = this.log.scrollHeight;
+	}
 	setStatus(e) {
 		this.status.hidden = !e, this.status.textContent = e ?? "";
 	}
@@ -252,7 +263,7 @@ var e = class extends Error {
 		let t = this.input.value.trim();
 		if (!t || this.busy || !this.client) return;
 		let n = this.pending;
-		this.pending = [], this.fileList.hidden = !0, this.input.value = "", this.busy = !0, this.sendBtn.disabled = !0, this.line("me", n.length ? `${t}\n\u{1F4CE} ${n.map((e) => e.name).join(", ")}` : t), this.setStatus("Thinking…");
+		this.pending = [], this.fileList.hidden = !0, this.input.value = "", this.busy = !0, this.sendBtn.disabled = !0, this.log.querySelector(".opts")?.remove(), this.line("me", n.length ? `${t}\n\u{1F4CE} ${n.map((e) => e.name).join(", ")}` : t), this.setStatus("Thinking…");
 		let r = { el: null };
 		try {
 			let e = await this.client.send(t, {
@@ -262,7 +273,7 @@ var e = class extends Error {
 					this.setStatus(null), r.el = r.el ?? this.line("bot", ""), r.el.append(document.createTextNode(e));
 				}
 			});
-			r.el ? r.el.replaceChildren(document.createTextNode(e.reply)) : e.reply && this.line("bot", e.reply), e.status === "escalated" && this.line("note", "A teammate has been asked to take over. You can keep writing here."), e.status === "needs_approval" && this.line("note", "This needs a teammate's approval. We will tell you here when it is done."), e.reply && this.maybeRating(), this.dispatchEvent(new CustomEvent("northcx:reply", { detail: e }));
+			r.el ? r.el.replaceChildren(document.createTextNode(e.reply)) : e.reply && this.line("bot", e.reply), e.choices?.length && this.offer(e.choices), e.status === "escalated" && this.line("note", "A teammate has been asked to take over. You can keep writing here."), e.status === "needs_approval" && this.line("note", "This needs a teammate's approval. We will tell you here when it is done."), e.reply && this.maybeRating(), this.dispatchEvent(new CustomEvent("northcx:reply", { detail: e }));
 		} catch (t) {
 			r.el?.remove(), this.line("err", t instanceof e && t.code === "attachment_not_accepted" ? t.message : t instanceof e && t.status === 429 ? "You are sending messages too quickly. Please wait a moment." : "Sorry, that did not go through. Please try again."), this.dispatchEvent(new CustomEvent("northcx:error", { detail: t }));
 		} finally {

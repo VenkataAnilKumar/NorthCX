@@ -28,6 +28,7 @@ button.go{background:var(--p);border-color:var(--p);color:#fff}button:disabled{o
 :focus-visible{outline:2px solid var(--p);outline-offset:2px}
 .rate{display:flex;gap:4px;justify-content:center;padding:6px;border-top:1px solid var(--bd);align-items:center;font-size:12px;color:var(--mu)}
 .files{padding:0 12px 4px;font-size:12px;color:var(--mu)}
+.opts{align-self:flex-start;display:flex;flex-wrap:wrap;gap:6px}.opts button{border-radius:999px;border-color:var(--p);color:var(--p)}
 input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
 `;
 
@@ -114,6 +115,20 @@ export class NorthCXChat extends HTMLElement {
     return el;
   }
 
+  /** The options the agent offered, as buttons; choosing one sends its words like a typed message. */
+  private offer(choices: string[]): void {
+    const box = document.createElement("div");
+    box.className = "opts"; box.setAttribute("role", "group"); box.setAttribute("aria-label", "Quick answers");
+    for (const c of choices) {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = c;
+      b.addEventListener("click", () => { this.input.value = c; void this.submit(); });
+      box.append(b);
+    }
+    this.log.append(box);
+    this.log.scrollTop = this.log.scrollHeight;
+  }
+
   private setStatus(text: string | null): void { this.status.hidden = !text; this.status.textContent = text ?? ""; }
 
   private async attach(list: FileList | null): Promise<void> {
@@ -131,6 +146,7 @@ export class NorthCXChat extends HTMLElement {
     const files = this.pending;
     this.pending = []; this.fileList.hidden = true;
     this.input.value = ""; this.busy = true; this.sendBtn.disabled = true;
+    this.log.querySelector(".opts")?.remove();  // quick answers are for the last reply only
     this.line("me", files.length ? `${text}\n\u{1F4CE} ${files.map((f) => f.name).join(", ")}` : text);
     this.setStatus("Thinking…");
     const live: { el: HTMLElement | null } = { el: null };
@@ -141,6 +157,7 @@ export class NorthCXChat extends HTMLElement {
         onDelta: (piece) => { this.setStatus(null); live.el = live.el ?? this.line("bot", ""); live.el.append(document.createTextNode(piece)); },
       });
       if (live.el) live.el.replaceChildren(document.createTextNode(r.reply)); else if (r.reply) this.line("bot", r.reply);  // a reply a person has not yet approved (shadow mode) is empty: no bubble
+      if (r.choices?.length) this.offer(r.choices);
       if (r.status === "escalated") this.line("note", "A teammate has been asked to take over. You can keep writing here.");
       if (r.status === "needs_approval") this.line("note", "This needs a teammate's approval. We will tell you here when it is done.");
       if (r.reply) this.maybeRating();

@@ -72,3 +72,9 @@ def test_unsafe_cors_settings_stop_the_server_from_starting(bad):
     env.update({"NORTHCX_DEMO": "1", "NORTHCX_API_KEY": "k" * 32, "NORTHCX_CORS_ORIGINS": bad, "PYTHONPATH": str(ROOT)})
     r = subprocess.run([sys.executable, "-m", "northcx"], env=env, cwd=ROOT, capture_output=True, text=True, timeout=30)
     assert r.returncode != 0 and "NORTHCX_CORS_ORIGINS" in (r.stdout + r.stderr)
+
+
+def test_the_widget_stays_within_its_size_budget():
+    """The widget is loaded on customers' pages. Its budget is 16,384 bytes as served (13,294 on 2026-11-20, 5,199 gzipped); to grow past it, change the number here and in docs/01-chat/NorthCX_Choices-and-Media.md on purpose."""
+    served = (Path(__file__).parent.parent / "northcx" / "static" / "northcx-widget.js").stat().st_size
+    assert served <= 16_384, f"the widget is {served} bytes; the budget is 16,384"

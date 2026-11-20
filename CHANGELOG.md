@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 3, WP 3.6b, 2026-11-20)
+- The chat widget shows the options an agent offered (`choices` in the reply) as buttons under the reply. Choosing one sends its words like a typed message; typing instead clears them. The widget bundle grew from 12,710 to 13,294 bytes (5,199 gzipped); a new test keeps it at or under 16,384 bytes.
+
 ### Added (Phase 3, WP 3.6a, 2026-11-20)
 - Choices: an agent that lists the new built-in tool `offer_choices` can offer 2 to 10 short options with its reply. The chat, stream and AG-UI results and the outbox payloads carry `choices` (a list; empty when none). The options are checked with the reply, kept in the stored conversation, and not offered on a hand-off, a held action or a shadow draft. WhatsApp sends reply buttons (up to three) or a list; Telegram an inline keyboard whose taps are acknowledged and read as the customer's message; SMS and email a numbered list in the text. Tested against fakes and mock servers only. The web widget's buttons are WP 3.6b. See `docs/01-chat/NorthCX_Choices-and-Media.md`.
 
