@@ -101,7 +101,11 @@ check(true, "customers: the lookup form shows");
 
 // navigation modes: sub-tabs, collapsed icon rail, full window
 await page.goto(`${WEB}/inbox`);
-check((await page.getByRole("navigation", { name: "Sections" }).getByRole("link").count()) === 3, "work: shows Inbox, Approvals and Customers sub-tabs");
+check((await page.getByRole("navigation", { name: "Sections" }).getByRole("link").count()) === 4, "work: shows Inbox, Approvals, Drafts and Customers sub-tabs");
+await page.goto(`${WEB}/drafts`);
+await page.getByRole("heading", { name: "Drafts" }).waitFor();
+await page.getByRole("tablist", { name: "State" }).waitFor();
+check(true, "drafts: the page loads for a reviewer");
 await page.goto(`${WEB}/approvals`);
 await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Approvals" }).and(page.locator("[aria-current=page]")).waitFor();   // let the page remember where you were before leaving it
 await page.waitForTimeout(300);

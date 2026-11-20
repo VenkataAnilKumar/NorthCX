@@ -1,6 +1,6 @@
 # Shadow mode (WP 3.4)
 
-Status: stages 1 to 4 written 2026-11-20. **3.4a (backend) is built** and checked by `tests/test_shadow.py` (memory and Postgres). 3.4b (the Workspace Drafts screen and the widget change, S4 screen, S14) is not built: until it is, drafts are reviewed through the API. Nothing has met a real customer.
+Status: stages 1 to 4 written 2026-11-20. **3.4a (backend) and 3.4b (the Workspace Drafts screen and the widget change) are built.** Checked by `tests/test_shadow.py` (memory and Postgres), component tests for the screen and the widget, and a real-browser run (`src/apps/workspace/e2e/shadow.mjs`, which needs a stack whose agent has `shadow: true`; CI's smoke test only loads the page). Nothing has met a real customer.
 
 ## What it is for
 A company that already answers customers with people, or with another vendor's AI, can put a NorthCX agent beside them. The agent writes a reply to every customer message; a person reads it, and sends it, edits it or rejects it. The customer sees only what a person approved. Reads may run; nothing that changes something outside NorthCX runs without a person. The agreement between the agent's drafts and the people's decisions is the evidence for letting the agent answer on its own (pilot, WP 7.2).
@@ -52,6 +52,9 @@ A company that already answers customers with people, or with another vendor's A
 - The customer waits for a person. This suits a pilot where people watch the inbox; the expiry hands over to a person if nobody does.
 - Nothing here has met a real customer. The agreement figure's usefulness is unverified until the pilot (WP 7.2).
 - A shadow agent cannot take voice calls.
+
+## Built
+Workspace page `/drafts` (Work, Drafts): the badge counts waiting drafts; each card shows the customer's message, the agent's reply in an editable box, optional reasons and a note, and the buttons Send as is (Send my edit once the text differs) and Reject: send nothing. The widget skips an empty reply and the rating bar. In shadow mode, a held action that a tool's own rule already holds keeps that rule's reason (for example "Refund over 100 needs approval"); the shadow reason is used for every other write.
 
 ## Order of work
 3.4a: spec flag and validation, runtime, store and migration, flow, routes, permission, expiry, privacy, channel statuses, voice refusal, summary, tests for S1 to S3, S5 to S13. 3.4b: Workspace Drafts screen, the widget change (S14), browser tests, and the end-to-end check on the demo stack.

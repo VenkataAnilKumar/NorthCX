@@ -262,7 +262,7 @@ var e = class extends Error {
 					this.setStatus(null), r.el = r.el ?? this.line("bot", ""), r.el.append(document.createTextNode(e));
 				}
 			});
-			r.el ? r.el.replaceChildren(document.createTextNode(e.reply)) : this.line("bot", e.reply), e.status === "escalated" && this.line("note", "A teammate has been asked to take over. You can keep writing here."), e.status === "needs_approval" && this.line("note", "This needs a teammate's approval. We will tell you here when it is done."), this.maybeRating(), this.dispatchEvent(new CustomEvent("northcx:reply", { detail: e }));
+			r.el ? r.el.replaceChildren(document.createTextNode(e.reply)) : e.reply && this.line("bot", e.reply), e.status === "escalated" && this.line("note", "A teammate has been asked to take over. You can keep writing here."), e.status === "needs_approval" && this.line("note", "This needs a teammate's approval. We will tell you here when it is done."), e.reply && this.maybeRating(), this.dispatchEvent(new CustomEvent("northcx:reply", { detail: e }));
 		} catch (t) {
 			r.el?.remove(), this.line("err", t instanceof e && t.code === "attachment_not_accepted" ? t.message : t instanceof e && t.status === 429 ? "You are sending messages too quickly. Please wait a moment." : "Sorry, that did not go through. Please try again."), this.dispatchEvent(new CustomEvent("northcx:error", { detail: t }));
 		} finally {

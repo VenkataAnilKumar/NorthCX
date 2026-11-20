@@ -78,6 +78,21 @@ describe("<northcx-chat>", () => {
     await flush();
     expect(w.log().querySelector(".err")!.textContent).toBe("Sorry, that did not go through. Please try again.");
   });
+  it("draws nothing for a reply that a person has not approved yet, and shows the approved text when it arrives", async () => {
+    vi.useFakeTimers();
+    const fx = fakeFetch(sse(["done", { ...REPLY, reply: "", status: "in_review" }]));
+    const w = mount({ rating: "", "poll-ms": "1000" }, fx);
+    w.type("where is my order?");
+    await vi.advanceTimersByTimeAsync(10);
+    expect(Array.from(w.log().querySelectorAll(".m")).map((m) => m.textContent)).toEqual(["where is my order?"]);   // no empty bubble
+    expect(w.log().querySelector(".note, .err")).toBeNull();                                                          // and no notice either
+    expect((w.root.querySelector(".rate") as HTMLElement).hidden).toBe(true);
+    const later = fakeFetch(json({ messages: [{ id: 1, kind: "shadow_reply", createdAt: 1, reply: "It ships Monday." }] }));
+    w.el.configure({ token: "ncxc_abc", sessionId: "web-1", fetch: later.f });
+    await vi.advanceTimersByTimeAsync(1200);
+    vi.useRealTimers();
+    expect(Array.from(w.log().querySelectorAll(".m")).map((m) => m.textContent)).toEqual(["where is my order?", "It ships Monday."]);
+  });
   it("offers attachments only when asked, and rating once a reply has arrived", async () => {
     expect(mount().root.querySelector(".attach")!.hasAttribute("hidden")).toBe(true);
     document.body.innerHTML = "";

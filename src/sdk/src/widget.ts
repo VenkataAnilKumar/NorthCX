@@ -140,10 +140,10 @@ export class NorthCXChat extends HTMLElement {
         onProgress: () => this.setStatus("Looking into it…"),
         onDelta: (piece) => { this.setStatus(null); live.el = live.el ?? this.line("bot", ""); live.el.append(document.createTextNode(piece)); },
       });
-      if (live.el) live.el.replaceChildren(document.createTextNode(r.reply)); else this.line("bot", r.reply);
+      if (live.el) live.el.replaceChildren(document.createTextNode(r.reply)); else if (r.reply) this.line("bot", r.reply);  // a reply a person has not yet approved (shadow mode) is empty: no bubble
       if (r.status === "escalated") this.line("note", "A teammate has been asked to take over. You can keep writing here.");
       if (r.status === "needs_approval") this.line("note", "This needs a teammate's approval. We will tell you here when it is done.");
-      this.maybeRating();
+      if (r.reply) this.maybeRating();
       this.dispatchEvent(new CustomEvent("northcx:reply", { detail: r }));
     } catch (e) {
       live.el?.remove();
