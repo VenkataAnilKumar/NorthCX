@@ -195,7 +195,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                     for piece in _pieces(payload.reply):
                         yield sse("delta", {"text": piece})
                     yield sse("done", {"reply": payload.reply, "status": payload.status, "traceId": payload.trace_id,
-                                       "pendingApprovals": payload.pending_approvals, "handoffId": payload.handoff_id,
+                                       "pendingApprovals": payload.pending_approvals, "handoffId": payload.handoff_id, "choices": payload.choices,
                                        "agentVersion": agent.version})
 
         return StreamingResponse(events(), media_type="text/event-stream",
@@ -232,7 +232,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                     for e in agui.message(payload.reply):
                         yield agui.sse(e)
                     yield agui.sse(agui.finished(body.thread_id, body.run_id, payload.pending_approvals,
-                                                 {"status": payload.status, "traceId": payload.trace_id, "handoffId": payload.handoff_id, "agentVersion": agent.version}))
+                                                 {"status": payload.status, "traceId": payload.trace_id, "handoffId": payload.handoff_id, "agentVersion": agent.version, "choices": payload.choices}))
 
         return StreamingResponse(events(), media_type="text/event-stream", headers=headers)
 
@@ -336,7 +336,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             if scope:
                 await idem.abandon(scope)
             return _err(500, "internal", "Run failed")
-        result = {"reply": r.reply, "status": r.status, "traceId": r.trace_id, "pendingApprovals": r.pending_approvals,
+        result = {"reply": r.reply, "status": r.status, "traceId": r.trace_id, "pendingApprovals": r.pending_approvals, "choices": r.choices,
                   "handoffId": r.handoff_id, "agentVersion": agent.version}
         if scope:
             await idem.complete(scope, result)

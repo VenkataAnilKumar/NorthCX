@@ -15,6 +15,7 @@ from typing import Any
 
 import httpx
 
+from ..choices import whatsapp_payload
 from .email import InboundResult
 from ..attachments import AttachmentError, accept as accept_attachment, check_accepted
 from .sms import PermanentSendError, SmsChannel, SmsConfig, SmsNotifier, SmsSendError, phone_hash, valid_number
@@ -55,6 +56,23 @@ class WhatsAppProvider:
             raise SmsSendError(f"could not send message: {type(e).__name__}") from None
         if 400 <= r.status_code < 500 and r.status_code != 429:
             raise PermanentSendError(f"the template message was refused by WhatsApp ({r.status_code})")
+        if r.status_code >= 300:
+            raise SmsSendError(f"could not send message: provider returned {r.status_code}")
+        try:
+            return str(r.json()["messages"][0]["id"])
+        except (ValueError, KeyError, IndexError, TypeError):
+            return ""
+
+    async def send_choices(self, to: str, from_: str, body: str, choices: list[str]) -> str:
+        """The reply with reply buttons (up to three options) or a list (more), as one interactive message."""
+        if not _ID.match(from_):
+            raise ValueError("invalid WhatsApp phone number id")
+        try:
+            r = await self._client.post(f"{self.base}/{from_}/messages", headers={"authorization": f"Bearer {self.token}"}, json=whatsapp_payload(to, body, choices))
+        except httpx.HTTPError as e:
+            raise SmsSendError(f"could not send message: {type(e).__name__}") from e
+        if 400 <= r.status_code < 500 and r.status_code != 429:
+            raise PermanentSendError(f"the message was refused by WhatsApp ({r.status_code})")
         if r.status_code >= 300:
             raise SmsSendError(f"could not send message: provider returned {r.status_code}")
         try:

@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 3, WP 3.6a, 2026-11-20)
+- Choices: an agent that lists the new built-in tool `offer_choices` can offer 2 to 10 short options with its reply. The chat, stream and AG-UI results and the outbox payloads carry `choices` (a list; empty when none). The options are checked with the reply, kept in the stored conversation, and not offered on a hand-off, a held action or a shadow draft. WhatsApp sends reply buttons (up to three) or a list; Telegram an inline keyboard whose taps are acknowledged and read as the customer's message; SMS and email a numbered list in the text. Tested against fakes and mock servers only. The web widget's buttons are WP 3.6b. See `docs/01-chat/NorthCX_Choices-and-Media.md`.
+
 ### Documentation (Phase 3, WP 3.6 design, 2026-11-20)
 - `docs/01-chat/NorthCX_Choices-and-Media.md`: WP 3.6 re-scoped. The widget will not speak AG-UI and media sending is not built, because neither has a user who needs it now (decision 207); the work is a built-in `offer_choices` tool whose options appear as buttons on the web widget, WhatsApp and Telegram and as a numbered list on SMS and email, and a measured size limit for the widget (16,384 bytes; it is 12,710). Nothing is built yet.
 

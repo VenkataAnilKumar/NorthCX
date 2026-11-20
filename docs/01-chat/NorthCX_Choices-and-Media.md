@@ -1,6 +1,6 @@
 # Choices on messaging channels, and what was dropped from WP 3.6
 
-Status: stages 1 to 4 written 2026-11-20. Nothing is built. Work packages: 3.6a (the tool, the runtime, the API and the channels), 3.6b (the widget's buttons and its size limit).
+Status: stages 1 to 4 written 2026-11-20. **3.6a is built** (the tool, the runtime, the API, WhatsApp, Telegram, SMS and email; tested with fake providers and mock servers). 3.6b (the widget's buttons and its size limit, C2 for the web and C8) is not.
 
 WP 3.6 in the plan read "the widget's AG-UI subset; media and buttons on messaging channels; the widget's size budget is kept". Research changed what is worth building.
 

@@ -18,6 +18,7 @@ from urllib.parse import parse_qsl
 
 import httpx
 
+from ..choices import WHATSAPP_BODY, numbered
 from ..outbox import OutboxMessage
 from ..runtime import Runtime
 from ..catalog import AgentUnavailable, as_provider
@@ -185,6 +186,7 @@ class SmsNotifier:
     async def deliver(self, message: OutboxMessage) -> None:
         session = await self.repo.get_session(message.session_id)
         body = message.payload.get("reply")
+        choices = message.payload.get("choices") or []
         if session is None or not body or session.our_number != self.config.from_number:  # another channel's conversation
             return
         key = f"outbox:{message.id}:{message.session_id}"
@@ -194,12 +196,25 @@ class SmsNotifier:
             await self.repo.record_message(key, session.session_id, "out", "opted_out", session.phone)
             return
         try:
-            for part in split_sms(body, self.SPLIT):
-                await self.provider.send(session.phone, self.config.from_number, part)  # raises on failure, so the outbox retries
+            if choices and hasattr(self.provider, "send_choices"):  # a channel with buttons (WhatsApp, Telegram)
+                await self._send_buttons(session.phone, body, choices)
+            else:
+                for part in split_sms(numbered(body, choices), self.SPLIT):
+                    await self.provider.send(session.phone, self.config.from_number, part)  # raises on failure, so the outbox retries
         except PermanentSendError:
             await self.repo.record_message(key, session.session_id, "out", "undeliverable", session.phone)  # retrying cannot help
             return
         await self.repo.record_message(key, session.session_id, "out", "sent", session.phone)
+
+
+    async def _send_buttons(self, to: str, body: str, choices: list[str]) -> None:
+        """The reply with its options as buttons. A reply too long for a button message goes first as text, then the buttons follow."""
+        if len(body) <= WHATSAPP_BODY:
+            await self.provider.send_choices(to, self.config.from_number, body, choices)
+            return
+        for part in split_sms(body, self.SPLIT):
+            await self.provider.send(to, self.config.from_number, part)
+        await self.provider.send_choices(to, self.config.from_number, "Choose one:", choices)
 
 
 class SmsChannel:
@@ -283,5 +298,5 @@ class SmsChannel:
                 text += f"\n\n[{note}]"
             run = await self.rt.run(agent, session.session_id, text, session.customer_id, channel=self.CHANNEL, attachments=files or None)
             await self.rt.outbox.publish(session.session_id, self.REPLY_KIND, {
-                "reply": run.reply, "status": run.status, "traceId": run.trace_id, "handoffId": run.handoff_id})
+                "reply": run.reply, "status": run.status, "traceId": run.trace_id, "handoffId": run.handoff_id, "choices": run.choices})
             return InboundResult({"completed": "replied"}.get(run.status, run.status), session.session_id, trace_id=run.trace_id, handoff_id=run.handoff_id)
