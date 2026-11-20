@@ -113,6 +113,7 @@
   "GET /v1/sessions/x/scenario-draft": "/v1/sessions/{session_id}/scenario-draft -> scenario_draft",
   "GET /v1/sessions/x/tags": "/v1/sessions/{session_id}/tags -> get_tags",
   "GET /v1/sessions/x/transcript": "/v1/sessions/{session_id}/transcript -> session_transcript",
+  "GET /v1/sessions/x/turns": "/v1/sessions/{session_id}/turns -> session_turns",
   "GET /v1/shadow/drafts": "/v1/shadow/drafts -> list_drafts",
   "GET /v1/shadow/summary": "/v1/shadow/summary -> summary",
   "GET /v1/simulations/gate": "/v1/simulations/gate -> sim_gate",
@@ -853,6 +854,11 @@
    "GET",
    "/v1/sessions/{session_id}/transcript",
    "session_transcript"
+  ],
+  [
+   "GET",
+   "/v1/sessions/{session_id}/turns",
+   "session_turns"
   ],
   [
    "GET",

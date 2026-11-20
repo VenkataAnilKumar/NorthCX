@@ -146,3 +146,16 @@ def test_a_rerun_counts_against_the_daily_budget_and_stops_when_it_is_spent():
     rt.ledger.add("support", 50)                                                         # today's budget is already used up
     out = rerun(c, 1, "hi again").json()
     assert out["rerun"]["status"] == "escalated" and any(e["type"] == "budget" for e in out["rerun"]["events"])
+
+
+def test_the_turns_route_lists_each_customer_message_with_the_reply_it_got_using_the_numbers_rerun_takes():
+    c, ac, _, _ = setup([text("first answer"), text("second answer"), text("rerun answer")])
+    assert c.get("/v1/sessions/nope/turns", headers=H()).status_code == 404
+    chat(c, "one")
+    chat(c, "two")
+    got = c.get("/v1/sessions/s1/turns", headers=H()).json()
+    assert got["turns"] == [{"turn": 1, "message": "one", "reply": "first answer"}, {"turn": 2, "message": "two", "reply": "second answer"}]
+    assert rerun(c, got["turns"][1]["turn"], "two, differently").json()["original"] == {"message": "two", "reply": "second answer"}
+    viewer = asyncio.new_event_loop().run_until_complete(ac.issue("v", "viewer", "root"))[1]
+    assert c.get("/v1/sessions/s1/turns", headers=H(viewer)).status_code == 200            # reading is for anyone who may read traces
+    assert c.get("/v1/sessions/s1/turns", headers={}).status_code == 401

@@ -1946,6 +1946,21 @@
         }
       }
     },
+    "GET /v1/sessions/{session_id}/turns": {
+      "permission": "traces:read",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": null,
+      "responses": {}
+    },
     "GET /v1/simulations/gate": {
       "permission": "simulations:read",
       "parameters": [

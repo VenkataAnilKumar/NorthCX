@@ -657,3 +657,10 @@ export const getTenantLimits = () => api<{ tenant: string; limits: Record<string
 export const getTenantProvider = () => api<{ tenant: string; own: boolean; baseUrl?: string; defaultModel?: string; where?: string; keyStored?: boolean }>("/v1/tenant/provider");
 export interface ChannelRow { id: string; label: string; configured: boolean; inbound: string; note?: string }
 export const getChannels = () => api<{ channels: ChannelRow[] }>("/v1/channels").then((r) => r.channels);
+
+export interface SessionTurn { turn: number; message: string; reply: string | null }
+export const getSessionTurns = (sessionId: string) => api<{ sessionId: string; turns: SessionTurn[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/turns`).then((r) => r.turns);
+export interface Rerun { sessionId: string; turn: number; agent: string; sandbox: true; note: string; original: { message: string; reply: string | null };
+  rerun: { message: string; reply: string; status: Status; toolsCalled: string[]; events: TraceEvent[] } }
+export const rerunTurn = (sessionId: string, turn: number, message: string) =>
+  api<Rerun>(`/v1/sessions/${encodeURIComponent(sessionId)}/rerun`, { method: "POST", body: JSON.stringify({ turn, message }) });

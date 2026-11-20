@@ -1,6 +1,6 @@
 # Edit and rerun, and session replay (WP 3.5)
 
-Status: stages 1 to 4 written 2026-11-20. **3.5a (the rerun route) is built**; 3.5b (the Studio screens: edit and run again, and the replay player) is not.
+Status: stages 1 to 4 written 2026-11-20. **3.5a (the rerun route) and 3.5b (the Studio replay screen with edit and run again) are built.** Checked by `tests/test_rerun.py`, unit and component tests, and the browser smoke test (`src/apps/studio/e2e/smoke.mjs`, run by CI). No CX lead has used it.
 
 Two staff tools for understanding a conversation. Neither touches the real conversation or the customer.
 
@@ -27,6 +27,11 @@ Two staff tools for understanding a conversation. Neither touches the real conve
 ## Design
 - **Rerun** (`northcx/rerun.py`, route in `api/routers/rerun.py`): the customer's messages are the stored user messages that are text and do not start with a bracket (tool results and platform notes are not turns). Turn N is the Nth of them. The sandbox is a `Runtime` with its own in-memory stores, `dry_run=True`, no delivery, the real secrets store (so tool secrets work and stay redacted) and the real usage ledger. The agent is the live one for the environment of the conversation's first trace. The history copied is everything before the edited message.
 - **Replay** (3.5b): the Studio page reads the transcript, loads each trace, merges the events in time order and turns each into a frame; the player shows the conversation up to the current frame. Pure functions for frames and for the conversation so far, tested without a browser.
+
+## Built (3.5b)
+- `GET /v1/sessions/{id}/turns` (permission `traces:read`): the customer's messages numbered the way `rerun` takes them, each with the reply it got.
+- Studio, Conversations: each conversation has a **Replay** link to `/replay?session=…`. The player has Previous, Play, Next, a slider and the list of every step; the conversation builds up as the steps advance, and a step is shown as a sentence ("Used lookup order (order_id 1042)."). A customer message has **Edit and run again** for people with `simulations:run`: a box prefilled with the message, then the original reply beside what would happen now, the tools used, the steps, and the sandbox note. A customer message is tied to its turn by matching the words in order; if no match is found no button is shown rather than a wrong one.
+- Replay reads stored traces only (a test checks it makes no rerun call); only the Edit and run again button calls the sandbox.
 
 ## Decision 206
 A rerun is a sandbox, not a saved branch. A branch in the real stores would create a second conversation with traces that feed insights, alerts and the monitor, would need its own erasure and retention, and could be mistaken for a customer's. The cost of a sandbox is that nothing is kept: the person sees the answer and the trace and can copy what they need.

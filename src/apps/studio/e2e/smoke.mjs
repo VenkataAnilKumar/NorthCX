@@ -173,6 +173,31 @@ for (const [verb, order, done] of [["Approve", "2077", /Approved by/], ["Reject"
   check(true, `console: ${verb.toLowerCase()} from the card`);
 }
 
+// replay: step through a stored conversation, then edit a customer message and run it again in the sandbox
+{
+  const stamp = Date.now();
+  const say = (message) => fetch(`${API}/v1/agents/support/chat`, { method: "POST", headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json" }, body: JSON.stringify({ sessionId: `replay-${stamp}`, message }) });
+  await say("where is order 1042?");
+  await say("refund 20 for order 1042");
+  const before = await (await fetch(`${API}/v1/sessions/replay-${stamp}/turns`, { headers: { authorization: `Bearer ${KEY}` } })).json();
+  await page.goto(`${WEB}/replay?session=replay-${stamp}`);
+  await page.getByRole("group", { name: "Replay controls" }).waitFor();
+  check((await page.getByRole("status").first().innerText()).startsWith("Step 1 of"), "replay: starts at the first step");
+  await page.getByRole("button", { name: "Next" }).click();
+  check((await page.getByLabel("Conversation so far").innerText()).includes("where is order 1042?"), "replay: shows the conversation so far");
+  await page.getByRole("button", { name: /^The customer wrote: refund 20 for order 1042/ }).click();
+  await page.getByRole("button", { name: "Edit and run again: message 2" }).click();
+  const panel = page.getByRole("group", { name: "Edit and run again: message 2" });
+  await panel.getByLabel(/What the customer would say instead/).fill("refund 25 for order 1042");
+  await panel.getByRole("button", { name: "Run again" }).click();
+  const result = panel.getByLabel("Result");
+  await result.waitFor();
+  const shown = await result.innerText();
+  check(/Used issue refund \(order_id 1042, amount 25\)/.test(shown) && shown.includes("What would happen now"), "replay: the edited message is answered in the sandbox");
+  const after = await (await fetch(`${API}/v1/sessions/replay-${stamp}/turns`, { headers: { authorization: `Bearer ${KEY}` } })).json();
+  check(JSON.stringify(after) === JSON.stringify(before), "replay: the real conversation is unchanged by the rerun");
+}
+
 // the other main pages load without a client error
 for (const p of ["/hub", "/preferences", "/profile", "/", "/conversations", "/simulations", "/knowledge", "/handoffs", "/approvals", "/agents", "/access", "/chat", "/trust", "/org", "/channels", "/memory", "/privacy"]) {
   await page.goto(`${WEB}${p}`);
