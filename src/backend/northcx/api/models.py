@@ -1,7 +1,7 @@
 """Request bodies for the HTTP API (moved out of server.py; behaviour unchanged)."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Literal, Any
 
 from pydantic import BaseModel, Field
 
@@ -38,6 +38,14 @@ class AguiRunBody(BaseModel):
     messages: list[AguiMessage] = Field(default_factory=list, max_length=200)
     resume: list[AguiAnswer] = Field(default_factory=list, max_length=20)
     model_config = {"populate_by_name": True}
+
+
+class ShadowDecisionBody(BaseModel):
+    action: Literal["send", "edit", "reject"]
+    text: str | None = Field(default=None, max_length=20000)
+    reasons: list[str] = Field(default_factory=list, max_length=10)
+    note: str | None = Field(default=None, max_length=1000)
+    by: str | None = Field(default=None, max_length=200)  # only used when the server has no authentication configured
 
 
 class SourceBody(BaseModel):

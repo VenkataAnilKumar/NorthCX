@@ -95,6 +95,7 @@ class AgentSpec(BaseModel):
     max_steps: int = Field(default=8, ge=1, le=50)
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
     audience: Literal["customer", "staff"] = "customer"  # staff agents work for signed-in people with staff tools; customer agents never get staff tools
+    shadow: bool = False  # shadow mode: the agent drafts each reply and a person sends it; customer agents only (docs/01-chat/NorthCX_Shadow-Mode.md)
     sensitive: bool = False  # treat every conversation of this agent as sensitive (model choice: no tier the data policy forbids)
     channel_styles: dict[str, str] = Field(default_factory=dict)
     journeys: list[JourneySpec] = Field(default_factory=list, max_length=20)
@@ -165,6 +166,8 @@ class AgentSpec(BaseModel):
             del data["max_run_tokens"]  # keeps digests of specs written before this field existed
         if data.get("audience") == "customer":
             del data["audience"]  # keeps digests of specs written before this field existed
+        if not data.get("shadow"):
+            data.pop("shadow", None)  # keeps digests of specs written before this field existed
         if not data.get("sensitive"):
             data.pop("sensitive", None)  # keeps digests of specs written before this field existed
         for key in ("skills", "voice", "tool_scopes", "skill_snapshots"):
@@ -330,6 +333,8 @@ class Registry:
                 problems.append(f"Tool '{t}' is a staff tool; only an agent with audience: staff may use it")
             elif tool is not None and tool.audience != "staff" and spec.audience == "staff":
                 problems.append(f"Tool '{t}' is a customer tool; an agent with audience: staff may use only staff tools")
+        if spec.shadow and spec.audience == "staff":
+            problems.append("shadow mode is for customer agents; an agent with audience: staff answers a person at work, not a customer")
         names = [t.name for t in spec.forced_handoff]
         if len(set(names)) != len(names):
             problems.append("Duplicate forced_handoff topic names")
@@ -420,6 +425,7 @@ class Registry:
                 max_run_tokens=spec.max_run_tokens,
                 sensitive=spec.sensitive,
                 audience=spec.audience,
+                shadow=spec.shadow,
                 channel_styles=dict(spec.channel_styles),
                 languages=list(spec.languages),
                 journeys=list(spec.journeys),

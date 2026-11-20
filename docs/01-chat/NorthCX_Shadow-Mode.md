@@ -1,6 +1,6 @@
 # Shadow mode (WP 3.4)
 
-Status: stages 1 to 4 (research, requirements, design, architecture) written 2026-11-20. Nothing is built. Work packages: 3.4a (backend), 3.4b (Workspace screen and the widget).
+Status: stages 1 to 4 written 2026-11-20. **3.4a (backend) is built** and checked by `tests/test_shadow.py` (memory and Postgres). 3.4b (the Workspace Drafts screen and the widget change, S4 screen, S14) is not built: until it is, drafts are reviewed through the API. Nothing has met a real customer.
 
 ## What it is for
 A company that already answers customers with people, or with another vendor's AI, can put a NorthCX agent beside them. The agent writes a reply to every customer message; a person reads it, and sends it, edits it or rejects it. The customer sees only what a person approved. Reads may run; nothing that changes something outside NorthCX runs without a person. The agreement between the agent's drafts and the people's decisions is the evidence for letting the agent answer on its own (pilot, WP 7.2).

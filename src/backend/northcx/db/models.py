@@ -846,6 +846,28 @@ class McpConnectionRow(TenantScoped, Base):
     updated_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+class ShadowDraftRow(TenantScoped, Base):
+    """A reply the agent wrote in shadow mode, waiting for a person (northcx/shadow.py)."""
+    __tablename__ = "shadow_drafts"
+    __table_args__ = (Index("ix_shadow_drafts_state", "tenant_id", "state"), Index("ix_shadow_drafts_session", "tenant_id", "session_id"))
+    tenant_id: Mapped[str] = tenant_col(pk=True)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    agent_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    agent_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    customer_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    trace_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    customer_message: Mapped[str] = mapped_column(Text, nullable=False)
+    draft: Mapped[str] = mapped_column(Text, nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    final_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reasons: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decided_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    decided_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[float] = mapped_column(Float, nullable=False)
+
+
 class JobLeaseRow(Base):
     """Which server process currently runs a named background job (see northcx/leases.py)."""
     __tablename__ = "job_leases"

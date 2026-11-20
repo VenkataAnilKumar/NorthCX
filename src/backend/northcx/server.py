@@ -63,6 +63,7 @@ from .api.routers import builder as _builder_router
 from .api.routers import simulations as _simulations_router
 from .api.routers import knowledge as _knowledge_router
 from .api.routers import approvals as _approvals_router
+from .api.routers import shadow as _shadow_router
 from .api.routers import handoffs as _handoffs_router
 from .api.routers import rollouts as _rollouts_router
 from .api.routers import groups as _groups_router
@@ -221,6 +222,9 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/agents/[^/]+/environments", "versions:read"),
     ("GET", r"/v1/approvals", "approvals:read"),
     ("POST", r"/v1/approvals/expire", "approvals:decide"),
+    ("GET", r"/v1/shadow/drafts", "shadow:review"),
+    ("POST", r"/v1/shadow/drafts/[^/]+/decision", "shadow:review"),
+    ("GET", r"/v1/shadow/summary", "shadow:review"),
     ("POST", r"/v1/approvals/[^/]+/decision", "approvals:decide"),
     ("GET", r"/v1/routing", "handoffs:read"),
     ("GET", r"/v1/handoffs", "handoffs:read"),
@@ -369,7 +373,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
                alerts: AlertManager | None = None, tags: TagRepo | None = None, reviews: ReviewRepo | None = None, rollouts: RolloutService | None = None, sso: Sso | None = None,
                attachments: AttachmentRepo | None = None, attachment_scanner: Scanner | None = None, cors_origins: list[str] | None = None,
                voice: VoiceConfig | None = None, calls: CallRepo | None = None, crawler: Crawler | None = None,
-               role: str = "all", leases: Any = None) -> FastAPI:
+               role: str = "all", leases: Any = None, shadow_ttl_seconds: float | None = None) -> FastAPI:
     if access is None:  # `api_key` is the single bootstrap admin key; with neither, the server is open (development)
         access = AccessControl(bootstrap_key=api_key)
     if access.signer is None:  # chat tokens need a signing secret: derive it from the bootstrap key, else use a random one
@@ -414,7 +418,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        stop = start_background(role, leases, tenants=access.tenants, runtime=runtime, traces=traces, flow=flow, agents=agents, approval_ttl_seconds=approval_ttl_seconds,
+        stop = start_background(role, leases, tenants=access.tenants, runtime=runtime, traces=traces, flow=flow, agents=agents, approval_ttl_seconds=approval_ttl_seconds, shadow_ttl_seconds=shadow_ttl_seconds,
                                 alerts=alerts, privacy=privacy, audit=audit, retention_days=retention_days, kb=kb, crawl_scheduler=crawl_scheduler, automations=getattr(runtime, "automations", None))
         mcp_task = asyncio.create_task(runtime.mcp.keep_current()) if getattr(runtime, "mcp", None) is not None else None  # registers the approved MCP tools, then keeps them current
         yield
@@ -506,6 +510,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _simulations_router.register(app, deps)
     _knowledge_router.register(app, deps)
     _approvals_router.register(app, deps)
+    _shadow_router.register(app, deps)
     _handoffs_router.register(app, deps)
     _rollouts_router.register(app, deps)
     _groups_router.register(app, deps)

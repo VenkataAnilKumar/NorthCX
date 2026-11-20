@@ -38,7 +38,7 @@ def _every(seconds: float, name: str, job: Callable[[], Awaitable[Any]], leases:
     return asyncio.create_task(loop())
 
 
-def start_background(role: str, leases: Leases | None, *, runtime: Any, traces: Any, flow: Any, agents: Any, approval_ttl_seconds: float | None,
+def start_background(role: str, leases: Leases | None, *, runtime: Any, traces: Any, flow: Any, agents: Any, approval_ttl_seconds: float | None, shadow_ttl_seconds: float | None = None,
                      alerts: Any, privacy: Any, audit: Any, retention_days: float | None, kb: Any, crawl_scheduler: Any,
                      tenants: Any = None, automations: Any = None) -> Callable[[], Awaitable[None]]:
     """Start the jobs this role runs. Returns a coroutine function that stops them."""
@@ -53,6 +53,11 @@ def start_background(role: str, leases: Leases | None, *, runtime: Any, traces: 
     if approval_ttl_seconds:  # periodically expire stale approvals and hand those conversations to a person
         tasks.append(_every(max(1.0, min(60.0, approval_ttl_seconds / 2)), "approvals",
                             lambda: flow.expire_stale(agents, approval_ttl_seconds), leases, message="approval expiry pass failed", tenants=tenants))
+    if shadow_ttl_seconds:  # drafts nobody reviews expire and the conversation goes to a person
+        from northcx.shadow import ShadowFlow
+        shadow_flow = ShadowFlow(runtime)
+        tasks.append(_every(max(1.0, min(60.0, shadow_ttl_seconds / 2)), "shadow-drafts", lambda: shadow_flow.expire_stale(agents, shadow_ttl_seconds), leases,
+                            message="shadow draft expiry pass failed", tenants=tenants))
     if runtime.exports is not None:
         tasks.append(_every(10, "trace-export", lambda: runtime.exports.flush(traces), leases, message="trace export pass failed", tenants=tenants))
     if alerts is not None:

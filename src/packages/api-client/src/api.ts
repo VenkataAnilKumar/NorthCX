@@ -1,4 +1,4 @@
-export type Status = "completed" | "escalated" | "needs_approval" | "with_person" | "unknown";
+export type Status = "completed" | "escalated" | "needs_approval" | "with_person" | "in_review" | "unknown";
 
 export interface TraceEvent { t: number; type: string; data: Record<string, unknown> }
 export interface Trace { id: string; agent_id: string; session_id: string; agent_version: number | null; events: TraceEvent[] }
@@ -314,7 +314,7 @@ export const searchKnowledge = (q: string, source?: string) =>
   api<{ passages: Passage[] }>(`/v1/knowledge/search?${new URLSearchParams({ q, ...(source ? { source } : {}) })}`).then((r) => r.passages);
 
 export const statusLabel: Record<string, string> = {
-  completed: "Completed", escalated: "Escalated", needs_approval: "Needs approval", unknown: "Unknown",
+  completed: "Completed", escalated: "Escalated", needs_approval: "Needs approval", in_review: "In review", unknown: "Unknown",
 };
 
 export function formatTime(t: number | null | undefined): string {
