@@ -65,7 +65,7 @@ Stages 1 to 4 are written in `../04-integrations/NorthCX_MCP-Integration.md` (re
 | 3.3 | A richer chat interface in the Studio test console: tool cards, inline approve and reject, the trace in plain steps | Browser tests for approve, reject and expiry |
 | 3.4 | Shadow mode: the agent drafts, a person approves or edits in the Workspace inbox; reads may run, nothing else does | Nothing reaches a customer or an external system without a person |
 | 3.5 | Edit and rerun from a turn; session replay from stored traces (staff only) | Browser tests |
-| 3.6 | The widget's AG-UI subset; media and buttons on messaging channels | The widget's size budget is kept |
+| 3.6 | ~~The widget's AG-UI subset~~ (dropped, decision 207); media (dropped until a source of files exists); **choices (buttons) on the widget, WhatsApp, Telegram and as numbered text on SMS and email** | The widget stays within 16,384 bytes, enforced by a test |
 
 ### Phase 4: Agent Studio for non-engineers (L)
 | WP | Work | Exit check | Needs |
@@ -157,7 +157,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 3.4b shadow mode screen and widget | Done | Workspace Work, Drafts (waiting count in the nav): the customer's message, the agent's reply in an editable box, Send as is or Send my edit, reject with plain reasons and a note, the agreement summary with its numbers, tabs for decided drafts. The widget draws no bubble for an empty reply (+18 bytes). 9 component tests, 1 widget test, and a real-browser run on the demo stack with a shadow agent: send, edit and reject each reach (or keep from) the customer's outbox as expected. WP 3.4 exit check met in tests; not met by a real customer |
 | 3.5a rerun | Done | `POST /v1/sessions/{id}/rerun`: edit a customer message and run the conversation again from it in a sandbox (own stores, simulated writes, counted against the daily budget); 10 tests including that the real conversation, traces, outbox, approvals and hand-offs are unchanged. Agent API contract: 63 operations, additions only. 3.5b (Studio: edit and run again, replay player) next |
 | 3.5b replay and edit-and-run-again screens | Done | Studio `/replay`: step through a stored conversation (previous, play, next, slider, step list); Edit and run again on a customer message shows the original beside the sandbox answer. `GET /v1/sessions/{id}/turns` added (Agent API contract: 64 operations, additions only). 20 new component and unit tests; browser smoke steps (replay, edit, rerun, real conversation unchanged) pass against the demo stack in CI. A screenshot showed the result panel unreadable inside the blue bubble; fixed. WP 3.5 browser tests met; no CX lead has used it |
-| Phases 3 (3.6) to 7 | Not started | |
+| 3.6 stages 1 to 4 | Done | `docs/01-chat/NorthCX_Choices-and-Media.md`: research, nine requirements with checks, design. Re-scoped: the widget does not speak AG-UI and media sending is not built (decision 207); the work is choices on the channels and a measured widget size limit. Split into 3.6a and 3.6b |
+| Phases 3 (3.6a, 3.6b) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.

@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Documentation (Phase 3, WP 3.6 design, 2026-11-20)
+- `docs/01-chat/NorthCX_Choices-and-Media.md`: WP 3.6 re-scoped. The widget will not speak AG-UI and media sending is not built, because neither has a user who needs it now (decision 207); the work is a built-in `offer_choices` tool whose options appear as buttons on the web widget, WhatsApp and Telegram and as a numbered list on SMS and email, and a measured size limit for the widget (16,384 bytes; it is 12,710). Nothing is built yet.
+
 ### Added (Phase 3, WP 3.5b, 2026-11-20)
 - Studio, Conversations: a **Replay** link opens `/replay`, a player that steps through a stored conversation one event at a time (previous, play, next, slider, list of steps), with each step as a sentence. People who may run simulations can **Edit and run again** on a customer message and see the original reply beside the sandbox answer. New `GET /v1/sessions/{id}/turns` lists the customer's messages with their turn numbers and replies. Reading only: replay never calls the agent.
 
