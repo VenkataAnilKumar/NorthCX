@@ -9313,6 +9313,60 @@
         ]
       }
     },
+    "/v1/sessions/{session_id}/rerun": {
+      "post": {
+        "summary": "Rerun Turn",
+        "description": "Answer an edited customer message after the conversation that came before it. Nothing is saved, sent or run for real: the copy has its own stores and simulates every write.",
+        "operationId": "rerun_turn_v1_sessions__session_id__rerun_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RerunBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Rerun Turn V1 Sessions  Session Id  Rerun Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "simulations:run",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
     "/v1/sessions/{session_id}/review": {
       "put": {
         "summary": "Put Review",
@@ -16333,6 +16387,28 @@
         },
         "type": "object",
         "title": "RequestDecisionBody"
+      },
+      "RerunBody": {
+        "properties": {
+          "turn": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Turn"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "turn",
+          "message"
+        ],
+        "title": "RerunBody"
       },
       "ResolveBody": {
         "properties": {

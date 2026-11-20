@@ -64,6 +64,7 @@ from .api.routers import simulations as _simulations_router
 from .api.routers import knowledge as _knowledge_router
 from .api.routers import approvals as _approvals_router
 from .api.routers import shadow as _shadow_router
+from .api.routers import rerun as _rerun_router
 from .api.routers import handoffs as _handoffs_router
 from .api.routers import rollouts as _rollouts_router
 from .api.routers import groups as _groups_router
@@ -128,6 +129,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/monitor/summary", "monitor:read"),
     ("GET", r"/v1/reviews/queue", "traces:read"),
     ("GET", r"/v1/sessions/[^/]+/transcript", "traces:read"),
+    ("POST", r"/v1/sessions/[^/]+/rerun", "simulations:run"),
     ("PUT", r"/v1/sessions/[^/]+/review", "reviews:write"),
     ("GET", r"/v1/insights/review-quality", "insights:read"),
     ("GET", r"/v1/conversations/search", "traces:read"),
@@ -511,6 +513,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _knowledge_router.register(app, deps)
     _approvals_router.register(app, deps)
     _shadow_router.register(app, deps)
+    _rerun_router.register(app, deps)
     _handoffs_router.register(app, deps)
     _rollouts_router.register(app, deps)
     _groups_router.register(app, deps)

@@ -237,6 +237,7 @@
   "POST /v1/release-requests/x/cancel": "/v1/release-requests/{request_id}/cancel -> cancel_request",
   "POST /v1/release-requests/x/reject": "/v1/release-requests/{request_id}/reject -> reject_request",
   "POST /v1/sessions/x/feedback": "/v1/sessions/{session_id}/feedback -> post_feedback",
+  "POST /v1/sessions/x/rerun": "/v1/sessions/{session_id}/rerun -> rerun_turn",
   "POST /v1/shadow/drafts/x/decision": "/v1/shadow/drafts/{draft_id}/decision -> decide",
   "POST /v1/simulations/runs": "/v1/simulations/runs -> sim_run",
   "POST /v1/simulations/scenarios": "/v1/simulations/scenarios -> create_scenario",
@@ -1472,6 +1473,11 @@
    "POST",
    "/v1/sessions/{session_id}/feedback",
    "post_feedback"
+  ],
+  [
+   "POST",
+   "/v1/sessions/{session_id}/rerun",
+   "rerun_turn"
   ],
   [
    "POST",

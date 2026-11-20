@@ -48,6 +48,11 @@ class ShadowDecisionBody(BaseModel):
     by: str | None = Field(default=None, max_length=200)  # only used when the server has no authentication configured
 
 
+class RerunBody(BaseModel):
+    turn: int = Field(ge=1, le=10000)  # which customer message, counting from 1
+    message: str = Field(min_length=1, max_length=8000)
+
+
 class SourceBody(BaseModel):
     id: str = Field(min_length=1, max_length=200)
     name: str = Field(min_length=1, max_length=200)

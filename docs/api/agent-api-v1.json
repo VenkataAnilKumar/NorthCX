@@ -4814,6 +4814,42 @@
         }
       }
     },
+    "POST /v1/sessions/{session_id}/rerun": {
+      "permission": "simulations:run",
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "turn": {
+              "type": "integer",
+              "maximum": 10000.0,
+              "minimum": 1.0
+            },
+            "message": {
+              "type": "string",
+              "maxLength": 8000,
+              "minLength": 1
+            }
+          },
+          "type": "object",
+          "required": [
+            "turn",
+            "message"
+          ]
+        }
+      },
+      "responses": {}
+    },
     "POST /v1/simulations/runs": {
       "permission": "simulations:run",
       "parameters": [],
