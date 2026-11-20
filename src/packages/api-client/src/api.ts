@@ -42,6 +42,17 @@ export const listTraces = (status?: string) =>
   api<{ traces: TraceSummary[] }>("/v1/traces").then((r) => (status ? r.traces.filter((t) => t.status === status) : r.traces));
 export const getTrace = (id: string) => api<Trace>(`/v1/traces/${id}`);
 export const listApprovals = (state?: string) => api<{ approvals: Approval[] }>(`/v1/approvals${state ? `?state=${state}` : ""}`).then((r) => r.approvals);
+export type ShadowState = "pending" | "sent" | "edited" | "rejected" | "expired";
+export interface ShadowDraft { id: string; sessionId: string; agentId: string; agentVersion: number | null; traceId: string; customerMessage: string; draft: string; state: ShadowState;
+  finalText: string | null; reasons: string[]; note: string | null; decidedBy: string | null; decidedAt: number | null; createdAt: number }
+export interface ShadowSummary { days: number; total: number; pending: number; sent: number; edited: number; rejected: number; expired: number; decided: number; agreement: Ratio;
+  rejectReasons: Record<string, number>; note: string }
+export const SHADOW_REASONS = ["wrong", "tone", "incomplete", "unsafe", "other"] as const;
+export const listShadowDrafts = (state?: ShadowState) => api<{ drafts: ShadowDraft[] }>(`/v1/shadow/drafts${state ? `?state=${state}` : ""}`).then((r) => r.drafts);
+export const decideShadowDraft = (id: string, d: { action: "send" | "edit" | "reject"; text?: string; reasons?: string[]; note?: string; by?: string }) =>
+  api<ShadowDraft>(`/v1/shadow/drafts/${id}/decision`, { method: "POST", body: JSON.stringify(d) });
+export const getShadowSummary = (days = 30) => api<ShadowSummary>(`/v1/shadow/summary?days=${days}`);
+
 export const decideApproval = (id: string, approved: boolean, by?: string, note?: string) =>
   api<Approval & { resume: Resume | null }>(`/v1/approvals/${id}/decision`, { method: "POST", body: JSON.stringify({ approved, ...(by ? { by } : {}), ...(note ? { note } : {}) }) });
 export const listHandoffs = (state?: string, queue?: string) => {

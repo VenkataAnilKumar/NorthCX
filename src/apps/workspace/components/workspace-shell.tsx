@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { listApprovals, listHandoffs, useLoad, useMe } from "@northcx/api-client";
+import { listApprovals, listHandoffs, listShadowDrafts, useLoad, useMe } from "@northcx/api-client";
 import { AppShell, type NavItem } from "@northcx/ui";
 
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? "http://localhost:3001";
@@ -13,6 +13,8 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const waiting = useLoad(async () => {
     try { return { approvals: (await listApprovals("pending")).length, handoffs: (await listHandoffs("open")).length }; } catch { return { approvals: 0, handoffs: 0 }; }
   }, []);
+  const reviewsDrafts = can("shadow:review");
+  const drafts = useLoad(async () => { try { return reviewsDrafts ? (await listShadowDrafts("pending")).length : 0; } catch { return 0; } }, [reviewsDrafts]);
   const lead = can("reviews:write") || can("insights:read"); // Team is for leads and reviewers only
   const nav: NavItem[] = [
     { href: "/", label: "Home", icon: "Home" },
@@ -20,6 +22,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
     { href: "/inbox", label: "Work", icon: "Work", children: [
       { href: "/inbox", label: "Inbox", badge: waiting.data?.handoffs },
       { href: "/approvals", label: "Approvals", badge: waiting.data?.approvals },
+      ...(reviewsDrafts ? [{ href: "/drafts", label: "Drafts", badge: drafts.data ?? undefined }] : []),
       { href: "/customers", label: "Customers" },
     ] },
     { href: "/assistants", label: "Assist", icon: "Assist", children: [

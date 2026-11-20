@@ -18,7 +18,7 @@ export interface ClientOptions {
   timeoutMs?: number;
 }
 
-export type Status = "completed" | "escalated" | "needs_approval" | "with_person" | "unknown";
+export type Status = "completed" | "escalated" | "needs_approval" | "with_person" | "in_review" | "unknown";
 export interface ChatReply { reply: string; status: Status; traceId: string; pendingApprovals: { id: string; tool: string; reason: string }[]; handoffId: string | null; agentVersion: number | null }
 export interface AttachmentInfo { id: string; name: string; kind: "image" | "pdf" | "text"; mediaType: string; size: number }
 export interface IncomingMessage { id: number; kind: string; createdAt: number; reply?: string; by?: string; [key: string]: unknown }

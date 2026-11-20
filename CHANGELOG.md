@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 3, WP 3.4b, 2026-11-20)
+- Workspace, Work, Drafts: the screen for shadow mode. A reviewer sees what the customer wrote and the agent's reply in a box, and sends it as is, sends their own edit, or rejects it with plain reasons and a note; the agreement summary shows its numbers; tabs show decided drafts. The chat widget draws no empty bubble for a reply a person has not approved yet and shows the approved text when it arrives (the status `in_review` is part of the SDK's types). The Work sub-tabs are now Inbox, Approvals, Drafts and Customers for people who may review drafts.
+
 ### Added (Phase 3, WP 3.4a, 2026-11-20)
 - Shadow mode: an agent spec can set `shadow: true` (customer agents only). The agent still reads and drafts, but no reply is returned or sent (the response has an empty reply and status `in_review`) and every tool that changes something is held as an approval ("Shadow mode: a person approves every action"). A person with the new `shadow:review` permission (reviewer, admin) sends, edits or rejects each draft: `GET /v1/shadow/drafts`, `POST /v1/shadow/drafts/{id}/decision`, `GET /v1/shadow/summary`. A send reaches the customer once through the outbox. Drafts nobody reviews expire after `NORTHCX_SHADOW_TTL_MINUTES` (default 30) and the conversation goes to a person. New table `shadow_drafts` (migration 0058), covered by export and erasure. Voice refuses a shadow agent; simulations ignore the flag. The Workspace screen and the widget change are WP 3.4b. See `docs/01-chat/NorthCX_Shadow-Mode.md`.
 
