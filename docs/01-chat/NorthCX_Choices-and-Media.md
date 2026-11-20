@@ -1,6 +1,6 @@
 # Choices on messaging channels, and what was dropped from WP 3.6
 
-Status: stages 1 to 4 written 2026-11-20. **3.6a is built** (the tool, the runtime, the API, WhatsApp, Telegram, SMS and email; tested with fake providers and mock servers). 3.6b (the widget's buttons and its size limit, C2 for the web and C8) is not.
+Status: stages 1 to 4 written 2026-11-20. **3.6a and 3.6b are built.** 3.6a: the tool, the runtime, the API, WhatsApp, Telegram, SMS and email, tested with fake providers and mock servers. 3.6b: the widget's buttons (tested in jsdom and in a real browser against the real bundle, with the stream's answer replaced) and its size limit (a test; the widget is 13,294 bytes, 5,199 gzipped, after the buttons; it was 12,710 before).
 
 WP 3.6 in the plan read "the widget's AG-UI subset; media and buttons on messaging channels; the widget's size budget is kept". Research changed what is worth building.
 
@@ -31,7 +31,7 @@ WP 3.6 in the plan read "the widget's AG-UI subset; media and buttons on messagi
 - **Tool.** `offer_choices(options: list[str])` is a registry tool with effect `read`. It returns `{"offered": n}`. The runtime reads the options from the turn's tool calls (the last call wins), checks them with the reply, and puts them in `RunResult.choices`.
 - **History.** The assistant message that ends the turn gets a line the customer never sees on web, WhatsApp or Telegram and that SMS and email show as the numbered list: stored as `[Options offered: 1. X, 2. Y]`.
 - **Channels.** A small function turns `(reply, choices)` into what each channel sends: the WhatsApp interactive payload, the Telegram keyboard, the numbered text. The SMS, WhatsApp and Telegram notifiers and the email sender call it; with no choices they send exactly what they send today.
-- **Widget.** Buttons under the reply, built with `textContent` like everything else; a button sends its text through the normal send path and the buttons disappear once one is chosen or the customer types.
+- **Widget (built).** Buttons under the reply, built with `textContent` like everything else; a button sends its text through the normal send path and the buttons disappear once one is chosen or the customer types.
 
 ## Decision 207
 The widget does not speak AG-UI, and media sending is not built. Both were in the plan; neither has a user who needs it now. The plan keeps one line saying why, and media comes back as a work package when a source of files exists.

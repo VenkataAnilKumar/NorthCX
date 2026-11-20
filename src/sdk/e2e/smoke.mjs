@@ -69,6 +69,28 @@ await say('<img src=x onerror="window.pwned=1"> hi');
 await chat.locator(".m.me").nth(3).waitFor();
 check((await chat.locator("img").count()) === 0 && (await page.evaluate(() => window.pwned)) === undefined, "markup is shown as text, never run");
 
+// choices: the demo agent offers none, so the stream's answer is replaced in the browser; the widget bundle is the real one
+{
+  const offers = await browser.newPage();
+  const sent = [];
+  await offers.route("**/v1/agents/support/chat/stream", async (route) => {
+    sent.push(JSON.parse(route.request().postData() ?? "{}").message);
+    const done = sent.length === 1 ? { reply: "Which order do you mean?", status: "completed", traceId: "t", pendingApprovals: [], handoffId: null, agentVersion: null, choices: ["1042", "1043"] }
+      : { reply: `Looking at ${sent[sent.length - 1]}.`, status: "completed", traceId: "t", pendingApprovals: [], handoffId: null, agentVersion: null, choices: [] };
+    await route.fulfill({ status: 200, headers: { "content-type": "text/event-stream", "access-control-allow-origin": "*" }, body: `event: started\ndata: {}\n\nevent: done\ndata: ${JSON.stringify(done)}\n\n` });
+  });
+  await offers.goto(`http://localhost:${HOST}/`);
+  const w = offers.locator("northcx-chat");
+  await w.locator("textarea").fill("where is my order?"); await w.locator("textarea").press("Enter");
+  const group = w.getByRole("group", { name: "Quick answers" });
+  await group.waitFor();
+  check((await group.getByRole("button").allInnerTexts()).join() === "1042,1043", "choices: the options appear as buttons");
+  await group.getByRole("button", { name: "1043" }).click();
+  await w.getByText("Looking at 1043.").waitFor();
+  check(sent.join("|") === "where is my order?|1043" && (await w.getByRole("group", { name: "Quick answers" }).count()) === 0, "choices: tapping one sends its words and the buttons go away");
+  await offers.close();
+}
+
 // a different website is refused by the browser
 const evil = await browser.newPage();
 await evil.goto("about:blank");

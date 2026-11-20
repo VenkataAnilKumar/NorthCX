@@ -24,7 +24,7 @@ Your server holds a **channel key** and decides who the customer is (`customerId
 <northcx-chat base-url="https://api.example.com" agent="support" token-url="/chat-token" attachments rating title="Help"></northcx-chat>
 ```
 
-Attributes: `base-url`, `agent`, `token-url` (your endpoint), `title`, `placeholder`, `attachments` (show the paperclip; the agent must accept attachments), `rating` (ask for a 1-5 rating after a reply), `poll-ms` (how often to look for a teammate's replies, default 4000), `credentials` (`same-origin` default, or `include` if your token endpoint uses cookies). Events on the element: `northcx:reply`, `northcx:error`. Theme with CSS variables: `--northcx-primary`, `--northcx-bg`, `--northcx-text`, `--northcx-radius`, `--northcx-font`, `--northcx-height`; it follows the visitor's light or dark setting.
+Attributes: `base-url`, `agent`, `token-url` (your endpoint), `title`, `placeholder`, `attachments` (show the paperclip; the agent must accept attachments), `rating` (ask for a 1-5 rating after a reply), `poll-ms` (how often to look for a teammate's replies, default 4000), `credentials` (`same-origin` default, or `include` if your token endpoint uses cookies). When the agent offers options (`choices` in the reply), the widget shows them as buttons; choosing one sends its words. Events on the element: `northcx:reply`, `northcx:error`. Theme with CSS variables: `--northcx-primary`, `--northcx-bg`, `--northcx-text`, `--northcx-radius`, `--northcx-font`, `--northcx-height`; it follows the visitor's light or dark setting.
 
 The widget renders everything with `textContent`, so nothing a customer, an agent or a teammate writes can inject markup. It is a labelled, keyboard-operable control with a polite live region for the conversation.
 

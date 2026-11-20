@@ -93,6 +93,32 @@ describe("<northcx-chat>", () => {
     vi.useRealTimers();
     expect(Array.from(w.log().querySelectorAll(".m")).map((m) => m.textContent)).toEqual(["where is my order?", "It ships Monday."]);
   });
+  it("shows the options the agent offered as buttons, sends the chosen words like a typed message, and clears them", async () => {
+    const fx = fakeFetch(sse(["done", { ...REPLY, reply: "Which order?", choices: ["1042", "<b>1043</b>"] }]), sse(["done", { ...REPLY, reply: "It shipped." }]));
+    const w = mount({}, fx);
+    w.type("where is my order?");
+    await flush();
+    const group = w.root.querySelector('[role=group][aria-label="Quick answers"]')!;
+    const buttons = Array.from(group.querySelectorAll("button"));
+    expect(buttons.map((b) => b.textContent)).toEqual(["1042", "<b>1043</b>"]);       // as text, never as markup
+    expect(group.querySelector("b")).toBeNull();
+    buttons[0].click();
+    await flush();
+    const sent = fx.calls.filter((c) => c.method === "POST" && c.url.endsWith("/chat/stream")).map((c) => JSON.parse(c.body!).message);
+    expect(sent).toEqual(["where is my order?", "1042"]);
+    expect(w.root.querySelector(".opts")).toBeNull();
+    expect(Array.from(w.log().querySelectorAll(".m")).map((m) => m.textContent)).toEqual(["where is my order?", "Which order?", "1042", "It shipped."]);
+  });
+  it("takes the buttons away when the customer types an answer instead", async () => {
+    const fx = fakeFetch(sse(["done", { ...REPLY, reply: "Yes or no?", choices: ["Yes", "No"] }]), sse(["done", REPLY]));
+    const w = mount({}, fx);
+    w.type("hello");
+    await flush();
+    expect(w.root.querySelector(".opts")).not.toBeNull();
+    w.type("maybe");
+    await flush();
+    expect(w.root.querySelector(".opts")).toBeNull();
+  });
   it("offers attachments only when asked, and rating once a reply has arrived", async () => {
     expect(mount().root.querySelector(".attach")!.hasAttribute("hidden")).toBe(true);
     document.body.innerHTML = "";
