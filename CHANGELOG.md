@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 3, WP 3.5a, 2026-11-20)
+- `POST /v1/sessions/{session_id}/rerun` (permission `simulations:run`): answer an edited customer message after the conversation that came before it, in a sandbox. Nothing is saved or sent, every write is simulated, and the model use counts against the daily budget. The response has the original reply for comparison, the tools used and the trace events. Studio screens follow in WP 3.5b. See `docs/01-chat/NorthCX_Rerun-and-Replay.md`.
+
 ### Added (Phase 3, WP 3.4b, 2026-11-20)
 - Workspace, Work, Drafts: the screen for shadow mode. A reviewer sees what the customer wrote and the agent's reply in a box, and sends it as is, sends their own edit, or rejects it with plain reasons and a note; the agreement summary shows its numbers; tabs show decided drafts. The chat widget draws no empty bubble for a reply a person has not approved yet and shows the approved text when it arrives (the status `in_review` is part of the SDK's types). The Work sub-tabs are now Inbox, Approvals, Drafts and Customers for people who may review drafts.
 
