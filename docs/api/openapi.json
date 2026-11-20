@@ -9659,6 +9659,50 @@
         ]
       }
     },
+    "/v1/sessions/{session_id}/turns": {
+      "get": {
+        "summary": "Session Turns",
+        "description": "The customer's messages in a conversation, numbered the way `rerun` takes them, each with the reply it got.",
+        "operationId": "session_turns_v1_sessions__session_id__turns_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Session Turns V1 Sessions  Session Id  Turns Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "traces:read",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
     "/v1/shadow/drafts": {
       "get": {
         "summary": "List Drafts",

@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 3, WP 3.5b, 2026-11-20)
+- Studio, Conversations: a **Replay** link opens `/replay`, a player that steps through a stored conversation one event at a time (previous, play, next, slider, list of steps), with each step as a sentence. People who may run simulations can **Edit and run again** on a customer message and see the original reply beside the sandbox answer. New `GET /v1/sessions/{id}/turns` lists the customer's messages with their turn numbers and replies. Reading only: replay never calls the agent.
+
 ### Added (Phase 3, WP 3.5a, 2026-11-20)
 - `POST /v1/sessions/{session_id}/rerun` (permission `simulations:run`): answer an edited customer message after the conversation that came before it, in a sandbox. Nothing is saved or sent, every write is simulated, and the model use counts against the daily budget. The response has the original reply for comparison, the tools used and the trace events. Studio screens follow in WP 3.5b. See `docs/01-chat/NorthCX_Rerun-and-Replay.md`.
 

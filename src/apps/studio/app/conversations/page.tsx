@@ -36,7 +36,10 @@ function Found({ q, tag }: { q: string; tag: string }) {
                 <label className="sr-only" htmlFor={`tag-${c.sessionId}`}>Add a tag</label>
                 <input id={`tag-${c.sessionId}`} name="tag" placeholder="add tag" className="w-28 rounded border border-border bg-bg px-1.5 py-0.5 text-xs" />
               </form>)}
-            {c.traceIds.length > 0 && <Link className="ml-auto text-xs text-primary underline" href={`/conversations/${c.traceIds[c.traceIds.length - 1]}`}>View trace</Link>}
+            <span className="ml-auto flex gap-3 text-xs">
+              <Link className="text-primary underline" href={`/replay?session=${encodeURIComponent(c.sessionId)}`}>Replay</Link>
+              {c.traceIds.length > 0 && <Link className="text-primary underline" href={`/conversations/${c.traceIds[c.traceIds.length - 1]}`}>View trace</Link>}
+            </span>
           </div>
         </li>))}
       </ul>
@@ -82,7 +85,7 @@ function List() {
                 <td className="p-3 font-mono text-xs">{t.sessionId.slice(0, 8)}</td>
                 <td className="p-3">{t.tools.join(", ") || "–"}</td>
                 <td className="p-3"><StatusBadge status={t.status} /></td>
-                <td className="p-3"><Link className="text-primary underline" href={`/conversations/${t.id}`}>View trace</Link></td>
+                <td className="p-3 whitespace-nowrap"><Link className="text-primary underline" href={`/conversations/${t.id}`}>View trace</Link> · <Link className="text-primary underline" href={`/replay?session=${encodeURIComponent(t.sessionId)}`}>Replay</Link></td>
               </tr>
             ))}</tbody>
           </table>

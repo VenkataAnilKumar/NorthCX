@@ -15,6 +15,14 @@ from northcx.rerun import customer_turns, original_reply, rerun
 def register(app: FastAPI, d: AppDeps) -> None:
     runtime, traces, provider, record = d.runtime, d.traces, d.provider, d.record
 
+    @app.get("/v1/sessions/{session_id}/turns")
+    async def session_turns(session_id: str) -> Any:
+        """The customer's messages in a conversation, numbered the way `rerun` takes them, each with the reply it got."""
+        if not await traces.summaries(session_id, 1):
+            return _err(404, "not_found", "Unknown conversation")
+        messages = await runtime.store.load_messages(session_id)
+        return {"sessionId": session_id, "turns": [{"turn": n, "message": messages[i]["content"], "reply": original_reply(messages, i)} for n, i in enumerate(customer_turns(messages), 1)]}
+
     @app.post("/v1/sessions/{session_id}/rerun")
     async def rerun_turn(session_id: str, body: RerunBody, request: Request) -> Any:
         """Answer an edited customer message after the conversation that came before it. Nothing is saved, sent or run for real: the copy has its own stores and simulates every write."""

@@ -31,23 +31,26 @@ export function toolCards(events: TraceEvent[]): ToolCardData[] {
   return cards.map(({ name: _n, ...card }) => card);
 }
 
-/** The trace as sentences a CX lead can read. Internal steps (model calls, memory, budgets) are left out; the full trace is still shown beside it. */
-export function plainSteps(events: TraceEvent[]): string[] {
-  const out: string[] = [];
-  for (const e of events) {
-    const d = e.data;
-    switch (e.type) {
-      case "user": out.push(`The customer wrote: ${d.message}`); break;
-      case "tool_call": out.push(`Used ${toolLabel(String(d.name))}${pairs(d.input) ? ` (${pairs(d.input)})` : ""}.`); break;
-      case "tool_result": out.push(`${toolLabel(String(d.name))} answered: ${clip(pairs(d.output) || JSON.stringify(d.output))}.`); break;
-      case "approval": out.push(`Held ${toolLabel(String(d.tool))} for a person: ${d.reason}.`); break;
-      case "approval_execution": out.push(`A person decided ${toolLabel(String(d.tool))}: ${d.outcome}.`); break;
-      case "guardrail": out.push(`The check ${d.guardrail} stepped in: ${d.reason}.`); break;
-      case "handoff": out.push(`Passed to a person: ${d.reason}.`); break;
-      case "transfer": out.push(`Passed to the ${d.to} agent: ${d.reason}.`); break;
-      case "reply": out.push(`Replied: ${d.reply}`); break;
-      case "error": out.push(`Something went wrong: ${d.error}.`); break;
-    }
+/** One event as a sentence a CX lead can read, or null for internal events (model calls, memory, budgets). */
+export function plainStep(e: TraceEvent): string | null {
+  const d = e.data;
+  switch (e.type) {
+    case "user": return `The customer wrote: ${d.message}`;
+    case "system": return `The platform noted: ${d.message}`;
+    case "tool_call": return `Used ${toolLabel(String(d.name))}${pairs(d.input) ? ` (${pairs(d.input)})` : ""}.`;
+    case "tool_result": return `${toolLabel(String(d.name))} answered: ${clip(pairs(d.output) || JSON.stringify(d.output))}.`;
+    case "approval": return `Held ${toolLabel(String(d.tool))} for a person: ${d.reason}.`;
+    case "approval_execution": return `A person decided ${toolLabel(String(d.tool))}: ${d.outcome}.`;
+    case "guardrail": return `The check ${d.guardrail} stepped in: ${d.reason}.`;
+    case "handoff": return `Passed to a person: ${d.reason}.`;
+    case "transfer": return `Passed to the ${d.to} agent: ${d.reason}.`;
+    case "reply": return `Replied: ${d.reply}`;
+    case "error": return `Something went wrong: ${d.error}.`;
+    default: return null;
   }
-  return out;
+}
+
+/** The trace as sentences. The full trace is still shown beside it. */
+export function plainSteps(events: TraceEvent[]): string[] {
+  return events.map(plainStep).filter((x): x is string => x !== null);
 }
