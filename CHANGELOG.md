@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Tests (Phase 4, WP 4.4, 2026-11-22)
+- A pinned test for the three ready-made customer agents (order status, returns and refunds, delivery problems). No new behaviour; qualification on a real model is still outstanding.
+
 ### Added (Phase 4, WP 4.3, 2026-11-22)
 - `POST /v1/agents/{agent_id}/try` (permission `simulations:run`): answer one customer message with an agent definition that has not been saved, after the conversation so far, in a sandbox (nothing is saved or sent, every write is simulated, the model use counts against the daily budget). The response has the steps and a test made from the exchange. The guided setup page has a "Try it" step with it; every conversation in Studio has "Save as a test".
 

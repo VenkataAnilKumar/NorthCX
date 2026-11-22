@@ -172,3 +172,18 @@ def test_api_permissions():
         assert c.get("/v1/templates", headers=h).status_code == read, role
         assert c.post("/v1/templates/human-triage/render", json={"agentId": "tri-bot"}, headers=h).status_code == write, role
     assert c.get("/v1/templates").status_code == 401
+
+
+READY_MADE = ("order-status", "returns-and-refunds", "delivery-problems")
+
+
+@pytest.mark.parametrize("template_id", READY_MADE)
+async def test_the_ready_made_customer_agents_install_with_a_person_in_the_loop_and_pass_their_scenarios(template_id):
+    """The three agents the guided path offers first (order status, returns and refunds, delivery problems): each is for customers, keeps
+    its safety topics going to a person, and passes its scenarios in scripted mode on every build. A pass here says nothing about a real model."""
+    r = reg()
+    out = render(TEMPLATES[template_id], "my-agent", {}, r)
+    assert out.spec.audience == "customer" and out.spec.forced_handoff, "a customer agent hands safety and legal topics to a person"
+    assert len(out.scenarios) >= 2
+    assert any(s.get("turns") and any(t.get("expect", {}).get("status") == "escalated" for t in s["turns"]) for s in out.scenarios), "a scenario covers a hand-off to a person"
+    assert out.missing_tools == [] and out.warnings == []
