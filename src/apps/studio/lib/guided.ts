@@ -1,6 +1,6 @@
 /** The steps of the guided path and where the author stands in each. */
 export type StepState = "done" | "next" | "blocked";
-export interface GuidedStep { key: "start" | "connect" | "procedures" | "summary" | "try" | "save"; title: string; state: StepState; note: string }
+interface GuidedStep { key: "start" | "connect" | "procedures" | "summary" | "try" | "save"; title: string; state: StepState; note: string }
 
 export interface Where {
   agent: string | null; tools: number; noTools: boolean; instructions: string; valid: boolean | null; problems: number; tried: boolean; saved: number | null; changed: boolean;

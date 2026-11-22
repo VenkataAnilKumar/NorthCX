@@ -256,6 +256,17 @@ check(true, "org: shows limits");
 await page.goto(`${WEB}/connections`);
 await page.getByRole("heading", { name: "Connections" }).waitFor();
 check((await page.locator("body").innerText()).includes("Allowed hosts"), "connections: page shows the allowed hosts (none allowed in the smoke stack, so no form)");
+// editor: the model list, and the journey graph showing the same journey as the form
+await page.goto(`${WEB}/agents/support/edit`);
+await page.getByRole("combobox", { name: "Model" }).waitFor();
+check((await page.locator("body").innerText()).includes("The server default is used."), "editor: the model list says what the default means");
+await page.getByRole("button", { name: "Start from blank" }).click();
+await page.getByRole("button", { name: "Add step" }).click();
+await page.getByRole("button", { name: "Show as a graph" }).click();
+await page.getByRole("button", { name: "Move step 2 up" }).click();
+check((await page.getByRole("group", { name: /Graph of/ }).innerText()).indexOf("First step") > (await page.getByRole("group", { name: /Graph of/ }).innerText()).indexOf("New step"), "editor: the graph moved a step");
+await page.getByRole("button", { name: "Back to the form" }).click();
+check((await page.getByLabel("Step 1", { exact: true }).inputValue()) === "New step", "editor: the form shows the order the graph made");
 check(errors.length === 0, `no client errors${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
 await browser.close();
 if (failures.length) { console.log(`\n${failures.length} failed`); process.exit(1); }

@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { clearBudgets, modelsOverview, setBudgets, useLoad, useMe } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader, StatTile } from "@northcx/ui";
+import { TIER_NAME } from "@/lib/models";
 
-const TIER: Record<string, string> = { local: "Local (your servers)", "private-cloud": "Private cloud (your account and region)", "public-cloud": "Public cloud (the provider's service)" };
 const money = (n: number, c: string) => `${n.toFixed(4)} ${c}`;
 
 function BudgetForm({ b, onSaved }: { b: NonNullable<Awaited<ReturnType<typeof modelsOverview>>["budget"]>; onSaved: () => void }) {
@@ -52,7 +52,7 @@ export default function Models() {
               {m.providers.map((p) => (
                 <li key={p.name} className="text-sm">
                   <p className="font-semibold">{p.name}{p.isDefault ? <span className="pill ml-2">default</span> : null}</p>
-                  <p className="text-xs text-muted">{TIER[p.tier] ?? p.tier} · default model {p.defaultModel ?? "none"}</p>
+                  <p className="text-xs text-muted">{TIER_NAME[p.tier] ?? p.tier} · default model {p.defaultModel ?? "none"}</p>
                   <p className="text-xs text-muted">Tools {p.capabilities.tools ? "yes" : "no"} · images {p.capabilities.images ? "yes" : "no"} · documents {p.capabilities.documents ? "yes" : "no"}{p.capabilities.maxContextTokens ? ` · context ${p.capabilities.maxContextTokens.toLocaleString()} tokens` : ""}</p>
                   {Object.keys(p.prices).length ? <p className="text-xs text-muted">Prices per million tokens: {Object.entries(p.prices).map(([k, v]) => `${k} ${v.inputPerMillion} in / ${v.outputPerMillion} out ${v.currency}`).join("; ")}</p> : <p className="text-xs text-[var(--warn)]">No prices set: spending on this provider is not counted.</p>}
                 </li>

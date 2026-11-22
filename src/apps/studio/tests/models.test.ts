@@ -13,7 +13,7 @@ describe("model choices", () => {
   it("lists providers that name a model, with their tier", () => {
     const c = modelChoices(overview, "");
     expect(c.map((x) => x.value)).toEqual(["ollama:qwen", "cloud:big"]);
-    expect(c[0].tier).toBe("Local, on your servers");
+    expect(c[0].tier).toBe("Local (your servers)");
   });
   it("keeps a value that is no longer configured, without a tier", () => {
     expect(modelChoices(overview, "old:model").at(-1)).toEqual({ value: "old:model", label: "old:model", tier: null });

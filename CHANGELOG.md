@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Changed (Phase 4 review, 2026-11-22)
+- Studio: the model tier names are defined once; the Studio browser smoke checks the editor's model list and journey graph.
+
 ### Docs (Phase 4, WP 4.8, 2026-11-22)
 - `docs/02-studio/NorthCX_Usability-Gate.md`: the timed, observed script for a CX lead to create, test and release a template agent unaided. It has not been run.
 
