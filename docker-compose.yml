@@ -179,6 +179,10 @@ services:
     # To keep secrets out of the environment, mount files and use the *_FILE variants instead, for example:
     #   environment: { NORTHCX_API_KEY_FILE: /run/secrets/northcx_api_key }   (and remove NORTHCX_API_KEY)
     #   secrets: [northcx_api_key]
+    # ./config holds files the server reads, such as the model providers file that scripts/setup.py writes for a local model.
+    volumes: ["./config:/config:ro"]
+    # Lets the container reach a model server running on this machine as http://host.docker.internal:<port> (Linux needs this line).
+    extra_hosts: ["host.docker.internal:host-gateway"]
     ports: ["${NORTHCX_BIND:-127.0.0.1}:${NORTHCX_BACKEND_PORT:-3000}:3000"]
 
   web:

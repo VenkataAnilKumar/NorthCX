@@ -89,12 +89,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Write a throwaway configuration
+      - name: Write the configuration with the setup script (the same command the README gives)
         run: |
-          KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+          echo "STARTED=$(date +%s)" >> "$GITHUB_ENV"
+          python3 scripts/setup.py --demo --non-interactive
+          KEY=$(grep '^NORTHCX_API_KEY=' .env | cut -d= -f2)
           echo "::add-mask::$KEY"
           echo "KEY=$KEY" >> "$GITHUB_ENV"
-          printf 'NORTHCX_DB_PASSWORD=ci%s\nNORTHCX_API_KEY=%s\nNORTHCX_DEMO=1\nNORTHCX_CORS_ORIGINS=http://localhost:8080\n' "$RANDOM$RANDOM" "$KEY" > .env
+          echo 'NORTHCX_CORS_ORIGINS=http://localhost:8080' >> .env
       - run: docker compose up -d --build --wait --wait-timeout 300
       - name: Smoke test
         run: |
@@ -126,6 +128,9 @@ jobs:
           for i in $(seq 1 30); do curl --fail --silent http://127.0.0.1:3000/ready >/dev/null && break; sleep 2; done
           curl --fail --silent -H "authorization: Bearer $KEY" http://127.0.0.1:3000/v1/sessions/ci/transcript | grep -q "order 1042"
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H "authorization: Bearer $KEY" http://127.0.0.1:3000/v1/sessions/after-backup/transcript)" = "404"
+      - name: Time from the setup script to the first answer
+        run: |
+          echo "Seconds from running scripts/setup.py to the first answer, building the images on a hosted runner: $(( $(date +%s) - STARTED ))" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - name: Browser tests (Studio, Workspace and the chat widget, in a real browser, against this stack)

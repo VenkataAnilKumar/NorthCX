@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 6, WP 6.1, 2026-11-22)
+- `scripts/setup.py`: one command writes a working `.env` with a generated database password, admin key and token secret, for the demo model, an Anthropic key or a local model server (it writes `config/providers.yaml`). `--check` says what is wrong with an existing `.env`. It never overwrites a `.env` without `--force`, and never prints a secret. The compose backend now mounts `./config` at `/config` (read-only) and knows `host.docker.internal`, so a server on the same machine can be used. The README and deployment guide use the script; the CI stack job starts from its output and reports the time to the first answer.
+
 ### Tests (Phase 6, WP 6.2, 2026-11-22)
 - Upgrade tests: databases created at seven earlier schema revisions, with a row in every table, are upgraded to the current schema in CI; no row may be lost and the result must match the code's models. No behaviour change.
 

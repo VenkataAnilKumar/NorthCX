@@ -153,11 +153,10 @@ No API key needed: an offline demo model lets you click through the whole consol
 
 ```bash
 git clone https://github.com/VenkataAnilKumar/NorthCX.git && cd NorthCX
-cp .env.example .env
-# edit .env: set NORTHCX_DB_PASSWORD (letters and digits), NORTHCX_API_KEY (a long random value), and NORTHCX_DEMO=1
+python3 scripts/setup.py --demo      # writes .env with generated secrets (or run it with no flag and answer four questions)
 docker compose up -d --build --wait
 # Admin console (Studio): http://localhost:3001   Workspace (staff): http://localhost:3002   API: http://localhost:3000
-# Open Settings in either app and paste the API key
+# Open Settings in either app and paste the API key: it is NORTHCX_API_KEY in .env
 ```
 
 The demo model is a handful of keyword rules, not an AI. Try *"where is order 1042?"*, *"refund 500 for order 1042"* (over the limit, so it waits for approval) and *"I want a person"*, then look at **Approvals**, **Handoffs** and **Insights**.
