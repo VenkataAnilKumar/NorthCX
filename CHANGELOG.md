@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Docs (Phase 6 design, 2026-11-22)
+- `docs/11-operations/NorthCX_Operator-Experience.md`: stages 1 to 4 for the setup wizard, upgrade tests, backup and restore, a health page, sign-in by default and a firmer resolution figure. Nothing built yet.
+
 ### Fixed (Phase 5 review, 2026-11-22)
 - A routine's tool step that changes something now writes an audit entry (`automation.tool`) before it acts, and an alert step writes `automation.alert`.
 - The Workspace browser smoke no longer fails about 1 run in 10: its output title ended in a 13-digit number that the platform masked as a card number.

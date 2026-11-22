@@ -91,12 +91,12 @@ Stages 1 to 4 are written in `../03-automations/NorthCX_Automations-Platform.md`
 | 5.6 | The canvas edits the new kinds | Round-trip tests |
 
 ### Phase 6: Operator experience (M)
-Can start any time after Phase 1.
+Can start any time after Phase 1. Stages 1 to 4 are written in `../11-operations/NorthCX_Operator-Experience.md` (requirements O1 to O8, design, architecture, order 6.5, 6.3, 6.2, 6.1, 6.4, 6.6).
 | WP | Work | Exit check |
 |---|---|---|
-| 6.1 | A one-command install with a setup wizard (passwords, keys, demo, local or cloud model, allowed hosts) | Clone to a running agent, timed |
-| 6.2 | Upgrades tested from the previous release | A CI job upgrades the release candidate to the next version |
-| 6.3 | Backup and restore commands (database and stored files) | A restore drill passes |
+| 6.1 | A one-command install with a setup wizard (passwords, keys, demo, local or cloud model) | Clone to a running agent, timed |
+| 6.2 | Upgrades tested from earlier releases | A test upgrades databases that hold data from several earlier revisions |
+| 6.3 | Backup and restore commands (the whole database) | A restore drill passes |
 | 6.4 | A health page: database, migrations, models, channels, alert delivery | Browser test |
 | 6.5 | Sign-in required by default in the production compose setup | The stack refuses to start open |
 | 6.6 | A firm resolution figure (a customer's return counts against it) | Old and new figures shown with denominators |
@@ -183,7 +183,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 5.6 canvas for the new kinds | Done | Workspace canvas forms for tool, branch, for-each, simulate, criteria (with the unverified note) and alert, a condition on webhook and event triggers, and approval hints over every path. Round-trip property tests now generate all 12 kinds with nested values (300 cases and 200 edits); 7 component tests; a browser smoke step. Review found the Automations page intro still said a step was only an assistant, a report or an output; rewritten. Also found and fixed: the describe-it dry run would have failed on any new kind a model produced, so the drafter is limited to the original six | |
 | Phase 5 stage 6, review (2026-11-22) | Done | Read the Phase 5 diff against the quality bar: no TODO or stub, no unused function, no vague wording, no new dependency, migration or setting, no new store (idempotency entries hold a run id and a body hash). Found and fixed: tool steps that changed something left no audit entry (now written before the call); the describe-it dry run would have failed on a new kind (drafter limited to the original six, with a test); the Automations page intro described only the old steps; two smoke checks failed about 1 run in 10 because a 13-digit timestamp in a title passes the card-number check and is masked (fixed, with the cause shown by running the masker on the failing title) | |
 | Phase 5 stage 7, test (2026-11-22) | Done, with limits | Backend 2114 passed, 7 skipped (Postgres, `NORTHCX_REQUIRE_DB=1`; pgvector tests run in CI); Workspace 217 and Studio 122 unit tests; typecheck; Workspace browser smoke on a fresh Postgres database with a new canvas step; screenshots of the canvas forms; all 7 CI checks green on each Phase 5 pull request. Not done: any run with a real or local model (`criteria` and `live` simulate are checked with scripted models only), and judge calibration | |
-| Phases 6 to 7 | Not started | |
+| Phase 6 stages 1 to 4 | Done | `docs/11-operations/NorthCX_Operator-Experience.md`: what exists, eight requirements with checks, design, architecture, order. Findings: sign-in by default is already built and untested; the rc.1 schema revision cannot be read from this checkout, so upgrades are proven from several earlier revisions; docker and the Postgres tools are available here for the drills | |
+| Phases 6 (implementation) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.
