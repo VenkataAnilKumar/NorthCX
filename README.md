@@ -252,15 +252,16 @@ The second app, **Workspace** (port 3002), is for the people who supervise the a
 
 | Verified | Result |
 |---|---|
-| Backend tests | 1,775 passed, 0 failed (273 routes, migrations through 0056) |
-| Frontend tests | 28 (Studio) and 198 (Workspace) passed |
-| Browser smoke tests | Passed on production builds of both apps |
-| Tenant load gate | Measured overhead 0 to 2% against a 15% limit |
+| Backend tests | 2,159 passed, 7 skipped on Postgres 16 (32 more need the pgvector extension and run in CI); 291 routes, migrations through 0058. Re-counted 2026-11-22 |
+| Frontend tests | 128 (Studio) and 217 (Workspace) passed |
+| Browser smoke tests | Studio, Workspace and the chat widget, in a real browser against the real compose stack, in CI on every change |
+| Backup and restore, upgrades | A restore drill (every table's rows compared, audit chain verified) and upgrades from seven earlier schema revisions, on real Postgres |
+| Tenant load gate | Measured overhead 0 to 2% against a 15% limit at the release candidate; not re-run since the Agent Platform work |
 
 | | |
 |---|---|
 | ✅ **Ready** | Everything described above, built, tested and documented |
-| ⚠️ **Not yet done** | An independent penetration test; a pass with a live model (so far everything ran against scripted and offline models); judge calibration with a real model; testing against your identity provider (OpenID Connect is built, **SAML is not**); a human design review of the interfaces |
+| ⚠️ **Not yet done** | An independent penetration test; a pass with a model that can be expected to qualify (one small local model, Qwen2.5 3B, has run the shipped scenarios and passed 8 of 18, so it is not qualified; no cloud model has run them); judge calibration; a CX lead using Studio unaided (the usability test script is written, not run); testing against your identity provider (OpenID Connect is built, **SAML is not**); a human design review of the interfaces |
 | 🧱 **Preview** | Multi-tenant operation is for evaluation only; production use is one company and one region per deployment |
 
 Read the [security review](docs/08-governance-safety/NorthCX_Security-Review.md), the [release checklist](docs/10-releases/NorthCX_Release-Checklist.md) and the [owner runbooks](docs/11-operations/NorthCX_Owner-Runbooks.md) before exposing it to the public internet.
