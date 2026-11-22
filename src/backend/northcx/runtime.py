@@ -21,6 +21,7 @@ from .attachments import build_content
 from .inbox import InboxDispatcher
 from .transfers import MAX_TRANSFERS_PER_TURN, TRANSFER, InMemorySessionRoutes, handover_note, transfer_spec
 from .choices import OFFER_CHOICES, history_note
+ALWAYS_APPROVE_REASON = "Your team set this action to always need a person's approval"
 from .shadow import InMemoryShadowDrafts, REASON as SHADOW_REASON
 from .journeys import progress as journey_progress, used_tools as journey_tools
 from .language import choose as choose_language, conversation_language, instruction as language_instruction
@@ -411,6 +412,8 @@ class Runtime:
                     results.append(self._err(use, f"Blocked by policy: {blocked}"))
                     continue
                 reason = tool.requires_approval(data) if tool.requires_approval else None
+                if reason is None and tool.name in agent.always_approve:
+                    reason = ALWAYS_APPROVE_REASON  # the team's own setting
                 if reason is None and shadowing and tool.effect != "read":
                     reason = SHADOW_REASON  # a person approves every action that changes something
                 if reason:

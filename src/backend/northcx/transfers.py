@@ -64,9 +64,9 @@ def check_routes(own_id: str, routes: list[RouteSpec]) -> list[str]:
     problems = []
     seen = [r.agent for r in routes]
     if len(set(seen)) != len(seen):
-        problems.append("Routes list an agent twice")
+        problems.append("The same specialist is listed more than once. Remove the repeats so each specialist appears once.")
     if own_id in seen:
-        problems.append("An agent cannot route to itself")
+        problems.append("An agent cannot hand a conversation to itself. Remove this agent from its own list of specialists.")
     return problems
 
 

@@ -29,13 +29,13 @@ def evaluate_gate(agent_id: str, agent_digest: str | None, scenarios: list[Scena
     required = [s for s in scenarios if s.agent == agent_id and s.required]
     status = GateStatus(agent_id, agent_digest, False, len(required), 0)
     if agent_digest is None:
-        status.reasons.append(f"agent '{agent_id}' has no spec digest, so a pass cannot be tied to a version")
+        status.reasons.append("This agent has no saved version yet, so test results cannot be tied to one. Save a version first.")
         return status
     if not required:
         if allow_empty:
             status.satisfied = True
         else:
-            status.reasons.append(f"agent '{agent_id}' has no required scenarios")
+            status.reasons.append("This agent has no required tests. Mark at least one test as required so a release can be checked.")
         return status
     for sc in required:
         match = None
@@ -49,13 +49,13 @@ def evaluate_gate(agent_id: str, agent_digest: str | None, scenarios: list[Scena
             if match:
                 break
         if match is None:
-            status.reasons.append(f"{sc.name}: not run against this agent version and scenario definition")
+            status.reasons.append(f"The test '{sc.name}' has not been run on this version yet. Run the tests, then try again.")
             continue
         run, r = match
         if not r["passed"]:
-            status.reasons.append(f"{sc.name}: failed in run {run.id[:8]}")
+            status.reasons.append(f"The test '{sc.name}' failed in its latest run ({run.id[:8]}). Open the run to see why, fix the agent, and run the tests again.")
         elif any("skipped" in n for n in r.get("notes", [])):
-            status.reasons.append(f"{sc.name}: a check was skipped in run {run.id[:8]}")
+            status.reasons.append(f"A check in the test '{sc.name}' was skipped in its latest run ({run.id[:8]}), so it does not count. Run the tests again with every check on.")
         else:
             status.covered += 1
             if run.id not in status.run_ids:

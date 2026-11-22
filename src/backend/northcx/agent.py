@@ -104,6 +104,7 @@ class Agent:
     journeys: list[Any] = field(default_factory=list)  # JourneySpec objects; progress through them is recorded on each trace
     languages: list[str] = field(default_factory=list)  # languages the agent supports; the first is the default. Empty: no language handling
     audience: str = "customer"  # "staff": works for a signed-in person with staff tools, never for customers
+    always_approve: list[str] = field(default_factory=list)  # tools whose every call waits for a person (spec: approvals.always)
     shadow: bool = False  # shadow mode (shadow.py): the agent drafts, a person sends; nothing that changes something runs without a person
     sensitive: bool = False  # the administrator marked this agent sensitive: its conversations never use a tier the data policy forbids
     max_run_tokens: int | None = None  # stop and hand off when one turn has used this many model tokens

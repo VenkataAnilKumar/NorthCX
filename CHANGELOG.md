@@ -4,6 +4,10 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 4, WP 4.2, 2026-11-22)
+- New optional field `approvals.always` in an agent definition: tools whose every call waits for a person, in addition to any rule the tool has. The editor adds a tool that changes things to it as soon as it is added, and warns when one runs without a person. Definitions without it keep their digests.
+- Messages in plain words: the checks on a definition (17 kinds), the release gate's reasons, the release checklist details and the field errors now say what is wrong and what to change, with no field paths or developer terms (for example "The tool 'nope' does not exist here. Pick one from the list or remove it."). Clients that matched the old text must match the new; the codes and structure of the responses are unchanged.
+
 ### Documentation (Phase 4 design, 2026-11-22)
 - `docs/02-studio/NorthCX_Guided-Studio.md`: Phase 4 (Agent Studio for non-engineers) through stages 1 to 4: what exists, a six-step guided journey, eleven requirements with acceptance checks, the design (a screen over the existing engines; a new `approvals.always` field; plain-language checks), the order of work and what is blocked. Nothing is built yet.
 

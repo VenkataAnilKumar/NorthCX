@@ -41,10 +41,10 @@ def test_bare_guardrail_names_equal_explicit_form():
 
 
 @pytest.mark.parametrize("bad,fragment", [
-    ("id: a\n", "instructions"),
-    ("id: 'bad id'\ninstructions: x\n", "id"),
-    (MINIMAL + "max_steps: 0\n", "max_steps"),
-    (MINIMAL + "surprise: 1\n", "surprise"),
+    ("id: a\n", "Instructions are required"),
+    ("id: 'bad id'\ninstructions: x\n", "Agent id can only use"),
+    (MINIMAL + "max_steps: 0\n", "Most steps per message must be at least 1"),
+    (MINIMAL + "surprise: 1\n", "'surprise' is not something"),
     (MINIMAL + "spec_version: 99\n", "spec_version"),
     ("- not\n- a mapping\n", "mapping"),
     ("id: [unclosed\n", "YAML"),

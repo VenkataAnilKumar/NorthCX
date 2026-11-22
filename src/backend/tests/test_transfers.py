@@ -47,7 +47,7 @@ def test_routes_are_validated_and_described_to_the_model():
     spec = transfer_spec([route(), route("shipping", "where is my parcel")])
     assert spec["name"] == TRANSFER and spec["input_schema"]["properties"]["agent"]["enum"] == ["billing", "shipping"]
     assert "refunds and charges" in spec["description"] and "where is my parcel" in spec["description"]
-    assert check_routes("triage", [route(), route()]) == ["Routes list an agent twice"] and check_routes("billing", [route()]) == ["An agent cannot route to itself"]
+    assert check_routes("triage", [route(), route()]) == ["The same specialist is listed more than once. Remove the repeats so each specialist appears once."] and check_routes("billing", [route()]) == ["An agent cannot hand a conversation to itself. Remove this agent from its own list of specialists."]
     for bad in ({"agent": "bad agent!", "when": "x"}, {"agent": "billing", "when": ""}, {"agent": "billing", "when": "x" * 301}, {"agent": "b", "when": "x", "extra": 1}):
         with pytest.raises(ValueError):
             RouteSpec.model_validate(bad)
@@ -62,7 +62,7 @@ def test_specs_with_routes_have_new_digests_but_old_digests_are_unchanged():
     assert AgentSpec.model_validate(data).digest() != base.digest()
     data["routes"] = [{"agent": base.id, "when": "myself"}]
     from examples.support_agent import registry
-    assert any("route to itself" in p for p in registry().validate(AgentSpec.model_validate(data)))
+    assert any("cannot hand a conversation to itself" in p for p in registry().validate(AgentSpec.model_validate(data)))
 
 
 async def test_the_conversation_moves_to_the_specialist_in_the_same_turn():
@@ -157,7 +157,7 @@ async def test_the_publish_check_rejects_a_route_to_an_agent_that_does_not_exist
     data = load_spec(SPEC_PATH).model_dump(mode="json")
     data["routes"] = [{"agent": "ghost", "when": "anything"}]
     out = await env.svc.preview("support", data)
-    assert out["valid"] is False and any("unknown agent 'ghost'" in p for p in out["problems"])
+    assert out["valid"] is False and any("specialist called 'ghost'" in p for p in out["problems"])
     data["routes"] = []
     assert (await env.svc.preview("support", data))["valid"] is True
 

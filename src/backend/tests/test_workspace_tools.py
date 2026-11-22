@@ -116,9 +116,9 @@ def test_customer_agents_cannot_be_given_staff_tools_and_staff_agents_only_staff
     reg.tool(staff_tool)
     reg.tool(Tool("lookup", "d", __import__("pydantic").BaseModel, lambda i, c: {}, effect="read"))
     base = {"spec_version": 1, "id": "a", "instructions": "i"}
-    with pytest.raises(SpecError, match="staff tool"):
+    with pytest.raises(SpecError, match="only for agents that help your own staff"):
         reg.build(AgentSpec.model_validate({**base, "tools": ["peek"]}))
-    with pytest.raises(SpecError, match="customer tool"):
+    with pytest.raises(SpecError, match="for customer conversations"):
         reg.build(AgentSpec.model_validate({**base, "audience": "staff", "tools": ["lookup"]}))
     ok = reg.build(AgentSpec.model_validate({**base, "audience": "staff", "tools": ["peek"]}))
     assert ok.audience == "staff" and [t.name for t in ok.tools] == ["peek"]

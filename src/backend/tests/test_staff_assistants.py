@@ -52,7 +52,7 @@ def test_the_staff_templates_are_for_staff_only_and_a_customer_agent_cannot_use_
     register_staff_tools(reg, WorkspaceService(Runtime(ScriptedLLM([]), InMemoryStore(), TraceStore()), None, None, None, None, None))
     from northcx.spec import AgentSpec
     problems = reg.validate(AgentSpec.model_validate({"spec_version": 1, "id": "sneaky", "instructions": "x", "tools": ["list_handoffs"]}))
-    assert any("staff tool" in p for p in problems)                      # audience customer: refused
+    assert any("only for agents that help your own staff" in p for p in problems)                      # audience customer: refused
 
 
 def test_the_catalog_lists_live_staff_assistants_with_what_this_person_can_use():

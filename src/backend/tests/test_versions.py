@@ -80,9 +80,9 @@ async def test_invalid_or_unchanged_versions_are_refused(env):
     await env.new_version()
     with pytest.raises(Conflict, match="No changes since version 1"):
         await env.new_version()
-    with pytest.raises(InvalidSpec, match="does not match"):
+    with pytest.raises(InvalidSpec, match="Change the id back"):
         await env.svc.create_version("other", BASE, "dev")
-    with pytest.raises(InvalidSpec, match="Unknown tool"):
+    with pytest.raises(InvalidSpec, match="does not exist here"):
         await env.new_version(tools=["lookup_order", "wire_money"])
     bad_cfg = parse_spec("id: support\ninstructions: x\nguardrails:\n  - name: llm_policy\n    config: {policies: []}\n")
     with pytest.raises(InvalidSpec, match="configuration"):
@@ -121,7 +121,7 @@ async def test_publishing_requires_the_gate_for_that_exact_version(env):
     v1 = await env.new_version()
     with pytest.raises(GateBlocked) as e:
         await env.svc.publish("support", 1, "rel", None)
-    assert e.value.reasons and "not run against this agent version" in e.value.reasons[0]
+    assert e.value.reasons and "has not been run on this version" in e.value.reasons[0]
     await env.prove(v1)
     rel = await env.svc.publish("support", 1, "rel-mgr", "first release")
     assert (rel.action, rel.number, rel.by, rel.previous_number) == ("publish", 1, "rel-mgr", None)
@@ -138,7 +138,7 @@ async def test_a_failing_proof_blocks_the_release(env):
     assert not run.passed
     with pytest.raises(GateBlocked) as e:
         await env.svc.publish("support", v.number, "rel", None)
-    assert any("failed in run" in r for r in e.value.reasons)
+    assert any("failed in its latest run" in r for r in e.value.reasons)
 
 
 async def test_publish_edge_cases(env):
@@ -379,7 +379,7 @@ async def test_checklist_lists_every_requirement_and_matches_what_publish_enforc
     v1 = await env.new_version()
     cl = await env.svc.checklist("support", 1, "production")
     k = by_key(cl)
-    assert cl["ready"] is False and k["scenarios"]["status"] == "fail" and "not run against this agent version" in k["scenarios"]["detail"]
+    assert cl["ready"] is False and k["scenarios"]["status"] == "fail" and "has not been run on this version" in k["scenarios"]["detail"]
     assert k["valid"]["status"] == k["permission"]["status"] == k["not_live"]["status"] == "pass" and k["staged"]["status"] == "warn"
     assert cl["changes"]["identical"] is True and cl["liveVersion"] is None  # the baseline is what is live, and this version is a snapshot of it
     await env.prove(v1)

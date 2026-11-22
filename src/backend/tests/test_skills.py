@@ -70,13 +70,13 @@ def test_bad_skill_references_are_reported_together():
     reg = registry()
     problems = reg.validate(spec(skills=[{"name": "ghost"}, {"name": "refund_flow"}, {"name": "refund_flow"}], tool_scopes={"nope": {"requires_customer": True}}))
     text_ = "; ".join(problems)
-    assert "Unknown skill 'ghost'" in text_ and "Duplicate skill references" in text_ and "unknown tool 'nope'" in text_
+    assert "The skill 'ghost' does not exist" in text_ and "A skill is listed more than once" in text_ and "called 'nope'" in text_
     with pytest.raises(Exception):
         spec(skills=[{"name": "refund_flow", "flexibility": "rigid"}])
     from northcx.skills import Skill, SkillStep
     r2 = registry()
     r2.skill(Skill("needs_crm", "d", "i", (SkillStep("look up", "crm_lookup"),)))
-    assert any("needs the tool 'crm_lookup'" in p for p in r2.validate(spec(skills=[{"name": "needs_crm"}])))
+    assert any("uses a tool called 'crm_lookup'" in p for p in r2.validate(spec(skills=[{"name": "needs_crm"}])))
     with pytest.raises(SpecError, match="already registered"):
         r2.skill(Skill("needs_crm", "d", "i"))
 
@@ -216,4 +216,4 @@ async def test_versions_are_created_pinned_and_a_forged_snapshot_must_still_be_a
     v = await svc.create_version("a", spec(skills=[{"name": "refund_flow", "flexibility": "strict"}]), "dev")
     assert v.spec["skill_snapshots"]["refund_flow"]["name"] == "refund_flow"
     bad = spec(skills=[{"name": "ghost"}], skill_snapshots={"ghost": {"name": "ghost"}})  # no instructions: not a skill
-    assert any("Unknown skill 'ghost'" in p for p in reg.validate(bad))
+    assert any("The skill 'ghost' does not exist" in p for p in reg.validate(bad))
