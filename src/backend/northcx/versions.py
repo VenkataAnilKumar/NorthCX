@@ -18,7 +18,7 @@ import yaml
 from .agent import Agent
 from .catalog import AgentUnavailable
 from .simulation.service import SimulationService
-from .plain import explain_errors
+from .plain import explain_errors, summarize
 from .spec import AgentSpec, BuildContext, Registry, SpecError
 
 PRODUCTION = "production"
@@ -225,7 +225,8 @@ class ReleaseService:
         v, rel, _ = await self.resolve(agent_id, PRODUCTION)
         base = v.spec if v else (json.loads(self.baselines[agent_id].canonical()) if agent_id in self.baselines else None)
         return {"valid": True, "problems": [], "digest": pinned.digest(), "unchangedSinceLatest": bool(latest) and latest[0].digest == pinned.digest(),
-                "diffFromLive": diff_specs(base, json.loads(pinned.canonical())) if base is not None else None}
+                "diffFromLive": diff_specs(base, json.loads(pinned.canonical())) if base is not None else None,
+                "summary": summarize(spec, self.registry.describe()["tools"])}
 
     async def live(self, agent_id: str, environment: str = PRODUCTION) -> tuple[AgentVersion | None, Release | None]:
         rel = await self.releases.current(agent_id, environment)

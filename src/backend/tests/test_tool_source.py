@@ -104,3 +104,9 @@ def test_describe_names_the_connection_of_an_mcp_tool_and_only_that():
     r.add_tools("connectors", [tool("crm__find")])
     by = {t["name"]: t["connection"] for t in r.describe()["tools"]}
     assert by == {"shop__lookup": "shop", "shop__refund__v2": "shop", "crm__find": None}
+
+
+def test_the_catalogue_says_who_each_tool_is_for():
+    r = Registry()
+    r.add_tools("registry", [tool("customer_one"), Tool("staff_one", "x", In, lambda d, c: {}, effect="read", audience="staff", permission="notes:read")])
+    assert {t["name"]: t["audience"] for t in r.describe()["tools"]} == {"customer_one": "customer", "staff_one": "staff"}

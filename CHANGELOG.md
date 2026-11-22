@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 4, WP 4.1, 2026-11-22)
+- Studio, Build, Guided setup (`/guided?agent=…`): choose an agent (or start from a template or your own material), connect tools, write procedures, read a plain summary of what the agent will do, and save a version, one step at a time. The version preview (`POST /v1/agents/{id}/versions/preview`) returns `summary` (a list of sentences); the tool catalogue (`GET /v1/catalog`) returns each tool's `audience`. Both are additions. The editor's and the guided page's tool picker show only tools that fit the agent's audience.
+
 ### Added (Phase 4, WP 4.2, 2026-11-22)
 - New optional field `approvals.always` in an agent definition: tools whose every call waits for a person, in addition to any rule the tool has. The editor adds a tool that changes things to it as soon as it is added, and warns when one runs without a person. Definitions without it keep their digests.
 - Messages in plain words: the checks on a definition (17 kinds), the release gate's reasons, the release checklist details and the field errors now say what is wrong and what to change, with no field paths or developer terms (for example "The tool 'nope' does not exist here. Pick one from the list or remove it."). Clients that matched the old text must match the new; the codes and structure of the responses are unchanged.

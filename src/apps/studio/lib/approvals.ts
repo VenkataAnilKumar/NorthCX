@@ -13,7 +13,7 @@ export function setAlways(now: Choice, name: string, on: boolean): Choice {
   return { tools: now.tools, always: on ? [...rest, name] : rest };
 }
 
-/** The sentence shown when a tool that changes things will run without a person. */
-export function unguarded(now: Choice, catalog: { name: string; effect: string }[]): string[] {
-  return now.tools.filter((t) => catalog.find((c) => c.name === t)?.effect === "write" && !now.always.includes(t));
+/** The tools that change things and will run without a person: no rule of their own and not listed. (A tool with its own rule, such as a refund limit, is not listed here.) */
+export function unguarded(now: Choice, catalog: { name: string; effect: string; approval?: boolean }[]): string[] {
+  return now.tools.filter((t) => { const c = catalog.find((x) => x.name === t); return c?.effect === "write" && !c.approval && !now.always.includes(t); });
 }

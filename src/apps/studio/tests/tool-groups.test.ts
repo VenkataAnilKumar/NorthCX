@@ -3,7 +3,7 @@ import type { CatalogTool } from "@northcx/api-client";
 import { toolGroups } from "../lib/tool-groups";
 
 const t = (name: string, source: string, connection: string | null = null): CatalogTool =>
-  ({ name, description: "", effect: "read", source, connection, fingerprint: "f", approval: false, inputs: [] });
+  ({ name, description: "", effect: "read", audience: "customer", source, connection, fingerprint: "f", approval: false, inputs: [] });
 
 describe("toolGroups", () => {
   it("puts built-in tools first, then one section per connection and source, each tool once", () => {
