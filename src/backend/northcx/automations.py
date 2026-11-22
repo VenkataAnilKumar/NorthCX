@@ -18,6 +18,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Protocol
 
+from . import expr
 from .budget_settings import InMemorySettings, SettingsRepo
 from .tenancy import current_tenant
 
@@ -31,6 +32,7 @@ DEFAULT_WAIT_HOURS, MAX_WAIT_HOURS = 24, 72
 TAG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 HIGH_RISK = frozenset({"notify"})  # steps that send something out of the platform: only after a person has approved in the same routine
 MAX_INPUT = 2000
+MAX_ARGS = 2000                  # characters of a tool step's arguments
 MIN_HOURS, MAX_HOURS = 1.0, 24.0 * 30
 TRIGGER_TYPES = {  # what starts a routine, in the words the editor shows
     "manual": ("Run by hand", "A person starts the routine from the Workspace when they want it."),
@@ -64,9 +66,14 @@ class Hooks:
     tag_session: Callable[[str, str, str], Awaitable[bool]] | None = None                   # session id, tag, routine id -> tagged
     notify: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None                  # destination name, payload
     destinations: frozenset[str] = frozenset()
+    tools: Callable[[], dict[str, dict[str, Any]]] | None = None                            # name -> {"effect", "allowed", "why", "model"}: what a tool step may call
+    tool_approval: Callable[[str, dict[str, Any]], str | None] | None = None               # tool name, arguments -> why the tool wants approval for these arguments, if it does
+    call_tool: Callable[[str, dict[str, Any], str], Awaitable[Any]] | None = None          # tool name, arguments, idempotency key -> result
+    mask: Callable[[str], str] = staticmethod(lambda t: t)                                  # hides personal data in what a run record keeps
 
 
-def validate_definition(data: Any, reports: set[str], events: set[str] | frozenset[str] = frozenset(), destinations: set[str] | frozenset[str] = frozenset()) -> dict[str, Any]:
+def validate_definition(data: Any, reports: set[str], events: set[str] | frozenset[str] = frozenset(), destinations: set[str] | frozenset[str] = frozenset(),
+                        tools: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise AutomationError(400, "A routine is a mapping")
     unknown = set(data) - {"id", "name", "description", "trigger", "steps", "limits"}
@@ -149,6 +156,8 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
             if dest not in destinations:
                 raise AutomationError(400, f"Step '{sid}': to must be one of the destinations the administrator set up ({', '.join(sorted(destinations)) or 'none are set up'})")
             out.append({"id": sid, "kind": "notify", "to": dest})
+        elif sk == "tool":
+            out.append(_tool_step(sid, s, tools or {}))
         elif sk == "output":
             title, vis = s.get("title"), s.get("visibility", "shared")
             if not isinstance(title, str) or not 3 <= len(title) <= 100:
@@ -157,18 +166,41 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
                 raise AutomationError(400, f"Step '{sid}': a routine's outputs are shared with everyone who uses the Workspace")
             out.append({"id": sid, "kind": "output", "title": title, "visibility": "shared"})
         else:
-            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report, person, tag, notify or output (a routine never writes to customers)")
+            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report, tool, person, tag, notify or output (a routine never writes to customers)")
     asked = False
     for st in out:                                           # a step that sends something out needs a person's approval earlier in the same routine
         if st["kind"] == "person":
             asked = True
         elif st["kind"] in HIGH_RISK and not asked:
             raise AutomationError(400, f"Step '{st['id']}' sends something out of the platform, so a 'person' step must come before it to approve")
+        elif st["kind"] == "tool" and (tools or {}).get(st["tool"], {}).get("effect") != "read" and not asked:
+            raise AutomationError(400, f"Step '{st['id']}' changes something ('{st['tool']}'), so a 'person' step must come before it to approve")
     lim = data.get("limits") or {}
     secs = lim.get("maxSeconds", 120) if isinstance(lim, dict) else None
     if isinstance(secs, bool) or not isinstance(secs, int) or not 10 <= secs <= MAX_SECONDS:
         raise AutomationError(400, f"limits.maxSeconds must be a whole number from 10 to {MAX_SECONDS}")
     return {"id": rid, "name": name.strip(), "description": desc.strip(), "trigger": t, "steps": out, "limits": {"maxSeconds": secs}}
+
+
+def _tool_step(sid: str, s: dict[str, Any], tools: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    name, args = s.get("tool"), s.get("args", {})
+    if name not in tools:
+        raise AutomationError(400, f"Step '{sid}': tool must be one of {', '.join(sorted(tools)) or 'none are available'}")
+    meta = tools[name]
+    if not meta.get("allowed", True):
+        raise AutomationError(400, f"Step '{sid}': a routine cannot use '{name}' ({meta.get('why') or 'its service identity may not'})")
+    if not isinstance(args, dict) or len(json.dumps(args, default=str)) > MAX_ARGS:
+        raise AutomationError(400, f"Step '{sid}': args must be a mapping of at most {MAX_ARGS} characters")
+    for path in expr.paths_in(args):
+        if path.split(".")[0].split("[")[0] == "item":
+            raise AutomationError(400, f"Step '{sid}': 'item' can be used only inside a foreach step")
+    model = meta.get("model")
+    if model is not None and not expr.paths_in(args):                        # arguments with no placeholders can be checked now; the rest when the step runs
+        try:
+            model.model_validate(args)
+        except Exception as e:  # noqa: BLE001 - a pydantic ValidationError; the first problem is enough
+            raise AutomationError(400, f"Step '{sid}': the arguments for '{name}' are not valid: {str(e).splitlines()[0][:150]}") from e
+    return {"id": sid, "kind": "tool", "tool": name, "args": args}
 
 
 @dataclass
@@ -331,9 +363,12 @@ class AutomationService:
     def _events(self) -> frozenset[str]:
         return self.hooks.event_types if self.hooks else frozenset()
 
+    def _tools(self) -> dict[str, dict[str, Any]]:
+        return self.hooks.tools() if self.hooks and self.hooks.tools else {}
+
     # ---- definitions and review ----
     async def create(self, data: dict[str, Any], by: str) -> Automation:
-        clean = validate_definition(data, self._reports(), self._events(), self._destinations())
+        clean = validate_definition(data, self._reports(), self._events(), self._destinations(), self._tools())
         if await self.repo.versions(clean["id"]):
             raise AutomationError(409, f"A routine '{clean['id']}' already exists; change it to make a new version")
         a = Automation(clean["id"], 1, clean["name"], clean, created_by=by, nonce=secrets.token_hex(8) if clean["trigger"]["type"] == "webhook" else "")
@@ -344,7 +379,7 @@ class AutomationService:
         vs = await self.repo.versions(automation_id)
         if not vs:
             raise AutomationError(404, "Unknown routine")
-        clean = validate_definition(data, self._reports(), self._events(), self._destinations())
+        clean = validate_definition(data, self._reports(), self._events(), self._destinations(), self._tools())
         if clean["id"] != automation_id:
             raise AutomationError(400, "The id cannot change; create a new routine instead")
         cur = vs[0]
@@ -508,6 +543,8 @@ class AutomationService:
                     if status != "completed":
                         raise AutomationError(502, f"Step '{s['id']}' ended with status {status}")
                     prev = reply[:MAX_OUTPUT]
+                elif s["kind"] == "tool":
+                    prev = await self._tool(a, run, s, idx, prev, input_text, rec)
                 elif s["kind"] == "output":
                     if self.hooks.save_output is None:
                         raise AutomationError(501, "Saving outputs is not configured on this server")
@@ -535,13 +572,39 @@ class AutomationService:
                     rec["sentTo"] = s["to"]
                 else:
                     prev = json.dumps(await self.hooks.reports[s["report"]](s["days"]), default=str)[:MAX_OUTPUT]
-                rec.update({"status": "ok", "output": prev if s["kind"] in ("assistant", "report", "output") else rec.get("sentTo") or rec.get("tagged") or "", "endedAt": time.time()})
+                rec.update({"status": "ok", "output": (self.hooks.mask(prev) if s["kind"] == "tool" else prev) if s["kind"] in ("assistant", "report", "output", "tool") else rec.get("sentTo") or rec.get("tagged") or "", "endedAt": time.time()})
             except BaseException as e:
                 rec.update({"status": "failed", "error": str(e)[:200], "endedAt": time.time()})
                 raise
             finally:
                 await self.repo.save_run(run)
         run.outcome = prev
+
+    async def _tool(self, a: Automation, run: Run, s: dict[str, Any], idx: int, prev: str, input_text: str, rec: dict[str, Any]) -> str:
+        """One tool call through the gateway. A change needs the key to be the same on a resume, and a tool that asks for approval for these arguments needs an earlier
+        person step that names who may approve."""
+        h = self.hooks
+        assert h is not None
+        if h.tools is None or h.call_tool is None:
+            raise AutomationError(501, "Tools are not available to routines on this server")
+        meta = h.tools().get(s["tool"])
+        if meta is None or not meta.get("allowed", True):
+            raise AutomationError(409, f"Step '{s['id']}': '{s['tool']}' is not available to routines")
+        args = expr.fill(s["args"], {"previous": expr.as_value(prev), "input": expr.as_value(input_text)})
+        rec.update({"tool": s["tool"], "effect": meta["effect"], "args": json.loads(h.mask(json.dumps(args, default=str)))})
+        why = h.tool_approval(s["tool"], args) if h.tool_approval else None
+        if why and not self._approver_named(a, run, idx):
+            raise AutomationError(409, f"Step '{s['id']}': '{s['tool']}' asks for approval ({why}); the person step before it must name an approver role or team")
+        out = await h.call_tool(s["tool"], args, f"auto:{run.id}:{s['id']}")
+        text = out if isinstance(out, str) else json.dumps(out, default=str)
+        if len(text) > MAX_OUTPUT:
+            raise AutomationError(413, f"Step '{s['id']}': the result is {len(text)} characters; at most {MAX_OUTPUT} can be passed on, so ask for less")
+        return text
+
+    @staticmethod
+    def _approver_named(a: Automation, run: Run, idx: int) -> bool:
+        done = {r["id"] for r in run.steps if r.get("status") == "ok"}
+        return any(st["kind"] == "person" and st["id"] in done and st.get("approver") for st in a.data["steps"][:idx])
 
     # ---- the schedule ----
     async def tick(self, now: float | None = None) -> int:

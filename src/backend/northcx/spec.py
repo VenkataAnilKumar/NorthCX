@@ -321,6 +321,9 @@ class Registry:
     def tool_names(self) -> list[str]:
         return sorted(self._tools)
 
+    def get(self, name: str) -> Tool | None:
+        return self._tools.get(name)
+
     def guardrail_names(self) -> list[str]:
         return sorted(self._guardrails)
 
