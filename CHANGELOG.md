@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 6, WP 6.3, 2026-11-22)
+- `python -m northcx backup --out FILE` and `python -m northcx restore FILE [--replace]`: the whole database in one file, read in a single snapshot, with a checksum for every table. Restore refuses a damaged file, a backup from a newer version, and a database that already holds data (unless `--replace`), then upgrades to the current schema; the audit hash chain survives. The backup holds personal data and is not encrypted. The meaning-search index is not saved. The deployment guide has the Docker Compose commands.
+
 ### Tests (Phase 6, WP 6.5, 2026-11-22)
 - Tests prove that the production compose setup does not start without sign-in: the server exits with the instruction when sign-in is required and no key exists, the compose backend requires an API key and sets `NORTHCX_REQUIRE_AUTH`, and compose refuses an empty `.env`. No behaviour change.
 

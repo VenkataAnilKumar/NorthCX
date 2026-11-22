@@ -91,7 +91,16 @@ The image ships the example support agent. To run yours, build an image `FROM` i
 
 ## Operating it
 - **Upgrades:** pull or build the new images and run `docker compose up -d --build --wait`. Migrations apply on start and only move forward; take a database backup first. Rolling the images back across a migration needs the matching database backup.
-- **Backups:** back up the Postgres volume or use `pg_dump`. Everything lives there: conversations (personal data), approvals, handoffs, versions and releases, keys (hashes), the audit log and simulation runs. Treat backups as sensitive.
+- **Backup and restore (one file, the whole database):**
+  ```bash
+  mkdir -p backups
+  docker compose run --rm --user root -v "$PWD/backups:/backups" backend python -m northcx backup --out /backups/northcx-$(date +%F).backup
+  ```
+  ```bash
+  docker compose run --rm --user root -v "$PWD/backups:/backups" backend python -m northcx restore /backups/northcx-2026-11-22.backup
+  ```
+  Restore goes into an empty database (a new install), or add `--replace` to empty an existing one first; it checks every table against its checksum, refuses a backup from a newer version of NorthCX, rebuilds the schema at the backup's revision and then upgrades it. The tamper-evident audit chain comes back intact. The file holds personal data and is not encrypted. The meaning-search index is not saved; re-index the knowledge sources after a restore if search by meaning is empty (unverified: the re-index path has not been run after a restore). A snapshot is consistent (one moment) and does not stop the server. For a plain copy you can still use `pg_dump` or back up the Postgres volume.
+- **Backups (alternatives):** back up the Postgres volume or use `pg_dump`. Everything lives there: conversations (personal data), approvals, handoffs, versions and releases, keys (hashes), the audit log and simulation runs. Treat backups as sensitive.
 - **Health:** probe `/ready` (load balancers, orchestrators); `/health` is liveness only. Logs go to standard output.
 - **Scaling:** run several processes behind a load balancer with `NORTHCX_ROLE` and `NORTHCX_LIMITS_BACKEND=postgres` (see "Several processes" below); all state, including shared limits and job leases, is in Postgres. Two simultaneous messages in one conversation can still overwrite each other (see Knowledge and Memory).
 - **TLS and exposure:** the compose file listens on loopback only. Put a reverse proxy that terminates TLS in front (and set `NORTHCX_BIND` only if you must publish directly).

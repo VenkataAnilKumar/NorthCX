@@ -111,6 +111,21 @@ jobs:
           curl --fail --silent -H "authorization: Bearer $KEY" http://127.0.0.1:3001/api/northcx/v1/me | grep -q '"role":"admin"'
           curl --fail --silent -X POST -H "authorization: Bearer $KEY" -H 'content-type: application/json' \
             -d '{"sessionId":"ci","message":"where is order 1042?"}' http://127.0.0.1:3000/v1/agents/support/chat | grep -q delivered
+      - name: Backup and restore drill (the real stack)
+        run: |
+          mkdir backups
+          RUN="docker compose run --rm --user root -v $PWD/backups:/backups backend python -m northcx"
+          $RUN backup --out /backups/ci.backup | tee backup.log
+          grep -q "Backed up" backup.log
+          # something that happens after the backup must be gone after the restore, and the conversation from before it must be there
+          curl --fail --silent --output /dev/null -H "authorization: Bearer $KEY" -H 'content-type: application/json' \
+            -d '{"sessionId":"after-backup","message":"hello"}' http://127.0.0.1:3000/v1/agents/support/chat
+          $RUN restore /backups/ci.backup --replace | tee restore.log
+          grep -q "Restored" restore.log
+          docker compose restart backend
+          for i in $(seq 1 30); do curl --fail --silent http://127.0.0.1:3000/ready >/dev/null && break; sleep 2; done
+          curl --fail --silent -H "authorization: Bearer $KEY" http://127.0.0.1:3000/v1/sessions/ci/transcript | grep -q "order 1042"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H "authorization: Bearer $KEY" http://127.0.0.1:3000/v1/sessions/after-backup/transcript)" = "404"
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - name: Browser tests (Studio, Workspace and the chat widget, in a real browser, against this stack)
