@@ -24,6 +24,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   ];
   const build: SubItem[] = [
     { href: "/agents", label: "Agents" },
+    { href: "/guided", label: "Guided setup" },
     { href: "/hub", label: "Agent Hub" },
     { href: "/agents/build", label: "Builder" },
     ...(can("knowledge:read") ? [{ href: "/knowledge", label: "Library" }] : []),

@@ -18520,6 +18520,14 @@
               }
             ],
             "title": "Difffromlive"
+          },
+          "summary": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Summary",
+            "default": []
           }
         },
         "additionalProperties": true,

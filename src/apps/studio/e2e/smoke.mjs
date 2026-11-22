@@ -200,6 +200,23 @@ for (const [verb, order, done] of [["Approve", "2077", /Approved by/], ["Reject"
   check(JSON.stringify(after) === JSON.stringify(before), "replay: the real conversation is unchanged by the rerun");
 }
 
+// guided setup: the steps, the plain summary, and a saved version, without leaving one page
+{
+  await page.goto(`${WEB}/guided?agent=support`);
+  await page.getByRole("list", { name: "Steps" }).waitFor();
+  const instructions = page.getByRole("textbox", { name: "Instructions", exact: true });
+  await instructions.waitFor();
+  await instructions.fill(`${await instructions.inputValue()}\nGuided test ${Date.now()}.`);
+  const summary = page.getByRole("region", { name: "What this agent will do" });
+  await summary.getByText("This agent answers customers.").waitFor();
+  check((await summary.innerText()).includes("It can look up:"), "guided: the plain summary says what the agent can do");
+  const save = page.getByRole("button", { name: "Save a version" });
+  await page.waitForFunction(() => { const b = [...document.querySelectorAll("button")].find((x) => x.textContent === "Save a version"); return b && !b.disabled; });
+  await save.click();
+  await page.getByRole("status").filter({ hasText: "Saved as version" }).waitFor();
+  check((await page.getByRole("link", { name: /Run its tests and release it/ }).getAttribute("href")) === "/agents/support", "guided: a version is saved and the page points to the tests and release");
+}
+
 // the other main pages load without a client error
 for (const p of ["/hub", "/preferences", "/profile", "/", "/conversations", "/simulations", "/knowledge", "/handoffs", "/approvals", "/agents", "/access", "/chat", "/trust", "/org", "/channels", "/memory", "/privacy"]) {
   await page.goto(`${WEB}${p}`);

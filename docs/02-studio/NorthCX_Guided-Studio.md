@@ -1,6 +1,6 @@
 # Guided Studio: Phase 4 design
 
-Status: stages 1 to 4 written 2026-11-22. **WP 4.2 is built** (R3, R4); the rest is not. Plan: `../12-project/NorthCX_Agent-Platform-Plan.md`, Phase 4. Design source: `../00-platform/NorthCX_Agent-Platform-Design.md`, section 7.
+Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4) and WP 4.1 (R1, R2) are built**; the rest is not. Steps 1 to 5 of the guided page exist (choose, connect, procedures, what it will do, save); the "try it" step arrives with WP 4.3. Plan: `../12-project/NorthCX_Agent-Platform-Plan.md`, Phase 4. Design source: `../00-platform/NorthCX_Agent-Platform-Design.md`, section 7.
 
 **Who it is for.** A CX lead or operations person who has never written YAML. They should be able to go from "I want an order-status agent" to a live, tested agent, and always see in plain words what the agent can do and what needs a person.
 

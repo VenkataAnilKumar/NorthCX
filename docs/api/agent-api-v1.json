@@ -4262,6 +4262,12 @@
                   "type": "null"
                 }
               ]
+            },
+            "summary": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             }
           },
           "additionalProperties": true,

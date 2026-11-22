@@ -80,3 +80,65 @@ def test_field_errors_use_the_names_on_the_screen_and_say_what_is_allowed():
     assert errors(id="a", instructions="x", colour="blue") == ["'colour' is not something an agent can have. Remove it."]
     assert errors(id="a", instructions="x", journeys=[{"name": "jj", "goal": "g", "steps": []}])[0].startswith("Journeys, item 1")
     assert not any(BANNED.search(m) for m in errors(id="a", instructions="x", max_steps=99))
+
+
+# ---- the plain summary (R2) ----
+from northcx.plain import summarize, tool_label  # noqa: E402
+
+CATALOG = [{"name": "lookup_order", "effect": "read", "approval": False}, {"name": "issue_refund", "effect": "write", "approval": True},
+           {"name": "update_address", "effect": "write", "approval": False}, {"name": "shop__orders_lookup", "effect": "read", "approval": False}]
+
+
+def said(**kw):
+    return summarize(AgentSpec(id="a", instructions="help", **kw), CATALOG)
+
+
+def test_tool_names_are_written_as_words():
+    assert tool_label("lookup_order") == "lookup order" and tool_label("shop__orders_lookup") == "orders lookup from shop"
+
+
+def test_the_summary_says_who_it_serves_what_it_can_look_up_and_what_it_can_change():
+    s = said(tools=["lookup_order", "issue_refund", "update_address"], approvals={"always": ["update_address"]})
+    assert s[0] == "This agent answers customers."
+    assert "It can look up: lookup order." in s
+    assert "It can change things: issue refund, update address." in s
+    assert "A person approves every use of update address." in s
+    assert "issue refund has its own rule that can hold a call for a person." in s
+
+
+def test_a_tool_that_changes_things_and_runs_without_a_person_is_said_plainly():
+    s = said(tools=["update_address"])
+    assert "update address changes things and runs without a person's OK." in s
+
+
+def test_it_says_what_always_goes_to_a_person_what_it_follows_and_how_it_replies():
+    s = said(tools=["lookup_order"], forced_handoff=[{"name": "legal", "patterns": ["lawyer"]}, {"name": "safety", "patterns": ["fire"]}],
+             journeys=[{"name": "refunds", "goal": "g", "steps": [{"purpose": "p"}]}], languages=["en", "es"], routes=[{"agent": "billing", "when": "billing"}],
+             guardrails=[{"name": "no_card_numbers"}], input_guardrails=[{"name": "pii_detection"}], shadow=True)
+    assert "Conversations about legal, safety always go to a person." in s
+    assert "It follows 1 journey: refunds." in s
+    assert "It replies in en, es." in s
+    assert "It can pass a conversation to: billing." in s
+    assert "1 check on replies and tool calls, 1 on customer messages." in s
+    assert "Shadow mode is on: a person approves every reply before the customer sees it." in s
+
+
+def test_an_agent_with_no_tools_says_so_and_a_staff_agent_says_who_it_helps():
+    s = summarize(AgentSpec(id="a", instructions="help", audience="staff"), [])
+    assert s[0] == "This agent helps your staff." and "It has no tools, so it cannot look anything up or change anything." in s
+
+
+def test_the_summary_names_every_tool_and_every_approval_rule_in_the_definition():
+    import itertools
+    names = [c["name"] for c in CATALOG]
+    for r in range(len(names) + 1):
+        for tools in itertools.combinations(names, r):
+            for always in ([], list(tools)[:1]):
+                text = " ".join(said(tools=list(tools), approvals={"always": always}))
+                assert all(tool_label(t) in text for t in tools)
+                assert all(f"A person approves every use of {tool_label(t)}." in text for t in always)
+
+
+def test_topic_names_are_written_as_words():
+    s = said(forced_handoff=[{"name": "formal_complaint", "patterns": ["complain"]}])
+    assert "Conversations about formal complaint always go to a person." in s

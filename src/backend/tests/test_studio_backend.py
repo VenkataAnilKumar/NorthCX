@@ -95,3 +95,10 @@ def test_api_preview_endpoint():
     for role, code in [("developer", 200), ("viewer", 403), ("reviewer", 403)]:
         k = loop.run_until_complete(ac.issue(role, role, "root"))[1]
         assert c.post("/v1/agents/support/versions/preview", json={"spec": base_spec()}, headers={"authorization": f"Bearer {k}"}).status_code == code, role
+
+
+async def test_a_valid_preview_says_in_plain_sentences_what_the_agent_will_do():
+    c, ac, svc = setup()
+    out = await svc.preview("support", base_spec())
+    assert out["valid"] is True and out["summary"][0] == "This agent answers customers." and any("lookup order" in s for s in out["summary"])
+    assert "summary" not in (await svc.preview("support", {"nonsense": 1}))

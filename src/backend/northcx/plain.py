@@ -78,3 +78,54 @@ def explain(err: dict[str, Any]) -> str:
 
 def explain_errors(errors: list[dict[str, Any]]) -> list[str]:
     return [explain(e) for e in errors]
+
+
+def tool_label(name: str) -> str:
+    """A tool's name as words: `lookup_order` is "lookup order"; an MCP tool `shop__orders_lookup` is "orders lookup from shop"."""
+    connection, _, rest = name.partition("__")
+    return f"{rest.replace('_', ' ')} from {connection}" if rest else name.replace("_", " ")
+
+
+def _list(items: list[str]) -> str:
+    return ", ".join(items)
+
+
+def summarize(spec: Any, tools: list[dict[str, Any]]) -> list[str]:
+    """What the agent will do, in sentences, from the definition and the tool catalogue. No model writes this, so it cannot say anything the
+    definition does not."""
+    known = {t["name"]: t for t in tools}
+    mine = list(dict.fromkeys(spec.tools))
+    reads = [t for t in mine if known.get(t, {}).get("effect") != "write"]
+    writes = [t for t in mine if known.get(t, {}).get("effect") == "write"]
+    always = set(spec.approvals.always)
+    out = ["This agent helps your staff." if spec.audience == "staff" else "This agent answers customers."]
+    if not mine:
+        out.append("It has no tools, so it cannot look anything up or change anything.")
+    if reads:
+        out.append(f"It can look up: {_list([tool_label(t) for t in reads])}.")
+    if writes:
+        out.append(f"It can change things: {_list([tool_label(t) for t in writes])}.")
+    for t in mine:
+        label = tool_label(t)
+        if t in always:
+            out.append(f"A person approves every use of {label}.")
+        elif known.get(t, {}).get("effect") == "write" and not known[t].get("approval"):
+            out.append(f"{label} changes things and runs without a person's OK.")
+        if t not in always and known.get(t, {}).get("approval"):
+            out.append(f"{label} has its own rule that can hold a call for a person.")
+    if spec.forced_handoff:
+        out.append(f"Conversations about {_list([h.name.replace('_', ' ') for h in spec.forced_handoff])} always go to a person.")
+    if spec.journeys:
+        n = len(spec.journeys)
+        out.append(f"It follows {n} journey{'' if n == 1 else 's'}: {_list([j.name for j in spec.journeys])}.")
+    if spec.routes:
+        out.append(f"It can pass a conversation to: {_list([r.agent for r in spec.routes])}.")
+    if spec.languages:
+        out.append(f"It replies in {_list(spec.languages)}.")
+    if spec.guardrails or spec.input_guardrails or spec.output_guardrails:
+        parts = [(len(spec.guardrails), "on replies and tool calls"), (len(spec.input_guardrails), "on customer messages"), (len(spec.output_guardrails), "on tool answers")]
+        shown = [f"{n} {where}" for n, where in parts if n]
+        out.append(f"{shown[0].split(' ', 1)[0]} check{'' if shown[0].startswith('1 ') else 's'} {shown[0].split(' ', 1)[1]}" + (", " + ", ".join(shown[1:]) if len(shown) > 1 else "") + ".")
+    if spec.shadow:
+        out.append("Shadow mode is on: a person approves every reply before the customer sees it.")
+    return out

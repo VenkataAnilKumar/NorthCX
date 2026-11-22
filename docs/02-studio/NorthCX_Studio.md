@@ -90,3 +90,7 @@ Every edit is versioned and revertible; publish requires passing required simula
 ### Open
 Visual flow editor vs instruction-first editing (a visual editor for automations is planned, E14). Build vs adopt is settled: the Studio was built.
 
+
+
+## Guided setup (Build, Guided setup)
+A page that walks one agent through: choose the agent (or start from a template or your own material), connect tools from the catalogue (only the tools that fit the agent's audience; a tool that changes things starts out needing a person's OK), write the procedures, read a plain summary of what the agent will do (made from the definition by `northcx/plain.py`, no model), and save a version, then go to the tests and release page. Exactly one step is "next" at a time and a step cannot be skipped; problems are shown in plain words in place of the summary. The full editor stays available as Advanced. See `NorthCX_Guided-Studio.md`.

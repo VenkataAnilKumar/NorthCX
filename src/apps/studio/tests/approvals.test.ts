@@ -28,4 +28,7 @@ describe("setAlways and unguarded", () => {
     expect(unguarded({ tools: ["issue_refund", "lookup_order"], always: [] }, catalog)).toEqual(["issue_refund"]);
     expect(unguarded({ tools: ["issue_refund", "lookup_order"], always: ["issue_refund"] }, catalog)).toEqual([]);
   });
+  it("does not warn about a tool that has a rule of its own", () => {
+    expect(unguarded({ tools: ["issue_refund"], always: [] }, [{ name: "issue_refund", effect: "write", approval: true }])).toEqual([]);
+  });
 });

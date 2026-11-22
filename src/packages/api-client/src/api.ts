@@ -277,14 +277,14 @@ export const searchConversations = (p: { q?: string; status?: string; tag?: stri
 export const addTag = (sessionId: string, tag: string) => api<{ tags: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/tags/${encodeURIComponent(tag)}`, { method: "PUT" });
 export const removeTag = (sessionId: string, tag: string) => api<{ tags: string[] }>(`/v1/sessions/${encodeURIComponent(sessionId)}/tags/${encodeURIComponent(tag)}`, { method: "DELETE" });
 
-export interface CatalogTool { name: string; description: string; effect: "read" | "write"; source: string; connection: string | null; fingerprint: string; approval: boolean; inputs: string[] }
+export interface CatalogTool { name: string; description: string; effect: "read" | "write"; audience: "customer" | "staff"; source: string; connection: string | null; fingerprint: string; approval: boolean; inputs: string[] }
 export interface Catalog {
   tools: CatalogTool[]; guardrails: { name: string; description: string; example: Record<string, unknown> | null }[];
   inputGuardrails: { name: string }[]; outputGuardrails: { name: string }[];
   skills: { name: string; description: string; steps: string[]; tools: string[] }[]; flexibility: string[];
 }
 export interface SpecPreview {
-  valid: boolean; problems: string[]; digest?: string; unchangedSinceLatest?: boolean;
+  valid: boolean; problems: string[]; digest?: string; unchangedSinceLatest?: boolean; summary?: string[];
   diffFromLive?: { identical: boolean; instructions: string | null; tools: { added: string[]; removed: string[] }; other: Record<string, unknown> } | null;
 }
 export const getCatalog = () => api<Catalog>("/v1/catalog");

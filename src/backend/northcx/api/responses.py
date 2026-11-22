@@ -243,6 +243,7 @@ class VersionPreview(Response):
     digest: str | None = None
     unchangedSinceLatest: bool | None = None
     diffFromLive: dict[str, Any] | None = None
+    summary: list[str] = []  # what the agent will do, in plain sentences
 
 
 class VersionDiff(Response):
