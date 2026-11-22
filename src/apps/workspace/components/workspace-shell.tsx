@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { listApprovals, listHandoffs, listShadowDrafts, useLoad, useMe } from "@northcx/api-client";
+import { useEffect } from "react";
+import { WORK_CHANGED, listApprovals, listHandoffs, listShadowDrafts, useLoad, useMe } from "@northcx/api-client";
 import { AppShell, type NavItem } from "@northcx/ui";
 
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? "http://localhost:3001";
@@ -15,6 +16,11 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   }, []);
   const reviewsDrafts = can("shadow:review");
   const drafts = useLoad(async () => { try { return reviewsDrafts ? (await listShadowDrafts("pending")).length : 0; } catch { return 0; } }, [reviewsDrafts]);
+  useEffect(() => {  // a decision made on a page changes the waiting counts in the menu
+    const again = () => { waiting.reload(); drafts.reload(); };
+    window.addEventListener(WORK_CHANGED, again);
+    return () => window.removeEventListener(WORK_CHANGED, again);
+  }, [waiting.reload, drafts.reload]);
   const lead = can("reviews:write") || can("insights:read"); // Team is for leads and reviewers only
   const nav: NavItem[] = [
     { href: "/", label: "Home", icon: "Home" },

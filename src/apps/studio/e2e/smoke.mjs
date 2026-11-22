@@ -166,7 +166,8 @@ for (const [verb, order, done] of [["Approve", "2077", /Approved by/], ["Reject"
   await page.getByRole("button", { name: "Send" }).click();
   const card = page.getByRole("group", { name: "Approval: issue refund" });
   await card.waitFor();
-  check((await card.innerText()).includes(`order_id ${order}, amount 240`), `console: held refund for ${order} shows what it would do`);
+  const shown = await card.innerText();   // the database may return the inputs in a different order
+  check(shown.includes(`order_id ${order}`) && shown.includes("amount 240"), `console: held refund for ${order} shows what it would do`);
   check((await page.getByRole("list", { name: "What happened, in words" }).innerText()).includes("Held issue refund for a person"), "console: the trace is shown in words");
   await page.getByRole("button", { name: new RegExp(`^${verb} `) }).click();
   await page.getByText(done).waitFor();

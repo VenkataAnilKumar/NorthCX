@@ -12,5 +12,8 @@
     "build": "npm run build -w @northcx/studio && npm run build -w @northcx/workspace",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
   }
 }

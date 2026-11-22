@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { decideApproval, listApprovals, useLoad, useMe, type Approval } from "@northcx/api-client";
+import { announceWorkChanged, decideApproval, listApprovals, useLoad, useMe, type Approval } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader, StatusBadge } from "@northcx/ui";
 
 function Card({ a, onDone }: { a: Approval; onDone: () => void }) {
@@ -8,7 +8,7 @@ function Card({ a, onDone }: { a: Approval; onDone: () => void }) {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const decide = async (ok: boolean) => { setBusy(true); setErr(null); try { await decideApproval(a.id, ok, askForName ? undefined : me?.name, note || undefined); onDone(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); } };
+  const decide = async (ok: boolean) => { setBusy(true); setErr(null); try { await decideApproval(a.id, ok, askForName ? undefined : me?.name, note || undefined); announceWorkChanged(); onDone(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); } };
   return (
     <GlassCard title={a.tool} action={<StatusBadge status={a.state} />}>
       <p className="text-sm">{a.reason}</p>

@@ -277,7 +277,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
                 elif res.error:
                     yield agui.sse(agui.error(res.error, "follow_up_failed"))
                     return
-            result = {"status": last.status, "traceId": last.trace_id, "handoffId": last.handoff_id} if last else {"status": "decided"}
+            result = {"status": last.status, "traceId": last.trace_id, "handoffId": last.handoff_id, "choices": last.choices} if last else {"status": "decided", "choices": []}
             yield agui.sse(agui.finished(body.thread_id, body.run_id, last.pending_approvals if last else [], result))
 
         return StreamingResponse(events(), media_type="text/event-stream", headers=headers)

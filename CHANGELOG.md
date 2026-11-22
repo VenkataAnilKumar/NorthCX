@@ -4,6 +4,12 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Fixed (2026-11-22)
+- CI now runs the Studio, Workspace and chat-widget browser tests (Playwright, pinned at 1.63.0, a dev-only dependency) against the Postgres-backed stack in the `stack` job. Earlier notes said CI ran them; it did not. One Studio test assumed an input key order that Postgres does not keep; it no longer does.
+- An approval or a shadow-mode draft that came from a staging or dev conversation is resolved against the agent of that environment, and the follow-up run stays in it (before, always production).
+- The AG-UI resume run's final event carries `choices` like a message run's.
+- The Workspace menu's waiting counts (Approvals, Drafts) update after a decision, without a reload.
+
 ### Added (Phase 3, WP 3.6b, 2026-11-20)
 - The chat widget shows the options an agent offered (`choices` in the reply) as buttons under the reply. Choosing one sends its words like a typed message; typing instead clears them. The widget bundle grew from 12,710 to 13,294 bytes (5,199 gzipped); a new test keeps it at or under 16,384 bytes.
 

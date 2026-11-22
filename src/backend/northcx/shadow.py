@@ -165,13 +165,15 @@ class ShadowFlow:
 
     async def _check_edit(self, agents: Any, d: ShadowDraft, final: str) -> None:
         """A person's edit is customer-facing text: it meets the agent's reply checks like the agent's own would."""
+        trace = await self.rt.traces.get(d.trace_id)
+        environment = (trace.environment if trace is not None else None) or "production"  # a draft from a staging test is checked against the staging agent
         try:
-            agent = await as_provider(agents).get(d.agent_id, "production", d.session_id)
+            agent = await as_provider(agents).get(d.agent_id, environment, d.session_id)
         except AgentUnavailable as e:
             raise ShadowError(409, f"The agent is not available, so an edit cannot be checked ({e}). Send the draft or try again later") from None
         if agent is None:
             raise ShadowError(409, "The agent no longer exists, so an edit cannot be checked. Send the draft or reject it")
-        trace = await self.rt.traces.get(d.trace_id) or Trace(d.agent_id, d.session_id)
+        trace = trace or Trace(d.agent_id, d.session_id)
         blocked = await self.rt._check(agent, "reply", final, d.session_id, await self.rt.store.load_messages(d.session_id), trace,
                                        {"customer_id": d.customer_id, "facts": {}, "channel": None})
         if blocked:

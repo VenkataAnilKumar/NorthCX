@@ -322,3 +322,28 @@ async def test_postgres_export_and_erasure_cover_the_drafts_of_a_conversation(en
     assert [d["draft"] for d in (await privacy.export_session("s1"))["shadow_drafts"]] == ["Private draft text."]
     assert (await privacy.erase_session("s1"))["shadow_drafts"] == 1
     assert [d.session_id for d in await drafts_.list()] == ["s2"]
+
+
+class Recording:
+    """An agent provider that remembers which environment each lookup asked for."""
+
+    def __init__(self, agent):
+        self.agent, self.asked = agent, []
+
+    async def get(self, agent_id, environment="production", session_id=None):
+        self.asked.append(environment)
+        return self.agent
+
+    async def all(self):
+        return [self.agent]
+
+
+def test_a_draft_from_a_staging_conversation_is_checked_against_the_staging_agent():
+    prov = Recording(shadow_agent())
+    rt = Runtime(ScriptedLLM([text("Draft.")]), InMemoryStore(), TraceStore())
+    c = TestClient(create_app(rt, rt.traces, prov, access=AccessControl(bootstrap_key=KEY)))
+    c.post("/v1/agents/support/chat", json={"sessionId": "st", "message": "hi", "environment": "staging"}, headers=H())
+    did = drafts(c)[0]["id"]
+    prov.asked.clear()
+    assert decide(c, did, "edit", text="A better draft.").status_code == 200
+    assert prov.asked == ["staging"]                                                       # not "production"
