@@ -1,6 +1,7 @@
 "use client";
 import { type Catalog, getCatalog, getLive, listAgents, previewSpec, releaseToEnvironment, saveSpec, type SpecPreview, useLoad, useMe } from "@northcx/api-client";
 import { ToolPicker } from "@/components/tool-picker";
+import { ModelPicker } from "@/components/model-picker";
 import { JourneyEditor } from "@/components/journey-editor";
 import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
@@ -104,7 +105,7 @@ function Editor({ id, initial, catalog }: { id: string; initial: Spec; catalog: 
         </Section>
         <Section title="Model and limits">
           <div className="grid gap-3 sm:grid-cols-3">
-            <label className="text-sm">Model<input value={spec.model ?? ""} onChange={(e) => set("model", e.target.value)} placeholder="default" className={input} /></label>
+            <ModelPicker agentId={id} value={spec.model ?? ""} onChange={(v) => set("model", v)} className={input} />
             <label className="text-sm">Most steps per message<input type="number" min={1} max={50} value={spec.max_steps ?? 8} onChange={(e) => set("max_steps", Number(e.target.value))} className={input} /></label>
             <label className="text-sm">Token limit per message<input type="number" min={1000} value={spec.max_run_tokens ?? ""} onChange={(e) => set("max_run_tokens", e.target.value ? Number(e.target.value) : "")} placeholder="none" className={input} /></label>
           </div>
