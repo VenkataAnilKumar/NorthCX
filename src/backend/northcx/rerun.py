@@ -28,11 +28,19 @@ def original_reply(messages: list[dict[str, Any]], index: int) -> str | None:
     return said[-1] if said else None
 
 
+async def sandbox_run(runtime: Runtime, agent: Any, resolver: Any, history: list[dict[str, Any]], message: str) -> dict[str, Any]:
+    """Answer `message` after `history` in a throwaway runtime: its own stores, simulated writes, no delivery. The real model is used and the
+    daily budget counts it. Nothing is saved anywhere else."""
+    sandbox = Runtime(runtime.llm, InMemoryStore(), TraceStore(), ApprovalStore(), Outbox(), InMemoryHandoffs(), secrets=runtime.secrets, dry_run=True, ledger=runtime.ledger)
+    sandbox.agent_resolver = resolver
+    session = "sandbox"
+    await sandbox.store.save_messages(session, [dict(m) for m in history])
+    result = await sandbox.run(agent, session, message, None)
+    return {"message": message, "reply": result.reply, "status": result.status, "toolsCalled": result.trace.tools_called(), "events": result.trace.to_dict()["events"], "trace": result.trace}
+
+
 async def rerun(runtime: Runtime, agent: Any, resolver: Any, messages: list[dict[str, Any]], index: int, message: str) -> dict[str, Any]:
     """Answer `message` in place of the customer message at `index`, after the conversation that came before it."""
-    sandbox = Runtime(runtime.llm, InMemoryStore(), TraceStore(), ApprovalStore(), Outbox(), InMemoryHandoffs(), secrets=runtime.secrets, dry_run=True, ledger=runtime.ledger)  # a rerun uses the real model, so it counts against the daily budget
-    sandbox.agent_resolver = resolver
-    session = "rerun"
-    await sandbox.store.save_messages(session, [dict(m) for m in messages[:index]])
-    result = await sandbox.run(agent, session, message, None)
-    return {"message": message, "reply": result.reply, "status": result.status, "toolsCalled": result.trace.tools_called(), "events": result.trace.to_dict()["events"]}
+    out = await sandbox_run(runtime, agent, resolver, messages[:index], message)
+    out.pop("trace")
+    return out

@@ -668,3 +668,7 @@ export const rerunTurn = (sessionId: string, turn: number, message: string) =>
 /** Pages tell the menu that something waiting for a person was decided, so its counts update without a reload. */
 export const WORK_CHANGED = "northcx:work-changed";
 export const announceWorkChanged = () => { if (typeof window !== "undefined") window.dispatchEvent(new Event(WORK_CHANGED)); };
+
+export interface Tried { agent: string; sandbox: true; message: string; reply: string; status: Status; toolsCalled: string[]; events: TraceEvent[]; testYaml: string | null; testWarnings: string[]; note: string }
+export const tryDraft = (agent: string, spec: unknown, message: string, history: { role: "user" | "assistant"; text: string }[]) =>
+  api<Tried>(`/v1/agents/${encodeURIComponent(agent)}/try`, { method: "POST", body: JSON.stringify({ spec, message, history }) });

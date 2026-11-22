@@ -6,7 +6,7 @@ import Guided from "../app/guided/page";
 let query = "agent=support";
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(query), useRouter: () => ({ push }) }));
-vi.mock("@northcx/api-client", async (orig) => ({ ...(await orig<typeof client>()), getLive: vi.fn(), getCatalog: vi.fn(), previewSpec: vi.fn(), saveSpec: vi.fn(), listAgents: vi.fn(), useMe: vi.fn() }));
+vi.mock("@northcx/api-client", async (orig) => ({ ...(await orig<typeof client>()), getLive: vi.fn(), getCatalog: vi.fn(), previewSpec: vi.fn(), saveSpec: vi.fn(), tryDraft: vi.fn(), createScenario: vi.fn(), listAgents: vi.fn(), useMe: vi.fn() }));
 const api = vi.mocked(client);
 
 const catalog = { tools: [
@@ -21,6 +21,8 @@ function setup(spec: Record<string, unknown> = { id: "support", instructions: ""
   api.getCatalog.mockResolvedValue(catalog);
   api.previewSpec.mockImplementation(async (_id, s) => valid([`This agent answers customers.`, `Tools: ${(s as { tools?: string[] }).tools?.join(", ") ?? "none"}`]));
   api.saveSpec.mockResolvedValue({ number: 4 } as never);
+  api.tryDraft.mockResolvedValue({ agent: "support", sandbox: true, message: "hi", reply: "Hello! How can I help?", status: "completed", toolsCalled: [], events: [{ t: 1, type: "reply", data: { reply: "Hello! How can I help?", status: "completed" } }], testYaml: "name: t1\nagent: support\n", testWarnings: [], note: "n" });
+  api.createScenario.mockResolvedValue({ name: "support-try-1", revision: 1 } as never);
   render(<Guided />);
 }
 const step = (n: number) => within(screen.getByRole("list", { name: "Steps" })).getAllByRole("listitem")[n - 1];
@@ -50,6 +52,7 @@ describe("guided setup", () => {
     fireEvent.change(screen.getByLabelText("Instructions"), { target: { value: "Help customers with their orders." } });
     await waitFor(() => expect(step(5).getAttribute("aria-current")).toBe("step"));
     expect(within(step(4)).getByText("Done")).toBeTruthy();
+    expect(within(step(6)).getByText("Waiting")).toBeTruthy();                     // saving waits until the draft has been tried
   });
 
   it("offers a customer agent only customer tools and a staff agent only staff tools", async () => {
@@ -84,6 +87,9 @@ describe("guided setup", () => {
   it("saves a version and points to the tests and release, and asks for a new save after a change", async () => {
     setup({ id: "support", instructions: "Help." });
     fireEvent.click(await screen.findByLabelText("This agent does not need any tools"));
+    fireEvent.change(await screen.findByLabelText("A customer message to try"), { target: { value: "hi" } });
+    fireEvent.click(screen.getByRole("button", { name: "Try it" }));
+    expect(await screen.findByText("Hello! How can I help?")).toBeTruthy();
     const save = await screen.findByRole("button", { name: "Save a version" });
     await waitFor(() => expect((save as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(save);
@@ -91,6 +97,32 @@ describe("guided setup", () => {
     expect(screen.getByRole("link", { name: /Run its tests and release it/ }).getAttribute("href")).toBe("/agents/support");
     fireEvent.change(screen.getByLabelText("Instructions"), { target: { value: "Help, kindly." } });
     expect(screen.queryByRole("link", { name: /Run its tests and release it/ })).toBeNull();
+  });
+
+  it("tries the draft with the conversation so far, shows the steps, and saves the exchange as a test", async () => {
+    setup({ id: "support", instructions: "Help." });
+    fireEvent.click(await screen.findByLabelText("This agent does not need any tools"));
+    const box = await screen.findByLabelText("A customer message to try");
+    fireEvent.change(box, { target: { value: "hi" } });
+    fireEvent.click(screen.getByRole("button", { name: "Try it" }));
+    await screen.findByText("Hello! How can I help?");
+    expect(api.tryDraft).toHaveBeenLastCalledWith("support", expect.objectContaining({ id: "support" }), "hi", []);
+    fireEvent.change(screen.getByLabelText("A customer message to try"), { target: { value: "and a refund?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Try it" }));
+    await waitFor(() => expect(api.tryDraft).toHaveBeenLastCalledWith("support", expect.anything(), "and a refund?", [{ role: "user", text: "hi" }, { role: "assistant", text: "Hello! How can I help?" }]));
+    fireEvent.click(await screen.findByRole("button", { name: "Save this exchange as a test" }));
+    await waitFor(() => expect(api.createScenario).toHaveBeenCalledWith({ yaml: "name: t1\nagent: support\n" }));
+    expect((await screen.findByRole("link", { name: "support-try-1" })).getAttribute("href")).toBe("/simulations/scenarios/support-try-1");
+  });
+
+  it("shows why a try was refused and keeps what was typed", async () => {
+    setup({ id: "support", instructions: "Help." });
+    api.tryDraft.mockRejectedValue(new client.ApiError(400, "The tool 'nope' does not exist here. Pick one from the list or remove it."));
+    fireEvent.click(await screen.findByLabelText("This agent does not need any tools"));
+    fireEvent.change(await screen.findByLabelText("A customer message to try"), { target: { value: "hi" } });
+    fireEvent.click(screen.getByRole("button", { name: "Try it" }));
+    expect(await screen.findByText(/does not exist here/)).toBeTruthy();
+    expect((screen.getByLabelText("A customer message to try") as HTMLInputElement).value).toBe("hi");
   });
 
   it("lets someone who may not change agents look but not save", async () => {

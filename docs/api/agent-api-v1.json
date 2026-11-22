@@ -4023,6 +4023,66 @@
         }
       }
     },
+    "POST /v1/agents/{agent_id}/try": {
+      "permission": "simulations:run",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "spec": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string",
+              "maxLength": 8000,
+              "minLength": 1
+            },
+            "history": {
+              "items": {
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "user",
+                      "assistant"
+                    ]
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 8000,
+                    "minLength": 1
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "role",
+                  "text"
+                ]
+              },
+              "type": "array",
+              "maxItems": 40
+            }
+          },
+          "type": "object",
+          "required": [
+            "spec",
+            "message"
+          ]
+        }
+      },
+      "responses": {}
+    },
     "POST /v1/agents/{agent_id}/versions": {
       "permission": "versions:create",
       "parameters": [

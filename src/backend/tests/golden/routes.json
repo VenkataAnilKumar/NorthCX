@@ -168,6 +168,7 @@
   "POST /v1/agents/x/rollouts": "/v1/agents/{agent_id}/rollouts -> start_rollout",
   "POST /v1/agents/x/rollouts/x/abort": "/v1/agents/{agent_id}/rollouts/{rollout_id}/abort -> rollout_abort",
   "POST /v1/agents/x/rollouts/x/promote": "/v1/agents/{agent_id}/rollouts/{rollout_id}/promote -> rollout_promote",
+  "POST /v1/agents/x/try": "/v1/agents/{agent_id}/try -> try_draft",
   "POST /v1/agents/x/versions": "/v1/agents/{agent_id}/versions -> create_version",
   "POST /v1/agents/x/versions/preview": "/v1/agents/{agent_id}/versions/preview -> preview_version",
   "POST /v1/alerts/test": "/v1/alerts/test -> alert_test",
@@ -1129,6 +1130,11 @@
    "POST",
    "/v1/agents/{agent_id}/rollouts/{rollout_id}/promote",
    "rollout_promote"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/try",
+   "try_draft"
   ],
   [
    "POST",

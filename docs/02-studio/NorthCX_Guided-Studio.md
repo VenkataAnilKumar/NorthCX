@@ -1,6 +1,6 @@
 # Guided Studio: Phase 4 design
 
-Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4) and WP 4.1 (R1, R2) are built**; the rest is not. Steps 1 to 5 of the guided page exist (choose, connect, procedures, what it will do, save); the "try it" step arrives with WP 4.3. Plan: `../12-project/NorthCX_Agent-Platform-Plan.md`, Phase 4. Design source: `../00-platform/NorthCX_Agent-Platform-Design.md`, section 7.
+Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4), WP 4.1 (R1, R2) and WP 4.3 (R5, R6) are built**; the rest is not. The guided page has six steps: choose, connect, procedures, what it will do, try it, save. Plan: `../12-project/NorthCX_Agent-Platform-Plan.md`, Phase 4. Design source: `../00-platform/NorthCX_Agent-Platform-Design.md`, section 7.
 
 **Who it is for.** A CX lead or operations person who has never written YAML. They should be able to go from "I want an order-status agent" to a live, tested agent, and always see in plain words what the agent can do and what needs a person.
 
@@ -57,6 +57,11 @@ Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4) and WP 4.1 (R1, R2) 
 | 6 | 4.6 | R9 | Qualification results exist from the model pass (blocked), so "passed" can only show scripted results until then |
 | 7 | 4.7 | R10 | 4.1 to 4.3 proven |
 | 8 | 4.8 | R11: the usability gate script and the session | A real CX lead |
+
+## Built: trying a draft and saving a test (WP 4.3)
+- `POST /v1/agents/{id}/try` (permission `simulations:run`): a definition that is not saved, one message and the conversation so far (`history`, alternating, starting with the customer). The definition is checked first and refused in plain words if it has problems. The message is answered in the same sandbox as the rerun (`northcx/rerun.py`, `sandbox_run`): its own stores, every write simulated, the real model, counted against the daily budget; nothing is saved or sent. The answer comes with the steps (trace events) and, when there is one, a test (`testYaml`) made from the exchange with a name that is new each time.
+- Guided page, step 5 "Try it": a small conversation beside the page; each answer has "What happened" in words and "Save this exchange as a test" (the latest exchange only: the test replays that message and answer, without the earlier turns). Changing the draft means trying it again before saving.
+- Conversations: **Save as a test** on every conversation turns the stored conversation into a scenario through the existing draft route (`scenario-draft`) and `POST /v1/simulations/scenarios`. A saved test is not required, so it never blocks a release until someone marks it required.
 
 ## Decision 208
 The guided path is a screen over the existing engines, with two additions the author cannot do today: a spec-level way to require approval, and plain-language checks. It does not add a second definition format, a workflow engine or a store. Order status and refunds already ship as templates, so WP 4.4 is a test, not a build.

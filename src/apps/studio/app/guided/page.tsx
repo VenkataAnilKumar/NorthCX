@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { type Catalog, getCatalog, getLive, listAgents, previewSpec, saveSpec, type SpecPreview, useLoad, useMe } from "@northcx/api-client";
 import { Empty, ErrorBox, Loading, PageHeader } from "@northcx/ui";
 import { ToolPicker } from "@/components/tool-picker";
+import { TryPanel } from "@/components/try-panel";
 import { guidedSteps, type StepState } from "@/lib/guided";
 
 type Spec = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -39,6 +40,7 @@ function Guide({ id, initial, catalog }: { id: string; initial: Spec; catalog: C
   const [noTools, setNoTools] = useState(false);
   const [preview, setPreview] = useState<SpecPreview | null>(null);
   const [saved, setSaved] = useState<number | null>(null);
+  const [tried, setTried] = useState(false);
   const [changed, setChanged] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [by, setBy] = useState("dev");
@@ -46,7 +48,7 @@ function Guide({ id, initial, catalog }: { id: string; initial: Spec; catalog: C
   const editable = can("versions:create");
   const tools: string[] = spec.tools ?? [];
   const always: string[] = spec.approvals?.always ?? [];
-  const change = (n: Spec) => { setSpec(n); setChanged(true); setMsg(null); };
+  const change = (n: Spec) => { setSpec(n); setChanged(true); setTried(false); setMsg(null); };  // a changed draft is tried again
   const pick = (c: { tools: string[]; always: string[] }) => {
     const n: Spec = { ...spec, tools: c.tools };
     if (!c.tools.length) delete n.tools;
@@ -67,11 +69,11 @@ function Guide({ id, initial, catalog }: { id: string; initial: Spec; catalog: C
     catch (e) { setMsg((e as Error).message); }
   }
 
-  const steps = guidedSteps({ agent: id, tools: tools.length, noTools, instructions: String(spec.instructions ?? ""), valid: preview ? preview.valid : null, problems: preview?.problems.length ?? 0, saved, changed });
+  const steps = guidedSteps({ agent: id, tools: tools.length, noTools, instructions: String(spec.instructions ?? ""), valid: preview ? preview.valid : null, problems: preview?.problems.length ?? 0, tried, saved, changed });
   const state = (k: string) => steps.find((s) => s.key === k)!.state;
   return (
     <div className="space-y-4">
-      <ol aria-label="Steps" className="grid gap-2 sm:grid-cols-5">
+      <ol aria-label="Steps" className="grid gap-2 sm:grid-cols-6">
         {steps.map((s, i) => (
           <li key={s.key} aria-current={s.state === "next" ? "step" : undefined} className={`rounded-lg border p-2 text-xs ${s.state === "next" ? "border-primary" : "border-border"}`}>
             <span className={`rounded px-1.5 py-0.5 font-medium ${PILL[s.state]}`}>{PILL_TEXT[s.state]}</span>
@@ -103,8 +105,10 @@ function Guide({ id, initial, catalog }: { id: string; initial: Spec; catalog: C
           : <ul className="list-disc space-y-1 pl-5 text-sm">{(preview.summary ?? []).map((s) => <li key={s}>{s}</li>)}</ul>}
       </section>
 
+      <TryPanel agent={id} spec={spec} ready={state("summary") === "done"} onTried={() => setTried(true)} />
+
       <section aria-label="Save and release" className={card}>
-        <h2 className="font-medium">Step 5: Save it and get it ready to release</h2>
+        <h2 className="font-medium">Step 6: Save it and get it ready to release</h2>
         {askForName && <label className="mt-2 block text-sm">Your name<input className="field mt-1" value={by} onChange={(e) => setBy(e.target.value)} /></label>}
         <button className="btn btn-primary mt-2" disabled={!editable || state("save") === "blocked" || (saved !== null && !changed) || preview?.unchangedSinceLatest === true} onClick={save}>Save a version</button>
         {preview?.unchangedSinceLatest && saved === null && <p className="mt-1 text-xs text-muted">Nothing has changed since the latest saved version.</p>}

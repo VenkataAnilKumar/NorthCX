@@ -210,12 +210,27 @@ for (const [verb, order, done] of [["Approve", "2077", /Approved by/], ["Reject"
   const summary = page.getByRole("region", { name: "What this agent will do" });
   await summary.getByText("This agent answers customers.").waitFor();
   check((await summary.innerText()).includes("It can look up:"), "guided: the plain summary says what the agent can do");
+  await page.getByLabel("A customer message to try").fill("where is order 1042?");
+  await page.getByRole("button", { name: "Try it", exact: true }).click();
+  const tried = page.getByRole("region", { name: "Try it" });
+  await tried.getByText(/delivered/).first().waitFor();
+  check(true, "guided: the unsaved draft answers a customer message");
+  await tried.getByRole("button", { name: "Save this exchange as a test" }).click();
+  await tried.getByRole("status").filter({ hasText: "Saved as the test" }).waitFor();
+  check(true, "guided: the exchange is saved as a test in one click");
   const save = page.getByRole("button", { name: "Save a version" });
   await page.waitForFunction(() => { const b = [...document.querySelectorAll("button")].find((x) => x.textContent === "Save a version"); return b && !b.disabled; });
   await save.click();
   await page.getByRole("status").filter({ hasText: "Saved as version" }).waitFor();
   check((await page.getByRole("link", { name: /Run its tests and release it/ }).getAttribute("href")) === "/agents/support", "guided: a version is saved and the page points to the tests and release");
 }
+
+// conversations: a real conversation becomes a test in one click
+await page.goto(`${WEB}/conversations`);
+await page.getByRole("button", { name: "Save as a test" }).first().waitFor();
+await page.getByRole("button", { name: "Save as a test" }).first().click();
+await page.getByRole("status").filter({ hasText: "Saved as the test" }).first().waitFor();
+check(true, "conversations: a conversation is saved as a test in one click");
 
 // the other main pages load without a client error
 for (const p of ["/hub", "/preferences", "/profile", "/", "/conversations", "/simulations", "/knowledge", "/handoffs", "/approvals", "/agents", "/access", "/chat", "/trust", "/org", "/channels", "/memory", "/privacy"]) {

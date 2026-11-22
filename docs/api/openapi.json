@@ -1900,6 +1900,60 @@
         ]
       }
     },
+    "/v1/agents/{agent_id}/try": {
+      "post": {
+        "summary": "Try Draft",
+        "description": "Try an agent definition that has not been saved: answer one message (after the conversation so far) in a sandbox, with the steps,\nand a test that could be saved from the exchange. Nothing is saved, sent or run for real.",
+        "operationId": "try_draft_v1_agents__agent_id__try_post",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TryBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Try Draft V1 Agents  Agent Id  Try Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "simulations:run",
+        "tags": [
+          "agents"
+        ]
+      }
+    },
     "/v1/agents/{agent_id}/versions": {
       "post": {
         "summary": "Create Version",
@@ -18200,6 +18254,59 @@
           "review"
         ],
         "title": "Transcript"
+      },
+      "TryBody": {
+        "properties": {
+          "spec": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Spec"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/TryTurn"
+            },
+            "type": "array",
+            "maxItems": 40,
+            "title": "History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "spec",
+          "message"
+        ],
+        "title": "TryBody"
+      },
+      "TryTurn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "text"
+        ],
+        "title": "TryTurn"
       },
       "ValidationError": {
         "properties": {
