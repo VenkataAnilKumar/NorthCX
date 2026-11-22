@@ -4,9 +4,10 @@ Status: **Built**. Updated: 2026-11-09. Master for: deployment and every setting
 
 ## Quick start with containers
 ```bash
-cp .env.example .env        # set NORTHCX_DB_PASSWORD, NORTHCX_API_KEY, and ANTHROPIC_API_KEY (or NORTHCX_DEMO=1)
+python3 scripts/setup.py             # asks which model, then writes .env with a generated database password, admin key and token secret
 docker compose up -d --build --wait
 ```
+`scripts/setup.py` uses only the Python standard library. Flags: `--demo` (the offline demo model), `--anthropic-key KEY`, `--local-model-url URL --local-model NAME` (writes `config/providers.yaml`, which the compose file mounts at `/config`; use `http://host.docker.internal:<port>/v1` for a server on this machine), `--connector-hosts a.example,b.example`, `--non-interactive`, `--force` (replaces an existing `.env` and keeps the old one), and `--check` (says what is wrong with an existing `.env`). It never overwrites a `.env` without `--force` and never prints a secret. To set things by hand instead: `cp .env.example .env` and fill in the REQUIRED values.
 This builds the backend, Admin console and Workspace images, starts Postgres, applies the database migrations, and waits until all four services are healthy. The Admin console is at http://localhost:3001, the staff Workspace at http://localhost:3002 and the API at http://localhost:3000, all bound to 127.0.0.1. Sign in on the console's Settings page with `NORTHCX_API_KEY`, then create named keys on the Access page. Data lives in the `northcx-pg` volume and survives `docker compose down` (use `down -v` to delete it).
 
 What the stack contains: **postgres** (16, with a health check), **backend** (Python, non-root, `/health` for liveness and `/ready` for readiness, which checks the database), and **web** (Next.js standalone server, non-root). The web console reaches the backend through a same-origin proxy whose address is fixed at image build time (`NORTHCX_API_URL`, default `http://backend:3000`); rebuild the web image if the backend moves.

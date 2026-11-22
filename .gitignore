@@ -1,6 +1,8 @@
 node_modules
 dist
 .env
+.env.bak-*
+/config/
 traces
 __pycache__
 .venv
