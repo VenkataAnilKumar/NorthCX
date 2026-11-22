@@ -80,14 +80,15 @@ Stages 1 to 4 are written in `../04-integrations/NorthCX_MCP-Integration.md` (re
 | 4.8 | The usability gate | A CX lead releases a template agent unaided, timed and observed | A real CX lead |
 
 ### Phase 5: Automations (M)
+Stages 1 to 4 are written in `../03-automations/NorthCX_Automations-Platform.md` (requirements A1 to A15, the design, the order 5.1 to 5.6).
 | WP | Work | Exit check |
 |---|---|---|
-| 5.1 | A `tool` step through the gateway (a write needs an earlier person step) | Validation tests |
+| 5.1 | A `tool` step through the gateway (a write needs an earlier person step on every path) | Validation tests |
 | 5.2 | `branch` (a small, total expression language) and a bounded `foreach` | Limit tests |
-| 5.3 | Triggers from connector events | An event starts a routine exactly once |
-| 5.4 | A scheduled routine that runs the live agent's simulations and alerts | A deliberately broken agent raises an alert |
-| 5.5 | Quality criteria in plain language, judged by a model, with the deterministic rubric as the baseline | Marked unverified until a judge is calibrated |
-| 5.6 | The canvas on the graph editor once Studio's is proven | Round-trip tests |
+| 5.3 | Exactly-once webhook delivery by event id, and a condition on webhook and event triggers (connector-registered triggers are not built, see the design) | The same delivery starts a routine once |
+| 5.4 | `simulate` and `alert` steps: a scheduled routine runs the live agent's scenarios and alerts | A deliberately broken agent raises an alert |
+| 5.5 | `criteria` step: quality criteria in plain language, judged by a model, with the deterministic report as the baseline | Marked unverified until a judge is calibrated |
+| 5.6 | The canvas edits the new kinds | Round-trip tests |
 
 ### Phase 6: Operator experience (M)
 Can start any time after Phase 1.
@@ -173,7 +174,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 4.8 usability gate | Script written, **blocked** | `docs/02-studio/NorthCX_Usability-Gate.md`: task, five prompts, what is recorded, a proposed pass rule. Needs a real CX lead who has not used the product; not run, no time or result claimed. Phase 4 is complete apart from this gate and the real-model parts of 4.4 and 4.6 | A real CX lead |
 | Phase 4 stage 6, review (2026-11-22) | Done | Read the whole Phase 4 diff (32 files, about 1,000 lines) against the quality bar. Checked: no TODO or stub text; no unused new function, type or export; no vague words; every new endpoint writes an audit entry (`agent.try`, `agent.compare`, `session.rerun`); no new dependency. Found and fixed: tier names written twice (models page and picker, now one), four types exported but used only in their own file. Screenshots of the editor (model list, journey graph) and the guided page showed no layout defect | |
 | Phase 4 stage 7, test (2026-11-22) | Done, with limits | Backend 1988 passed, 7 skipped (Postgres, `NORTHCX_REQUIRE_DB=1`; the 9 pgvector tests need an extension not installed here and run in CI); Studio 122 and Workspace 208 unit tests; typecheck; Studio browser smoke on a fresh Postgres database, now with steps for guided setup, try, compare, releases, the model list and the graph; all 7 CI checks green on every Phase 4 pull request. Not done: any run with a real model, and the usability gate (4.8) | |
-| Phases 5 to 7 | Not started | |
+| Phase 5 stages 1 to 4 | Done | `docs/03-automations/NorthCX_Automations-Platform.md`: what exists, fifteen requirements with checks, the design (steps, condition language, approval rule over paths), architecture, order. Finding that narrows the plan: no connector in this repository emits events, so "connector event triggers" become exactly-once signed webhooks with a condition | |
+| Phases 5 (implementation) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.
