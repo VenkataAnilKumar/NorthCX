@@ -3,7 +3,7 @@
 
 export type StepKind = "report" | "assistant" | "person" | "tag" | "notify" | "output";
 export interface Step { id: string; kind: StepKind | string; [field: string]: unknown }
-export interface Trigger { type: string; everyHours?: number; event?: string }
+export interface Trigger { type: string; everyHours?: number; event?: string; when?: string }
 export interface Definition { id?: string; name?: string; description?: string; trigger: Trigger; steps: Step[]; limits?: { maxSeconds?: number }; [extra: string]: unknown }
 
 export interface GraphNode { id: string; type: "trigger" | "step"; kind: string; data: Record<string, unknown> }
@@ -45,6 +45,7 @@ export function fromGraph(g: Graph): Definition {
 
 export const KIND_LABEL: Record<string, string> = {
   report: "Get figures", assistant: "Ask an assistant", person: "Ask a person", tag: "Tag the conversation", notify: "Send out", output: "Save to Outputs",
+  tool: "Call a tool", branch: "Check a condition", foreach: "Do for each item", simulate: "Check an agent", criteria: "Judge conversations", alert: "Raise an alert",
   manual: "Starts by hand", schedule: "Starts on a schedule", webhook: "Starts by webhook", event: "Starts on an event",
 };
 
@@ -58,6 +59,12 @@ export function summary(kind: string, d: Record<string, unknown>): string {
     case "tag": return s(d.tag) ? `auto-${s(d.tag)}` : "name the tag";
     case "notify": return s(d.to) ? `to ${s(d.to)}` : "choose a destination";
     case "output": return s(d.title) || "give it a title";
+    case "tool": return s(d.tool) || "choose a tool";
+    case "branch": return s(d.when) ? `if ${s(d.when)}` : "write the condition";
+    case "foreach": return s(d.over) ? `for each of ${s(d.over)}` : "choose the list";
+    case "simulate": return s(d.agent) ? `${s(d.agent)}, ${s(d.mode) || "scripted"}` : "choose an agent";
+    case "criteria": return Array.isArray(d.criteria) ? `${d.criteria.length} criteria on ${s(d.agent) || "an agent"}` : "write the criteria";
+    case "alert": return s(d.text) || "write the alert";
     case "schedule": return `every ${d.everyHours ?? "?"} hours`;
     case "event": return s(d.event) || "choose an event";
     default: return "";
@@ -66,6 +73,8 @@ export function summary(kind: string, d: Record<string, unknown>): string {
 
 export const DEFAULTS: Record<string, Record<string, unknown>> = {
   report: { report: "performance", days: 7 }, assistant: { assistant: "", prompt: "" }, person: { ask: "", maxWaitHours: 24 }, tag: { tag: "" }, notify: { to: "" }, output: { title: "" },
+  tool: { tool: "", args: {} }, branch: { when: "", then: "continue", else: "stop" }, foreach: { over: "", max: 10, do: { kind: "tool", tool: "", args: {} } },
+  simulate: { agent: "", mode: "scripted" }, criteria: { agent: "", criteria: [], sample: 10, days: 7 }, alert: { severity: "warning", text: "" },
 };
 
 export function newStepId(def: Definition, kind: string): string {
@@ -94,17 +103,40 @@ export function updateStep(def: Definition, id: string, patch: Record<string, un
   return { ...def, steps: def.steps.map((s) => (s.id === id ? { ...s, ...patch } : s)) };
 }
 
-/** Quick checks to show next to the drawing. The server's checks decide when you save. */
-export function hints(def: Definition): string[] {
+type Next = "continue" | "stop" | { skip: number };
+
+/** Where a step can lead: the next step, or for a branch whatever its two outcomes say. Mirrors the server's rule. */
+function targets(steps: Step[], i: number): number[] {
+  const s = steps[i];
+  if (s.kind !== "branch") return [i + 1];
+  return ([s.then ?? "continue", s.else ?? "stop"] as Next[]).flatMap((a) => (a === "continue" ? [i + 1] : typeof a === "object" && a ? [i + 1 + a.skip] : []));
+}
+
+/** For each step, whether every path that reaches it has passed a person step (a step no path reaches counts as approved). */
+export function approved(def: Definition): boolean[] {
+  const n = def.steps.length;
+  const entering: boolean[][] = Array.from({ length: n + 1 }, () => []);
+  entering[0].push(false);
+  return def.steps.map((s, i) => {
+    const got = entering[i].every(Boolean);
+    for (const t of targets(def.steps, i)) if (t <= n) entering[t].push(got || s.kind === "person");
+    return got;
+  });
+}
+
+/** Quick checks to show next to the drawing. `readTools` names the tools that only read; any other tool changes something. The server's checks decide when you save. */
+export function hints(def: Definition, readTools?: string[]): string[] {
   const out: string[] = [];
   const ids = def.steps.map((s) => s.id);
   if (new Set(ids).size !== ids.length) out.push("Two steps have the same id.");
   if (def.steps.length === 0) out.push("Add at least one step.");
   if (def.steps.length > 10) out.push("A routine has at most 10 steps.");
-  let asked = false;
-  for (const s of def.steps) {
-    if (s.kind === "person") asked = true;
-    if (s.kind === "notify" && !asked) out.push(`'${s.id}' sends something out, so an 'Ask a person' step must come before it.`);
-  }
+  const ok = approved(def);
+  def.steps.forEach((s, i) => {
+    const inner = (s.kind === "foreach" ? s.do : s) as Step | undefined;
+    const changes = inner?.kind === "tool" && typeof inner.tool === "string" && inner.tool !== "" && readTools !== undefined && !readTools.includes(inner.tool);
+    if (s.kind === "notify" && !ok[i]) out.push(`'${s.id}' sends something out, so an 'Ask a person' step must come before it.`);
+    else if (changes && !ok[i]) out.push(`'${s.id}' changes something, so an 'Ask a person' step must come before it on every path.`);
+  });
   return out;
 }

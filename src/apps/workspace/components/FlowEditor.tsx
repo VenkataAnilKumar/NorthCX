@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import type { AutomationCatalog } from "@northcx/api-client";
+import { NewKindFields } from "./StepFields";
 import { addStep, hints, KIND_LABEL, moveStep, removeStep, summary, toGraph, updateStep, type Definition, type Step } from "./flow";
 
 /** The routine as a line of cards: the trigger, then each step, joined by arrows. It edits the same definition the YAML view edits.
@@ -21,12 +22,12 @@ export function FlowEditor({ value, onChange, catalog, readOnly = false }: { val
     else if (!readOnly && id !== "trigger" && e.key === "Delete") { e.preventDefault(); const next = ids[Math.max(0, i - 1)]; onChange(removeStep(value, id)); setSelected(next); setTimeout(() => refs.current[next]?.focus(), 0); }
   };
   const step = value.steps.find((s) => s.id === selected);
-  const problems = hints(value);
+  const problems = hints(value, catalog?.tools?.filter((t) => t.effect === "read").map((t) => t.name));
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
         <div className="seg" role="group" aria-label="View"><button aria-pressed={view === "canvas"} onClick={() => setView("canvas")}>Canvas</button><button aria-pressed={view === "list"} onClick={() => setView("list")}>List</button></div>
-        {!readOnly && <><label className="ml-2">Add a step <select className="field ml-1" value={add} onChange={(e) => setAdd(e.target.value)}>{(catalog?.kinds ?? ["report", "assistant", "person", "tag", "notify", "output"]).map((k) => <option key={k} value={k}>{KIND_LABEL[k] ?? k}</option>)}</select></label>
+        {!readOnly && <><label className="ml-2">Add a step <select className="field ml-1" value={add} onChange={(e) => setAdd(e.target.value)}>{(catalog?.kinds ?? ["report", "assistant", "tool", "branch", "foreach", "simulate", "criteria", "alert", "person", "tag", "notify", "output"]).map((k) => <option key={k} value={k}>{KIND_LABEL[k] ?? k}</option>)}</select></label>
           <button className="btn" onClick={() => { const d = addStep(value, add, step?.id); const made = d.steps.find((s) => !value.steps.some((o) => o.id === s.id)); onChange(d); if (made) setSelected(made.id); }}>Add after {step ? `'${step.id}'` : "the last step"}</button></>}
         <span className="text-xs text-muted">Up and Down move between cards. Alt with Up or Down reorders. Delete removes the step.</span>
       </div>
@@ -71,6 +72,8 @@ function TriggerForm({ value, onChange, catalog, readOnly }: { value: Definition
       <p className="text-xs text-muted">{catalog?.triggerInfo.find((i) => i.type === t.type)?.description}</p>
       {t.type === "schedule" && <label className="block">Every (hours)<input type="number" min={1} max={720} className="field mt-1 w-full" disabled={readOnly} value={t.everyHours ?? 24} onChange={(e) => set({ everyHours: Number(e.target.value) })} /></label>}
       {t.type === "event" && <label className="block">When this happens<select className="field mt-1 w-full" disabled={readOnly} value={t.event ?? ""} onChange={(e) => set({ event: e.target.value })}><option value="">Choose…</option>{(catalog?.events ?? []).map((k) => <option key={k}>{k}</option>)}</select></label>}
+      {(t.type === "webhook" || t.type === "event") && <label className="block">Only when (optional), such as <code>input.priority == &apos;urgent&apos;</code>
+        <input className="field mt-1 w-full" disabled={readOnly} value={typeof t.when === "string" ? t.when : ""} onChange={(e) => set({ when: e.target.value || undefined })} /></label>}
       <label className="block">Name<input className="field mt-1 w-full" disabled={readOnly} value={value.name ?? ""} onChange={(e) => onChange({ ...value, name: e.target.value })} /></label>
       <label className="block">Id<input className="field mt-1 w-full" disabled={readOnly} value={value.id ?? ""} onChange={(e) => onChange({ ...value, id: e.target.value })} /></label>
     </div>
@@ -90,6 +93,7 @@ function StepForm({ step, catalog, onPatch, onMove, onRemove, readOnly }: { step
       {step.kind === "tag" && <label className="block">Tag (saved as auto-…)<input className="field mt-1 w-full" disabled={readOnly} value={str("tag")} onChange={(e) => onPatch({ tag: e.target.value })} /></label>}
       {step.kind === "notify" && <label className="block">Send to{pick("to", catalog?.destinations ?? [])}</label>}
       {step.kind === "output" && <label className="block">Title. <code>{"{date}"}</code> becomes the day.<input className="field mt-1 w-full" disabled={readOnly} value={str("title")} onChange={(e) => onPatch({ title: e.target.value })} /></label>}
+      <NewKindFields step={step} catalog={catalog} readOnly={readOnly} onPatch={onPatch} />
       {!readOnly && <div className="flex gap-2 pt-1"><button className="btn" onClick={() => onMove(-1)}>Move up</button><button className="btn" onClick={() => onMove(1)}>Move down</button><button className="btn" onClick={onRemove}>Remove</button></div>}
     </div>
   );

@@ -143,3 +143,24 @@ def test_each_item_gets_its_own_key_and_the_results_are_not_cut_off():
     assert keys == [f"auto:{run.id}:each:{i}" for i in range(3)]
     big = asyncio.run(go(20))
     assert big.status == "stopped" and "at most 4000 can be passed on" in big.error
+
+
+def test_the_describe_it_drafter_writes_only_the_kinds_it_can_explain_and_is_sent_back_when_it_uses_another():
+    from tests.test_automations import GOOD_DRAFT, draft_world
+    branchy = json.dumps({"id": "branchy", "name": "Branchy", "trigger": {"type": "manual"},
+                          "steps": [{"id": "b", "kind": "branch", "when": "input.a == 1"}, {"id": "o", "kind": "output", "title": "Result"}]})
+    c, rt, key, app = draft_world([branchy, GOOD_DRAFT])
+    out = c.post("/v1/automations/draft", headers=key("ann", "release_manager"), json={"description": "Every morning write up the figures and keep them."}).json()
+    assert out["definition"]["id"] == "morning-numbers"                                    # the second try was accepted
+    assert "can be added in the editor afterwards" in json.dumps(rt.llm.requests[1].messages)
+    c2, rt2, key2, app2 = draft_world([branchy, branchy])
+    out = c2.post("/v1/automations/draft", headers=key2("ann", "release_manager"), json={"description": "Every morning write up the figures and keep them."}).json()
+    assert out["definition"] is None and "branch can be added in the editor" in out["problems"][0]
+
+
+def test_the_catalogue_lists_the_new_kinds_the_tools_a_routine_may_call_and_the_agents_it_may_check():
+    app, key, loop = world()
+    cat = TestClient(app).get("/v1/automations-catalog", headers=key("ann", "release_manager")).json()
+    assert {"tool", "branch", "foreach", "simulate", "criteria", "alert"} <= set(cat["kinds"])
+    assert {"name": "lookup_order", "effect": "read"} in cat["tools"] and {"name": "issue_refund", "effect": "write"} in cat["tools"]
+    assert cat["agents"] == ["support"]
