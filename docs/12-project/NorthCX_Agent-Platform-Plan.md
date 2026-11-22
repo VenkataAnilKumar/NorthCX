@@ -169,7 +169,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 4.4 ready-made agents | Done, qualified-model part blocked | Order status, returns and refunds and delivery problems already ship as signed templates; every shipped template's scenarios pass in scripted mode on every build (existing test), and a new pinned test checks these three (for customers, safety topics go to a person, at least two scenarios, one covering a hand-off). **Blocked:** "green on a qualified model" needs a real-model pass (WP 0.2 or 0.4); recorded, not ticked |
 | 4.5 side by side, release requests | Done | `POST /v1/agents/{id}/compare` and the Compare page (same tests on live and candidate, per-test change, verdict, differences); a Release requests screen for the existing two-person rule, which had no UI (approve, reject, withdraw, plain explanations); the Agents page shows waiting approvals. 4 backend tests, 11 component tests, browser steps in the Studio smoke test (CI). The release flow itself is unchanged |
 | 4.6 model picker with qualification results | Done | The agent editor lists configured models with their tier and shows the recorded qualification for the chosen one, or "Not qualified yet". Results exist only after a real-model pass (blocked, 0.2) | |
-| Phases 4 (4.7 to 4.8) to 7 | Not started | |
+| 4.7 journey graph | Done | A graph view of each journey (move, add, remove steps; remove hand-over conditions) over the same definition; round-trip and edit-equivalence property tests on 300 seeded journeys. Plain cards, no React Flow | |
+| Phases 4 (4.8) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.
