@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 4, WP 4.6, 2026-11-22)
+- Studio, agent editor: the Model field is a list of the configured models with their tier, and shows the recorded qualification result for the chosen model on this agent ("Qualified on …", "Did not qualify", or "Not qualified yet"). No API change. Results appear only after a real-model qualification run, which has not been made.
+
 ### Added (Phase 4, WP 4.5, 2026-11-22)
 - `POST /v1/agents/{agent_id}/compare` (permission `simulations:run`): the same scripted tests on what is live and on a saved candidate version, each test's result on both, a verdict in a sentence and what differs. Studio: a Compare page (also "Compare with live" on each unreleased version) and a new Release requests screen (Build, Release requests) for the two-person release rule, which existed in the API but had no screen; the Agents page shows how many requests wait for approval. The release flow is unchanged.
 

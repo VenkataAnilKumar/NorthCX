@@ -687,3 +687,5 @@ export interface Comparison { agent: string; live: { number: number | null; dige
   counts: { live: { total: number; passed: number; failed: number }; candidate: { total: number; passed: number; failed: number } };
   scenarios: { name: string; required: boolean; live: boolean; candidate: boolean; change: "same" | "fixed" | "regressed" }[]; verdict: string; differences: VersionDiff }
 export const compareVersions = (agent: string, candidate: number) => api<Comparison>(`${agentPath(agent)}/compare`, { method: "POST", body: JSON.stringify({ candidate }) });
+export interface ModelQualification { agent: string; model: string; agentDigest: string; qualified: boolean; required: { total: number; passed: number }; other: { total: number; passed: number }; runId: string; createdAt: number; reasons: string[] }
+export const listQualifications = (agentId: string) => api<{ qualifications: ModelQualification[] }>(`/v1/agents/${encodeURIComponent(agentId)}/qualifications`).then((r) => r.qualifications);
