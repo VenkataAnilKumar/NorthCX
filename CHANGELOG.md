@@ -4,6 +4,12 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Fixed (Phase 6 review, 2026-11-22)
+- `python -m northcx backup` and `restore` report a wrong database password, address or refused connection as one plain line (never the password) instead of a traceback.
+
+### Added (Phase 6, WP 6.6, 2026-11-22)
+- `GET /v1/insights/overview` also returns `resolutionFirm`: the resolution rate with returns counted against it (a conversation is not resolved when the same customer started another within the window), with its numerator, denominator, `reopened` and `checkable` (conversations whose customer is known). `resolutionRate` is unchanged. The Insights page shows both. Additive.
+
 ### Added (Phase 6, WP 6.4, 2026-11-22)
 - `GET /v1/system/health` (permission `keys:manage`) and Studio, Platform, System health: the database, the schema revision against the one this version expects, the model providers, each channel and alert delivery, each shown as working, not working or not set up with what to do. It calls no model and sends nothing. Additive.
 

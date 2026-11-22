@@ -20,7 +20,7 @@ Planned list: error rate, model latency, escalation spikes, guardrail-block spik
 Filter conversations by intent, status, agent version, language, tag and date; reviewers tag failure causes, which feed failure analysis (O7).
 
 ## Insights (built in Phase 4)
-Figures with numerators and denominators, a provisional resolution rate beside containment, failure reasons, intent gaps, ratings, tokens and estimated cost (below). Approval turnaround is not a figure yet.
+Figures with numerators and denominators, a provisional resolution rate beside containment and `resolutionFirm`, the same rate with returns counted against it (a conversation does not count as resolved when the same customer started another within the window; it can check only conversations whose customer is known, `checkable` says how many, so it can still be too high), failure reasons, intent gaps, ratings, tokens and estimated cost (below). Approval turnaround is not a figure yet.
 
 ## Privacy
 Redaction applies before export; access to traces is role-restricted.

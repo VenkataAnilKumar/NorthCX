@@ -8,7 +8,7 @@ from __future__ import annotations
 import time
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Awaitable, Callable, Protocol
 
 from .safety.pii import PIIDetection
 from .trace import Trace
@@ -135,7 +135,7 @@ def resolution(turns: list[TurnFacts], handed: set[str], until: float, window_da
     """Provisional resolution rate. A conversation counts as resolved when its last turn ended `completed`, it never reached a person, and
     nothing more was said in it for `window_days` (so a customer who comes back in the same conversation within the window reopens it).
     Conversations whose last turn is younger than the window are still pending and are left out of the rate. A customer who comes back in a
-    new conversation is not detected yet (turns carry no customer link), so the figure can overstate resolution."""
+    new conversation is not detected here (`resolution_firm` does that where the customer is known), so the figure can overstate resolution."""
     last: dict[str, TurnFacts] = {}
     for t in turns:
         cur = last.get(t.session_id)
@@ -147,8 +147,37 @@ def resolution(turns: list[TurnFacts], handed: set[str], until: float, window_da
     return {**ratio(done, len(mature)), "pending": len(last) - len(mature), "windowDays": window_days, "provisional": True}
 
 
+def resolution_firm(turns: list[TurnFacts], handed: set[str], until: float, customers: dict[str, str], window_days: float = RESOLUTION_WINDOW_DAYS) -> dict[str, Any]:
+    """The resolution rate with returns counted against it. Same conversations and the same denominator as `resolution`; a conversation that would count as resolved
+    does not when the same customer started another conversation after its last turn and within the window. Only conversations whose customer is known can be
+    checked (`checkable`); an anonymous web chat cannot, so the figure can still overstate by the share that is not checkable."""
+    first: dict[str, float] = {}
+    last: dict[str, TurnFacts] = {}
+    for t in turns:
+        first[t.session_id] = min(first.get(t.session_id, t.started_at), t.started_at)
+        cur = last.get(t.session_id)
+        if cur is None or t.started_at + t.duration >= cur.started_at + cur.duration:
+            last[t.session_id] = t
+    window = window_days * 86400
+    mature = {s: t for s, t in last.items() if until - (t.started_at + t.duration) >= window}
+    by_customer: dict[str, list[str]] = {}
+    for s in first:
+        if s in customers:
+            by_customer.setdefault(customers[s], []).append(s)
+    done = reopened = 0
+    for s, t in mature.items():
+        if t.status != "completed" or s in handed:
+            continue
+        end = t.started_at + t.duration
+        if s in customers and any(o != s and end < first[o] <= end + window for o in by_customer[customers[s]]):
+            reopened += 1
+        else:
+            done += 1
+    return {**ratio(done, len(mature)), "reopened": reopened, "checkable": sum(1 for s in mature if s in customers), "windowDays": window_days}
+
+
 def compute(turns: list[TurnFacts], handoffs: list[HandoffFacts], feedback: list[FeedbackFacts], since: float, until: float,
-            price_per_million_tokens: float | None = None, resolution_window_days: float = RESOLUTION_WINDOW_DAYS) -> dict[str, Any]:
+            price_per_million_tokens: float | None = None, resolution_window_days: float = RESOLUTION_WINDOW_DAYS, customers: dict[str, str] | None = None) -> dict[str, Any]:
     sessions = {t.session_id for t in turns}
     handed = {h.session_id for h in handoffs if h.session_id in sessions}
     with_tools = [t for t in turns if t.tools]
@@ -165,6 +194,7 @@ def compute(turns: list[TurnFacts], handoffs: list[HandoffFacts], feedback: list
         "conversations": len(sessions), "turns": len(turns),
         "containmentRate": ratio(len(sessions) - len(handed), len(sessions)),
         "resolutionRate": resolution(turns, handed, until, resolution_window_days),
+        "resolutionFirm": resolution_firm(turns, handed, until, customers or {}, resolution_window_days),
         "escalationRate": ratio(sum(t.status == "escalated" for t in turns), len(turns)),
         "approvalRate": ratio(sum(t.status == "needs_approval" for t in turns), len(turns)),
         "guardrailBlockRate": ratio(sum(bool(t.guardrails) for t in turns), len(turns)),
@@ -181,7 +211,7 @@ def compute(turns: list[TurnFacts], handoffs: list[HandoffFacts], feedback: list
         "satisfaction": {"average": round(sum(f.rating for f in rated) / len(rated), 2) if rated else None, "responses": len(rated),
                          "responseRate": ratio(len({f.session_id for f in rated}), len(sessions)), "distribution": {str(i): dist.get(i, 0) for i in range(1, 6)}},
         "note": "Containment is the share of conversations that did not reach a person. The resolution rate is provisional: completed, no hand-off and quiet for the "
-                "window; conversations still inside the window are pending, and a customer returning in a new conversation is not yet detected. Figures cover only the turns recorded in this period and environment.",
+                "window; conversations still inside the window are pending, and a customer returning in a new conversation is not detected here (resolutionFirm counts it, for conversations whose customer is known). Figures cover only the turns recorded in this period and environment.",
     }
     reached: dict[str, set[str]] = {}
     completed: dict[str, set[str]] = {}
@@ -422,6 +452,7 @@ class InMemoryInsightsSource:
 class InsightsService:
     def __init__(self, source: InsightsSource, price_per_million_tokens: float | None = None, resolution_window_days: float = RESOLUTION_WINDOW_DAYS):
         self.source, self.price, self.window_days = source, price_per_million_tokens, resolution_window_days
+        self.customers: Callable[[list[str]], Awaitable[dict[str, str]]] | None = None      # session ids -> the customer each belongs to, where known (set by the server)
 
     async def _load(self, since: float, until: float, agent: str | None, environment: str):
         turns = await self.source.turns(since, until, agent, environment, MAX_TURNS)
@@ -436,7 +467,8 @@ class InsightsService:
     async def overview(self, since: float, until: float, agent: str | None = None, environment: str = "production", filters: Filters | None = None) -> dict[str, Any]:
         turns, handoffs, feedback = await self._load(since, until, agent, environment)
         turns, handoffs, feedback = apply_filters(turns, handoffs, feedback, filters)
-        out = compute(turns, handoffs, feedback, since, until, self.price, self.window_days)
+        customers = await self.customers(sorted({t.session_id for t in turns})) if self.customers is not None and turns else {}
+        out = compute(turns, handoffs, feedback, since, until, self.price, self.window_days, customers)
         out.update({"agent": agent, "environment": environment, "truncated": len(turns) >= MAX_TURNS})
         return out
 
