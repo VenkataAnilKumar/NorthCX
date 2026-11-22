@@ -114,11 +114,50 @@ def register(app: FastAPI, d: AppDeps) -> None:
             raise AutomationError(502, str(e)[:200]) from e
 
     from northcx.events import EVENTS
+    from northcx.safety.pii import PIIDetection
     svc.hooks = Hooks(run_assistant, exists, reports, over_budget, save_output, feed if d.events is not None else None, frozenset(EVENTS) if d.events is not None else frozenset(),
-                      tag_session, notify, frozenset(destinations))
+                      tag_session, notify, frozenset(destinations), mask=lambda t: PIIDetection().mask(t)[0])
+    service_identity = Identity("automation", "viewer", "automation")
+
+    def registry() -> Any:
+        return d.releases.registry if d.releases is not None else None
+
+    def callable_tools() -> dict[str, dict[str, Any]]:
+        """What a tool step may name: staff tools the routine's service identity is allowed to use, and customer-side tools that only read or change things behind a person's approval."""
+        reg = registry()
+        if reg is None:
+            return {}
+        out: dict[str, dict[str, Any]] = {}
+        for name in reg.tool_names():
+            t = reg.get(name)
+            allowed = t.audience != "staff" or service_identity.can(t.permission)
+            out[name] = {"effect": t.effect, "allowed": allowed, "why": f"it needs the {t.permission} permission, which routines do not have", "model": t.input_model}
+        return out
+
+    def tool_approval(name: str, args: dict[str, Any]) -> str | None:
+        t = registry().get(name)
+        return t.requires_approval(t.input_model.model_validate(args)) if t.requires_approval is not None else None
+
+    async def call_tool(name: str, args: dict[str, Any], key: str) -> Any:
+        from northcx.agent import ToolContext
+        t = registry().get(name)
+        try:
+            data = t.input_model.model_validate(args)
+        except Exception as e:  # noqa: BLE001 - arguments filled in from an earlier result may not fit the tool
+            raise AutomationError(400, f"The arguments for '{name}' are not valid: {str(e).splitlines()[0][:150]}") from e
+        ctx = ToolContext(key, None, runtime.store, idempotency_key=key, secrets=runtime.secrets, actor=service_identity)
+        try:
+            result, _ = await runtime.execute_tool(t, data, ctx)
+        except PermissionError as e:
+            raise AutomationError(403, str(e)) from e
+        except Exception as e:  # noqa: BLE001 - the tool's own failure message, shortened
+            raise AutomationError(502, f"'{name}' failed: {str(e)[:150]}") from e
+        return result
+
+    svc.hooks.tools, svc.hooks.tool_approval, svc.hooks.call_tool = callable_tools, tool_approval, call_tool
 
     def fail(e: AutomationError) -> JSONResponse:
-        return _err(e.status, {400: "bad_request", 402: "budget", 403: "forbidden", 404: "not_found", 409: "conflict", 429: "rate_limited", 501: "not_configured"}.get(e.status, "error"), str(e))
+        return _err(e.status, {400: "bad_request", 402: "budget", 403: "forbidden", 404: "not_found", 409: "conflict", 413: "too_large", 429: "rate_limited", 501: "not_configured"}.get(e.status, "error"), str(e))
 
     def definition(body: AutomationBody) -> dict[str, Any]:
         if body.definition is not None:
@@ -278,7 +317,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """What a routine may name: the choices the editor offers."""
         h = svc.hooks
         return {"reports": sorted(h.reports) if h else [], "events": sorted(h.event_types) if h else [], "destinations": sorted(h.destinations) if h else [],
-                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "person", "tag", "notify", "output"], "triggers": list(TRIGGER_TYPES),
+                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "tool", "person", "tag", "notify", "output"], "tools": [{"name": k, "effect": v["effect"]} for k, v in sorted(callable_tools().items()) if v["allowed"]], "triggers": list(TRIGGER_TYPES),
                 "triggerInfo": [{"type": k, "label": label, "description": text, **({"events": sorted(h.event_types) if h else []} if k == "event" else {})} for k, (label, text) in TRIGGER_TYPES.items()]}
 
     @app.post("/v1/automations/convert")
@@ -290,7 +329,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
             return fail(e)
         problems: list[str] = []
         try:
-            clean = validate_definition(raw, svc._reports(), svc._events(), svc._destinations())
+            clean = validate_definition(raw, svc._reports(), svc._events(), svc._destinations(), svc._tools())
             if svc.hooks is not None:
                 for s in clean["steps"]:
                     if s["kind"] == "assistant" and not await exists(s["assistant"]):

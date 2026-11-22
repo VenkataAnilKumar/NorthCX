@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 5, WP 5.1, 2026-11-22)
+- Routines have a `tool` step: it calls a registry tool with fixed or templated arguments (`{{input.order}}`, `{{previous.id}}`) and passes the JSON result on. A tool that changes something needs a person step before it; a tool that asks for approval for the arguments (a refund over its limit) needs that person step to name an approver role or team. The catalogue (`GET /v1/automations-catalog`) lists `tool` among the kinds and the tools a routine may call. Existing routines are unchanged.
+
 ### Docs (Phase 5 design, 2026-11-22)
 - `docs/03-automations/NorthCX_Automations-Platform.md`: stages 1 to 4 for tool steps, conditions, exactly-once webhooks, simulation checks with alerts, and plain-language criteria. Nothing built yet.
 

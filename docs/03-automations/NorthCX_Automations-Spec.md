@@ -15,6 +15,7 @@ Schedule, webhook, platform event (for example a hand-off created or an approval
 | Assistant | Runs an assistant task with a stated instruction and sources |
 | Check | A rule or a model check on a value; branches on the outcome |
 | Person | Waits for a named person or group to approve, answer or review, with a deadline |
+| Tool (built, WP 5.1) | Calls a named registry tool with fixed or templated arguments (`{{previous.order.id}}`, `{{input.order}}`) and passes its JSON result on. Staff tools need a permission the routine's service identity (viewer) holds; a tool that changes something needs a person step before it, and one that asks for approval for the given arguments needs that person step to name an approver role or team. A result over 4,000 characters fails the step. Details: `NorthCX_Automations-Platform.md` |
 | Action | A write to a connected system; always asks a person in the first version unless the organization has allowed it for that tool |
 
 ## 4. Rules
