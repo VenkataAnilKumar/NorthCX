@@ -317,7 +317,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """What a routine may name: the choices the editor offers."""
         h = svc.hooks
         return {"reports": sorted(h.reports) if h else [], "events": sorted(h.event_types) if h else [], "destinations": sorted(h.destinations) if h else [],
-                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "tool", "person", "tag", "notify", "output"], "tools": [{"name": k, "effect": v["effect"]} for k, v in sorted(callable_tools().items()) if v["allowed"]], "triggers": list(TRIGGER_TYPES),
+                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "tool", "branch", "foreach", "person", "tag", "notify", "output"], "tools": [{"name": k, "effect": v["effect"]} for k, v in sorted(callable_tools().items()) if v["allowed"]], "triggers": list(TRIGGER_TYPES),
                 "triggerInfo": [{"type": k, "label": label, "description": text, **({"events": sorted(h.event_types) if h else []} if k == "event" else {})} for k, (label, text) in TRIGGER_TYPES.items()]}
 
     @app.post("/v1/automations/convert")

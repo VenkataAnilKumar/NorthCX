@@ -1,6 +1,6 @@
 # Automations: tool steps, conditions, events, checks (Phase 5)
 
-Status: stages 1 to 4 written 2026-11-22. **WP 5.1 (A1 to A3, A7) is built**; the rest is not, and the plan's progress table says which work package is. Master for: what Phase 5 of `../12-project/NorthCX_Agent-Platform-Plan.md` adds to routines. The engine and its rules stay as in `NorthCX_Automations-Spec.md` and `northcx/automations.py`; the direction is in `../00-platform/NorthCX_Agent-Platform-Design.md` section 8.
+Status: stages 1 to 4 written 2026-11-22. **WP 5.1 (A1 to A3, A7) and WP 5.2 (A4 to A6) are built**; the rest is not, and the plan's progress table says which work package is. Master for: what Phase 5 of `../12-project/NorthCX_Agent-Platform-Plan.md` adds to routines. The engine and its rules stay as in `NorthCX_Automations-Spec.md` and `northcx/automations.py`; the direction is in `../00-platform/NorthCX_Agent-Platform-Design.md` section 8.
 
 ## 1. Research: what the code does today
 Read in this repository on 2026-11-22.
@@ -49,6 +49,7 @@ Each says who, what, and a check that passes or fails.
 - **The approval rule (A2)** is checked on the whole graph of possible paths when a routine is saved: a step that needs an earlier person is acceptable only if every path to it passes a `person` step. A `branch` skip cannot jump around an approval.
 - **Tool calls** go through `Runtime.execute_tool` with a service identity (`automation`, viewer role) and a key built from the run, the step and the item. The step's arguments and result are masked before they are stored in the run record. A tool error fails the step with the tool's own message.
 - **Webhook and event triggers** get an optional `when`. Delivery with an event id uses the idempotency store, scope = routine plus event id, request hash = body.
+- **A foreach does not undo.** Items already done stay done when a later item fails; the run stops and says which item failed. A person approving a routine that changes things should know the list it will go through (the step before shows it).
 - **Not built, on purpose:** triggers registered by connectors or MCP servers (no connector in this repository emits events; a system that has events calls the signed address), loops other than `foreach`, assignments, code steps, nested `foreach`, a person step inside `foreach`, any step that writes to a customer.
 
 ## 4. Architecture
