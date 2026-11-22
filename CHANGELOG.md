@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Docs (Phase 5 design, 2026-11-22)
+- `docs/03-automations/NorthCX_Automations-Platform.md`: stages 1 to 4 for tool steps, conditions, exactly-once webhooks, simulation checks with alerts, and plain-language criteria. Nothing built yet.
+
 ### Changed (Phase 4 review, 2026-11-22)
 - Studio: the model tier names are defined once; the Studio browser smoke checks the editor's model list and journey graph.
 
