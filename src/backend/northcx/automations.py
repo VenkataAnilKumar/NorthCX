@@ -32,6 +32,7 @@ DEFAULT_WAIT_HOURS, MAX_WAIT_HOURS = 24, 72
 TAG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 HIGH_RISK = frozenset({"notify"})  # steps that send something out of the platform: only after a person has approved in the same routine
 MAX_INPUT = 2000
+DEFAULT_ITEMS, MAX_ITEMS = 10, 20       # what a foreach step goes through at most
 MAX_ARGS = 2000                  # characters of a tool step's arguments
 MIN_HOURS, MAX_HOURS = 1.0, 24.0 * 30
 TRIGGER_TYPES = {  # what starts a routine, in the words the editor shows
@@ -44,7 +45,7 @@ TENANT_CONCURRENCY = 3
 CLAIM_SECONDS = 300.0       # a claimed schedule is retried after this if the process that claimed it died
 ID_RE = re.compile(r"^[a-z][a-z0-9-]{2,39}$")
 STATUSES = ("draft", "proposed", "published", "rejected", "superseded", "retired")
-PLACEHOLDER = re.compile(r"\{\{\s*(previous|input)\s*\}\}")
+PLACEHOLDER = re.compile(r"\{\{\s*(previous|input|item)\s*\}\}")
 
 
 class AutomationError(Exception):
@@ -119,6 +120,8 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
                 raise AutomationError(400, f"Step '{sid}': name the staff assistant to run")
             if not isinstance(prompt, str) or not 5 <= len(prompt) <= 2000:
                 raise AutomationError(400, f"Step '{sid}': the prompt must be 5 to 2000 characters")
+            if re.search(r"\{\{\s*item\s*\}\}", prompt):
+                raise AutomationError(400, f"Step '{sid}': 'item' can be used only inside a foreach step")
             out.append({"id": sid, "kind": "assistant", "assistant": agent, "prompt": prompt})
         elif sk == "report":
             rep, days = s.get("report"), s.get("days", 7)
@@ -158,6 +161,10 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
             out.append({"id": sid, "kind": "notify", "to": dest})
         elif sk == "tool":
             out.append(_tool_step(sid, s, tools or {}))
+        elif sk == "branch":
+            out.append(_branch_step(sid, s))
+        elif sk == "foreach":
+            out.append(_foreach_step(sid, s, tools or {}, reports))
         elif sk == "output":
             title, vis = s.get("title"), s.get("visibility", "shared")
             if not isinstance(title, str) or not 3 <= len(title) <= 100:
@@ -166,15 +173,14 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
                 raise AutomationError(400, f"Step '{sid}': a routine's outputs are shared with everyone who uses the Workspace")
             out.append({"id": sid, "kind": "output", "title": title, "visibility": "shared"})
         else:
-            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report, tool, person, tag, notify or output (a routine never writes to customers)")
-    asked = False
-    for st in out:                                           # a step that sends something out needs a person's approval earlier in the same routine
-        if st["kind"] == "person":
-            asked = True
-        elif st["kind"] in HIGH_RISK and not asked:
+            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report, tool, branch, foreach, person, tag, notify or output (a routine never writes to customers)")
+    for st, approved in zip(out, _approved(out)):             # a step that sends something out or changes something needs a person's approval on every path that reaches it
+        if approved:
+            continue
+        if st["kind"] in HIGH_RISK:
             raise AutomationError(400, f"Step '{st['id']}' sends something out of the platform, so a 'person' step must come before it to approve")
-        elif st["kind"] == "tool" and (tools or {}).get(st["tool"], {}).get("effect") != "read" and not asked:
-            raise AutomationError(400, f"Step '{st['id']}' changes something ('{st['tool']}'), so a 'person' step must come before it to approve")
+        if _changes(st, tools or {}):
+            raise AutomationError(400, f"Step '{st['id']}' changes something ('{_changes(st, tools or {})}'), so a 'person' step must come before it to approve")
     lim = data.get("limits") or {}
     secs = lim.get("maxSeconds", 120) if isinstance(lim, dict) else None
     if isinstance(secs, bool) or not isinstance(secs, int) or not 10 <= secs <= MAX_SECONDS:
@@ -182,7 +188,81 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
     return {"id": rid, "name": name.strip(), "description": desc.strip(), "trigger": t, "steps": out, "limits": {"maxSeconds": secs}}
 
 
-def _tool_step(sid: str, s: dict[str, Any], tools: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def _changes(step: dict[str, Any], tools: dict[str, dict[str, Any]]) -> str:
+    """The name of the tool a step uses to change something, or empty."""
+    inner = step.get("do") if step["kind"] == "foreach" else step
+    if inner and inner["kind"] == "tool" and (tools or {}).get(inner["tool"], {}).get("effect") != "read":
+        return inner["tool"]
+    return ""
+
+
+def _targets(steps: list[dict[str, Any]], i: int) -> list[int]:
+    """Where the run can go after step i. A branch can continue, stop or skip ahead; any other step goes to the next."""
+    s = steps[i]
+    if s["kind"] != "branch":
+        return [i + 1]
+    out = []
+    for act in (s["then"], s["else"]):
+        if act == "continue":
+            out.append(i + 1)
+        elif isinstance(act, dict):
+            out.append(i + 1 + act["skip"])
+    return out
+
+
+def _approved(steps: list[dict[str, Any]]) -> list[bool]:
+    """For each step: whether every path that reaches it has passed a person step. A step no path reaches counts as approved, because it never runs."""
+    n = len(steps)
+    entering: list[list[bool]] = [[] for _ in range(n + 1)]
+    entering[0].append(False)
+    out = []
+    for i, s in enumerate(steps):
+        got = all(entering[i]) if entering[i] else True
+        out.append(got)
+        leaving = got or s["kind"] == "person"
+        for t in _targets(steps, i):
+            if t <= n:
+                entering[t].append(leaving)
+    return out
+
+
+def _action(sid: str, name: str, v: Any, default: Any) -> Any:
+    v = default if v is None else v
+    if v in ("continue", "stop"):
+        return v
+    if isinstance(v, dict) and set(v) == {"skip"} and isinstance(v["skip"], int) and not isinstance(v["skip"], bool) and 1 <= v["skip"] <= 9:
+        return {"skip": v["skip"]}
+    raise AutomationError(400, f"Step '{sid}': {name} is continue, stop, or {{skip: 1 to 9}}")
+
+
+def _branch_step(sid: str, s: dict[str, Any]) -> dict[str, Any]:
+    try:
+        expr.parse_condition(s.get("when"))
+    except expr.ConditionError as e:
+        raise AutomationError(400, f"Step '{sid}': the condition is not valid: {e}") from e
+    return {"id": sid, "kind": "branch", "when": s["when"].strip(), "then": _action(sid, "then", s.get("then"), "continue"), "else": _action(sid, "else", s.get("else"), "stop")}
+
+
+def _foreach_step(sid: str, s: dict[str, Any], tools: dict[str, dict[str, Any]], reports: set[str]) -> dict[str, Any]:
+    over, cap, inner = s.get("over"), s.get("max", DEFAULT_ITEMS), s.get("do")
+    if not isinstance(over, str) or not expr.is_path(over.strip()) or over.strip().split(".")[0].split("[")[0] == "item":
+        raise AutomationError(400, f"Step '{sid}': over is a path to a list in the previous result or the trigger input, such as previous.orders")
+    if isinstance(cap, bool) or not isinstance(cap, int) or not 1 <= cap <= MAX_ITEMS:
+        raise AutomationError(400, f"Step '{sid}': max is a whole number from 1 to {MAX_ITEMS}")
+    if not isinstance(inner, dict) or inner.get("kind") not in ("tool", "assistant"):
+        raise AutomationError(400, f"Step '{sid}': do is one tool or assistant step, run once for each item")
+    if inner["kind"] == "tool":
+        do = _tool_step(f"{sid}", inner, tools, allow_item=True)
+        do.pop("id")
+    else:
+        agent, prompt = inner.get("assistant"), inner.get("prompt")
+        if not isinstance(agent, str) or not agent or not isinstance(prompt, str) or not 5 <= len(prompt) <= 2000:
+            raise AutomationError(400, f"Step '{sid}': the assistant step needs an assistant and a prompt of 5 to 2000 characters")
+        do = {"kind": "assistant", "assistant": agent, "prompt": prompt}
+    return {"id": sid, "kind": "foreach", "over": over.strip(), "max": cap, "do": do}
+
+
+def _tool_step(sid: str, s: dict[str, Any], tools: dict[str, dict[str, Any]], allow_item: bool = False) -> dict[str, Any]:
     name, args = s.get("tool"), s.get("args", {})
     if name not in tools:
         raise AutomationError(400, f"Step '{sid}': tool must be one of {', '.join(sorted(tools)) or 'none are available'}")
@@ -192,7 +272,7 @@ def _tool_step(sid: str, s: dict[str, Any], tools: dict[str, dict[str, Any]]) ->
     if not isinstance(args, dict) or len(json.dumps(args, default=str)) > MAX_ARGS:
         raise AutomationError(400, f"Step '{sid}': args must be a mapping of at most {MAX_ARGS} characters")
     for path in expr.paths_in(args):
-        if path.split(".")[0].split("[")[0] == "item":
+        if path.split(".")[0].split("[")[0] == "item" and not allow_item:
             raise AutomationError(400, f"Step '{sid}': 'item' can be used only inside a foreach step")
     model = meta.get("model")
     if model is not None and not expr.paths_in(args):                        # arguments with no placeholders can be checked now; the rest when the step runs
@@ -411,8 +491,9 @@ class AutomationService:
         if self.hooks is None:
             raise AutomationError(501, "Routines are not configured on this server")
         for s in data["steps"]:
-            if s["kind"] == "assistant" and not await self.hooks.assistant_exists(s["assistant"]):
-                raise AutomationError(409, f"Step '{s['id']}': '{s['assistant']}' is not a live staff assistant (customer-facing agents cannot be used)")
+            inner = s.get("do") if s["kind"] == "foreach" else s
+            if inner and inner["kind"] == "assistant" and not await self.hooks.assistant_exists(inner["assistant"]):
+                raise AutomationError(409, f"Step '{s['id']}': '{inner['assistant']}' is not a live staff assistant (customer-facing agents cannot be used)")
 
     async def decide(self, automation_id: str, approve: bool, by: str, note: str | None) -> Automation:
         async with self._lock:
@@ -523,15 +604,11 @@ class AutomationService:
 
     async def _steps(self, a: Automation, run: Run, input_text: str, start: int = 0, prev: str = "") -> None:
         assert self.hooks is not None
-        for idx, s in enumerate(a.data["steps"]):
-            if idx < start:
-                continue
-            if not await self.enabled():
-                raise AutomationError(403, "Stopped: all routines were switched off")
-            if (await self.repo.state(a.id))["paused"] or not any(v.status == "published" and v.version == a.version for v in await self.repo.versions(a.id)):
-                raise AutomationError(409, "Stopped: the routine was paused or withdrawn")
-            if self.hooks.over_budget is not None and await self.hooks.over_budget():
-                raise AutomationError(402, "Stopped: the daily budget is used up")
+        steps = a.data["steps"]
+        idx = start
+        while idx < len(steps):
+            s = steps[idx]
+            await self._guard(a)
             rec: dict[str, Any] = {"id": s["id"], "kind": s["kind"], "status": "running", "startedAt": time.time()}
             run.steps.append(rec)
             await self.repo.save_run(run)
@@ -545,6 +622,15 @@ class AutomationService:
                     prev = reply[:MAX_OUTPUT]
                 elif s["kind"] == "tool":
                     prev = await self._tool(a, run, s, idx, prev, input_text, rec)
+                elif s["kind"] == "foreach":
+                    prev = await self._foreach(a, run, s, idx, prev, input_text, rec)
+                elif s["kind"] == "branch":
+                    go = self._branch(s, prev, input_text, rec)
+                    if go == "stop":
+                        rec.update({"status": "ok", "endedAt": time.time()})
+                        run.outcome = prev
+                        return
+                    idx += go
                 elif s["kind"] == "output":
                     if self.hooks.save_output is None:
                         raise AutomationError(501, "Saving outputs is not configured on this server")
@@ -572,15 +658,67 @@ class AutomationService:
                     rec["sentTo"] = s["to"]
                 else:
                     prev = json.dumps(await self.hooks.reports[s["report"]](s["days"]), default=str)[:MAX_OUTPUT]
-                rec.update({"status": "ok", "output": (self.hooks.mask(prev) if s["kind"] == "tool" else prev) if s["kind"] in ("assistant", "report", "output", "tool") else rec.get("sentTo") or rec.get("tagged") or "", "endedAt": time.time()})
+                rec.update({"status": "ok", "output": (self.hooks.mask(prev) if s["kind"] in ("tool", "foreach") else prev) if s["kind"] in ("assistant", "report", "output", "tool", "foreach") else rec.get("sentTo") or rec.get("tagged") or "", "endedAt": time.time()})
             except BaseException as e:
                 rec.update({"status": "failed", "error": str(e)[:200], "endedAt": time.time()})
                 raise
             finally:
                 await self.repo.save_run(run)
+            idx += 1
         run.outcome = prev
 
-    async def _tool(self, a: Automation, run: Run, s: dict[str, Any], idx: int, prev: str, input_text: str, rec: dict[str, Any]) -> str:
+    async def _guard(self, a: Automation) -> None:
+        """Before every step and every item: still switched on, still published and not paused, and within the daily budget."""
+        assert self.hooks is not None
+        if not await self.enabled():
+            raise AutomationError(403, "Stopped: all routines were switched off")
+        if (await self.repo.state(a.id))["paused"] or not any(v.status == "published" and v.version == a.version for v in await self.repo.versions(a.id)):
+            raise AutomationError(409, "Stopped: the routine was paused or withdrawn")
+        if self.hooks.over_budget is not None and await self.hooks.over_budget():
+            raise AutomationError(402, "Stopped: the daily budget is used up")
+
+    @staticmethod
+    def _branch(s: dict[str, Any], prev: str, input_text: str, rec: dict[str, Any]) -> Any:
+        """Decide a branch step: the number of steps to move past this one (0 means carry on with the next), or "stop"."""
+        yes = expr.holds(s["when"], {"previous": expr.as_value(prev), "input": expr.as_value(input_text)})
+        act = s["then"] if yes else s["else"]
+        rec["condition"], rec["took"] = yes, act if isinstance(act, str) else f"skip {act['skip']}"
+        return "stop" if act == "stop" else act["skip"] if isinstance(act, dict) else 0
+
+    async def _foreach(self, a: Automation, run: Run, s: dict[str, Any], idx: int, prev: str, input_text: str, rec: dict[str, Any]) -> str:
+        """Run one tool or assistant step for each item of a list, at most `max`. One item failing stops the run and says which."""
+        assert self.hooks is not None
+        items = expr.resolve(s["over"], {"previous": expr.as_value(prev), "input": expr.as_value(input_text)})
+        if not isinstance(items, list):
+            raise AutomationError(409, f"Step '{s['id']}': {s['over']} is not a list")
+        if len(items) > s["max"]:
+            raise AutomationError(409, f"Step '{s['id']}': {s['over']} has {len(items)} items and the step goes through at most {s['max']}")
+        rec.update({"items": len(items), "done": 0})
+        results: list[Any] = []
+        for n, item in enumerate(items):
+            await self._guard(a)
+            inner = {**s["do"], "id": s["id"]}
+            try:
+                if inner["kind"] == "tool":
+                    out = await self._tool(a, run, inner, idx, prev, input_text, {}, item=item, key=f"auto:{run.id}:{s['id']}:{n}", effect_rec=rec)
+                else:
+                    assert self.hooks is not None
+                    prompt = PLACEHOLDER.sub(lambda m: _block(m.group(1), json.dumps(item, default=str) if m.group(1) == "item" else prev if m.group(1) == "previous" else input_text), inner["prompt"])
+                    out, status, trace = await self.hooks.run_assistant(inner["assistant"], prompt, f"auto:{run.id}:{s['id']}:{n}")
+                    if status != "completed":
+                        raise AutomationError(502, f"ended with status {status}")
+                    out = out[:MAX_OUTPUT]
+            except AutomationError as e:
+                raise AutomationError(e.status, f"Step '{s['id']}', item {n + 1} of {len(items)}: {e}") from e
+            results.append(expr.as_value(out) if inner["kind"] == "tool" else out)
+            rec["done"] = n + 1
+        text = json.dumps(results, default=str)
+        if len(text) > MAX_OUTPUT:
+            raise AutomationError(413, f"Step '{s['id']}': the results are {len(text)} characters; at most {MAX_OUTPUT} can be passed on, so use fewer items or ask for less")
+        return text
+
+    async def _tool(self, a: Automation, run: Run, s: dict[str, Any], idx: int, prev: str, input_text: str, rec: dict[str, Any], item: Any = None,
+                    key: str | None = None, effect_rec: dict[str, Any] | None = None) -> str:
         """One tool call through the gateway. A change needs the key to be the same on a resume, and a tool that asks for approval for these arguments needs an earlier
         person step that names who may approve."""
         h = self.hooks
@@ -590,12 +728,14 @@ class AutomationService:
         meta = h.tools().get(s["tool"])
         if meta is None or not meta.get("allowed", True):
             raise AutomationError(409, f"Step '{s['id']}': '{s['tool']}' is not available to routines")
-        args = expr.fill(s["args"], {"previous": expr.as_value(prev), "input": expr.as_value(input_text)})
-        rec.update({"tool": s["tool"], "effect": meta["effect"], "args": json.loads(h.mask(json.dumps(args, default=str)))})
+        args = expr.fill(s["args"], {"previous": expr.as_value(prev), "input": expr.as_value(input_text), "item": item})
+        (effect_rec if effect_rec is not None else rec).update({"tool": s["tool"], "effect": meta["effect"]})
+        if effect_rec is None:
+            rec["args"] = json.loads(h.mask(json.dumps(args, default=str)))
         why = h.tool_approval(s["tool"], args) if h.tool_approval else None
         if why and not self._approver_named(a, run, idx):
             raise AutomationError(409, f"Step '{s['id']}': '{s['tool']}' asks for approval ({why}); the person step before it must name an approver role or team")
-        out = await h.call_tool(s["tool"], args, f"auto:{run.id}:{s['id']}")
+        out = await h.call_tool(s["tool"], args, key or f"auto:{run.id}:{s['id']}")
         text = out if isinstance(out, str) else json.dumps(out, default=str)
         if len(text) > MAX_OUTPUT:
             raise AutomationError(413, f"Step '{s['id']}': the result is {len(text)} characters; at most {MAX_OUTPUT} can be passed on, so ask for less")

@@ -16,6 +16,8 @@ Schedule, webhook, platform event (for example a hand-off created or an approval
 | Check | A rule or a model check on a value; branches on the outcome |
 | Person | Waits for a named person or group to approve, answer or review, with a deadline |
 | Tool (built, WP 5.1) | Calls a named registry tool with fixed or templated arguments (`{{previous.order.id}}`, `{{input.order}}`) and passes its JSON result on. Staff tools need a permission the routine's service identity (viewer) holds; a tool that changes something needs a person step before it, and one that asks for approval for the given arguments needs that person step to name an approver role or team. A result over 4,000 characters fails the step. Details: `NorthCX_Automations-Platform.md` |
+| Branch (built, WP 5.2) | `when` a condition on the previous result (`previous`), the trigger input (`input`) or an item reads true: continue, stop the run, or skip 1 to 9 steps ahead. Conditions can read values, compare, combine with and, or, not and use `len(path)`; they cannot call anything or loop. Skips only go forward, and a skip cannot jump around a person step that a change needs |
+| For each (built, WP 5.2) | Runs one tool or assistant step for each item of a list (`over: previous.orders`), at most 20 (default 10). One failing item stops the run and names it; items done stay done |
 | Action | A write to a connected system; always asks a person in the first version unless the organization has allowed it for that tool |
 
 ## 4. Rules
