@@ -192,19 +192,28 @@ class AlertManager:
         await self._remember_event(e)
         return e
 
+    async def raise_routine_alert(self, routine_id: str, severity: str, detail: str) -> None:
+        """An alert a routine raises: a monitoring finding and, when a webhook is set up, a signed delivery. The text is written by staff, never taken from a model or a customer."""
+        e = {"event": "alert.fired", "rule": f"routine:{routine_id}", "metric": "routine", "severity": severity, "value": None, "threshold": None,
+             "samples": 0, "windowMinutes": 0, "at": self.clock(), "detail": detail}
+        await self._publish(e)
+
     async def _emit(self, event: str, rule: AlertRule, detail: str, value: float | None, samples: int, now: float) -> None:
-        e = {"event": event, "rule": rule.name, "metric": rule.metric, "severity": rule.severity, "value": value, "threshold": rule.threshold,
-             "samples": samples, "windowMinutes": rule.window_minutes, "at": now, "detail": detail}
+        await self._publish({"event": event, "rule": rule.name, "metric": rule.metric, "severity": rule.severity, "value": value, "threshold": rule.threshold,
+                             "samples": samples, "windowMinutes": rule.window_minutes, "at": now, "detail": detail})
+
+    async def _publish(self, e: dict[str, Any]) -> None:
+        event, rule, detail = e["event"], e["rule"], e["detail"]
         self.events.append(e)
         del self.events[:-200]
         await self._remember_event(e)
         try:
-            await self.monitor.add([Finding(f"alert:{rule.name}" if event == "alert.fired" else f"alert_cleared:{rule.name}",
-                                            rule.severity if event == "alert.fired" else "info", detail, "-", "-", "-")])
+            await self.monitor.add([Finding(f"alert:{rule}" if event == "alert.fired" else f"alert_cleared:{rule}",
+                                            e["severity"] if event == "alert.fired" else "info", detail, "-", "-", "-")])
         except Exception:
             log.exception("could not record alert finding")
         if event == "alert.fired" and getattr(self, "feed", None) is not None:
-            await self.feed.emit("alert.fired", {"rule": rule.name, "metric": rule.metric, "severity": rule.severity, "value": value, "threshold": rule.threshold})
+            await self.feed.emit("alert.fired", {"rule": rule, "metric": e["metric"], "severity": e["severity"], "value": e["value"], "threshold": e["threshold"]})
         if self.notifier is None:
             e["delivery"] = {"status": "not_configured", "attempts": 0}
         else:

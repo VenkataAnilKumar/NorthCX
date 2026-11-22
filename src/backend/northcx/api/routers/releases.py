@@ -43,12 +43,11 @@ def register(app: FastAPI, d: AppDeps) -> None:
         candidate = await svc.versions.get_number(agent_id, body.candidate)
         if candidate is None:
             return _err(404, "not_found", f"Agent '{agent_id}' has no version {body.candidate}. Save it first, then compare.")
-        live_v, _, _ = await svc.resolve(agent_id)
-        live_data = live_v.spec if live_v is not None else (json.loads(svc.baselines[agent_id].canonical()) if agent_id in svc.baselines else None)
+        live_number, live_data = await svc.live_spec(agent_id)
         if live_data is None:
             return _err(404, "not_found", f"Nothing is live for '{agent_id}' yet, so there is nothing to compare with.")
         try:
-            before = await sim.run("scripted", None, True, source="compare", meta={"compare": "live", **({"version": live_v.number} if live_v else {})}, spec=AgentSpec.model_validate(live_data))
+            before = await sim.run("scripted", None, True, source="compare", meta={"compare": "live", **({"version": live_number} if live_number else {})}, spec=AgentSpec.model_validate(live_data))
             after = await sim.run("scripted", None, True, source="compare", meta={"compare": "candidate", "version": candidate.number}, spec=AgentSpec.model_validate(candidate.spec))
         except Busy as e:
             return _err(409, "busy", str(e))
@@ -59,8 +58,8 @@ def register(app: FastAPI, d: AppDeps) -> None:
         for name in sorted(was.keys() & now.keys()):
             a, b = bool(was[name]["passed"]), bool(now[name]["passed"])
             rows.append({"name": name, "required": bool(was[name].get("required")), "live": a, "candidate": b, "change": "same" if a == b else "regressed" if a else "fixed"})
-        await record(request, "agent.compare", agent_id, candidate=candidate.number, live=live_v.number if live_v else None, scenarios=len(rows))
-        return {"agent": agent_id, "live": {"number": live_v.number if live_v else None, "digest": AgentSpec.model_validate(live_data).digest()},
+        await record(request, "agent.compare", agent_id, candidate=candidate.number, live=live_number, scenarios=len(rows))
+        return {"agent": agent_id, "live": {"number": live_number, "digest": AgentSpec.model_validate(live_data).digest()},
                 "candidate": {"number": candidate.number, "digest": candidate.digest}, "counts": {"live": before.counts, "candidate": after.counts}, "scenarios": rows,
                 "verdict": compare_verdict(rows), "differences": diff_specs(live_data, candidate.spec)}
 

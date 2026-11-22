@@ -15,6 +15,7 @@ from northcx.api.models import AutomationBody, AutomationDecisionBody, Automatio
 from northcx.automations import AutomationError, AutomationService, Hooks, InMemoryAutomations, TRIGGER_TYPES, validate_definition
 from northcx.idempotency import request_hash, scope_hash, valid_key
 from northcx.release_requests import principal
+from northcx.spec import AgentSpec
 from northcx.tenancy import current_tenant
 
 
@@ -158,6 +159,33 @@ def register(app: FastAPI, d: AppDeps) -> None:
         return result
 
     svc.hooks.tools, svc.hooks.tool_approval, svc.hooks.call_tool = callable_tools, tool_approval, call_tool
+
+    async def live_agent(agent_id: str) -> bool:
+        return d.releases is not None and (await d.releases.live_spec(agent_id))[1] is not None
+
+    async def check_agent(agent_id: str, mode: str) -> dict[str, Any]:
+        """Run an agent's scenarios in a sandbox against the definition production serves now. Nothing reaches a customer or a real system."""
+        from northcx.simulation.service import Busy
+        if d.releases is None or d.simulations is None:
+            raise AutomationError(501, "Simulations are not configured on this server")
+        number, data = await d.releases.live_spec(agent_id)
+        if data is None:
+            raise AutomationError(409, f"Nothing is live for '{agent_id}' any more")
+        try:
+            run = await d.simulations.run(mode, None, mode == "scripted", source="automation", meta={"automation": True, **({"version": number} if number else {})}, spec=AgentSpec.model_validate(data))
+        except Busy as e:
+            raise AutomationError(409, str(e)) from e
+        except ValueError as e:
+            raise AutomationError(400, str(e)) from e
+        failed = [r["name"] for r in run.results if not r["passed"]]
+        return {"agent": agent_id, "version": number, "mode": mode, "total": len(run.results), "failed": len(failed), "failedNames": failed[:20], "runId": run.id}
+
+    async def raise_alert(routine_id: str, severity: str, detail: str) -> None:
+        if d.alerts is None:
+            raise AutomationError(501, "Alerts are not configured on this server")
+        await d.alerts.raise_routine_alert(routine_id, severity, detail)
+
+    svc.hooks.live_agent, svc.hooks.check_agent, svc.hooks.raise_alert = live_agent, check_agent, raise_alert
 
     def fail(e: AutomationError) -> JSONResponse:
         return _err(e.status, {400: "bad_request", 402: "budget", 403: "forbidden", 404: "not_found", 409: "conflict", 413: "too_large", 429: "rate_limited", 501: "not_configured"}.get(e.status, "error"), str(e))
@@ -343,7 +371,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """What a routine may name: the choices the editor offers."""
         h = svc.hooks
         return {"reports": sorted(h.reports) if h else [], "events": sorted(h.event_types) if h else [], "destinations": sorted(h.destinations) if h else [],
-                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "tool", "branch", "foreach", "person", "tag", "notify", "output"], "tools": [{"name": k, "effect": v["effect"]} for k, v in sorted(callable_tools().items()) if v["allowed"]], "triggers": list(TRIGGER_TYPES),
+                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "tool", "branch", "foreach", "simulate", "alert", "person", "tag", "notify", "output"], "tools": [{"name": k, "effect": v["effect"]} for k, v in sorted(callable_tools().items()) if v["allowed"]], "triggers": list(TRIGGER_TYPES),
                 "triggerInfo": [{"type": k, "label": label, "description": text, **({"events": sorted(h.event_types) if h else []} if k == "event" else {})} for k, (label, text) in TRIGGER_TYPES.items()]}
 
     @app.post("/v1/automations/convert")

@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 5, WP 5.4, 2026-11-22)
+- Routines have a `simulate` step (run the scenarios of a live agent in a sandbox, `scripted` or `live`) and an `alert` step (a monitoring finding and the alert webhook, with fixed wording written by staff). A scheduled routine of simulate, a branch on `previous.failed > 0`, and alert watches a live agent. Simulation runs started by a routine have source `automation`. Existing routines are unchanged.
+
 ### Added (Phase 5, WP 5.3, 2026-11-22)
 - A signed webhook delivery that carries `X-Northcx-Event-Id` starts its routine once: the same id sent again answers `{"duplicate": true, "runId": ...}` and starts nothing (ids are remembered for 24 hours; the same id with a different body is refused with 422). Webhook and event triggers can name a `when` condition over the incoming data; deliveries that do not match are acknowledged (`{"ignored": true}`) and recorded. Deliveries without an event id behave as before.
 
