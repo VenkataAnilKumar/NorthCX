@@ -33,6 +33,7 @@ TAG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 HIGH_RISK = frozenset({"notify"})  # steps that send something out of the platform: only after a person has approved in the same routine
 MAX_INPUT = 2000
 DEFAULT_ITEMS, MAX_ITEMS = 10, 20       # what a foreach step goes through at most
+MAX_CRITERIA, MAX_SAMPLE = 5, 20     # a criteria step judges at most this many criteria over this many conversations
 MAX_ARGS = 2000                  # characters of a tool step's arguments
 MIN_HOURS, MAX_HOURS = 1.0, 24.0 * 30
 TRIGGER_TYPES = {  # what starts a routine, in the words the editor shows
@@ -73,6 +74,8 @@ class Hooks:
     live_agent: Callable[[str], Awaitable[bool]] | None = None                              # agent id -> whether something is live for it (what a simulate step may check)
     check_agent: Callable[[str, str], Awaitable[dict[str, Any]]] | None = None             # agent id, mode -> the result of running its scenarios against what is live
     raise_alert: Callable[[str, str, str], Awaitable[None]] | None = None                  # routine id, severity, text -> a monitoring finding and the alert webhook
+    sample_conversations: Callable[[str, int, int], Awaitable[list[str]]] | None = None   # agent id, days, how many -> recent production conversations as masked text
+    judge_text: Callable[[str, str], Awaitable[bool | None]] | None = None                # criterion, one conversation -> met, not met, or None when the judge gave no usable answer
     mask: Callable[[str], str] = staticmethod(lambda t: t)                                  # hides personal data in what a run record keeps
 
 
@@ -180,6 +183,19 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
             if mode not in ("scripted", "live"):
                 raise AutomationError(400, f"Step '{sid}': mode is scripted (no real model) or live (a real model, counted against the daily budget)")
             out.append({"id": sid, "kind": "simulate", "agent": agent, "mode": mode})
+        elif sk == "criteria":
+            agent, crit, sample, days = s.get("agent"), s.get("criteria"), s.get("sample", 10), s.get("days", 7)
+            if not isinstance(agent, str) or not agent:
+                raise AutomationError(400, f"Step '{sid}': name the agent whose conversations to judge")
+            if not isinstance(crit, list) or not 1 <= len(crit) <= MAX_CRITERIA:
+                raise AutomationError(400, f"Step '{sid}': give 1 to {MAX_CRITERIA} criteria, each a plain sentence")
+            if any(not isinstance(c, str) or not 10 <= len(c.strip()) <= 200 or "{{" in c for c in crit):
+                raise AutomationError(400, f"Step '{sid}': each criterion is 10 to 200 characters of plain wording (it cannot use values from earlier steps)")
+            if isinstance(sample, bool) or not isinstance(sample, int) or not 1 <= sample <= MAX_SAMPLE:
+                raise AutomationError(400, f"Step '{sid}': sample is a whole number from 1 to {MAX_SAMPLE}")
+            if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= 30:
+                raise AutomationError(400, f"Step '{sid}': days is a whole number from 1 to 30")
+            out.append({"id": sid, "kind": "criteria", "agent": agent, "criteria": [c.strip() for c in crit], "sample": sample, "days": days})
         elif sk == "alert":
             sev, msg = s.get("severity", "warning"), s.get("text")
             if sev not in ("warning", "critical"):
@@ -199,7 +215,7 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
                 raise AutomationError(400, f"Step '{sid}': a routine's outputs are shared with everyone who uses the Workspace")
             out.append({"id": sid, "kind": "output", "title": title, "visibility": "shared"})
         else:
-            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report, tool, branch, foreach, simulate, alert, person, tag, notify or output (a routine never writes to customers)")
+            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report, tool, branch, foreach, simulate, criteria, alert, person, tag, notify or output (a routine never writes to customers)")
     for st, approved in zip(out, _approved(out)):             # a step that sends something out or changes something needs a person's approval on every path that reaches it
         if approved:
             continue
@@ -518,7 +534,7 @@ class AutomationService:
             raise AutomationError(501, "Routines are not configured on this server")
         for s in data["steps"]:
             inner = s.get("do") if s["kind"] == "foreach" else s
-            if s["kind"] == "simulate" and self.hooks.live_agent is not None and not await self.hooks.live_agent(s["agent"]):
+            if s["kind"] in ("simulate", "criteria") and self.hooks.live_agent is not None and not await self.hooks.live_agent(s["agent"]):
                 raise AutomationError(409, f"Step '{s['id']}': nothing is live for '{s['agent']}', so there is nothing to check")
             if inner and inner["kind"] == "assistant" and not await self.hooks.assistant_exists(inner["assistant"]):
                 raise AutomationError(409, f"Step '{s['id']}': '{inner['assistant']}' is not a live staff assistant (customer-facing agents cannot be used)")
@@ -664,6 +680,8 @@ class AutomationService:
                     result = await self.hooks.check_agent(s["agent"], s["mode"])
                     rec.update({"agent": s["agent"], "mode": s["mode"], "failed": result["failed"], "total": result["total"]})
                     prev = json.dumps(result, default=str)
+                elif s["kind"] == "criteria":
+                    prev = await self._criteria(a, s, rec)
                 elif s["kind"] == "alert":
                     if self.hooks.raise_alert is None:
                         raise AutomationError(501, "Alerts are not available on this server")
@@ -706,7 +724,7 @@ class AutomationService:
                     rec["sentTo"] = s["to"]
                 else:
                     prev = json.dumps(await self.hooks.reports[s["report"]](s["days"]), default=str)[:MAX_OUTPUT]
-                rec.update({"status": "ok", "output": (self.hooks.mask(prev) if s["kind"] in ("tool", "foreach") else prev) if s["kind"] in ("assistant", "report", "output", "tool", "foreach", "simulate") else rec.get("sentTo") or rec.get("tagged") or "", "endedAt": time.time()})
+                rec.update({"status": "ok", "output": (self.hooks.mask(prev) if s["kind"] in ("tool", "foreach") else prev) if s["kind"] in ("assistant", "report", "output", "tool", "foreach", "simulate", "criteria") else rec.get("sentTo") or rec.get("tagged") or "", "endedAt": time.time()})
             except BaseException as e:
                 rec.update({"status": "failed", "error": str(e)[:200], "endedAt": time.time()})
                 raise
@@ -724,6 +742,22 @@ class AutomationService:
             raise AutomationError(409, "Stopped: the routine was paused or withdrawn")
         if self.hooks.over_budget is not None and await self.hooks.over_budget():
             raise AutomationError(402, "Stopped: the daily budget is used up")
+
+    async def _criteria(self, a: Automation, s: dict[str, Any], rec: dict[str, Any]) -> str:
+        """Judge recent conversations of an agent against plain-language criteria. The judge reads masked text only. Not calibrated against people: the result says so."""
+        h = self.hooks
+        assert h is not None
+        if h.sample_conversations is None or h.judge_text is None:
+            raise AutomationError(501, "Judging conversations is not available on this server")
+        convos = await h.sample_conversations(s["agent"], s["days"], s["sample"])
+        counts = [{"text": c, "passed": 0, "failed": 0, "unusable": 0} for c in s["criteria"]]
+        for convo in convos:
+            await self._guard(a)                                                  # each conversation is several model calls: the daily budget is checked before each one
+            for row in counts:
+                verdict = await h.judge_text(row["text"], convo)
+                row["unusable" if verdict is None else "passed" if verdict else "failed"] += 1
+        rec.update({"agent": s["agent"], "conversations": len(convos)})
+        return json.dumps({"agent": s["agent"], "days": s["days"], "conversations": len(convos), "judged": "unverified", "calibrated": False, "criteria": counts})
 
     @staticmethod
     def _branch(s: dict[str, Any], prev: str, input_text: str, rec: dict[str, Any]) -> Any:

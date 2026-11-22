@@ -34,8 +34,11 @@ class Judge:
         self.llm, self.model = llm, model
 
     async def evaluate(self, rubric: str, messages: list[Message], min_score: int = 4) -> JudgeVerdict:
-        """Fail closed: a model error or unparseable answer is a failed verdict, never a pass."""
-        prompt = f"RUBRIC:\n{rubric}\n\n<conversation>\n{render(messages)}\n</conversation>"
+        return await self.evaluate_text(rubric, render(messages), min_score)
+
+    async def evaluate_text(self, rubric: str, conversation: str, min_score: int = 4) -> JudgeVerdict:
+        """Fail closed: a model error or unparseable answer is a failed verdict, never a pass. `conversation` is already rendered (and masked, where that matters)."""
+        prompt = f"RUBRIC:\n{rubric}\n\n<conversation>\n{conversation}\n</conversation>"
         try:
             res = await self.llm.complete(LLMRequest(system=JUDGE_SYSTEM, model=self.model, max_tokens=200,
                                                      messages=[{"role": "user", "content": prompt}]))
