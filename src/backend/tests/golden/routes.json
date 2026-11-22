@@ -122,6 +122,7 @@
   "GET /v1/simulations/scenarios": "/v1/simulations/scenarios -> sim_scenarios",
   "GET /v1/simulations/scenarios/x": "/v1/simulations/scenarios/{name} -> get_scenario",
   "GET /v1/skills": "/v1/skills -> list_skills",
+  "GET /v1/system/health": "/v1/system/health -> system_health",
   "GET /v1/templates": "/v1/templates -> list_templates",
   "GET /v1/templates/x": "/v1/templates/{template_id} -> get_template",
   "GET /v1/tenant/limits": "/v1/tenant/limits -> tenant_limits",
@@ -901,6 +902,11 @@
    "GET",
    "/v1/skills",
    "list_skills"
+  ],
+  [
+   "GET",
+   "/v1/system/health",
+   "system_health"
   ],
   [
    "GET",

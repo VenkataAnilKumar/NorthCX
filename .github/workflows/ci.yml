@@ -113,6 +113,9 @@ jobs:
           curl --fail --silent -H "authorization: Bearer $KEY" http://127.0.0.1:3001/api/northcx/v1/me | grep -q '"role":"admin"'
           curl --fail --silent -X POST -H "authorization: Bearer $KEY" -H 'content-type: application/json' \
             -d '{"sessionId":"ci","message":"where is order 1042?"}' http://127.0.0.1:3000/v1/agents/support/chat | grep -q delivered
+      - name: Time from the setup script to the first answer
+        run: |
+          echo "Seconds from running scripts/setup.py to the first answer, building the images on a hosted runner: $(( $(date +%s) - STARTED ))" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Backup and restore drill (the real stack)
         run: |
           mkdir backups

@@ -10470,6 +10470,29 @@
         ]
       }
     },
+    "/v1/system/health": {
+      "get": {
+        "summary": "System Health",
+        "description": "Each part of the system as ok, failing or not set up, with what to do. Needs the permission to manage keys (an operator).",
+        "operationId": "system_health_v1_system_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response System Health V1 System Health Get"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "keys:manage",
+        "tags": [
+          "system"
+        ]
+      }
+    },
     "/v1/templates": {
       "get": {
         "summary": "List Templates",

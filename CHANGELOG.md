@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 6, WP 6.4, 2026-11-22)
+- `GET /v1/system/health` (permission `keys:manage`) and Studio, Platform, System health: the database, the schema revision against the one this version expects, the model providers, each channel and alert delivery, each shown as working, not working or not set up with what to do. It calls no model and sends nothing. Additive.
+
 ### Added (Phase 6, WP 6.1, 2026-11-22)
 - `scripts/setup.py`: one command writes a working `.env` with a generated database password, admin key and token secret, for the demo model, an Anthropic key or a local model server (it writes `config/providers.yaml`). `--check` says what is wrong with an existing `.env`. It never overwrites a `.env` without `--force`, and never prints a secret. The compose backend now mounts `./config` at `/config` (read-only) and knows `host.docker.internal`, so a server on the same machine can be used. The README and deployment guide use the script; the CI stack job starts from its output and reports the time to the first answer.
 

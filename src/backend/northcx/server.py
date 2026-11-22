@@ -80,6 +80,7 @@ from .api.routers import automations as _automations_router
 from .api.routers import workspace_content as _workspace_content_router
 from .api.routers import workspace_library as _workspace_library_router
 from .api.routers import admin_overview as _admin_overview_router
+from .api.routers import system as _system_router
 from .tenancy import TENANT
 from .api.routers import voice as _voice_router
 from .api.routers import public as _public_router
@@ -172,6 +173,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("POST", r"/v1/agents/[^/]+/versions/preview", "versions:create"),
     ("GET", r"/v1/templates", "agents:read"),
     ("GET", r"/v1/models/overview", "versions:read"),
+    ("GET", r"/v1/system/health", "keys:manage"),
     ("GET", r"/v1/usage", "insights:read"),
     ("PUT", r"/v1/budgets", "keys:manage"),
     ("DELETE", r"/v1/budgets", "keys:manage"),
@@ -532,6 +534,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     _workspace_content_router.register(app, deps)
     _workspace_library_router.register(app, deps)
     _admin_overview_router.register(app, deps)
+    _system_router.register(app, deps)
     _voice_router.register(app, deps)
     _public_router.register(app, deps)
     _chat_router.register(app, deps)
