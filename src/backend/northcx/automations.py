@@ -76,6 +76,7 @@ class Hooks:
     raise_alert: Callable[[str, str, str], Awaitable[None]] | None = None                  # routine id, severity, text -> a monitoring finding and the alert webhook
     sample_conversations: Callable[[str, int, int], Awaitable[list[str]]] | None = None   # agent id, days, how many -> recent production conversations as masked text
     judge_text: Callable[[str, str], Awaitable[bool | None]] | None = None                # criterion, one conversation -> met, not met, or None when the judge gave no usable answer
+    audit: Callable[[str, str, dict[str, Any]], Awaitable[None]] | None = None            # action, target, details -> an audit entry; a failure stops the step
     mask: Callable[[str], str] = staticmethod(lambda t: t)                                  # hides personal data in what a run record keeps
 
 
@@ -688,6 +689,8 @@ class AutomationService:
                     earlier = next((r for r in reversed(run.steps[:-1]) if r["kind"] != "branch"), None)
                     failing = json.loads(prev).get("failedNames", [])[:5] if earlier and earlier["kind"] == "simulate" else []
                     detail = f"Routine '{a.name}': {s['text']}" + (f" Failing scenarios: {', '.join(n[:60] for n in failing)}." if failing else "")
+                    if self.hooks.audit is not None:
+                        await self.hooks.audit("automation.alert", a.id, {"run": run.id, "step": s["id"], "severity": s["severity"]})
                     await self.hooks.raise_alert(a.id, s["severity"], detail)
                     rec["alerted"] = s["severity"]
                 elif s["kind"] == "branch":
@@ -817,7 +820,10 @@ class AutomationService:
         why = h.tool_approval(s["tool"], args) if h.tool_approval else None
         if why and not self._approver_named(a, run, idx):
             raise AutomationError(409, f"Step '{s['id']}': '{s['tool']}' asks for approval ({why}); the person step before it must name an approver role or team")
-        out = await h.call_tool(s["tool"], args, key or f"auto:{run.id}:{s['id']}")
+        call_key = key or f"auto:{run.id}:{s['id']}"
+        if meta["effect"] != "read" and h.audit is not None:                        # written before the change, so a change cannot happen unrecorded
+            await h.audit("automation.tool", f"{a.id}:{s['tool']}", {"run": run.id, "step": s["id"], "tool": s["tool"], "effect": meta["effect"], "key": call_key})
+        out = await h.call_tool(s["tool"], args, call_key)
         text = out if isinstance(out, str) else json.dumps(out, default=str)
         if len(text) > MAX_OUTPUT:
             raise AutomationError(413, f"Step '{s['id']}': the result is {len(text)} characters; at most {MAX_OUTPUT} can be passed on, so ask for less")

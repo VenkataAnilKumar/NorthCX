@@ -43,6 +43,9 @@ def _json(raw: str) -> Any:
         raise AutomationError(502, "The model did not return valid JSON") from e
 
 
+DRAFTABLE = {"report", "assistant", "person", "tag", "notify", "output"}      # the kinds the drafter's instructions describe and the dry run can explain
+
+
 async def dry_run(svc: AutomationService, d: dict[str, Any]) -> dict[str, Any]:
     """Walk the steps without calling any assistant or changing anything: what each would do, and whether it could."""
     assert svc.hooks is not None
@@ -91,6 +94,9 @@ async def draft(svc: AutomationService, llm: Any, description: str) -> dict[str,
             if isinstance(data, dict) and "cannot" in data:
                 return {"definition": None, "yaml": None, "problems": [str(data["cannot"])[:300]], "dryRun": None, "saved": False, "note": "The model says this cannot be built as a routine."}
             clean = validate_definition(data, set(h.reports), h.event_types, h.destinations)
+            other = sorted({s["kind"] for s in clean["steps"]} - DRAFTABLE)
+            if other:
+                raise AutomationError(400, f"The drafter writes only {', '.join(sorted(DRAFTABLE))} steps; {', '.join(other)} can be added in the editor afterwards")
             return {"definition": clean, "problems": [], "dryRun": await dry_run(svc, clean), "saved": False,
                     "note": "This is a draft. Nothing is saved: read it, change it if you want, then save it. A second person must approve it before it can run."}
         except AutomationError as e:

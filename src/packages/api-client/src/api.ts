@@ -616,7 +616,7 @@ export const deleteSpace = (id: string) => api<{ deleted: boolean }>(`/v1/worksp
 export const judgeConversation = (sessionId: string) => api<{ sessionId: string; verdict: "good" | "poor"; reason: string; by: string }>("/v1/quality/judge", { method: "POST", body: JSON.stringify({ sessionId }) });
 export const waitingRuns = () => api<{ runs: AutoRun[] }>("/v1/automation-runs?status=waiting").then((r) => r.runs);
 export const decideRun = (id: string, approve: boolean, note?: string) => api<AutoRun>(`/v1/automation-runs/${id}/decision`, { method: "POST", body: JSON.stringify({ approve, note }) });
-export interface AutomationCatalog { reports: string[]; events: string[]; destinations: string[]; assistants: string[]; kinds: string[]; triggers: string[];
+export interface AutomationCatalog { reports: string[]; events: string[]; destinations: string[]; assistants: string[]; kinds: string[]; triggers: string[]; tools?: { name: string; effect: string }[]; agents?: string[];
   triggerInfo: { type: string; label: string; description: string; events?: string[] }[] }
 export const automationCatalog = () => api<AutomationCatalog>("/v1/automations-catalog");
 export const convertAutomation = (x: string | object) => api<{ definition: Record<string, unknown>; yaml: string; valid: boolean; problems: string[] }>("/v1/automations/convert", { method: "POST", body: body(x) });

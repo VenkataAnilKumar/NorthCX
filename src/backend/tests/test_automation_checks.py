@@ -130,3 +130,12 @@ def test_a_live_check_stops_the_run_with_the_reason_when_no_real_model_is_set_up
     publish(c, ann, ben, routine("watch-live", [{**CHECK, "mode": "live"}]))
     run = loop.run_until_complete(app.state.automations.run("watch-live", "manual", "ann"))
     assert run.status == "stopped" and "mode 'live' is not available" in run.error
+
+
+def test_an_alert_raised_by_a_routine_is_in_the_audit_log():
+    app, c, key, loop, alerts = world(BROKEN)
+    ann, ben = key("ann", "release_manager"), key("ben", "release_manager")
+    publish(c, ann, ben, routine("watch-support", [CHECK, ALERT]))
+    run = loop.run_until_complete(app.state.automations.run("watch-support", "manual", "ann"))
+    entries = [e for e in c.get("/v1/audit?limit=60", headers=ADM).json()["entries"] if e["action"] == "automation.alert"]
+    assert len(entries) == 1 and entries[0]["target"] == "watch-support" and entries[0]["detail"] == {"run": run.id, "step": "tell", "severity": "critical"}

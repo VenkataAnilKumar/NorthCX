@@ -187,6 +187,12 @@ def register(app: FastAPI, d: AppDeps) -> None:
 
     svc.hooks.live_agent, svc.hooks.check_agent, svc.hooks.raise_alert = live_agent, check_agent, raise_alert
 
+    async def audit_step(action: str, target: str, detail: dict[str, Any]) -> None:
+        from northcx.audit import AuditEntry
+        await d.audit.append(AuditEntry(actor="automation", role="viewer", action=action, target=target, detail=detail))
+
+    svc.hooks.audit = audit_step
+
     async def sample_conversations(agent_id: str, days: int, how_many: int) -> list[str]:
         """The newest production conversations of an agent, as masked text for the judge."""
         import time
@@ -399,7 +405,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """What a routine may name: the choices the editor offers."""
         h = svc.hooks
         return {"reports": sorted(h.reports) if h else [], "events": sorted(h.event_types) if h else [], "destinations": sorted(h.destinations) if h else [],
-                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "tool", "branch", "foreach", "simulate", "criteria", "alert", "person", "tag", "notify", "output"], "tools": [{"name": k, "effect": v["effect"]} for k, v in sorted(callable_tools().items()) if v["allowed"]], "triggers": list(TRIGGER_TYPES),
+                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "tool", "branch", "foreach", "simulate", "criteria", "alert", "person", "tag", "notify", "output"], "agents": sorted(a.id for a in await d.provider.all()), "tools": [{"name": k, "effect": v["effect"]} for k, v in sorted(callable_tools().items()) if v["allowed"]], "triggers": list(TRIGGER_TYPES),
                 "triggerInfo": [{"type": k, "label": label, "description": text, **({"events": sorted(h.event_types) if h else []} if k == "event" else {})} for k, (label, text) in TRIGGER_TYPES.items()]}
 
     @app.post("/v1/automations/convert")

@@ -164,3 +164,16 @@ def test_the_key_of_a_tool_call_is_the_same_whenever_the_step_is_run_again():
         return run, await svc.repo.versions(a.id)
     run, versions = asyncio.run(go())
     assert seen == [f"auto:{run.id}:a"]
+
+
+def test_a_change_made_by_a_routine_is_in_the_audit_log_with_its_run_and_key_and_a_read_is_not():
+    app, key, loop = world()
+    c, ann, ben, rev = TestClient(app), key("ann", "release_manager"), key("ben", "release_manager"), key("rev", "reviewer")
+    refund = {"id": "refund", "kind": "tool", "tool": "issue_refund", "args": {"order_id": "1042", "amount": 20}}
+    publish(c, ann, ben, routine("audited", [LOOKUP, ASK, refund]))
+    run = loop.run_until_complete(app.state.automations.run("audited", "manual", "ann", json.dumps({"order": "1042"})))
+    assert c.post(f"/v1/automation-runs/{run.id}/decision", headers=rev, json={"approve": True}).status_code == 200
+    finished(c, run.id, ann)
+    entries = [e for e in c.get("/v1/audit?limit=60", headers=ADM).json()["entries"] if e["action"] == "automation.tool"]
+    assert len(entries) == 1 and entries[0]["actor"] == "automation" and entries[0]["target"] == "audited:issue_refund"
+    assert entries[0]["detail"] == {"run": run.id, "step": "refund", "tool": "issue_refund", "effect": "write", "key": f"auto:{run.id}:refund"}

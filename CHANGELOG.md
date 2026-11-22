@@ -4,6 +4,13 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Fixed (Phase 5 review, 2026-11-22)
+- A routine's tool step that changes something now writes an audit entry (`automation.tool`) before it acts, and an alert step writes `automation.alert`.
+- The Workspace browser smoke no longer fails about 1 run in 10: its output title ended in a 13-digit number that the platform masked as a card number.
+
+### Added (Phase 5, WP 5.6, 2026-11-22)
+- Workspace, Automations: the canvas edits the tool, condition, for-each, check-an-agent, judge-conversations and alert steps and a condition on webhook and event triggers, and warns when a step that changes something has no person step before it on every path. `GET /v1/automations-catalog` also lists `agents`. The describe-it drafter still writes only report, assistant, person, tag, notify and output steps; a draft that uses another kind is sent back and then reported. The Automations page intro now describes all step kinds.
+
 ### Added (Phase 5, WP 5.5, 2026-11-22)
 - Routines have a `criteria` step: recent production conversations of an agent (at most 20) are judged by a model against up to five plain-language criteria, on masked transcripts, with passes, failures and unusable answers counted per criterion. **The judge is not yet compared with people's labels, so every result says `calibrated: false`.** Existing routines are unchanged.
 

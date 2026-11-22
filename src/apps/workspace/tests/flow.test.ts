@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { addStep, fromGraph, hints, moveStep, removeStep, toGraph, updateStep, type Definition, type Step } from "../components/flow";
+import { addStep, approved, fromGraph, hints, moveStep, removeStep, toGraph, updateStep, type Definition, type Step } from "../components/flow";
 
-const KINDS = ["report", "assistant", "person", "tag", "notify", "output"] as const;
+const KINDS = ["report", "assistant", "person", "tag", "notify", "output", "tool", "branch", "foreach", "simulate", "criteria", "alert"] as const;
 const FIELDS: Record<string, () => Record<string, unknown>> = {
   report: () => ({ report: "performance", days: 7 }), assistant: () => ({ assistant: "shift-briefing", prompt: "Write it up: {{previous}}" }), person: () => ({ ask: "Ready?", maxWaitHours: 24 }),
   tag: () => ({ tag: "follow-up" }), notify: () => ({ to: "ops-chat" }), output: () => ({ title: "Digest {date}" }),
+  tool: () => ({ tool: "lookup_order", args: { order_id: "{{input.order}}", nested: { list: [1, 2, "{{previous.id}}"] } } }),
+  branch: () => ({ when: "previous.total > 100 and not input.skip", then: { skip: 2 }, else: "stop" }),
+  foreach: () => ({ over: "previous.orders", max: 5, do: { kind: "tool", tool: "lookup_order", args: { order_id: "{{item}}" } } }),
+  simulate: () => ({ agent: "support", mode: "scripted" }), criteria: () => ({ agent: "support", criteria: ["Replies are polite and short"], sample: 5, days: 7 }),
+  alert: () => ({ severity: "critical", text: "The live agent fails its scenarios." }),
 };
 
 // a small deterministic generator, so the property runs the same way every time
@@ -13,7 +18,7 @@ function rng(seed: number) { let s = seed; return () => (s = (s * 1664525 + 1013
 function randomDefinition(r: () => number): Definition {
   const n = 1 + Math.floor(r() * 10);
   const steps: Step[] = Array.from({ length: n }, (_, i) => { const kind = KINDS[Math.floor(r() * KINDS.length)]; return { id: `s${i}`, kind, ...FIELDS[kind]() }; });
-  const triggers = [{ type: "manual" }, { type: "schedule", everyHours: 1 + Math.floor(r() * 100) }, { type: "webhook" }, { type: "event", event: "handoff.created" }];
+  const triggers = [{ type: "manual" }, { type: "schedule", everyHours: 1 + Math.floor(r() * 100) }, { type: "webhook", when: "input.priority == 'urgent'" }, { type: "event", event: "handoff.created" }];
   const def: Definition = { id: `routine-${Math.floor(r() * 1000)}`, name: "Generated", trigger: triggers[Math.floor(r() * 4)], steps };
   if (r() > 0.5) def.description = "A description";
   if (r() > 0.5) def.limits = { maxSeconds: 30 + Math.floor(r() * 200) };
@@ -75,5 +80,21 @@ describe("the canvas is a view of the definition, not a second format", () => {
     expect(hints(addStep(d, "person", "a"))).toEqual([]);
     expect(hints({ trigger: { type: "manual" }, steps: [] })).toContain("Add at least one step.");
     expect(hints({ trigger: { type: "manual" }, steps: [{ id: "a", kind: "tag" }, { id: "a", kind: "tag" }] })).toContain("Two steps have the same id.");
+  });
+
+  it("knows which steps are approved on every path, like the server", () => {
+    const step = (kind: string, extra: Record<string, unknown> = {}, id = kind): Step => ({ id, kind, ...extra });
+    const skipOver = { trigger: { type: "manual" }, steps: [step("tool", { tool: "lookup_order" }, "find"), step("branch", { when: "previous.a > 1", then: { skip: 1 }, else: "continue" }), step("person"), step("tool", { tool: "issue_refund" }, "refund")] };
+    expect(approved(skipOver)).toEqual([false, false, false, false]);             // the skip reaches the refund without the person
+    const through = { ...skipOver, steps: [skipOver.steps[0], { ...skipOver.steps[1], then: "continue", else: "stop" }, skipOver.steps[2], skipOver.steps[3]] };
+    expect(approved(through)).toEqual([false, false, false, true]);
+    expect(hints(skipOver, ["lookup_order"]).join(" ")).toContain("'refund' changes something");
+    expect(hints(through, ["lookup_order"])).toEqual([]);
+    expect(hints(skipOver)).toEqual([]);                                          // with no list of reading tools nothing is claimed about a tool
+  });
+
+  it("checks a change made by the tool inside a for-each step too", () => {
+    const d: Definition = { trigger: { type: "manual" }, steps: [{ id: "each", kind: "foreach", over: "input.l", do: { kind: "tool", tool: "issue_refund", args: {} } }] };
+    expect(hints(d, ["lookup_order"]).join(" ")).toContain("'each' changes something");
   });
 });
