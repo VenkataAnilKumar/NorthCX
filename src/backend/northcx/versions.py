@@ -18,6 +18,7 @@ import yaml
 from .agent import Agent
 from .catalog import AgentUnavailable
 from .simulation.service import SimulationService
+from .plain import explain_errors
 from .spec import AgentSpec, BuildContext, Registry, SpecError
 
 PRODUCTION = "production"
@@ -183,7 +184,7 @@ class ReleaseService:
 
     async def create_version(self, agent_id: str, spec: AgentSpec, by: str, note: str | None = None) -> AgentVersion:
         if spec.id != agent_id:
-            raise InvalidSpec(f"The spec's id '{spec.id}' does not match the agent '{agent_id}'")
+            raise InvalidSpec(f"The agent id is '{spec.id}' but this agent is '{agent_id}'. Change the id back to '{agent_id}'.")
         problems = self.registry.validate(spec)
         if problems:
             raise InvalidSpec("; ".join(problems))
@@ -204,8 +205,8 @@ class ReleaseService:
             spec = AgentSpec.model_validate(spec_data)
         except Exception as e:
             errors = e.errors() if hasattr(e, "errors") else []
-            return {"valid": False, "problems": [(".".join(str(p) for p in x["loc"]) + ": " if x.get("loc") else "") + str(x["msg"]) for x in errors] or [str(e)]}
-        problems = [] if spec.id == agent_id else [f"The spec's id '{spec.id}' must be '{agent_id}'"]
+            return {"valid": False, "problems": explain_errors(errors) or [str(e)]}
+        problems = [] if spec.id == agent_id else [f"The agent id is '{spec.id}' but this agent is '{agent_id}'. Change the id back to '{agent_id}'."]
         problems += self.registry.validate(spec)
         if not problems:
             try:
@@ -216,7 +217,7 @@ class ReleaseService:
             return {"valid": False, "problems": problems}
         if spec.routes:
             known = set(self.baselines) | set(await self.releases.agents_with_releases())
-            problems += [f"Route to unknown agent '{r.agent}' (known: {', '.join(sorted(known)) or 'none'})" for r in spec.routes if r.agent not in known]
+            problems += [f"A specialist called '{r.agent}' is listed, but no such agent exists. Pick an existing agent ({', '.join(sorted(known)) or 'none yet'}) or remove it." for r in spec.routes if r.agent not in known]
         if problems:
             return {"valid": False, "problems": problems}
         pinned = self.registry.pin_skills(spec)
@@ -296,7 +297,7 @@ class ReleaseService:
             checks.append({"key": key, "title": title, "status": status, "detail": detail})
 
         add("permission", "You may release to this environment", "pass" if permitted else "fail",
-            "" if permitted else f"Releasing to {environment} needs the release permission")
+            "" if permitted else f"Releasing to {environment} needs the release permission. Ask an administrator to release it.")
         if self.rollouts is not None and await self.rollouts.active(agent_id, environment) is not None:
             add("no_rollout", "No rollout is running here", "fail", "A rollout is running; promote or abort it first")
         live_v, _ = await self.live(agent_id, environment)

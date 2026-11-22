@@ -85,6 +85,12 @@ class ToolScopeSpec(BaseModel):
 
 
 from .language import check_codes as check_languages  # noqa: E402
+from .plain import explain_errors  # noqa: E402
+
+
+class ApprovalsSpec(BaseModel):
+    always: list[str] = Field(default_factory=list, max_length=50)  # tools whose every call waits for a person, in addition to any rule the tool has
+    model_config = {"extra": "forbid"}
 
 
 class AgentSpec(BaseModel):
@@ -95,6 +101,7 @@ class AgentSpec(BaseModel):
     max_steps: int = Field(default=8, ge=1, le=50)
     max_run_tokens: int | None = Field(default=None, ge=1000, le=5_000_000)
     audience: Literal["customer", "staff"] = "customer"  # staff agents work for signed-in people with staff tools; customer agents never get staff tools
+    approvals: ApprovalsSpec = Field(default_factory=ApprovalsSpec)
     shadow: bool = False  # shadow mode: the agent drafts each reply and a person sends it; customer agents only (docs/01-chat/NorthCX_Shadow-Mode.md)
     sensitive: bool = False  # treat every conversation of this agent as sensitive (model choice: no tier the data policy forbids)
     channel_styles: dict[str, str] = Field(default_factory=dict)
@@ -166,6 +173,8 @@ class AgentSpec(BaseModel):
             del data["max_run_tokens"]  # keeps digests of specs written before this field existed
         if data.get("audience") == "customer":
             del data["audience"]  # keeps digests of specs written before this field existed
+        if not (data.get("approvals") or {}).get("always"):
+            data.pop("approvals", None)  # keeps digests of specs written before this field existed
         if not data.get("shadow"):
             data.pop("shadow", None)  # keeps digests of specs written before this field existed
         if not data.get("sensitive"):
@@ -323,57 +332,60 @@ class Registry:
         problems = []
         for t in dict.fromkeys(spec.tools):  # each unknown name reported once
             if t not in self._tools:
-                problems.append(f"Unknown tool '{t}' (known: {', '.join(self.tool_names()) or 'none'})")
+                problems.append(f"This agent uses a tool called '{t}', which does not exist here. Pick one from the list or remove it. Available tools: {', '.join(self.tool_names()) or 'none'}.")
         if len(set(spec.tools)) != len(spec.tools):
-            problems.append("Duplicate tool references")
+            problems.append("A tool is listed more than once in the tools. Remove the repeats so each tool appears once.")
         reachable = list(spec.tools) + [n for r in spec.skills for s in [self.skill_for(spec, r.name)] if s is not None for n in s.tool_names()] + [n for j in spec.journeys for n in j.tool_names()]
         for t in dict.fromkeys(reachable):  # a customer agent never gets a staff tool (not even through a skill); a staff agent gets only staff tools
             tool = self._tools.get(t)
             if tool is not None and tool.audience == "staff" and spec.audience != "staff":
-                problems.append(f"Tool '{t}' is a staff tool; only an agent with audience: staff may use it")
+                problems.append(f"The tool '{t}' is only for agents that help your own staff, so a customer agent cannot use it. Remove it, or make this an agent for staff.")
             elif tool is not None and tool.audience != "staff" and spec.audience == "staff":
-                problems.append(f"Tool '{t}' is a customer tool; an agent with audience: staff may use only staff tools")
+                problems.append(f"The tool '{t}' is for customer conversations, so an agent for staff cannot use it. Use only staff tools here, or make this an agent for customers.")
         if spec.shadow and spec.audience == "staff":
-            problems.append("shadow mode is for customer agents; an agent with audience: staff answers a person at work, not a customer")
+            problems.append("Shadow mode is for agents that talk to customers; an agent for staff answers a person at work. Turn shadow mode off, or make this an agent for customers.")
         names = [t.name for t in spec.forced_handoff]
         if len(set(names)) != len(names):
-            problems.append("Duplicate forced_handoff topic names")
+            problems.append("Two of the topics that always go to a person have the same name. Give each topic its own name.")
         for g in spec.guardrails:
             if g.name not in self._guardrails:
-                problems.append(f"Unknown guardrail '{g.name}' (known: {', '.join(self.guardrail_names()) or 'none'})")
+                problems.append(f"The reply check '{g.name}' does not exist. Pick one from the list or remove it. Available reply checks: {', '.join(self.guardrail_names()) or 'none'}.")
         for g in spec.input_guardrails:
             if g.name not in self._input_guardrails:
-                problems.append(f"Unknown input guardrail '{g.name}' (known: {', '.join(self.input_guardrail_names()) or 'none'})")
+                problems.append(f"The customer message check '{g.name}' does not exist. Pick one from the list or remove it. Available checks: {', '.join(self.input_guardrail_names()) or 'none'}.")
         for g in spec.output_guardrails:
             if g.name not in self._output_guardrails:
-                problems.append(f"Unknown output guardrail '{g.name}' (known: {', '.join(self.output_guardrail_names()) or 'none'})")
+                problems.append(f"The tool answer check '{g.name}' does not exist. Pick one from the list or remove it. Available checks: {', '.join(self.output_guardrail_names()) or 'none'}.")
         refs = [s.name for s in spec.skills]
         if len(set(refs)) != len(refs):
-            problems.append("Duplicate skill references")
+            problems.append("A skill is listed more than once. Remove the repeats so each skill appears once.")
         for ref in dict.fromkeys(refs):
             sk = self.skill_for(spec, ref)
             if sk is None:
-                problems.append(f"Unknown skill '{ref}' (known: {', '.join(self.skill_names()) or 'none'})")
+                problems.append(f"The skill '{ref}' does not exist. Pick one from the list or remove it. Available skills: {', '.join(self.skill_names()) or 'none'}.")
                 continue
             for t in sk.tool_names():
                 if t not in self._tools:
-                    problems.append(f"Skill '{ref}' needs the tool '{t}', which is not registered")
+                    problems.append(f"The skill '{ref}' uses a tool called '{t}', which does not exist here, so the skill cannot work. Remove the skill, or ask your administrator to connect the tool.")
         problems += [p for p in check_routes(spec.id, spec.routes)]
         jn = [j.name for j in spec.journeys]
         if len(set(jn)) != len(jn):
-            problems.append("Duplicate journey names")
+            problems.append("Two journeys have the same name. Give each journey its own name.")
         for j in spec.journeys:
             if j.name in refs:
-                problems.append(f"Journey '{j.name}' has the same name as a skill")
+                problems.append(f"The journey '{j.name}' has the same name as a skill. Rename one of them so the agent can tell them apart.")
             for t in j.tool_names():
                 if t not in self._tools:
-                    problems.append(f"Journey '{j.name}' needs the tool '{t}', which is not registered")
+                    problems.append(f"The journey '{j.name}' uses a tool called '{t}', which does not exist here. Pick another tool for that step, or ask your administrator to connect it.")
             late = [s.tool for s in j.steps if s.tool and j.flexibility == "strict" and sum(1 for x in j.steps if x.tool == s.tool) > 1]
             if late:
-                problems.append(f"Journey '{j.name}' is strict but uses the tool '{late[0]}' in more than one step")
+                problems.append(f"The journey '{j.name}' must be followed exactly, but it uses '{late[0]}' in more than one step. Use each tool in one step only, or let the agent choose the order.")
+        for t in dict.fromkeys(spec.approvals.always):
+            if t not in reachable:
+                problems.append(f"You asked for a person's OK on '{t}', but this agent does not have that tool. Add the tool to the agent, or remove it from the actions that need a person's OK.")
         for t in spec.tool_scopes:
             if t not in self._tools:
-                problems.append(f"tool_scopes names the unknown tool '{t}'")
+                problems.append(f"A limit is set on a tool called '{t}', which does not exist here. Remove the limit, or pick a tool that exists.")
         return problems
 
     @staticmethod
@@ -426,6 +438,7 @@ class Registry:
                 sensitive=spec.sensitive,
                 audience=spec.audience,
                 shadow=spec.shadow,
+                always_approve=list(dict.fromkeys(spec.approvals.always)),
                 channel_styles=dict(spec.channel_styles),
                 languages=list(spec.languages),
                 journeys=list(spec.journeys),
@@ -504,4 +517,4 @@ def dump_spec(spec: AgentSpec) -> str:
 
 
 def _format_errors(e: ValidationError) -> str:
-    return "; ".join(f"{'.'.join(str(p) for p in err['loc']) or 'spec'}: {err['msg']}" for err in e.errors())
+    return " ".join(explain_errors(e.errors()))

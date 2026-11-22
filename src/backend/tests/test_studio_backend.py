@@ -62,11 +62,11 @@ async def test_preview_reports_every_problem_and_never_saves():
     assert ok["valid"] and ok["problems"] == [] and ok["diffFromLive"]["identical"] is False or ok["diffFromLive"]["identical"] is True
     assert await svc.versions.list("support") == []  # nothing saved
     bad = await svc.preview("support", {**spec, "tools": ["nope", "lookup_order"], "guardrails": ["ghost"], "max_steps": 999, "skills": [{"name": "missing"}]})
-    assert bad["valid"] is False and any("max_steps" in p for p in bad["problems"])
+    assert bad["valid"] is False and any("Most steps per message" in p for p in bad["problems"])
     named = await svc.preview("support", {**spec, "tools": ["nope"], "guardrails": ["ghost"], "skills": [{"name": "missing"}]})
     text = "; ".join(named["problems"])
-    assert "Unknown tool 'nope'" in text and "Unknown guardrail 'ghost'" in text and "Unknown skill 'missing'" in text
-    assert (await svc.preview("support", {**spec, "id": "other"}))["problems"] == ["The spec's id 'other' must be 'support'"]
+    assert "a tool called 'nope'" in text and "The reply check 'ghost' does not exist" in text and "The skill 'missing' does not exist" in text
+    assert (await svc.preview("support", {**spec, "id": "other"}))["problems"] == ["The agent id is 'other' but this agent is 'support'. Change the id back to 'support'."]
     assert (await svc.preview("support", {"nonsense": 1}))["valid"] is False
     cfg = await svc.preview("support", {**spec, "guardrails": [{"name": "tool_limit", "config": {}}]})
     assert cfg["valid"] is False and "guardrail configuration for 'tool_limit'" in cfg["problems"][0] and "tool" in cfg["problems"][0] and "field" in cfg["problems"][0]

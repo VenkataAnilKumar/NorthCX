@@ -91,7 +91,7 @@ def test_the_gate_is_judged_when_the_second_person_approves():
     assert c.post("/v1/agents/support/releases", headers=ann, json={"version": 99}).status_code == 404  # nothing to release: refused at once
     rid = c.post("/v1/agents/support/releases", headers=ann, json={"version": 2}).json()["id"]
     r = c.post(f"/v1/release-requests/{rid}/approve", headers=ben, json={})
-    assert r.status_code == 409 and "scenario" in r.text.lower()  # the release gate said no
+    assert r.status_code == 409 and "test" in r.text.lower()  # the release gate said no
     assert [x["status"] for x in c.get("/v1/release-requests", headers=BOOT).json()["requests"]] == ["failed"]
 
 

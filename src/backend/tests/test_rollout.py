@@ -65,7 +65,7 @@ async def test_a_rollout_needs_a_proven_candidate_and_freezes_releases(world):
     v1 = await world.new_version()
     with pytest.raises(GateBlocked) as err:
         await world.rollouts.start("support", 1, 10, "rae")
-    assert "not run against this agent version" in err.value.reasons[0]
+    assert "has not been run on this version" in err.value.reasons[0]
     await world.prove(v1)
     with pytest.raises(ValueError, match="between"):
         await world.rollouts.start("support", 1, 0, "rae")

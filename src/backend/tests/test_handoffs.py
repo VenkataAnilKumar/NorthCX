@@ -199,7 +199,7 @@ def test_forced_handoff_in_specs():
 
 @pytest.mark.parametrize("snippet,fragment", [
     ("forced_handoff:\n  - name: t\n    patterns: ['(bad']\n", "invalid pattern"),
-    ("forced_handoff:\n  - name: t\n    patterns: []\n", "patterns"),
+    ("forced_handoff:\n  - name: t\n    patterns: []\n", "Words that trigger it"),
     ("forced_handoff:\n  - name: t\n    patterns: [a]\n    nope: 1\n", "nope"),
 ])
 def test_bad_forced_handoff_specs_are_rejected(snippet, fragment):
@@ -210,7 +210,7 @@ def test_bad_forced_handoff_specs_are_rejected(snippet, fragment):
 
 def test_duplicate_topic_names_are_reported():
     s = parse_spec(BASE + "forced_handoff:\n  - {name: t, patterns: [a]}\n  - {name: t, patterns: [b]}\n")
-    assert any("Duplicate forced_handoff" in p for p in registry().validate(s))
+    assert any("topics that always go to a person have the same name" in p for p in registry().validate(s))
 
 
 def test_the_example_agent_has_forced_topics_that_work():

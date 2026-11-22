@@ -64,7 +64,7 @@ def test_the_spec_checks_journeys_and_old_digests_are_unchanged():
     reg = registry()
     assert reg.validate(spec(REFUND)) == []
     problems = reg.validate(spec({**REFUND, "steps": [{"purpose": "x", "tool": "ghost"}], "done_when": []}, REFUND))
-    assert any("ghost" in p for p in problems) and any("Duplicate journey" in p for p in problems)
+    assert any("ghost" in p for p in problems) and any("same name" in p and "journey" in p.lower() for p in problems)
     assert any("same name as a skill" in p for p in reg.validate(spec({**REFUND, "name": "refund_flow"}, skills=[{"name": "refund_flow"}])))
     dup_tool = {**REFUND, "steps": [{"purpose": "a", "tool": "lookup_order"}, {"purpose": "b", "tool": "lookup_order"}]}
     assert any("more than one step" in p for p in reg.validate(spec(dup_tool)))

@@ -25,7 +25,10 @@ Status: **Built**. Updated: 2026-11-09. Master for: the agent run loop, skills, 
 7. Save history and trace; return a `RunResult` (`reply`, `status`, `trace`, `pending_approvals`, `handoff_id`).
 
 ## Statuses
-`completed`, `escalated`, `needs_approval`.
+`completed`, `escalated`, `needs_approval`, and `in_review` (shadow mode: a person has not yet approved the reply).
+
+## Actions that need a person
+A tool can hold its own call for a person (for example "refunds over 100"). A definition can also list tools under `approvals.always`: every call to a listed tool waits for a person, with the reason "Your team set this action to always need a person's approval", in addition to the tool's own rule. In shadow mode every tool that changes something waits too. The editor lists tools that change things in `approvals.always` as soon as they are added.
 
 ## Design rules
 - The runtime depends only on the `LLM` interface; a scripted model is used in tests.

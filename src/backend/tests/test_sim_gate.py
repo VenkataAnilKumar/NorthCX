@@ -68,7 +68,7 @@ def test_gate_is_not_satisfied_for_a_different_agent_version_or_scenario_definit
     first = parse_scenario({**SCEN[0].model_dump(mode="json", exclude={"source"}), "description": "edited"}, "x")
     changed[0] = first
     g = evaluate_gate("support", DIGEST, changed, [fake_run()])
-    assert g.covered == g.required - 1 and any("not run against this agent version" in r for r in g.reasons)
+    assert g.covered == g.required - 1 and any("has not been run on this version" in r for r in g.reasons)
 
 
 def test_newest_result_wins_in_both_directions():
@@ -76,7 +76,7 @@ def test_newest_result_wins_in_both_directions():
     assert not evaluate_gate("support", DIGEST, SCEN, [new_fail, old_pass]).satisfied  # newest first: a recent failure counts
     assert evaluate_gate("support", DIGEST, SCEN, [fake_run(created=3.0), new_fail]).satisfied
     g = evaluate_gate("support", DIGEST, SCEN, [new_fail])
-    assert any("failed in run" in r for r in g.reasons)
+    assert any("failed in its latest run" in r for r in g.reasons)
 
 
 def test_partial_runs_combine_and_unrelated_failures_do_not_matter():
@@ -101,7 +101,7 @@ def test_a_skipped_check_does_not_count_as_covered():
 def test_gates_without_a_digest_or_required_scenarios_are_not_satisfied_by_default():
     assert not evaluate_gate("support", None, SCEN, [fake_run()]).satisfied
     g = evaluate_gate("ghost", "d", SCEN, [fake_run()])
-    assert not g.satisfied and "no required scenarios" in g.reasons[0]
+    assert not g.satisfied and "no required tests" in g.reasons[0]
     assert evaluate_gate("ghost", "d", SCEN, [], allow_empty=True).satisfied
 
 
