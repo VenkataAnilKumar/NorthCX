@@ -10,6 +10,7 @@ const post = (path, body) => fetch(`${API}${path}`, { method: "POST", headers: {
 
 // fresh work for this run: a conversation that needs a person, and a refund that needs approval
 const stamp = Date.now();
+const label = stamp.toString(36);                      // not a run of digits: the platform masks card-like numbers in titles, which hid the title about 1 run in 10
 await post("/v1/agents/support/chat", { sessionId: `ws-h-${stamp}`, message: "I want a person please", customerId: `c-${stamp}` });
 const big = await (await post("/v1/agents/support/chat", { sessionId: `ws-a-${stamp}`, message: "refund order 9999 for 400", customerId: `c-a-${stamp}` })).json();
 if (!big.pendingApprovals?.length) { console.log("could not seed an approval"); process.exit(1); }
@@ -134,15 +135,15 @@ await page.getByRole("button", { name: "Draft it" }).waitFor();
 check(true, "automations: the describe-it box shows");
 
 // outputs and spaces: keep a result, see it, make a space
-const kept = await post("/v1/workspace/outputs", { title: `Smoke output ${stamp}`, body: "Three hand-offs were about delivery.", kind: "report" });
+const kept = await post("/v1/workspace/outputs", { title: `Smoke output ${label}`, body: "Three hand-offs were about delivery.", kind: "report" });
 check(kept.ok, `outputs: a result can be kept (${kept.status}${kept.ok ? "" : " " + (await kept.text()).slice(0, 200)})`);
 await page.goto(`${WEB}/outputs`);
-await page.getByText(`Smoke output ${stamp}`).waitFor();
+await page.getByText(`Smoke output ${label}`).waitFor();
 check(true, "outputs: a kept result is listed");
 await page.goto(`${WEB}/spaces`);
-await page.getByLabel("Name", { exact: true }).fill(`Smoke space ${stamp}`);
+await page.getByLabel("Name", { exact: true }).fill(`Smoke space ${label}`);
 await page.getByRole("button", { name: "Create space" }).click();
-await page.getByText(`Smoke space ${stamp}`).first().waitFor();
+await page.getByText(`Smoke space ${label}`).first().waitFor();
 check(true, "spaces: a space can be created");
 await page.goto(`${WEB}/customers`);
 await page.getByLabel("Order number").waitFor();
