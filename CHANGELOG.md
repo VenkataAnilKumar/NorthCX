@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 5, WP 5.3, 2026-11-22)
+- A signed webhook delivery that carries `X-Northcx-Event-Id` starts its routine once: the same id sent again answers `{"duplicate": true, "runId": ...}` and starts nothing (ids are remembered for 24 hours; the same id with a different body is refused with 422). Webhook and event triggers can name a `when` condition over the incoming data; deliveries that do not match are acknowledged (`{"ignored": true}`) and recorded. Deliveries without an event id behave as before.
+
 ### Added (Phase 5, WP 5.2, 2026-11-22)
 - Routines have a `branch` step (continue, stop, or skip ahead depending on a condition on the previous result, the trigger input or the current item) and a `foreach` step (one tool or assistant step for each item of a list, at most 20). Conditions can read values, compare and combine them; they cannot call anything or loop. The rule that a change needs a person step first now follows every path, so a skip cannot go around the approval. Existing routines are unchanged.
 

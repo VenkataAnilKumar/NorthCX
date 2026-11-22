@@ -8,6 +8,8 @@ A saved, versioned workflow with a trigger, steps and limits. A run is one execu
 ## 2. Triggers
 Schedule, webhook, platform event (for example a hand-off created or an approval decided), or manual start. Each trigger names who the run acts as.
 
+Webhook deliveries are signed (`X-Northcx-Signature`). A delivery that also carries `X-Northcx-Event-Id` (1 to 200 visible ASCII characters) starts the routine once: the same id and body again answers `200 {duplicate: true, runId}` with the first run, the same id with a different body is refused (422), and a delivery refused before it started (for example while the routine is paused) leaves the id free. Ids are remembered for 24 hours. A webhook or event trigger can name a `when` condition over the incoming data (`input.priority == 'urgent'`) so only matching deliveries start a run.
+
 ## 3. Step types
 | Step | Does |
 |---|---|

@@ -103,6 +103,15 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
         if ev not in events:
             raise AutomationError(400, f"trigger.event must be one of {', '.join(sorted(events)) or 'none are available'}")
         t["event"] = ev
+    cond = trig.get("when") if isinstance(trig, dict) else None
+    if cond is not None:
+        if kind not in ("webhook", "event"):
+            raise AutomationError(400, "trigger.when can be used only with a webhook or an event, which bring data to look at")
+        try:
+            expr.parse_condition(cond, ("input",))
+        except expr.ConditionError as e:
+            raise AutomationError(400, f"trigger.when is not valid: {e}") from e
+        t["when"] = cond.strip()
     steps = data.get("steps")
     if not isinstance(steps, list) or not 1 <= len(steps) <= MAX_STEPS:
         raise AutomationError(400, f"A routine needs 1 to {MAX_STEPS} steps")
@@ -533,6 +542,12 @@ class AutomationService:
         await self.repo.set_state(automation_id, paused=paused)
         return await self.repo.state(automation_id)
 
+    @staticmethod
+    def wanted(a: Automation, input_text: str) -> bool:
+        """Whether what arrived is what the routine waits for: true when its trigger names no condition, else the condition read over the data that came with it."""
+        cond = a.data["trigger"].get("when")
+        return cond is None or expr.holds(cond, {"input": expr.as_value(input_text)})
+
     # ---- running ----
     def webhook_secret(self, a: Automation) -> str:
         """The routine's webhook secret: derived from the server's signing secret and the routine's nonce, so it is not in the database. Empty when not a webhook routine or nothing to derive from."""
@@ -785,7 +800,8 @@ class AutomationService:
             batch = await self.hooks.events(cur["after"], 50)
             pos, count, limited = cur["after"], 0, False
             for e in batch:
-                if e["type"] != trig["event"]:
+                payload = json.dumps({k: e[k] for k in ("id", "type", "sessionId", "data") if k in e}, default=str)
+                if e["type"] != trig["event"] or not self.wanted(a, payload):
                     pos = e["id"]
                     continue
                 if count >= 5:
@@ -793,7 +809,7 @@ class AutomationService:
                     break
                 await self.settings.put(f"autocursor:{a.id}", {"after": e["id"]}, "automations")      # moved forward first: an event starts a routine at most once
                 try:
-                    await self.run(a.id, "event", "event", json.dumps({k: e[k] for k in ("id", "type", "sessionId", "data") if k in e}, default=str), wait=False)
+                    await self.run(a.id, "event", "event", payload, wait=False)
                 except AutomationError:
                     await self.settings.put(f"autocursor:{a.id}", {"after": pos}, "automations")      # it did not start (busy or at the limit): this event is tried again next pass
                     limited = True
