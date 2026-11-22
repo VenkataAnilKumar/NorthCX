@@ -41,6 +41,7 @@ def load_settings(c: SimpleNamespace) -> None:
         llm = ReliableLLM(llm, ([providers.qualify(None)] + fallbacks) if fallbacks else [],
                           retries=int(os.environ.get("NORTHCX_MODEL_RETRIES", 2)),
                           timeout=float(os.environ.get("NORTHCX_MODEL_TIMEOUT", 60)) or None)
+        llm.provider_where = c.provider_where      # each provider's declared tier, shown on the Models page even when there are no routing rules
         rules_file = os.environ.get("NORTHCX_ROUTING_RULES_FILE", "").strip()
         if rules_file:  # the data policy and routing rules: which tiers a conversation may use, and why a model was chosen
             from northcx.providers.selection import parse_routing

@@ -29,7 +29,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if registry is None or not hasattr(registry, "names"):
             return {"configured": False, "providers": [], "budget": budget, "note": "No model providers are configured (the offline demo model is in use)."}
         sel = getattr(llm, "selector", None)
-        tiers = getattr(sel, "tiers", {}) if sel is not None else {}
+        tiers = getattr(sel, "tiers", {}) if sel is not None else getattr(llm, "provider_where", {})
         out = []
         for name in registry.names:
             p = registry.get(name)

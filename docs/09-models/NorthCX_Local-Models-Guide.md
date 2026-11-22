@@ -49,7 +49,37 @@ The command-line runner uses the same configured models: with `NORTHCX_PROVIDERS
 - Prompts, the judge, drafting and analytics were first written for Claude and may need tuning for other models. Use a strong model as the judge; a judge should not grade its own answers.
 - Report what you find (which model, which scenarios failed and why) so the list of known-good local models can be published here.
 
-## 6. Not yet done
-- An end-to-end run of this guide against a real local server (the first local-model pass).
-- A list of local models known to pass the shipped scenarios.
-- A Studio screen where a non-engineer picks models per tier and sees qualification results.
+## 6. The first local-model pass (2026-11-22)
+Run in the development container (4 CPU cores, 15 GB memory, no GPU). Weights were pulled from Docker Hub's model artifacts (`ai/qwen2.5:3B-Q4_K_M`, checksum verified) because the usual model hosts are blocked there, and served by `llama-cpp-python` 0.3.37 (`--chat_format chatml-function-calling`, 8,192 tokens of context). NorthCX was pointed at it with the providers file that `scripts/setup.py --local-model-url ... --local-model ...` wrote.
+
+| Model | Server | Shipped scenarios (judge checks skipped) | Qualified |
+|---|---|---|---|
+| Qwen2.5 3B Instruct, Q4_K_M | llama-cpp-python 0.3.37 | 8 of 18 passed; 10 required failed | **No** |
+
+Speed: about 6 tokens a second on this CPU; a short answer takes 5 to 20 seconds. One run, one model, one server: a first data point, not a ranking.
+
+What worked end to end:
+- The providers file, the provider and the Models page (the tier now reads `local`; see below), and the health page's Models check.
+- A refund over the limit asked for by a customer was held for approval; approving it ran the refund (`state: executed`). A model call that failed was handed to a person (`model_error`) instead of answering.
+- Refunds under the limit, forced hand-off topics, prompt-injection and personal-data guardrails before the model, and stale-approval expiry passed.
+
+What did not, and why (all of it the model and its server, not NorthCX's rules):
+- **The model often wrote a tool call as text** (`functions.lookup_order:`) instead of making one, so no tool ran and the customer was shown that text. `order-lookup` failed this way, as did the large-refund scenario. A model like this must not be qualified; qualification is what stops it serving customers.
+- After an approved refund the model sent an empty reply.
+- Scenarios that expect the model to hand over, escalate or trip a guardrail on its own (customer asks for a person, card numbers, repeated rejections) failed because a 3B model did not do it. These need a stronger model.
+- Do not use this combination with real customers.
+
+Things found by this pass and fixed in NorthCX:
+- llama-cpp-python ignores `tools` unless the request also carries `tool_choice`; NorthCX now sends `tool_choice: "auto"` (the API's default) whenever it sends tools.
+- It rejected assistant messages with `content: null`; NorthCX now sends an empty string (the API allows either).
+- The Models page showed a local provider as `public-cloud` when no routing rules file was set; it now shows the tier from the providers file.
+
+Notes for operators:
+- `scripts/setup.py` writes `maxContextTokens: 32000`; set it to the context your server really runs (here 8,192), or a long conversation will fail at the server.
+- Use a different, stronger model as the judge, and judge checks were skipped here: judging with the same 3B model would grade its own answers.
+- Larger models (7B and up) and Ollama or vLLM servers have not been tried. Attempting to build llama.cpp's own `llama-server` here was not allowed, so that server was not tested; its native tool-call handling may behave differently.
+
+## 7. Not yet done
+- A pass with a model that can be expected to qualify (7B or larger) and a stronger judge, and a list of local models known to pass the shipped scenarios.
+- Calibrating the judge against people's labels (needs a model good enough to judge).
+- The pass on Ollama, vLLM and llama.cpp's own server.

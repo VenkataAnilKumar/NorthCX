@@ -36,7 +36,7 @@ def to_openai_messages(system: str, messages: list[dict[str, Any]], images: bool
         if role == "assistant":
             calls = [{"id": b["id"], "type": "function", "function": {"name": b["name"], "arguments": json.dumps(b.get("input") or {})}}
                      for b in content if b.get("type") == "tool_use"]
-            msg: dict[str, Any] = {"role": "assistant", "content": _text_of(content) or None}
+            msg: dict[str, Any] = {"role": "assistant", "content": _text_of(content)}      # an empty string, not null: the API allows either, and some local servers (llama-cpp-python) refuse null
             if calls:
                 msg["tool_calls"] = calls
             out.append(msg)
@@ -94,6 +94,7 @@ class OpenAICompatibleLLM:
         body: dict[str, Any] = {"model": model, self._max_param: req.max_tokens, "messages": to_openai_messages(req.system, req.messages, self.capabilities.images)}
         if req.tools:
             body["tools"] = to_openai_tools(req.tools)
+            body["tool_choice"] = "auto"           # the API's own default, said out loud: some local servers (llama-cpp-python) ignore the tools unless it is present
         headers = {"authorization": f"Bearer {self._key}"} if self._key else {}
         try:
             r = await self._client.post(self._url, json=body, headers=headers)
