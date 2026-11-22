@@ -1,6 +1,6 @@
 # Automations: tool steps, conditions, events, checks (Phase 5)
 
-Status: stages 1 to 4 written 2026-11-22. **WP 5.1 (A1 to A3, A7) WP 5.2 (A4 to A6), WP 5.3 (A8, A9) and WP 5.4 (A10, A11) are built**; the rest is not, and the plan's progress table says which work package is. Master for: what Phase 5 of `../12-project/NorthCX_Agent-Platform-Plan.md` adds to routines. The engine and its rules stay as in `NorthCX_Automations-Spec.md` and `northcx/automations.py`; the direction is in `../00-platform/NorthCX_Agent-Platform-Design.md` section 8.
+Status: stages 1 to 4 written 2026-11-22. **WP 5.1 (A1 to A3, A7) WP 5.2 (A4 to A6), WP 5.3 (A8, A9), WP 5.4 (A10, A11) and WP 5.5 (A12, A13) are built**; the rest is not, and the plan's progress table says which work package is. Master for: what Phase 5 of `../12-project/NorthCX_Agent-Platform-Plan.md` adds to routines. The engine and its rules stay as in `NorthCX_Automations-Spec.md` and `northcx/automations.py`; the direction is in `../00-platform/NorthCX_Agent-Platform-Design.md` section 8.
 
 ## 1. Research: what the code does today
 Read in this repository on 2026-11-22.

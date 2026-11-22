@@ -161,7 +161,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
     svc.hooks.tools, svc.hooks.tool_approval, svc.hooks.call_tool = callable_tools, tool_approval, call_tool
 
     async def live_agent(agent_id: str) -> bool:
-        return d.releases is not None and (await d.releases.live_spec(agent_id))[1] is not None
+        return any(a.id == agent_id for a in await d.provider.all())
 
     async def check_agent(agent_id: str, mode: str) -> dict[str, Any]:
         """Run an agent's scenarios in a sandbox against the definition production serves now. Nothing reaches a customer or a real system."""
@@ -186,6 +186,34 @@ def register(app: FastAPI, d: AppDeps) -> None:
         await d.alerts.raise_routine_alert(routine_id, severity, detail)
 
     svc.hooks.live_agent, svc.hooks.check_agent, svc.hooks.raise_alert = live_agent, check_agent, raise_alert
+
+    async def sample_conversations(agent_id: str, days: int, how_many: int) -> list[str]:
+        """The newest production conversations of an agent, as masked text for the judge."""
+        import time
+
+        from northcx.handoffs import transcript
+        from northcx.insights import mask
+        now = time.time()
+        turns = await d.insight.source.turns(now - days * 86400, now, agent_id, "production", 500)
+        sessions: list[str] = []
+        for t in sorted(turns, key=lambda t: -t.started_at):
+            if t.session_id not in sessions:
+                sessions.append(t.session_id)
+            if len(sessions) >= how_many:
+                break
+        out = []
+        for sid in sessions:
+            lines = [f"{m['from']}: {mask(m['text'], 600)}" for m in transcript(await runtime.store.load_messages(sid))[:40]]
+            if lines:
+                out.append("\n".join(lines))
+        return out
+
+    async def judge_text(criterion: str, conversation: str) -> bool | None:
+        from northcx.simulation.judge import Judge
+        v = await Judge(runtime.llm).evaluate_text(criterion, conversation)
+        return None if v.error else v.passed
+
+    svc.hooks.sample_conversations, svc.hooks.judge_text = sample_conversations, judge_text
 
     def fail(e: AutomationError) -> JSONResponse:
         return _err(e.status, {400: "bad_request", 402: "budget", 403: "forbidden", 404: "not_found", 409: "conflict", 413: "too_large", 429: "rate_limited", 501: "not_configured"}.get(e.status, "error"), str(e))
@@ -371,7 +399,7 @@ def register(app: FastAPI, d: AppDeps) -> None:
         """What a routine may name: the choices the editor offers."""
         h = svc.hooks
         return {"reports": sorted(h.reports) if h else [], "events": sorted(h.event_types) if h else [], "destinations": sorted(h.destinations) if h else [],
-                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "tool", "branch", "foreach", "simulate", "alert", "person", "tag", "notify", "output"], "tools": [{"name": k, "effect": v["effect"]} for k, v in sorted(callable_tools().items()) if v["allowed"]], "triggers": list(TRIGGER_TYPES),
+                "assistants": sorted(a.id for a in await live_assistants()), "kinds": ["report", "assistant", "tool", "branch", "foreach", "simulate", "criteria", "alert", "person", "tag", "notify", "output"], "tools": [{"name": k, "effect": v["effect"]} for k, v in sorted(callable_tools().items()) if v["allowed"]], "triggers": list(TRIGGER_TYPES),
                 "triggerInfo": [{"type": k, "label": label, "description": text, **({"events": sorted(h.event_types) if h else []} if k == "event" else {})} for k, (label, text) in TRIGGER_TYPES.items()]}
 
     @app.post("/v1/automations/convert")

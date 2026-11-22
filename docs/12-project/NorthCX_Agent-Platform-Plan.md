@@ -179,7 +179,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 5.2 `branch` and `foreach` | Done | `northcx/expr.py`: a condition language that cannot call or loop; 55 tests including 3,000 random conditions over random values that always end true or false, and 25 hostile strings refused. Branch continue, stop or skip forward; the approval rule now follows every path, so a skip cannot bypass a person step. `foreach` at most 20 items, each with its own key; one failing item stops the run and names it. 22 new flow tests | |
 | 5.3 exactly-once webhooks, trigger conditions | Done | `X-Northcx-Event-Id` through the existing idempotency store (replay, conflict, in progress; a refused start frees the id); `when` on webhook and event triggers, reading only `input`. 11 new tests. Connector-registered triggers were not built (no connector here emits events; recorded in the design) | |
 | 5.4 `simulate` and `alert` steps | Done | A routine runs a live agent's scenarios in a sandbox and alerts through the existing alert path (monitoring finding, webhook). A scheduled routine over a deliberately broken agent raised one alert naming the failing scenarios; a healthy agent raised none. The `live` mode is checked only for its refusal without a model | |
-| Phases 5 (5.5 to 5.6) to 7 | Not started | |
+| 5.5 `criteria` step | Done, **judge unverified** | Masked conversations of an agent judged against plain-language criteria by the existing judge (`Judge.evaluate_text`); counts per criterion; unusable answers counted as unusable; every result says `calibrated: false`. Checked with a scripted judge only; no real model has judged anything and the judge is not compared with human labels | A real or local model and human labels to calibrate |
+| Phases 5 (5.6) to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.

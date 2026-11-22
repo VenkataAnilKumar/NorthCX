@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 5, WP 5.5, 2026-11-22)
+- Routines have a `criteria` step: recent production conversations of an agent (at most 20) are judged by a model against up to five plain-language criteria, on masked transcripts, with passes, failures and unusable answers counted per criterion. **The judge is not yet compared with people's labels, so every result says `calibrated: false`.** Existing routines are unchanged.
+
 ### Added (Phase 5, WP 5.4, 2026-11-22)
 - Routines have a `simulate` step (run the scenarios of a live agent in a sandbox, `scripted` or `live`) and an `alert` step (a monitoring finding and the alert webhook, with fixed wording written by staff). A scheduled routine of simulate, a branch on `previous.failed > 0`, and alert watches a live agent. Simulation runs started by a routine have source `automation`. Existing routines are unchanged.
 
