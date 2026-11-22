@@ -127,8 +127,8 @@ def backup(url: str, out: str | Path) -> dict[str, Any]:
         raise OpsError(f"{path} already exists. Choose another name; a backup is never overwritten.")
     try:
         return asyncio.run(_backup(url, path))
-    except OSError as e:
-        raise OpsError(f"Could not connect to the database: {e}") from e
+    except (OSError, asyncpg.PostgresError) as e:
+        raise OpsError(f"The database could not be used: {str(e).splitlines()[0] if str(e) else type(e).__name__}. Check NORTHCX_DATABASE_URL.") from e
 
 
 def read_manifest(path: str | Path) -> dict[str, Any]:
@@ -201,8 +201,8 @@ def restore(url: str, source: str | Path, replace: bool = False) -> dict[str, An
         raise OpsError(f"This backup is from a newer version of NorthCX (schema revision {manifest['revision']}). Upgrade NorthCX first, then restore.")
     try:
         rows, current = asyncio.run(_target_state(url))
-    except OSError as e:
-        raise OpsError(f"Could not connect to the database: {e}") from e
+    except (OSError, asyncpg.PostgresError) as e:
+        raise OpsError(f"The database could not be used: {str(e).splitlines()[0] if str(e) else type(e).__name__}. Check NORTHCX_DATABASE_URL.") from e
     if rows and not replace:
         raise OpsError(f"The target database already holds data ({rows} rows). Restore into an empty database, or add --replace to empty it first.")
     migration_url = database_url_from_env(url) or url

@@ -123,7 +123,7 @@ def test_a_backup_is_a_snapshot_with_a_checksum_per_table_and_is_never_overwritt
 
 
 def test_a_database_with_no_schema_cannot_be_backed_up(drill, tmp_path):
-    with pytest.raises(OpsError, match="no NorthCX schema|Could not connect"):
+    with pytest.raises(OpsError, match="no NorthCX schema"):
         backup(drill[0], tmp_path / "x.backup")
 
 
@@ -184,3 +184,13 @@ def test_the_command_line_backs_up_and_restores_and_never_prints_the_password(dr
     assert asyncio.run(counts(src)) == asyncio.run(counts(dst))
     bad = subprocess.run([sys.executable, "-m", "northcx", "restore", str(tmp_path / "missing.backup")], env=env, capture_output=True, text=True, timeout=60)
     assert bad.returncode != 0 and "Error:" in bad.stderr
+
+
+def test_a_wrong_password_or_address_gives_one_plain_line_that_does_not_repeat_the_password(drill, tmp_path):
+    src, _ = drill
+    wrong = src.replace("northcx:northcx@", "northcx:hunter2secret@")
+    with pytest.raises(OpsError, match="database could not be used") as e:
+        backup(wrong, tmp_path / "x.backup")
+    assert "hunter2secret" not in str(e.value)
+    with pytest.raises(OpsError, match="database could not be used"):
+        backup(src.replace("localhost:5432", "localhost:1"), tmp_path / "y.backup")

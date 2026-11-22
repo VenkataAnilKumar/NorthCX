@@ -405,6 +405,7 @@ def create_app(runtime: Runtime, traces: TraceRepo, agents: dict[str, Agent], ap
     runtime.privacy.calls = call_repo
     insight = insights or InsightsService(InMemoryInsightsSource(runtime, fb))
     privacy = PrivacyService(runtime.privacy)
+    insight.customers = runtime.privacy.customers_for_sessions
     if isinstance(runtime.privacy, InMemoryPrivacy):
         runtime.privacy.feedback = fb
         runtime.privacy.tags = tag_repo

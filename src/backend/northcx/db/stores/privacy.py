@@ -28,6 +28,13 @@ class PgPrivacy(_Base):
                 "order by 1"), {"c": customer_id})).all()
         return [r[0] for r in rows]
 
+    async def customers_for_sessions(self, session_ids: list[str]) -> dict[str, str]:
+        if not session_ids:
+            return {}
+        async with self._ro() as s:
+            rows = (await s.execute(text("select session_id, customer_id from session_index where session_id = any(:ids) and customer_id <> ''"), {"ids": list(session_ids)})).all()
+        return {r[0]: r[1] for r in rows}
+
     async def customer_for_session(self, session_id: str) -> str | None:
         async with self._ro() as s:
             r = (await s.execute(text("select customer_id from session_index where session_id = :s and customer_id <> '' limit 1"), {"s": session_id})).first()

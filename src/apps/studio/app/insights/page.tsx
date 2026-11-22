@@ -125,6 +125,7 @@ export default function Insights() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Stat title="Contained" ratio={o.containmentRate} hint="conversations that never reached a person" />
               <Stat title="Resolved (provisional)" ratio={o.resolutionRate} hint={`completed, no hand-off, quiet for ${o.resolutionRate.windowDays} days; ${o.resolutionRate.pending} still inside the window`} />
+              {o.resolutionFirm && <Stat title="Resolved, counting returns" ratio={o.resolutionFirm} hint={`as above, but not when the same customer came back within ${o.resolutionFirm.windowDays} days (${o.resolutionFirm.reopened} did); only ${o.resolutionFirm.checkable} of ${o.resolutionFirm.denominator} conversations have a known customer, so this can still be too high`} />}
               <Stat title="Escalated turns" ratio={o.escalationRate} hint="of all turns" />
               <Stat title="Guardrail blocks" ratio={o.guardrailBlockRate} hint="of all turns" />
               <Stat title="Tool errors" ratio={o.toolErrorRate} hint="of turns that used tools" />
