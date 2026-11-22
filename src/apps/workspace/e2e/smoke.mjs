@@ -130,7 +130,8 @@ await page.getByRole("button", { name: "Draft it" }).waitFor();
 check(true, "automations: the describe-it box shows");
 
 // outputs and spaces: keep a result, see it, make a space
-await post("/v1/workspace/outputs", { title: `Smoke output ${stamp}`, body: "Three hand-offs were about delivery.", kind: "report" });
+const kept = await post("/v1/workspace/outputs", { title: `Smoke output ${stamp}`, body: "Three hand-offs were about delivery.", kind: "report" });
+check(kept.ok, `outputs: a result can be kept (${kept.status}${kept.ok ? "" : " " + (await kept.text()).slice(0, 200)})`);
 await page.goto(`${WEB}/outputs`);
 await page.getByText(`Smoke output ${stamp}`).waitFor();
 check(true, "outputs: a kept result is listed");
