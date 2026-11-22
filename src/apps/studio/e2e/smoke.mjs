@@ -130,7 +130,8 @@ await page.getByRole("region", { name: "Flagged conversations" }).waitFor();
 await page.getByRole("button", { name: "Send a test alert" }).click();
 await page.getByRole("status").filter({ hasText: "Test alert" }).waitFor();
 check((await page.getByRole("status").filter({ hasText: "Test alert" }).innerText()).includes("No webhook set up"), "monitoring: a test alert reports that no webhook is set up");
-check((await page.getByRole("region", { name: "Alert history" }).innerText()).includes("test"), "monitoring: the test shows in the recent events");
+await page.getByRole("region", { name: "Alert history" }).getByText(/test/i).first().waitFor({ timeout: 15000 });   // the history loads after the alert is sent
+check(true, "monitoring: the test shows in the recent events");
 
 // editor: journeys and languages
 await page.goto(`${WEB}/agents/support/edit`);
