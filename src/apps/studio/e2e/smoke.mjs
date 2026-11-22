@@ -223,6 +223,15 @@ for (const [verb, order, done] of [["Approve", "2077", /Approved by/], ["Reject"
   await save.click();
   await page.getByRole("status").filter({ hasText: "Saved as version" }).waitFor();
   check((await page.getByRole("link", { name: /Run its tests and release it/ }).getAttribute("href")) === "/agents/support", "guided: a version is saved and the page points to the tests and release");
+  // the version just saved against what is live: the same tests on both
+  const saved = await (await fetch(`${API}/v1/agents/support/versions`, { headers: { authorization: `Bearer ${KEY}` } })).json();
+  await page.goto(`${WEB}/agents/support/compare?candidate=${saved.versions[0].number}`);
+  await page.getByRole("button", { name: "Run the same tests on both" }).click();
+  await page.getByRole("table", { name: "Results on the same tests" }).waitFor({ timeout: 60000 });
+  check((await page.getByRole("status").filter({ hasText: /candidate/i }).first().innerText()).length > 20, "compare: the same tests run on live and the candidate, with a verdict in words");
+  await page.goto(`${WEB}/releases`);
+  await page.getByRole("heading", { name: "Release requests" }).waitFor();
+  check(true, "releases: the release requests page loads");
 }
 
 // conversations: a real conversation becomes a test in one click

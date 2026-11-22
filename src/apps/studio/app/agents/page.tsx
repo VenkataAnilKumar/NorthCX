@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
-import { listAgents, useLoad } from "@northcx/api-client";
+import { listAgents, listReleaseRequests, useLoad } from "@northcx/api-client";
 import { Empty, ErrorBox, Loading, PageHeader } from "@northcx/ui";
 
 export default function Agents() {
   const { data, error, loading, reload } = useLoad(listAgents);
+  const waiting = useLoad(async () => { try { return (await listReleaseRequests("pending")).requests; } catch { return []; } }, []);  // the list is optional: an agent page without it is still right
   if (loading && !data) return <Loading />;
   if (error) return <ErrorBox message={error} onRetry={reload} />;
   return (
@@ -16,7 +17,11 @@ export default function Agents() {
         <ul className="space-y-4">{data.map((a) => (
           <li key={a.id} className="rounded-xl border border-border bg-surface p-4">
             <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-semibold">{a.id}{a.version ? <span className="ml-2 text-sm font-normal text-muted">version {a.version}</span> : <span className="ml-2 text-sm font-normal text-muted">spec file</span>}</h2>
-              <Link href={`/agents/${a.id}`} className="text-sm text-primary underline">Versions and releases</Link></div>
+              <span className="flex items-center gap-3 text-sm">
+                {(waiting.data ?? []).filter((r) => r.agent === a.id).length > 0 && (
+                  <Link href={`/releases?agent=${encodeURIComponent(a.id)}`} className="rounded bg-[var(--info-bg)] px-2 py-0.5 text-xs text-[var(--info)]">{(waiting.data ?? []).filter((r) => r.agent === a.id).length} waiting for approval</Link>)}
+                <Link href={`/guided?agent=${encodeURIComponent(a.id)}`} className="text-primary underline">Guided setup</Link>
+                <Link href={`/agents/${a.id}`} className="text-primary underline">Versions and releases</Link></span></div>
             <p className="mt-1 text-xs text-muted">Model: {a.model ?? "default"} · Max steps: {a.maxSteps}</p>
             <h3 className="mt-4 text-sm font-medium">Instructions</h3>
             <pre className="mt-1 whitespace-pre-wrap rounded-lg bg-bg p-3 text-sm">{a.instructions}</pre>

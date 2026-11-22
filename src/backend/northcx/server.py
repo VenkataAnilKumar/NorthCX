@@ -132,6 +132,7 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     ("GET", r"/v1/sessions/[^/]+/turns", "traces:read"),
     ("POST", r"/v1/sessions/[^/]+/rerun", "simulations:run"),
     ("POST", r"/v1/agents/[^/]+/try", "simulations:run"),
+    ("POST", r"/v1/agents/[^/]+/compare", "simulations:run"),
     ("PUT", r"/v1/sessions/[^/]+/review", "reviews:write"),
     ("GET", r"/v1/insights/review-quality", "insights:read"),
     ("GET", r"/v1/conversations/search", "traces:read"),

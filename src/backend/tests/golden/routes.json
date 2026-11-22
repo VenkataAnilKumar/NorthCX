@@ -158,6 +158,7 @@
   "POST /v1/agents/x/agui": "/v1/agents/{agent_id}/agui -> agui_run",
   "POST /v1/agents/x/chat": "/v1/agents/{agent_id}/chat -> chat",
   "POST /v1/agents/x/chat/stream": "/v1/agents/{agent_id}/chat/stream -> chat_stream",
+  "POST /v1/agents/x/compare": "/v1/agents/{agent_id}/compare -> compare_versions",
   "POST /v1/agents/x/improve": "/v1/agents/{agent_id}/improve -> improve_agent",
   "POST /v1/agents/x/journeys/draft": "/v1/agents/{agent_id}/journeys/draft -> journey_draft",
   "POST /v1/agents/x/journeys/scenarios": "/v1/agents/{agent_id}/journeys/scenarios -> journey_scenarios",
@@ -1080,6 +1081,11 @@
    "POST",
    "/v1/agents/{agent_id}/chat/stream",
    "chat_stream"
+  ],
+  [
+   "POST",
+   "/v1/agents/{agent_id}/compare",
+   "compare_versions"
   ],
   [
    "POST",

@@ -46,9 +46,13 @@ check(true, "inbox: resolved");
 // approvals: approve the refund
 await page.goto(`${WEB}/approvals`);
 await page.getByRole("button", { name: "Approve" }).first().click();
-await page.getByText(/No pending approvals|Approve/).first().waitFor();
-const after = await (await fetch(`${API}/v1/approvals?state=pending`, { headers: { authorization: `Bearer ${KEY}` } })).json();
-check(!after.approvals.some((a) => a.id === big.pendingApprovals[0].id), "approvals: the refund was decided");
+let decided = false;
+for (let i = 0; i < 30 && !decided; i++) {
+  const after = await (await fetch(`${API}/v1/approvals?state=pending`, { headers: { authorization: `Bearer ${KEY}` } })).json();
+  decided = !after.approvals.some((a) => a.id === big.pendingApprovals[0].id);
+  if (!decided) await page.waitForTimeout(500);
+}
+check(decided, "approvals: the refund was decided");
 
 // search and knowledge
 await page.goto(`${WEB}/search?q=refund`);

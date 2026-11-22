@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { type AgentVersion, ApiError, type Checklist, createVersion, diffVersions, formatTime, type Gate, getChecklist, getEnvironments, getLive, getVersionDetail, listReleases, listVersions, promoteAgent, publishVersion, rollbackAgent, runForVersion, useLoad, useMe, type VersionDiff, versionGate } from "@northcx/api-client";
+import { DiffView } from "@/components/diff-view";
 import { RolloutPanel } from "@/components/rollout-panel";
 import { improveAgent, type ImproveResult } from "@northcx/api-client";
 import { Empty, ErrorBox, Loading, PageHeader, StatusBadge } from "@northcx/ui";
@@ -33,24 +34,6 @@ function Improve({ agentId, onSaved }: { agentId: string; onSaved: () => void })
             : <button className="btn btn-primary" disabled={busy || !res.tests.safe && res.tests.verdict.includes("breaks")} onClick={() => void run(true)}>Save as a draft version</button>}
         </div>)}
     </section>
-  );
-}
-
-function DiffView({ d }: { d: VersionDiff }) {
-  if (d.identical) return <p className="text-sm text-muted">No differences.</p>;
-  const groups: [string, { added: string[]; removed: string[]; changed?: string[] }][] = [
-    ["Tools", d.tools], ["Reply guardrails", d.guardrails], ["Input guardrails", d.input_guardrails], ["Always-to-a-person topics", d.forced_handoff]];
-  return (
-    <div className="space-y-3 text-sm">
-      {d.instructions && <pre aria-label="Instructions diff" className="overflow-x-auto rounded-lg bg-bg p-3 text-xs">{d.instructions}</pre>}
-      {groups.filter(([, g]) => g.added.length || g.removed.length || g.changed?.length).map(([name, g]) => (
-        <p key={name}><span className="font-medium">{name}:</span>{" "}
-          {g.added.map((x) => <span key={x} className="mr-2 text-[var(--ok)]">+ {x}</span>)}
-          {g.removed.map((x) => <span key={x} className="mr-2 text-[var(--bad)]">− {x}</span>)}
-          {g.changed?.map((x) => <span key={x} className="mr-2 text-[var(--warn)]">~ {x}</span>)}</p>
-      ))}
-      {Object.entries(d.other).map(([k, v]) => <p key={k}><span className="font-medium">{k}:</span> {JSON.stringify(v.from)} → {JSON.stringify(v.to)}</p>)}
-    </div>
   );
 }
 
@@ -108,6 +91,7 @@ function VersionRow({ agent, v, liveNumber, by, note, tick, onChanged }: { agent
           className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40 disabled:opacity-50">{busy === "run" ? "Running…" : "Run scenarios"}</button>
         {!v.live && <button disabled={busy !== null || !can("releases:publish") || (list !== null && !list.ready)} title={!can("releases:publish") ? "Your role cannot publish" : list && !list.ready ? "Some required checks have not passed" : undefined} onClick={() => act("publish", () => publishVersion(agent, v.number, by, note || undefined), `Version ${v.number} is now live.`)}
           className="rounded-lg bg-primary px-3 py-1.5 font-medium text-primary-text disabled:opacity-50">{busy === "publish" ? "Publishing…" : "Publish"}</button>}
+        {!v.live && <Link href={`/agents/${agent}/compare?candidate=${v.number}`} className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">Compare with live</Link>}
         <button disabled={busy !== null} onClick={async () => { setSpec(spec === null ? (await getVersionDetail(agent, v.number)).specYaml ?? "" : null); }}
           className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">{spec === null ? "View spec" : "Hide spec"}</button>
         {liveNumber !== null && liveNumber !== v.number && (

@@ -672,3 +672,18 @@ export const announceWorkChanged = () => { if (typeof window !== "undefined") wi
 export interface Tried { agent: string; sandbox: true; message: string; reply: string; status: Status; toolsCalled: string[]; events: TraceEvent[]; testYaml: string | null; testWarnings: string[]; note: string }
 export const tryDraft = (agent: string, spec: unknown, message: string, history: { role: "user" | "assistant"; text: string }[]) =>
   api<Tried>(`/v1/agents/${encodeURIComponent(agent)}/try`, { method: "POST", body: JSON.stringify({ spec, message, history }) });
+
+export interface ReleaseRequestItem { id: string; agent: string; kind: "publish" | "promote"; environment: string; version: number | null; requestedBy: string; note: string | null;
+  status: "pending" | "approved" | "rejected" | "cancelled" | "failed"; decidedBy: string | null; decisionNote: string | null; createdAt: number; decidedAt: number | null }
+export const listReleaseRequests = (status?: string, agent?: string) => {
+  const q = new URLSearchParams(); if (status) q.set("status", status); if (agent) q.set("agent", agent);
+  return api<{ required: string[]; requests: ReleaseRequestItem[] }>(`/v1/release-requests${q.size ? `?${q}` : ""}`);
+};
+export const decideReleaseRequest = (id: string, approve: boolean, note?: string) =>
+  api<ReleaseRequestItem>(`/v1/release-requests/${id}/${approve ? "approve" : "reject"}`, { method: "POST", body: JSON.stringify(note ? { note } : {}) });
+export const cancelReleaseRequest = (id: string) => api<ReleaseRequestItem>(`/v1/release-requests/${id}/cancel`, { method: "POST" });
+
+export interface Comparison { agent: string; live: { number: number | null; digest: string }; candidate: { number: number; digest: string };
+  counts: { live: { total: number; passed: number; failed: number }; candidate: { total: number; passed: number; failed: number } };
+  scenarios: { name: string; required: boolean; live: boolean; candidate: boolean; change: "same" | "fixed" | "regressed" }[]; verdict: string; differences: VersionDiff }
+export const compareVersions = (agent: string, candidate: number) => api<Comparison>(`${agentPath(agent)}/compare`, { method: "POST", body: JSON.stringify({ candidate }) });

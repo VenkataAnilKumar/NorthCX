@@ -129,3 +129,19 @@ def summarize(spec: Any, tools: list[dict[str, Any]]) -> list[str]:
     if spec.shadow:
         out.append("Shadow mode is on: a person approves every reply before the customer sees it.")
     return out
+
+
+def compare_verdict(rows: list[dict[str, Any]]) -> str:
+    """One sentence on how a candidate version did against the live one on the same tests."""
+    if not rows:
+        return "There are no tests to compare."
+    worse = [r["name"] for r in rows if r["change"] == "regressed"]
+    better = [r["name"] for r in rows if r["change"] == "fixed"]
+    if not worse and not better:
+        return f"The candidate gives the same results as the live version on {len(rows)} test{'' if len(rows) == 1 else 's'}."
+    parts = []
+    if worse:
+        parts.append(f"The candidate fails {len(worse)} test{'' if len(worse) == 1 else 's'} that the live version passes: {', '.join(worse)}.")
+    if better:
+        parts.append(f"It passes {len(better)} test{'' if len(better) == 1 else 's'} that the live version fails: {', '.join(better)}.")
+    return " ".join(parts)

@@ -1,6 +1,6 @@
 # Guided Studio: Phase 4 design
 
-Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4), WP 4.1 (R1, R2), WP 4.3 (R5, R6) and WP 4.4 (R7, scripted part) are built**; the rest is not. The guided page has six steps: choose, connect, procedures, what it will do, try it, save. Plan: `../12-project/NorthCX_Agent-Platform-Plan.md`, Phase 4. Design source: `../00-platform/NorthCX_Agent-Platform-Design.md`, section 7.
+Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4), WP 4.1 (R1, R2), WP 4.3 (R5, R6), WP 4.4 (R7, scripted part) and WP 4.5 (R8) are built**; the rest is not. The guided page has six steps: choose, connect, procedures, what it will do, try it, save. Plan: `../12-project/NorthCX_Agent-Platform-Plan.md`, Phase 4. Design source: `../00-platform/NorthCX_Agent-Platform-Design.md`, section 7.
 
 **Who it is for.** A CX lead or operations person who has never written YAML. They should be able to go from "I want an order-status agent" to a live, tested agent, and always see in plain words what the agent can do and what needs a person.
 
@@ -65,6 +65,11 @@ Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4), WP 4.1 (R1, R2), WP
 
 ## Built: the ready-made agents (WP 4.4)
 Order status (3 scenarios), returns and refunds (2) and delivery problems (6) ship as signed templates in the Agent Hub. `tests/test_templates.py` renders every shipped template and runs its scenarios in scripted mode, and a pinned test for these three checks that each is for customers, sends safety and legal topics to a person, has at least two scenarios and one that covers a hand-off. **Not met:** "green on a qualified model". No real model has run the scenarios (plan, Phase 0), so no template is qualified; a scripted pass shows the scenarios and the definition agree, not that a model behaves.
+
+## Built: live and candidate side by side, and release requests (WP 4.5)
+- `POST /v1/agents/{id}/compare` (permission `simulations:run`, body `{candidate: n}`): runs the same scripted tests (no judge) on what is live (the released version, or the file the agent started from) and on the saved candidate, and returns each test's result on both with what changed (same, fixed, now fails), the counts, a one-sentence verdict (`northcx/plain.compare_verdict`) and the differences in the definition. The runs are recorded like any other test run.
+- Studio: `/agents/{id}/compare?candidate=n` shows it; each unreleased version on the versions page has "Compare with live".
+- **A finding while building it:** the two-person release rule (a request that a second person with the release permission approves; backend since earlier phases) had no screen. Studio now has **Build, Release requests** (`/releases`): waiting, approved, rejected, withdrawn and did-not-go-live requests; approve and release, or reject, with a note; withdraw your own request; a plain explanation when the rule is off. The server still refuses approval by the person who asked, and the page shows its reason. The Agents page, the agent catalogue, shows "N waiting for approval" per agent and a link to its guided setup. This is the "agent catalogue with publish approval" of the design: no new approval mechanism was needed.
 
 ## Decision 208
 The guided path is a screen over the existing engines, with two additions the author cannot do today: a spec-level way to require approval, and plain-language checks. It does not add a second definition format, a workflow engine or a store. Order status and refunds already ship as templates, so WP 4.4 is a test, not a build.
