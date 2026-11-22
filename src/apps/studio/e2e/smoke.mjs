@@ -267,6 +267,13 @@ await page.getByRole("button", { name: "Move step 2 up" }).click();
 check((await page.getByRole("group", { name: /Graph of/ }).innerText()).indexOf("First step") > (await page.getByRole("group", { name: /Graph of/ }).innerText()).indexOf("New step"), "editor: the graph moved a step");
 await page.getByRole("button", { name: "Back to the form" }).click();
 check((await page.getByLabel("Step 1", { exact: true }).inputValue()) === "New step", "editor: the form shows the order the graph made");
+// system health: the operator sees each part as working, not working or not set up
+await page.goto(`${WEB}/system`);
+await page.getByRole("heading", { name: "System health" }).waitFor();
+await page.getByRole("list", { name: "Checks" }).waitFor();
+const healthText = await page.getByRole("list", { name: "Checks" }).innerText();
+check(healthText.includes("Database schema") && healthText.includes("Working"), "system health: the database and its schema show as working");
+check(healthText.includes("Alert delivery") && healthText.includes("Not set up"), "system health: what is not set up is said so");
 check(errors.length === 0, `no client errors${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
 await browser.close();
 if (failures.length) { console.log(`\n${failures.length} failed`); process.exit(1); }

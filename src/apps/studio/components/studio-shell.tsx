@@ -42,7 +42,8 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
     { href: "/trust", label: "Trust and reliability" },
     ...(can("audit:read") ? [{ href: "/residency", label: "Data residency" }] : []),
   ];
-  const platform: SubItem[] = [{ href: "/channels", label: "Channels" }, { href: "/usage", label: "Usage and billing" }, { href: "/org", label: "Organization settings" }];
+  const platform: SubItem[] = [{ href: "/channels", label: "Channels" }, { href: "/usage", label: "Usage and billing" }, { href: "/org", label: "Organization settings" },
+    ...(can("keys:manage") ? [{ href: "/system", label: "System health" }] : [])];
   const personal: SubItem[] = [
     { href: "/profile", label: "Profile" },
     { href: "/preferences", label: "Preferences" },

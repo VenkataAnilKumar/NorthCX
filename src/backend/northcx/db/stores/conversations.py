@@ -20,6 +20,11 @@ from northcx.types import Message
 class PgMemoryStore(_Base):
     """Session history and per-customer facts."""
 
+    async def schema_revision(self) -> str | None:
+        """The migration revision this database is at (None when no migration has run)."""
+        async with self._ro() as s:
+            return (await s.execute(text("select version_num from alembic_version"))).scalar_one_or_none()
+
     async def load_messages(self, session_id: str) -> list[Message]:
         async with self._ro() as s:
             rows = (await s.execute(
