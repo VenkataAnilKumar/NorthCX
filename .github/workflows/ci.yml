@@ -131,6 +131,9 @@ jobs:
           for i in $(seq 1 30); do curl --fail --silent http://127.0.0.1:3000/ready >/dev/null && break; sleep 2; done
           curl --fail --silent -H "authorization: Bearer $KEY" http://127.0.0.1:3000/v1/sessions/ci/transcript | grep -q "order 1042"
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H "authorization: Bearer $KEY" http://127.0.0.1:3000/v1/sessions/after-backup/transcript)" = "404"
+      - name: Time from the setup script to the first answer
+        run: |
+          echo "Seconds from running scripts/setup.py to the first answer, building the images on a hosted runner: $(( $(date +%s) - STARTED ))" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - name: Browser tests (Studio, Workspace and the chat widget, in a real browser, against this stack)
