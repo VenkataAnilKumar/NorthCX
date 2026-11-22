@@ -31,14 +31,20 @@ class ApprovalFlow:
     def __init__(self, runtime: Runtime):
         self.rt = runtime
 
+    async def environment_of(self, trace_id: str) -> str:
+        """The environment the held action came from (a test conversation in staging stays in staging); production when the trace is gone."""
+        trace = await self.rt.traces.get(trace_id) if trace_id else None
+        return (trace.environment if trace is not None else None) or "production"
+
     async def resolve(self, agents: Any, approval_id: str, approved: bool, by: str,
                       note: str | None = None) -> Resolution:
         """Record the decision, run the action if approved, tell the agent the outcome, and notify the customer.
 
         Raises KeyError for an unknown approval and ValueError if it was already decided."""
         a = await self.rt.approvals.decide(approval_id, approved, by, note)
+        environment = await self.environment_of(a.trace_id)
         try:
-            agent = await as_provider(agents).get(a.agent_id, "production", a.session_id)
+            agent = await as_provider(agents).get(a.agent_id, environment, a.session_id)
             problem = f"agent '{a.agent_id}' is not available"
         except AgentUnavailable as e:
             agent, problem = None, str(e)
@@ -58,7 +64,7 @@ class ApprovalFlow:
             message = (f"[system] A teammate declined your pending action '{a.tool}'.{why} "
                        "Explain this to the customer kindly and offer an alternative or a handoff to a person.")
         try:
-            run = await self.rt.run(agent, a.session_id, message, a.customer_id, trusted=True)
+            run = await self.rt.run(agent, a.session_id, message, a.customer_id, trusted=True, environment=environment)
         except Exception as e:  # the decision and any execution stand; report that the follow-up failed
             return Resolution(a, error=f"follow-up run failed: {e}")
         await self.rt.outbox.publish(a.session_id, "approval_result", {

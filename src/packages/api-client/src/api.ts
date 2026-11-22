@@ -664,3 +664,7 @@ export interface Rerun { sessionId: string; turn: number; agent: string; sandbox
   rerun: { message: string; reply: string; status: Status; toolsCalled: string[]; events: TraceEvent[] } }
 export const rerunTurn = (sessionId: string, turn: number, message: string) =>
   api<Rerun>(`/v1/sessions/${encodeURIComponent(sessionId)}/rerun`, { method: "POST", body: JSON.stringify({ turn, message }) });
+
+/** Pages tell the menu that something waiting for a person was decided, so its counts update without a reload. */
+export const WORK_CHANGED = "northcx:work-changed";
+export const announceWorkChanged = () => { if (typeof window !== "undefined") window.dispatchEvent(new Event(WORK_CHANGED)); };

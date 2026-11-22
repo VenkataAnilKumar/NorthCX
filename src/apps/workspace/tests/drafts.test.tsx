@@ -38,6 +38,16 @@ describe("drafts screen", () => {
     await waitFor(() => expect(api.listShadowDrafts).toHaveBeenCalledTimes(2));
   });
 
+  it("tells the menu a draft was decided so its waiting count can update", async () => {
+    setup();
+    const heard = vi.fn();
+    window.addEventListener(client.WORK_CHANGED, heard);
+    await screen.findByLabelText(/The agent's reply/);
+    fireEvent.click(screen.getByRole("button", { name: "Send as is" }));
+    await waitFor(() => expect(heard).toHaveBeenCalledTimes(1));
+    window.removeEventListener(client.WORK_CHANGED, heard);
+  });
+
   it("changes the button to Send my edit once the text differs, and sends the person's text with the reasons and note", async () => {
     setup();
     const box = await screen.findByLabelText(/The agent's reply/);

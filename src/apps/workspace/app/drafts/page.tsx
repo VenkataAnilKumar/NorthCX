@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { decideShadowDraft, formatTime, getShadowSummary, listShadowDrafts, SHADOW_REASONS, type ShadowDraft, type ShadowState, type ShadowSummary, useLoad, useMe } from "@northcx/api-client";
+import { announceWorkChanged, decideShadowDraft, formatTime, getShadowSummary, listShadowDrafts, SHADOW_REASONS, type ShadowDraft, type ShadowState, type ShadowSummary, useLoad, useMe } from "@northcx/api-client";
 import { Empty, ErrorBox, GlassCard, Loading, PageHeader, StatusBadge } from "@northcx/ui";
 
 const TABS: [ShadowState, string][] = [["pending", "Waiting"], ["sent", "Sent"], ["edited", "Edited"], ["rejected", "Rejected"], ["expired", "Expired"]];
@@ -30,6 +30,7 @@ function Card({ d, onDone }: { d: ShadowDraft; onDone: () => void }) {
     setBusy(true); setErr(null);
     try {
       await decideShadowDraft(d.id, { action, ...(action === "edit" ? { text } : {}), ...(reasons.length ? { reasons } : {}), ...(note ? { note } : {}), ...(askForName ? {} : { by: me?.name }) });
+      announceWorkChanged();
       onDone();
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };

@@ -94,7 +94,7 @@ jobs:
           KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
           echo "::add-mask::$KEY"
           echo "KEY=$KEY" >> "$GITHUB_ENV"
-          printf 'NORTHCX_DB_PASSWORD=ci%s\nNORTHCX_API_KEY=%s\nNORTHCX_DEMO=1\n' "$RANDOM$RANDOM" "$KEY" > .env
+          printf 'NORTHCX_DB_PASSWORD=ci%s\nNORTHCX_API_KEY=%s\nNORTHCX_DEMO=1\nNORTHCX_CORS_ORIGINS=http://localhost:8080\n' "$RANDOM$RANDOM" "$KEY" > .env
       - run: docker compose up -d --build --wait --wait-timeout 300
       - name: Smoke test
         run: |
@@ -111,6 +111,16 @@ jobs:
           curl --fail --silent -H "authorization: Bearer $KEY" http://127.0.0.1:3001/api/northcx/v1/me | grep -q '"role":"admin"'
           curl --fail --silent -X POST -H "authorization: Bearer $KEY" -H 'content-type: application/json' \
             -d '{"sessionId":"ci","message":"where is order 1042?"}' http://127.0.0.1:3000/v1/agents/support/chat | grep -q delivered
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Browser tests (Studio, Workspace and the chat widget, in a real browser, against this stack)
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          API_KEY="$KEY" node apps/studio/e2e/smoke.mjs
+          API_KEY="$KEY" node apps/workspace/e2e/smoke.mjs
+          API_URL=http://127.0.0.1:3000 ADMIN_KEY="$KEY" node sdk/e2e/smoke.mjs
+        working-directory: src
       - if: failure()
         run: docker compose logs --no-color
       - if: always()

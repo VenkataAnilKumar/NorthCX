@@ -295,3 +295,23 @@ async def test_the_execution_record_joins_the_held_turn_and_leaves_its_figures_a
     [t] = await _execution_traces(rt)
     after = facts_from_trace(t)
     assert t.id == held_trace and after.status == "needs_approval" and after.duration == before.duration
+
+
+async def test_an_action_held_in_a_staging_conversation_is_resolved_against_the_staging_agent_and_its_follow_up_stays_in_staging(env):
+    make, calls, stores = env
+    llm, rt, agent, flow, agents = make([tool_call("refund", {"amount": 500}, "t1"), text("Your refund went through.")])
+    r = await rt.run(agent, "s", "refund 500", "cust", environment="staging")
+    aid = r.pending_approvals[0]["id"]
+    seen = []
+
+    class Provider:
+        async def get(self, agent_id, environment="production", session_id=None):
+            seen.append(environment)
+            return agent
+
+        async def all(self):
+            return [agent]
+
+    res = await flow.resolve(Provider(), aid, True, "rae")
+    assert seen == ["staging"] and res.run is not None
+    assert res.run.trace.environment == "staging"

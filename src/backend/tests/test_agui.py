@@ -139,3 +139,10 @@ def test_a_failed_model_ends_with_a_handoff_outcome_not_a_broken_stream():
     c, _, _ = setup([])
     ev = parse(run(c))
     assert ev[-1]["type"] == "RUN_FINISHED" and ev[-1]["outcome"] == "success" and ev[-1]["result"]["status"] == "escalated" and ev[-1]["result"]["traceId"]
+
+
+def test_the_result_of_a_resume_run_has_the_same_fields_as_a_message_run():
+    c, _, _ = setup([REFUND, text("Done.")])
+    first = parse(run(c, "refund 240"))[-1]
+    second = parse(resume(c, [{"interruptId": first["interrupts"][0]["id"], "approved": True}]))[-1]
+    assert set(first["result"]) - {"agentVersion"} <= set(second["result"]) and second["result"]["choices"] == []
