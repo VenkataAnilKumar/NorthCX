@@ -2,8 +2,8 @@ import type { Journey } from "@northcx/api-client";
 
 /** A journey drawn as a graph. The graph holds nothing the journey does not: `fromGraph(toGraph(j))` is the same journey, and each edit
  *  below changes the graph exactly as the same edit changes the journey. The server's checks stay the only rules. */
-export type NodeKind = "start" | "step" | "handoff" | "done";
-export interface GraphNode { id: string; kind: NodeKind; data: Record<string, unknown> }
+type NodeKind = "start" | "step" | "handoff" | "done";
+interface GraphNode { id: string; kind: NodeKind; data: Record<string, unknown> }
 export interface Graph { nodes: GraphNode[]; edges: { from: string; to: string }[] }
 
 type Step = Journey["steps"][number];

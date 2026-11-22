@@ -1,8 +1,8 @@
 import type { ModelQualification, ModelsOverview } from "@northcx/api-client";
 
-export const TIER_NAME: Record<string, string> = { local: "Local, on your servers", "private-cloud": "Private cloud, your account", "public-cloud": "Public cloud, the provider's service" };
+export const TIER_NAME: Record<string, string> = { local: "Local (your servers)", "private-cloud": "Private cloud (your account and region)", "public-cloud": "Public cloud (the provider's service)" };
 
-export interface ModelChoice { value: string; label: string; tier: string | null }
+interface ModelChoice { value: string; label: string; tier: string | null }
 
 /** One choice per configured provider, in the `provider:model` form the agent definition stores, plus the value already set if it is not one of them. */
 export function modelChoices(overview: ModelsOverview | null, current: string): ModelChoice[] {

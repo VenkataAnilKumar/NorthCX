@@ -1,6 +1,6 @@
 /** Which tools the agent may use and which of them always wait for a person. A tool that changes things starts out needing a person's OK;
  *  the author can switch that off for a tool, and the screen says what that means. */
-export interface Choice { tools: string[]; always: string[] }
+interface Choice { tools: string[]; always: string[] }
 
 export function chooseTool(now: Choice, name: string, on: boolean, changesThings: boolean): Choice {
   if (!on) return { tools: now.tools.filter((t) => t !== name), always: now.always.filter((t) => t !== name) };
