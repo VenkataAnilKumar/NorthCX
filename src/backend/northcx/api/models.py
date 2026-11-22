@@ -48,6 +48,10 @@ class ShadowDecisionBody(BaseModel):
     by: str | None = Field(default=None, max_length=200)  # only used when the server has no authentication configured
 
 
+class CompareBody(BaseModel):
+    candidate: int = Field(ge=1)  # the saved version to compare with what is live
+
+
 class TryTurn(BaseModel):
     role: Literal["user", "assistant"]
     text: str = Field(min_length=1, max_length=8000)

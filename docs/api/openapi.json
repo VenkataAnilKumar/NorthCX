@@ -989,6 +989,60 @@
         ]
       }
     },
+    "/v1/agents/{agent_id}/compare": {
+      "post": {
+        "summary": "Compare Versions",
+        "description": "Run the same tests (scripted, no judge) on what is live and on a saved candidate version, and say what differs: each test's result on both,\na verdict in a sentence, and the changes to the definition. The runs are recorded like any other test run.",
+        "operationId": "compare_versions_v1_agents__agent_id__compare_post",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Compare Versions V1 Agents  Agent Id  Compare Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-required-permission": "simulations:run",
+        "tags": [
+          "agents"
+        ]
+      }
+    },
     "/v1/agents/{agent_id}/environments": {
       "get": {
         "summary": "Agent Environments",
@@ -14232,6 +14286,20 @@
           "note"
         ],
         "title": "CoachingBody"
+      },
+      "CompareBody": {
+        "properties": {
+          "candidate": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Candidate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "candidate"
+        ],
+        "title": "CompareBody"
       },
       "ConnectionBody": {
         "properties": {

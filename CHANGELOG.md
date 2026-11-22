@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 4, WP 4.5, 2026-11-22)
+- `POST /v1/agents/{agent_id}/compare` (permission `simulations:run`): the same scripted tests on what is live and on a saved candidate version, each test's result on both, a verdict in a sentence and what differs. Studio: a Compare page (also "Compare with live" on each unreleased version) and a new Release requests screen (Build, Release requests) for the two-person release rule, which existed in the API but had no screen; the Agents page shows how many requests wait for approval. The release flow is unchanged.
+
 ### Tests (Phase 4, WP 4.4, 2026-11-22)
 - A pinned test for the three ready-made customer agents (order status, returns and refunds, delivery problems). No new behaviour; qualification on a real model is still outstanding.
 

@@ -2930,6 +2930,35 @@
       },
       "responses": {}
     },
+    "POST /v1/agents/{agent_id}/compare": {
+      "permission": "simulations:run",
+      "parameters": [
+        {
+          "name": "agent_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "request": {
+        "required": true,
+        "schema": {
+          "properties": {
+            "candidate": {
+              "type": "integer",
+              "minimum": 1.0
+            }
+          },
+          "type": "object",
+          "required": [
+            "candidate"
+          ]
+        }
+      },
+      "responses": {}
+    },
     "POST /v1/agents/{agent_id}/improve": {
       "permission": "versions:create",
       "parameters": [
