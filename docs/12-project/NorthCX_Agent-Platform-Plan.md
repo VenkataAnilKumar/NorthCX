@@ -170,7 +170,8 @@ Phase 0 ──> Phase 1 ──┬──> Phase 2 ──> Phase 4 ──┐
 | 4.5 side by side, release requests | Done | `POST /v1/agents/{id}/compare` and the Compare page (same tests on live and candidate, per-test change, verdict, differences); a Release requests screen for the existing two-person rule, which had no UI (approve, reject, withdraw, plain explanations); the Agents page shows waiting approvals. 4 backend tests, 11 component tests, browser steps in the Studio smoke test (CI). The release flow itself is unchanged |
 | 4.6 model picker with qualification results | Done | The agent editor lists configured models with their tier and shows the recorded qualification for the chosen one, or "Not qualified yet". Results exist only after a real-model pass (blocked, 0.2) | |
 | 4.7 journey graph | Done | A graph view of each journey (move, add, remove steps; remove hand-over conditions) over the same definition; round-trip and edit-equivalence property tests on 300 seeded journeys. Plain cards, no React Flow | |
-| Phases 4 (4.8) to 7 | Not started | |
+| 4.8 usability gate | Script written, **blocked** | `docs/02-studio/NorthCX_Usability-Gate.md`: task, five prompts, what is recorded, a proposed pass rule. Needs a real CX lead who has not used the product; not run, no time or result claimed. Phase 4 is complete apart from this gate and the real-model parts of 4.4 and 4.6 | A real CX lead |
+| Phases 5 to 7 | Not started | |
 
 ## 5. Open issues carried from Phase 1
 Recorded 2026-11-19 when Phase 1 closed. Each is a known limit, not a defect in what was built; none blocks Phase 2.

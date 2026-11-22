@@ -14,6 +14,7 @@ Status: **Plan**. Updated: 2026-11-09. Master for: finishing 1.0. Items marked *
 
 ## Before tagging 1.0.0 (you)
 - [ ] **Real-model pass.** With a Claude API key in `ANTHROPIC_API_KEY`: run the example agent through the web console; run the shipped scenarios in live mode (`python -m northcx.simulation`); try an agent draft, a journey draft, a plain-language analytics question and the judge model; if an embeddings service is available, check meaning-based search. Fix or document anything that differs from the scripted tests, and calibrate the judge (`Q3`).
+- [ ] **Studio usability gate.** Run `docs/02-studio/NorthCX_Usability-Gate.md` with real CX leads who have not used the product; record the dates and counts in the plan.
 - [ ] **Independent penetration test.** Give the tester the Threat Model and Security Review as scope; track findings in `SECURITY.md`'s process; re-run the standing security tests after fixes.
 - [ ] **Compose on a normal machine.** `docker compose up -d --build --wait`, then the five-minute demo in the README, then a restart to confirm data persists.
 - [ ] **Decide the open licence and ownership details**: the project is Apache-2.0; confirm `NOTICE` and `THIRD_PARTY.md` are current (they state that no third-party source is copied).
