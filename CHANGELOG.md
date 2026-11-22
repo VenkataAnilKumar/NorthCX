@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Documentation (Phase 4 design, 2026-11-22)
+- `docs/02-studio/NorthCX_Guided-Studio.md`: Phase 4 (Agent Studio for non-engineers) through stages 1 to 4: what exists, a six-step guided journey, eleven requirements with acceptance checks, the design (a screen over the existing engines; a new `approvals.always` field; plain-language checks), the order of work and what is blocked. Nothing is built yet.
+
 ### Fixed (2026-11-22)
 - CI now runs the Studio, Workspace and chat-widget browser tests (Playwright, pinned at 1.63.0, a dev-only dependency) against the Postgres-backed stack in the `stack` job. Earlier notes said CI ran them; it did not. One Studio test assumed an input key order that Postgres does not keep; it no longer does.
 - An approval or a shadow-mode draft that came from a staging or dev conversation is resolved against the agent of that environment, and the follow-up run stays in it (before, always production).

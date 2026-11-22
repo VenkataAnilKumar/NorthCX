@@ -10,6 +10,8 @@ Status: **Reference**. Updated: 2026-11-18. Master for: the one-page overview of
 - Organization policies and templates with a two-person rule; signed built-in templates
 
 ## Gaps and next steps
+Phase 4 is designed in [`NorthCX_Guided-Studio.md`](NorthCX_Guided-Studio.md) (requirements R1 to R11, the order of work); nothing in it is built.
+
 - A guided path for non-engineers: template, connect, preview, test, release, with checks in plain words (design sections 7 and 13)
 - A graph editor kept equivalent to the YAML by round-trip tests; a connector picker; an agent catalogue with publish approval; a side-by-side view of live and candidate versions
 - The usability gate: a CX lead releases a template agent unaided
