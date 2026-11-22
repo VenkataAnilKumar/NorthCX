@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Tests (Phase 6, WP 6.5, 2026-11-22)
+- Tests prove that the production compose setup does not start without sign-in: the server exits with the instruction when sign-in is required and no key exists, the compose backend requires an API key and sets `NORTHCX_REQUIRE_AUTH`, and compose refuses an empty `.env`. No behaviour change.
+
 ### Docs (Phase 6 design, 2026-11-22)
 - `docs/11-operations/NorthCX_Operator-Experience.md`: stages 1 to 4 for the setup wizard, upgrade tests, backup and restore, a health page, sign-in by default and a firmer resolution figure. Nothing built yet.
 

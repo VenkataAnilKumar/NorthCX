@@ -1,6 +1,6 @@
 # Operator experience: install, upgrade, backup, health, sign-in, resolution (Phase 6)
 
-Status: stages 1 to 4 written 2026-11-22. Nothing here is built yet; the plan's progress table says which work package is. Master for: Phase 6 of `../12-project/NorthCX_Agent-Platform-Plan.md`. Part of `../00-platform/NorthCX_Agent-Platform-Design.md` (a missing area: what decides whether a self-hosted customer keeps running NorthCX).
+Status: stages 1 to 4 written 2026-11-22. **WP 6.5 (O7) is built** (it needed only tests); the plan's progress table says which work package is. Master for: Phase 6 of `../12-project/NorthCX_Agent-Platform-Plan.md`. Part of `../00-platform/NorthCX_Agent-Platform-Design.md` (a missing area: what decides whether a self-hosted customer keeps running NorthCX).
 
 ## 1. Research: what exists today
 Read in this repository on 2026-11-22.
