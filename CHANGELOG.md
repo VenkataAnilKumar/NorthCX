@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Docs (Phase 4, WP 4.8, 2026-11-22)
+- `docs/02-studio/NorthCX_Usability-Gate.md`: the timed, observed script for a CX lead to create, test and release a template agent unaided. It has not been run.
+
 ### Added (Phase 4, WP 4.7, 2026-11-22)
 - Studio, agent editor: "Show as a graph" on each journey. It is a view of the same journey as the form and the YAML (nothing stored separately); steps can be moved, added and removed there. No API change.
 
