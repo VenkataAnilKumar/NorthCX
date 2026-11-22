@@ -1,6 +1,7 @@
 """Routes for automations: write a routine, have a second person approve it, run it, pause it, stop everything."""
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import yaml
@@ -12,7 +13,9 @@ from northcx.api.common import _err
 from northcx.api.deps import AppDeps
 from northcx.api.models import AutomationBody, AutomationDecisionBody, AutomationDraftBody, AutomationRunBody, AutomationSettingsBody, OrgPolicyDecisionBody
 from northcx.automations import AutomationError, AutomationService, Hooks, InMemoryAutomations, TRIGGER_TYPES, validate_definition
+from northcx.idempotency import request_hash, scope_hash, valid_key
 from northcx.release_requests import principal
+from northcx.tenancy import current_tenant
 
 
 def _destinations() -> dict[str, tuple[str, str]]:
@@ -310,7 +313,30 @@ def register(app: FastAPI, d: AppDeps) -> None:
         if not svc.verify_signature(a, raw, request.headers.get("x-northcx-signature")):
             await record(request, "automation.hook", automation_id, "denied", reason="bad signature")
             return _err(401, "bad_signature", "The signature does not match")
-        return await start(automation_id, request, "webhook", raw.decode("utf-8", "replace"))
+        text = raw.decode("utf-8", "replace")
+        if not svc.wanted(a, text):
+            await record(request, "automation.hook", automation_id, "ignored", reason="the trigger condition did not match")
+            return {"ignored": True}
+        eid, scope = request.headers.get("x-northcx-event-id"), None
+        if eid is not None:                                             # a delivery that carries an event id starts the routine once, however often it is sent
+            if not valid_key(eid):
+                return _err(400, "bad_event_id", "X-Northcx-Event-Id must be 1 to 200 visible ASCII characters")
+            scope = scope_hash("automation-hook", current_tenant(), automation_id, eid)
+            out = await d.idem.begin(scope, request_hash(text))
+            if out.state == "replay":
+                await record(request, "automation.hook", automation_id, "duplicate", eventId=eid)
+                return JSONResponse({"duplicate": True, **(out.response or {})}, headers={"Idempotent-Replay": "true"})
+            if out.state == "conflict":
+                return _err(422, "event_id_reused", "This event id was already used with a different body")
+            if out.state == "in_progress":
+                return _err(409, "request_in_progress", "This event is still being processed; retry shortly")
+        res = await start(automation_id, request, "webhook", text)
+        if scope is not None:
+            if res.status_code == 202:
+                await d.idem.complete(scope, {"runId": json.loads(res.body)["id"]})
+            else:
+                await d.idem.abandon(scope)
+        return res
 
     @app.get("/v1/automations-catalog")
     async def catalog() -> Any:

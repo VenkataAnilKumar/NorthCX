@@ -23,7 +23,7 @@ ROOTS = {"previous": {"total": 240, "status": "late", "items": [{"sku": "a"}, {"
     ("previous.missing == null", True), ("previous.total > 'a'", False), ("item.id == 7", True),
 ])
 def test_conditions_give_the_expected_answer(text, want):
-    assert expr.holds(text, ROOTS, allow_item=True) is want
+    assert expr.holds(text, ROOTS) is want
 
 
 @pytest.mark.parametrize("bad", [
@@ -39,7 +39,9 @@ def test_a_condition_that_could_do_more_than_read_values_is_refused_when_saved(b
 def test_item_is_allowed_only_where_a_foreach_gives_one():
     with pytest.raises(expr.ConditionError, match="only inside a foreach"):
         expr.parse_condition("item.id == 1")
-    assert expr.parse_condition("item.id == 1", allow_item=True)
+    assert expr.parse_condition("item.id == 1", roots=("item",))
+    with pytest.raises(expr.ConditionError, match="can read only input, not 'previous'"):
+        expr.parse_condition("previous.total > 1", roots=("input",))
 
 
 def _random_condition(r: random.Random, depth: int = 0) -> str:

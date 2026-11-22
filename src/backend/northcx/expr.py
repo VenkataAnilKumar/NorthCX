@@ -100,8 +100,8 @@ def _tokens(text: str) -> list[tuple[str, str]]:
 
 
 class _Parser:
-    def __init__(self, tokens: list[tuple[str, str]], allow_item: bool):
-        self.t, self.i, self.allow_item = tokens, 0, allow_item
+    def __init__(self, tokens: list[tuple[str, str]], roots: tuple[str, ...]):
+        self.t, self.i, self.roots = tokens, 0, roots
 
     def peek(self) -> tuple[str, str] | None:
         return self.t[self.i] if self.i < len(self.t) else None
@@ -175,16 +175,17 @@ class _Parser:
         raise ConditionError(f"unexpected '{text}'")
 
     def path(self, text: str) -> Any:
-        if text.split(".")[0].split("[")[0] == "item" and not self.allow_item:
-            raise ConditionError("'item' can be used only inside a foreach step")
+        root = text.split(".")[0].split("[")[0]
+        if root not in self.roots:
+            raise ConditionError("'item' can be used only inside a foreach step" if root == "item" else f"here a condition can read only {' and '.join(self.roots)}, not '{root}'")
         return ("path", text)
 
 
-def parse_condition(text: str, allow_item: bool = False) -> Any:
-    """Check a condition and return its tree. Raises ConditionError with a plain message."""
+def parse_condition(text: str, roots: tuple[str, ...] = ("previous", "input")) -> Any:
+    """Check a condition and return its tree. `roots` are the values it may read. Raises ConditionError with a plain message."""
     if not isinstance(text, str) or not text.strip():
         raise ConditionError("write the condition")
-    parser = _Parser(_tokens(text), allow_item)
+    parser = _Parser(_tokens(text), roots)
     tree = parser.expr(0)
     if parser.peek() is not None:
         raise ConditionError(f"cannot read the condition from '{parser.peek()[1]}'")  # type: ignore[index]
@@ -249,5 +250,6 @@ def evaluate(tree: Any, roots: dict[str, Any]) -> Any:
     return _within(b, a)  # contains
 
 
-def holds(text: str, roots: dict[str, Any], allow_item: bool = False) -> bool:
-    return _truthy(evaluate(parse_condition(text, allow_item), roots))
+def holds(text: str, values: dict[str, Any]) -> bool:
+    """Whether a condition is true of the values; it may read only the roots given in `values`."""
+    return _truthy(evaluate(parse_condition(text, tuple(values)), values))
