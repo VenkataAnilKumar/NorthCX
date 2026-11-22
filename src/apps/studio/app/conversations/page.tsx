@@ -2,8 +2,9 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { addTag, type ConversationRow, formatTime, listTraces, removeTag, searchConversations, useLoad, useMe } from "@northcx/api-client";
+import { addTag, type ConversationRow, formatTime, getScenarioDraft, listTraces, removeTag, searchConversations, useLoad, useMe } from "@northcx/api-client";
 import { Empty, ErrorBox, Loading, PageHeader, StatusBadge } from "@northcx/ui";
+import { SaveTest } from "@/components/try-panel";
 
 const filters = [["", "All"], ["completed", "Completed"], ["escalated", "Escalated"], ["needs_approval", "Needs approval"]];
 
@@ -37,6 +38,7 @@ function Found({ q, tag }: { q: string; tag: string }) {
                 <input id={`tag-${c.sessionId}`} name="tag" placeholder="add tag" className="w-28 rounded border border-border bg-bg px-1.5 py-0.5 text-xs" />
               </form>)}
             <span className="ml-auto flex gap-3 text-xs">
+              <SaveTest yaml={async () => (await getScenarioDraft(c.sessionId)).yaml} label="Save as a test" />
               <Link className="text-primary underline" href={`/replay?session=${encodeURIComponent(c.sessionId)}`}>Replay</Link>
               {c.traceIds.length > 0 && <Link className="text-primary underline" href={`/conversations/${c.traceIds[c.traceIds.length - 1]}`}>View trace</Link>}
             </span>
@@ -85,7 +87,7 @@ function List() {
                 <td className="p-3 font-mono text-xs">{t.sessionId.slice(0, 8)}</td>
                 <td className="p-3">{t.tools.join(", ") || "–"}</td>
                 <td className="p-3"><StatusBadge status={t.status} /></td>
-                <td className="p-3 whitespace-nowrap"><Link className="text-primary underline" href={`/conversations/${t.id}`}>View trace</Link> · <Link className="text-primary underline" href={`/replay?session=${encodeURIComponent(t.sessionId)}`}>Replay</Link></td>
+                <td className="p-3 whitespace-nowrap"><Link className="text-primary underline" href={`/conversations/${t.id}`}>View trace</Link> · <Link className="text-primary underline" href={`/replay?session=${encodeURIComponent(t.sessionId)}`}>Replay</Link> · <SaveTest yaml={async () => (await getScenarioDraft(t.sessionId)).yaml} label="Save as a test" /></td>
               </tr>
             ))}</tbody>
           </table>

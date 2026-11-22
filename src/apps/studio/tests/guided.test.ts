@@ -1,31 +1,38 @@
 import { describe, expect, it } from "vitest";
 import { guidedSteps, type Where } from "../lib/guided";
 
-const base: Where = { agent: null, tools: 0, noTools: false, instructions: "", valid: null, problems: 0, saved: null, changed: false };
+const base: Where = { agent: null, tools: 0, noTools: false, instructions: "", valid: null, problems: 0, tried: false, saved: null, changed: false };
 const states = (w: Where) => guidedSteps(w).map((s) => s.state);
 
 describe("guidedSteps", () => {
   it("starts by choosing an agent and blocks everything after it", () => {
-    expect(states(base)).toEqual(["next", "blocked", "blocked", "blocked", "blocked"]);
+    expect(states(base)).toEqual(["next", "blocked", "blocked", "blocked", "blocked", "blocked"]);
   });
   it("moves on step by step and never skips one: exactly one step is next", () => {
     const chosen = { ...base, agent: "support" };
-    expect(states(chosen)).toEqual(["done", "next", "blocked", "blocked", "blocked"]);
+    expect(states(chosen)).toEqual(["done", "next", "blocked", "blocked", "blocked", "blocked"]);
     const withTools = { ...chosen, tools: 2 };
-    expect(states(withTools)).toEqual(["done", "done", "next", "blocked", "blocked"]);
+    expect(states(withTools)).toEqual(["done", "done", "next", "blocked", "blocked", "blocked"]);
     const written = { ...withTools, instructions: "Help with orders." };
-    expect(states(written)).toEqual(["done", "done", "done", "next", "blocked"]);
+    expect(states(written)).toEqual(["done", "done", "done", "next", "blocked", "blocked"]);
     const valid = { ...written, valid: true };
-    expect(states(valid)).toEqual(["done", "done", "done", "done", "next"]);
-    expect(states({ ...valid, saved: 3 })).toEqual(["done", "done", "done", "done", "done"]);
+    expect(states(valid)).toEqual(["done", "done", "done", "done", "next", "blocked"]);
+    const tried = { ...valid, tried: true };
+    expect(states(tried)).toEqual(["done", "done", "done", "done", "done", "next"]);
+    expect(states({ ...tried, saved: 3 })).toEqual(["done", "done", "done", "done", "done", "done"]);
   });
   it("blocks the summary while the definition has problems and says how many", () => {
     const s = guidedSteps({ ...base, agent: "a", tools: 1, instructions: "x", valid: false, problems: 2 });
     expect(s[3]).toMatchObject({ state: "next", note: "2 things to fix first." });
     expect(s[4].state).toBe("blocked");
   });
+  it("makes trying the draft a step of its own before saving", () => {
+    const ready = { ...base, agent: "a", tools: 1, instructions: "x", valid: true };
+    expect(guidedSteps(ready)[4]).toMatchObject({ key: "try", state: "next" });
+    expect(guidedSteps(ready)[5]).toMatchObject({ key: "save", state: "blocked", note: "Try it first." });
+  });
   it("asks for a new save once the author changes something after saving", () => {
-    expect(guidedSteps({ ...base, agent: "a", tools: 1, instructions: "x", valid: true, saved: 3, changed: true })[4].state).toBe("next");
+    expect(guidedSteps({ ...base, agent: "a", tools: 1, instructions: "x", valid: true, tried: true, saved: 3, changed: true })[5].state).toBe("next");
   });
   it("holds the path at the tools step until tools are chosen or the author confirms none are needed", () => {
     expect(guidedSteps({ ...base, agent: "a", instructions: "x" })[1]).toMatchObject({ state: "next", note: "Choose the tools it may use, or confirm that it needs none." });

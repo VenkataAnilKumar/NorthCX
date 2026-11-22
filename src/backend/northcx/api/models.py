@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from northcx.tokens import DEFAULT_TTL
 
@@ -46,6 +46,24 @@ class ShadowDecisionBody(BaseModel):
     reasons: list[str] = Field(default_factory=list, max_length=10)
     note: str | None = Field(default=None, max_length=1000)
     by: str | None = Field(default=None, max_length=200)  # only used when the server has no authentication configured
+
+
+class TryTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    text: str = Field(min_length=1, max_length=8000)
+
+
+class TryBody(BaseModel):
+    spec: dict[str, Any]
+    message: str = Field(min_length=1, max_length=8000)
+    history: list[TryTurn] = Field(default_factory=list, max_length=40)
+
+    @field_validator("history")
+    @classmethod
+    def _alternates(cls, v: list[TryTurn]) -> list[TryTurn]:
+        if v and (v[0].role != "user" or any(a.role == b.role for a, b in zip(v, v[1:])) or v[-1].role != "assistant"):
+            raise ValueError("the conversation so far starts with the customer, alternates, and ends with the agent's answer")
+        return v
 
 
 class RerunBody(BaseModel):

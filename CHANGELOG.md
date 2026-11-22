@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 4, WP 4.3, 2026-11-22)
+- `POST /v1/agents/{agent_id}/try` (permission `simulations:run`): answer one customer message with an agent definition that has not been saved, after the conversation so far, in a sandbox (nothing is saved or sent, every write is simulated, the model use counts against the daily budget). The response has the steps and a test made from the exchange. The guided setup page has a "Try it" step with it; every conversation in Studio has "Save as a test".
+
 ### Added (Phase 4, WP 4.1, 2026-11-22)
 - Studio, Build, Guided setup (`/guided?agent=…`): choose an agent (or start from a template or your own material), connect tools, write procedures, read a plain summary of what the agent will do, and save a version, one step at a time. The version preview (`POST /v1/agents/{id}/versions/preview`) returns `summary` (a list of sentences); the tool catalogue (`GET /v1/catalog`) returns each tool's `audience`. Both are additions. The editor's and the guided page's tool picker show only tools that fit the agent's audience.
 
