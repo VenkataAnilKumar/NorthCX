@@ -210,3 +210,13 @@ async def test_settings_usage_dims_and_groups_survive_the_database_per_tenant(ap
     ac = AccessControl(keys=PgKeys(app_engine))
     _, secret = await ac.issue_session("rae", "developer", 4, groups=["Support", "Billing"])
     assert (await AccessControl(keys=PgKeys(app_engine)).authenticate(secret)).groups == ("Billing", "Support")
+
+
+def test_a_providers_declared_tier_is_shown_even_when_there_are_no_routing_rules():
+    reg = ProviderRegistry()
+    reg.register(Fake("loc", "small", {"small": Price(0.0, 0.0, "USD")}), default=True)
+    rel = ReliableLLM(reg, [], retries=0, timeout=None)
+    rel.provider_where = {"loc": "local"}                                    # what the providers file's `where:` said
+    c, _ = app_with(rel)
+    out = c.get("/v1/models/overview", headers=H).json()
+    assert out["routing"] is None and out["providers"][0]["tier"] == "local"      # before: shown as public-cloud, which told an operator the data was leaving

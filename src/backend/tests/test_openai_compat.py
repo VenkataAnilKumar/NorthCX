@@ -37,7 +37,7 @@ async def test_a_plain_reply_with_usage_and_the_answering_model():
     assert res.usage == {"input_tokens": 11, "output_tokens": 7}
     url, auth, body = seen[0]
     assert url == "https://llm.example.com/v1/chat/completions" and auth == f"Bearer {KEY}"
-    assert body["messages"][0] == {"role": "system", "content": "Be brief."} and body["max_tokens"] == 200 and body["tools"][0]["function"]["name"] == "lookup"
+    assert body["messages"][0] == {"role": "system", "content": "Be brief."} and body["max_tokens"] == 200 and body["tools"][0]["function"]["name"] == "lookup" and body["tool_choice"] == "auto"
     assert KEY not in json.dumps(body) and KEY not in url
 
 
@@ -57,6 +57,7 @@ async def test_a_tool_call_and_the_tool_result_round_trip():
     assert second.content[0]["text"] == "Order 1042 shipped."
     sent = bodies[1]["messages"]
     assert sent[2]["tool_calls"][0]["function"]["arguments"] == '{"order": "1042"}' and sent[3] == {"role": "tool", "tool_call_id": "call_1", "content": "shipped"}
+    assert sent[2]["content"] == ""                   # an assistant turn that only called a tool carries an empty string, not null: llama-cpp-python rejects null (found in the first local-model pass)
 
 
 async def test_several_tool_results_and_a_stop_reason_of_length():
@@ -79,7 +80,7 @@ async def test_no_tools_means_none_are_sent_and_a_toolless_model_refuses_tools()
         seen.append(json.loads(req.content))
         return httpx.Response(200, json=reply({"content": "ok"}))
     await make(handler).complete(LLMRequest(system="s", messages=[{"role": "user", "content": "x"}], model="m1"))
-    assert "tools" not in seen[0]
+    assert "tools" not in seen[0] and "tool_choice" not in seen[0]            # with no tools there is nothing to choose
     with pytest.raises(ProviderError, match="cannot call tools"):
         await make(handler, capabilities=Capabilities(tools=False)).complete(REQ)
 
