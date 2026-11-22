@@ -242,6 +242,14 @@ class ReleaseService:
                 return v, rel, env
         return None, None, PRODUCTION
 
+    async def live_spec(self, agent_id: str) -> tuple[int | None, dict[str, Any] | None]:
+        """The definition production serves now: the released version's number and spec, or the baseline file's spec (no number), or nothing."""
+        v, _, _ = await self.resolve(agent_id)
+        if v is not None:
+            return v.number, v.spec
+        base = self.baselines.get(agent_id)
+        return (None, json.loads(base.canonical())) if base is not None else (None, None)
+
     async def environments(self, agent_id: str) -> dict[str, Any]:
         out: dict[str, Any] = {}
         for env in ENVIRONMENTS:

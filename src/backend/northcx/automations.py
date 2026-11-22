@@ -70,6 +70,9 @@ class Hooks:
     tools: Callable[[], dict[str, dict[str, Any]]] | None = None                            # name -> {"effect", "allowed", "why", "model"}: what a tool step may call
     tool_approval: Callable[[str, dict[str, Any]], str | None] | None = None               # tool name, arguments -> why the tool wants approval for these arguments, if it does
     call_tool: Callable[[str, dict[str, Any], str], Awaitable[Any]] | None = None          # tool name, arguments, idempotency key -> result
+    live_agent: Callable[[str], Awaitable[bool]] | None = None                              # agent id -> whether something is live for it (what a simulate step may check)
+    check_agent: Callable[[str, str], Awaitable[dict[str, Any]]] | None = None             # agent id, mode -> the result of running its scenarios against what is live
+    raise_alert: Callable[[str, str, str], Awaitable[None]] | None = None                  # routine id, severity, text -> a monitoring finding and the alert webhook
     mask: Callable[[str], str] = staticmethod(lambda t: t)                                  # hides personal data in what a run record keeps
 
 
@@ -170,6 +173,20 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
             out.append({"id": sid, "kind": "notify", "to": dest})
         elif sk == "tool":
             out.append(_tool_step(sid, s, tools or {}))
+        elif sk == "simulate":
+            agent, mode = s.get("agent"), s.get("mode", "scripted")
+            if not isinstance(agent, str) or not agent:
+                raise AutomationError(400, f"Step '{sid}': name the agent whose scenarios to run")
+            if mode not in ("scripted", "live"):
+                raise AutomationError(400, f"Step '{sid}': mode is scripted (no real model) or live (a real model, counted against the daily budget)")
+            out.append({"id": sid, "kind": "simulate", "agent": agent, "mode": mode})
+        elif sk == "alert":
+            sev, msg = s.get("severity", "warning"), s.get("text")
+            if sev not in ("warning", "critical"):
+                raise AutomationError(400, f"Step '{sid}': severity is warning or critical")
+            if not isinstance(msg, str) or not 5 <= len(msg.strip()) <= 200 or "{{" in msg:
+                raise AutomationError(400, f"Step '{sid}': the alert text is 5 to 200 characters of fixed wording (it cannot use values from earlier steps)")
+            out.append({"id": sid, "kind": "alert", "severity": sev, "text": msg.strip()})
         elif sk == "branch":
             out.append(_branch_step(sid, s))
         elif sk == "foreach":
@@ -182,7 +199,7 @@ def validate_definition(data: Any, reports: set[str], events: set[str] | frozens
                 raise AutomationError(400, f"Step '{sid}': a routine's outputs are shared with everyone who uses the Workspace")
             out.append({"id": sid, "kind": "output", "title": title, "visibility": "shared"})
         else:
-            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report, tool, branch, foreach, person, tag, notify or output (a routine never writes to customers)")
+            raise AutomationError(400, f"Step '{sid}': kind must be assistant, report, tool, branch, foreach, simulate, alert, person, tag, notify or output (a routine never writes to customers)")
     for st, approved in zip(out, _approved(out)):             # a step that sends something out or changes something needs a person's approval on every path that reaches it
         if approved:
             continue
@@ -501,6 +518,8 @@ class AutomationService:
             raise AutomationError(501, "Routines are not configured on this server")
         for s in data["steps"]:
             inner = s.get("do") if s["kind"] == "foreach" else s
+            if s["kind"] == "simulate" and self.hooks.live_agent is not None and not await self.hooks.live_agent(s["agent"]):
+                raise AutomationError(409, f"Step '{s['id']}': nothing is live for '{s['agent']}', so there is nothing to check")
             if inner and inner["kind"] == "assistant" and not await self.hooks.assistant_exists(inner["assistant"]):
                 raise AutomationError(409, f"Step '{s['id']}': '{inner['assistant']}' is not a live staff assistant (customer-facing agents cannot be used)")
 
@@ -639,6 +658,20 @@ class AutomationService:
                     prev = await self._tool(a, run, s, idx, prev, input_text, rec)
                 elif s["kind"] == "foreach":
                     prev = await self._foreach(a, run, s, idx, prev, input_text, rec)
+                elif s["kind"] == "simulate":
+                    if self.hooks.check_agent is None:
+                        raise AutomationError(501, "Checking an agent is not available on this server")
+                    result = await self.hooks.check_agent(s["agent"], s["mode"])
+                    rec.update({"agent": s["agent"], "mode": s["mode"], "failed": result["failed"], "total": result["total"]})
+                    prev = json.dumps(result, default=str)
+                elif s["kind"] == "alert":
+                    if self.hooks.raise_alert is None:
+                        raise AutomationError(501, "Alerts are not available on this server")
+                    earlier = next((r for r in reversed(run.steps[:-1]) if r["kind"] != "branch"), None)
+                    failing = json.loads(prev).get("failedNames", [])[:5] if earlier and earlier["kind"] == "simulate" else []
+                    detail = f"Routine '{a.name}': {s['text']}" + (f" Failing scenarios: {', '.join(n[:60] for n in failing)}." if failing else "")
+                    await self.hooks.raise_alert(a.id, s["severity"], detail)
+                    rec["alerted"] = s["severity"]
                 elif s["kind"] == "branch":
                     go = self._branch(s, prev, input_text, rec)
                     if go == "stop":
@@ -673,7 +706,7 @@ class AutomationService:
                     rec["sentTo"] = s["to"]
                 else:
                     prev = json.dumps(await self.hooks.reports[s["report"]](s["days"]), default=str)[:MAX_OUTPUT]
-                rec.update({"status": "ok", "output": (self.hooks.mask(prev) if s["kind"] in ("tool", "foreach") else prev) if s["kind"] in ("assistant", "report", "output", "tool", "foreach") else rec.get("sentTo") or rec.get("tagged") or "", "endedAt": time.time()})
+                rec.update({"status": "ok", "output": (self.hooks.mask(prev) if s["kind"] in ("tool", "foreach") else prev) if s["kind"] in ("assistant", "report", "output", "tool", "foreach", "simulate") else rec.get("sentTo") or rec.get("tagged") or "", "endedAt": time.time()})
             except BaseException as e:
                 rec.update({"status": "failed", "error": str(e)[:200], "endedAt": time.time()})
                 raise
