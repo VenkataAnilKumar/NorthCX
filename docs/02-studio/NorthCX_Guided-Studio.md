@@ -1,6 +1,6 @@
 # Guided Studio: Phase 4 design
 
-Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4), WP 4.1 (R1, R2), WP 4.3 (R5, R6), WP 4.4 (R7, scripted part) WP 4.5 (R8) and WP 4.6 (R9, shows recorded results only) are built**; the rest is not. The guided page has six steps: choose, connect, procedures, what it will do, try it, save. Plan: `../12-project/NorthCX_Agent-Platform-Plan.md`, Phase 4. Design source: `../00-platform/NorthCX_Agent-Platform-Design.md`, section 7.
+Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4), WP 4.1 (R1, R2), WP 4.3 (R5, R6), WP 4.4 (R7, scripted part) WP 4.5 (R8) and WP 4.6 (R9, shows recorded results only) and WP 4.7 (R10) are built**; the rest is not. The guided page has six steps: choose, connect, procedures, what it will do, try it, save. Plan: `../12-project/NorthCX_Agent-Platform-Plan.md`, Phase 4. Design source: `../00-platform/NorthCX_Agent-Platform-Design.md`, section 7.
 
 **Who it is for.** A CX lead or operations person who has never written YAML. They should be able to go from "I want an order-status agent" to a live, tested agent, and always see in plain words what the agent can do and what needs a person.
 
@@ -65,6 +65,9 @@ Status: stages 1 to 4 written 2026-11-22. **WP 4.2 (R3, R4), WP 4.1 (R1, R2), WP
 
 ## Built: the ready-made agents (WP 4.4)
 Order status (3 scenarios), returns and refunds (2) and delivery problems (6) ship as signed templates in the Agent Hub. `tests/test_templates.py` renders every shipped template and runs its scenarios in scripted mode, and a pinned test for these three checks that each is for customers, sends safety and legal topics to a person, has at least two scenarios and one that covers a hand-off. **Not met:** "green on a qualified model". No real model has run the scenarios (plan, Phase 0), so no template is qualified; a scripted pass shows the scenarios and the definition agree, not that a model behaves.
+
+## Built: journey graph (WP 4.7)
+Each journey in the agent editor has "Show as a graph": a line of cards (start, steps in order, the done condition) with hand-over conditions branching off the start. In the graph an author can move, add and remove steps and remove hand-over conditions; wording and tools are still edited in the form. The graph is not stored: `lib/journey-graph.ts` turns the journey into nodes and edges and back, and the journey saved is the same one the YAML holds. R10 is checked by `tests/journey-graph.test.ts`: 300 journeys from a fixed seed come back unchanged, and each graph edit gives the same journey as the same edit made on the list. Empty lists count as absent, as the server treats them. No graph library is used (plain cards); a drag-and-drop canvas (React Flow, with the copy and licence rules in CLAUDE.md) is not built, because nothing yet shows authors need it (WP 4.8 will).
 
 ## Built: model picker with qualification results (WP 4.6)
 The agent editor's free-text Model box is now a list: "Server default" and one entry per configured provider that names a model, each with its tier (local, private cloud, public cloud). Under it, one line says what is recorded for the chosen model on this agent: "Qualified on <date>: N of M required scenarios passed", "Did not qualify" with the first reason, or "Not qualified yet". A model value that is no longer configured stays selectable and shows no tier. Only recorded runs are shown; no real-model run has been made, so every model currently reads "Not qualified yet" (unverified, WP 0.2). Tests: `tests/models.test.ts`.

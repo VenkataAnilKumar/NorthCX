@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { JourneyGraph } from "@/components/journey-graph";
 import { createScenario, draftJourney, type Journey, journeyScenarios } from "@northcx/api-client";
 
 const input = "w-full rounded-lg border border-border bg-bg px-2 py-1.5 text-sm";
@@ -7,6 +8,7 @@ const lines = (v: string) => v.split("\n").map((x) => x.trim()).filter(Boolean);
 
 function One({ agent, j, tools, onChange, onRemove }: { agent: string; j: Journey; tools: string[]; onChange: (j: Journey) => void; onRemove: () => void }) {
   const [msg, setMsg] = useState<string | null>(null);
+  const [graph, setGraph] = useState(false);
   const set = (patch: Partial<Journey>) => onChange({ ...j, ...patch });
   const setStep = (i: number, patch: Record<string, unknown>) => set({ steps: j.steps.map((s, k) => (k === i ? { ...s, ...patch } : s)) });
   async function makeTests() {
@@ -23,6 +25,8 @@ function One({ agent, j, tools, onChange, onRemove }: { agent: string; j: Journe
         <select aria-label={`How strictly for ${j.name}`} value={j.flexibility ?? "guided"} onChange={(e) => set({ flexibility: e.target.value })} className="rounded border border-border bg-bg px-1 py-0.5">
           <option value="strict">strict: steps enforced</option><option value="guided">guided</option><option value="free">free</option></select>
         <button type="button" onClick={onRemove} className="ml-auto rounded-lg border border-border px-2 hover:bg-border/40">Remove</button></div>
+      <button type="button" aria-pressed={graph} onClick={() => setGraph(!graph)} className="rounded-lg border border-border px-3 py-1">{graph ? "Back to the form" : "Show as a graph"}</button>
+      {graph ? <JourneyGraph journey={j} onChange={onChange} /> : <>
       <label className="block">Goal<input value={j.goal} onChange={(e) => set({ goal: e.target.value })} className={input} /></label>
       <label className="block">When it applies<input value={j.when ?? ""} onChange={(e) => set({ when: e.target.value })} className={input} /></label>
       <fieldset className="space-y-1"><legend className="font-medium">Steps</legend>
@@ -41,6 +45,7 @@ function One({ agent, j, tools, onChange, onRemove }: { agent: string; j: Journe
       <label className="block">Done when these tools have run<select multiple value={j.done_when ?? []} onChange={(e) => set({ done_when: Array.from(e.target.selectedOptions).map((o) => o.value) })} className={input}>
         {tools.map((t) => <option key={t}>{t}</option>)}</select></label>
       <label className="block">Example opening messages, one per line (used for tests)<textarea value={(j.samples ?? []).join("\n")} onChange={(e) => set({ samples: lines(e.target.value).slice(0, 3) })} rows={2} className={input} /></label>
+      </>}
       <button type="button" onClick={() => void makeTests()} className="rounded-lg border border-border px-3 py-1.5 hover:bg-border/40">Create test scenarios</button>
       {msg && <p role="status" className="text-xs text-muted">{msg}</p>}
     </div>

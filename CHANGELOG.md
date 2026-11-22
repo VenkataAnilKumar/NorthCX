@@ -4,6 +4,9 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+### Added (Phase 4, WP 4.7, 2026-11-22)
+- Studio, agent editor: "Show as a graph" on each journey. It is a view of the same journey as the form and the YAML (nothing stored separately); steps can be moved, added and removed there. No API change.
+
 ### Added (Phase 4, WP 4.6, 2026-11-22)
 - Studio, agent editor: the Model field is a list of the configured models with their tier, and shows the recorded qualification result for the chosen model on this agent ("Qualified on …", "Did not qualify", or "Not qualified yet"). No API change. Results appear only after a real-model qualification run, which has not been made.
 
