@@ -7,6 +7,10 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 ### Fixed (Phase 6 review, 2026-11-22)
 - `python -m northcx backup` and `restore` report a wrong database password, address or refused connection as one plain line (never the password) instead of a traceback.
 
+### Docs (Phase 7 preparation, 2026-11-23)
+- `docs/10-releases/NorthCX_Pilot-Plan.md`: the design-partner pilot (gates, stages, measures with denominators, stop conditions, what may be published). Not started: it needs a pilot customer.
+- The penetration test brief lists the surface added since it was written.
+
 ### Fixed (first local-model pass, 2026-11-22)
 - OpenAI-compatible providers send `tool_choice: "auto"` whenever they send tools (some local servers ignore the tools without it) and send an empty string, not null, as the content of an assistant turn that only called a tool (llama-cpp-python rejects null).
 - The Models page shows a provider's declared tier (`where:` in the providers file) when no routing rules file is set; it showed `public-cloud` before.

@@ -1,6 +1,6 @@
 # Penetration test brief
 
-Status: **Ready to hand to a tester.** Updated: 2026-11-10. Purpose: what to test before a second tenant is allowed on a real deployment (`NORTHCX_TENANCY_PREVIEW`), and before 1.0.0 is tagged. Read first: the [tenant isolation threat model](NorthCX_Tenant-Isolation-Threat-Model.md) and the [threat model](NorthCX_Threat-Model.md).
+Status: **Ready to hand to a tester.** Updated: 2026-11-23 (surface added since the first brief is listed below). Purpose: what to test before a second tenant is allowed on a real deployment (`NORTHCX_TENANCY_PREVIEW`), and before 1.0.0 is tagged. Read first: the [tenant isolation threat model](NorthCX_Tenant-Isolation-Threat-Model.md) and the [threat model](NorthCX_Threat-Model.md).
 
 ## Goal
 
@@ -37,6 +37,24 @@ Create the tenants and an administrator key in each through the platform API (li
 8. **Secrets.** Any response, log or audit entry that contains a secret value, a webhook secret, an API key or a master-key-derived value.
 9. **Files.** Oversized, malformed and hostile PDFs, text files with control characters, filenames with path or header tricks, exports with script content.
 10. **Webhooks and outbound calls.** Routine destinations, the events webhook, provider addresses: any way to make the server call an internal address.
+
+## Added since the first brief (surface built after 2026-11-10)
+The brief above was written for tenancy. Since then the product gained surface a tester should also cover. Each item names where to look and what a failure would be.
+
+| Area | Where | What to try |
+|---|---|---|
+| MCP connections | `/v1/connections...`, `northcx/mcp_client.py`, `mcp_connections.py` | Make the server call a host the operator did not allow (redirects, DNS, ports, IPv6, alternative encodings of an allowed host); make an unapproved or changed tool run; get a tool's description or output to act as an instruction; read another tenant's connection or secret name |
+| Tool step in routines | `/v1/automations`, `northcx/automations.py` | Run a tool that changes something with no person approving (a branch that skips the person step; a condition or template that reaches a value it should not); reach a staff-only tool; make a routine write to a customer; exceed the foreach and step limits |
+| Event-id deliveries | `POST /v1/automations/{id}/hook` | Replay or race the same event id for a second run; reuse an id across routines or tenants; bypass the signature |
+| Shadow mode | `/v1/shadow/...` | Send an unreviewed draft to a customer; decide a draft you may not; edit a draft past the output guardrails |
+| Try, compare, rerun | `POST /v1/agents/{id}/try`, `/compare`, `POST /v1/sessions/{id}/rerun` | Make a sandbox run call a real tool or write to a real system; read another tenant's session through a rerun; save something from a draft that was never released |
+| AG-UI endpoint | `POST /v1/agents/{id}/agui` and the resume route | Resume an approval you may not decide; read another session's events |
+| Health page | `GET /v1/system/health` | Read it without the permission; find a secret, address with credentials or internal name in it |
+| Backup and restore | `python -m northcx backup|restore` (a command, not an API) | Treat as operator tooling: check that a backup holds nothing the database does not, that a crafted file cannot write outside its temporary directory, and that restore refuses a damaged or newer file. The file is not encrypted by design |
+| Setup script | `scripts/setup.py` | Weak or predictable secrets, a world-readable `.env`, a secret on the screen or in a log |
+| Answers to customers | chat, widget, channels | Make the agent show raw tool-call text or an empty reply (seen with a small local model); offer buttons that act without the customer's choice |
+
+What NorthCX checked itself first (so the tester's time goes elsewhere): every route has a permission entry, and a test fails if one is missing; every table with a tenant column has row-level security and a policy (`tests/test_tenant_isolation.py`, which covers tables added later); outbound calls never follow redirects; the audit log is a hash chain and survives a restore (tested); the full backend suite and the browser smokes run on every change. None of that replaces the test.
 
 ## Rules
 
