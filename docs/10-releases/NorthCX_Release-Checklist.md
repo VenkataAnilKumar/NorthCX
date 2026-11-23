@@ -1,6 +1,6 @@
 # NorthCX 1.0.0 Release Checklist
 
-Status: **Plan**. Updated: 2026-11-09. Master for: finishing 1.0. Items marked **you** need a person or a live model; the rest were verified from a clean clone of the repository.
+Status: **Plan; release candidate 2 prepared**. Updated: 2026-11-23. Master for: finishing 1.0. Items marked **you** need a person or a live model; the rest were verified from a clean clone of the repository.
 
 ## Verified from a clean checkout (no local state)
 - [x] `pip install --require-hashes -r requirements-dev.lock && pip install --no-deps -e .` in `src/backend` succeeds; the full backend suite passes against local Postgres with pgvector (`NORTHCX_REQUIRE_DB=1`).
@@ -13,12 +13,13 @@ Status: **Plan**. Updated: 2026-11-09. Master for: finishing 1.0. Items marked *
 - [x] On GitHub Actions (run for `89830dd`, 2026-11-08): all seven CI jobs passed, including the full suite against the pgvector service, `pip-audit` on both locks, the web and SDK builds, and `docker compose up --build --wait` with the smoke test, so the application images build and the stack starts on a normal runner.
 
 ## Before tagging 1.0.0 (you)
-- [ ] **Real-model pass.** With a Claude API key in `ANTHROPIC_API_KEY`: run the example agent through the web console; run the shipped scenarios in live mode (`python -m northcx.simulation`); try an agent draft, a journey draft, a plain-language analytics question and the judge model; if an embeddings service is available, check meaning-based search. Fix or document anything that differs from the scripted tests, and calibrate the judge (`Q3`).
-- [ ] **Studio usability gate.** Run `docs/02-studio/NorthCX_Usability-Gate.md` with real CX leads who have not used the product; record the dates and counts in the plan.
+- [ ] **Real-model pass.** *Update 2026-11-23: one small local model (Qwen2.5 3B) has run the shipped scenarios (8 of 18, not qualified; see the local models guide, section 6). No cloud model and no model that qualifies yet.* With a Claude API key in `ANTHROPIC_API_KEY`: run the example agent through the web console; run the shipped scenarios in live mode (`python -m northcx.simulation`); try an agent draft, a journey draft, a plain-language analytics question and the judge model; if an embeddings service is available, check meaning-based search. Fix or document anything that differs from the scripted tests, and calibrate the judge (`Q3`).
+- [ ] **Studio usability gate.** *The script is written; nobody has run it.* Run `docs/02-studio/NorthCX_Usability-Gate.md` with real CX leads who have not used the product; record the dates and counts in the plan.
 - [ ] **Independent penetration test.** Give the tester the Threat Model and Security Review as scope; track findings in `SECURITY.md`'s process; re-run the standing security tests after fixes.
-- [ ] **Compose on a normal machine.** `docker compose up -d --build --wait`, then the five-minute demo in the README, then a restart to confirm data persists.
+- [ ] **Compose on a normal machine.** *CI runs the setup script, the smoke checks, a backup and restore drill and the browser tests on the real stack on every change; running it yourself on a normal machine is still the check this item asks for.* `docker compose up -d --build --wait`, then the five-minute demo in the README, then a restart to confirm data persists.
 - [ ] **Decide the open licence and ownership details**: the project is Apache-2.0; confirm `NOTICE` and `THIRD_PARTY.md` are current (they state that no third-party source is copied).
-- [ ] **Publish the release candidate tag** `v1.0.0-rc.1` (it exists only in the session checkout; push it from a machine with access) and let it soak.
+- [ ] **Publish the release candidate tag** `v1.0.0-rc.2` (the versions and the changelog say rc.2; no tag has been created or pushed) and let it soak. `v1.0.0-rc.1` exists only in an earlier session checkout and cannot be found in this repository; do not rely on it.
+- [ ] **Pilot** (`NorthCX_Pilot-Plan.md`): needs a pilot customer and a qualified model.
 
 ## Cutting 1.0.0 (after the above)
 1. Set the version to `1.0.0` in `src/backend/northcx/__init__.py`, every `package.json` under `src` (workspace root, `apps/*`, `packages/*`, `sdk`) (and their lock files).
@@ -26,6 +27,7 @@ Status: **Plan**. Updated: 2026-11-09. Master for: finishing 1.0. Items marked *
 3. Run the whole suite (`tests/test_release.py` checks the versions agree), build the images, tag `v1.0.0`, and publish the release notes from the changelog.
 
 ## Known limits to state in the release notes
+The current list is in `NorthCX_Release-Notes-1.0.0-rc.2.md`; it supersedes the list below, which is kept for history.
 - The real-model path has been exercised with scripted and offline models only until the real-model pass is done.
 - No independent penetration test until that is done.
 - One region per deployment; no multi-tenancy, metering or billing.

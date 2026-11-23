@@ -1,6 +1,6 @@
 {
   "name": "northcx-client",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "license": "Apache-2.0",
   "private": true,
   "description": "Browser and app client for NorthCX chat: sessions, streaming replies, attachments, person replies, ratings, and a drop-in <northcx-chat> widget. No runtime dependencies.",

@@ -1,6 +1,6 @@
 # NorthCX: guide for Claude Code
 
-NorthCX is an open-source, self-hosted platform for supervised customer-experience AI agents (Apache-2.0, release candidate 1.0.0-rc.1). Read `README.md` first for what it is and `CONTRIBUTING.md` for how changes are made. This file only adds what a new session needs to start.
+NorthCX is an open-source, self-hosted platform for supervised customer-experience AI agents (Apache-2.0, release candidate 1.0.0-rc.2). Read `README.md` first for what it is and `CONTRIBUTING.md` for how changes are made. This file only adds what a new session needs to start.
 
 ## Layout
 - `src/backend/northcx/`: Python 3.12+ backend (runtime, guardrails, approvals, connectors, automations, channels, API routers under `api/routers/`). Tests in `src/backend/tests/`; example agent, tools and scenarios in `src/backend/examples/`.
