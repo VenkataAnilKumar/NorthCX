@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "NorthCX API",
-    "version": "1.0.0rc1",
+    "version": "1.0.0rc2",
     "description": "Every request to /v1 carries `Authorization: Bearer <key>` unless it is marked public. `x-required-permission` names the permission the key's role needs. Errors are `{\"error\": {\"code\": ..., \"message\": ...}}`."
   },
   "paths": {

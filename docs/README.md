@@ -78,7 +78,7 @@ The documents are organised by **platform area**. Each area folder starts with a
 | `07-observability/` | Observability-Overview, Observability, Reliability-and-Cost |
 | `08-governance-safety/` | Governance-Overview, Guardrails-and-Supervisors, Data-Flow, Tenancy-ADR, Code-Reuse-Policy, Threat-Model, Security-and-Compliance, Security-Review, Tenant-Isolation-Threat-Model, Penetration-Test-Brief, Licenses |
 | `09-models/` | Models-Overview, Model-Providers, Hybrid-Model-Selection, Local-Models-Guide |
-| `10-releases/` | Releases-Overview, Release-Management, Release-Checklist, Pilot-Plan |
+| `10-releases/` | Releases-Overview, Release-Management, Release-Checklist, Release-Notes-1.0.0-rc.2, Pilot-Plan |
 | `11-operations/` | Operations-Overview, Operator-Experience, Deployment-Guide, Owner-Runbooks, Network-Needs, Performance, Database-Schema, Repo-Structure |
 | `12-project/` | Project-Status, Roadmap, Agent-Platform-Plan, Implementation-Plan, Gap-Closure-Plan, Feature-Catalog, Feature-Spec, User-Stories, User-Journey, Non-Functional-Requirements, Tech-Stack-Decisions, Build-vs-Adopt, Decision-Log, Glossary, Docs-Completion-Checklist, Session-Prompts, Contributing (the short version is `CONTRIBUTING.md` at the repository root; see also `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) |
 | `13-workspace/` | The later staff product: Workspace-Spec, Pilot-Spec, Personal-Intelligence-Spec, Staff-Platform-Architecture |

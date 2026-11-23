@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/VenkataAnilKumar/NorthCX/actions/workflows/ci.yml/badge.svg)](https://github.com/VenkataAnilKumar/NorthCX/actions/workflows/ci.yml)
 [![Licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-1747b8)](LICENSE)
-[![Status: release candidate](https://img.shields.io/badge/status-1.0.0--rc.1-f59e0b)](CHANGELOG.md)
+[![Status: release candidate](https://img.shields.io/badge/status-1.0.0--rc.2-f59e0b)](CHANGELOG.md)
 [![Backend: Python 3.12+](https://img.shields.io/badge/backend-Python%203.12%2B-3776ab)](src/backend)
 [![Apps: Next.js](https://img.shields.io/badge/apps-Admin%20%2B%20Workspace-111827)](src/apps)
 [![Self-hosted](https://img.shields.io/badge/deploy-self--hosted-16a34a)](docs/11-operations/NorthCX_Deployment-Guide.md)
@@ -248,7 +248,7 @@ The second app, **Workspace** (port 3002), is for the people who supervise the a
 
 ## 📊 Honest status
 
-**NorthCX is a feature-complete release candidate (1.0.0-rc.1), ready for a supervised single-company pilot, not yet proven in production.**
+**NorthCX is a feature-complete release candidate (1.0.0-rc.2), ready for a supervised single-company pilot, not yet proven in production.**
 
 | Verified | Result |
 |---|---|

@@ -4,6 +4,10 @@ All notable changes. The format follows [Keep a Changelog](https://keepachangelo
 
 ## [Unreleased]
 
+## [1.0.0-rc.2] - 2026-11-23
+
+Second release candidate: everything built since rc.1 (the Agent Platform work, phases 0 to 6, and the preparation for phase 7). Release notes with the known limits: `docs/10-releases/NorthCX_Release-Notes-1.0.0-rc.2.md`. Nothing in it has been run with a real cloud model; one small local model has (see the local models guide).
+
 ### Fixed (Phase 6 review, 2026-11-22)
 - `python -m northcx backup` and `restore` report a wrong database password, address or refused connection as one plain line (never the password) instead of a traceback.
 
